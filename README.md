@@ -18,3 +18,11 @@ source venv/bin/activate
 ```Bash
 deactivate
 ```
+
+# Commands
+
+## UPDATE requirements.txt
+
+```Bash
+pip freeze > requirements.txt
+```
