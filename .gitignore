@@ -2,3 +2,5 @@
 !.gitignore
 *.pyc
 !README.md
+!app/
+!app/*
