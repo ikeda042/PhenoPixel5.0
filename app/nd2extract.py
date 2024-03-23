@@ -64,5 +64,3 @@ def process_image(array):
     array /= array.max()  # Normalize to 1
     array *= 255  # Scale to 0-255
     return array.astype(np.uint8) 
-
-extract_nd2("sk326tri30minpi.nd2")
