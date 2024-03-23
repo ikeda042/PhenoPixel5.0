@@ -4,4 +4,5 @@
 !README.md
 !app/
 !app/*
+!app/*/*
 !requirements.txt
