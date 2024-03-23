@@ -1,0 +1,8 @@
+imageio==2.34.0
+nd2reader==3.3.0
+numpy==1.26.4
+pillow==10.2.0
+PIMS==0.6.1
+six==1.16.0
+slicerator==1.1.0
+xmltodict==0.13.0
