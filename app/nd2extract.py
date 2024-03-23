@@ -2,6 +2,7 @@ import nd2reader
 import numpy as np
 from PIL import Image
 import os
+from tqdm import tqdm
 
 def extract_nd2(file_name: str):
     """
@@ -27,7 +28,7 @@ def extract_nd2(file_name: str):
         print(f"Channels: {num_channels}")
         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
-        for n, img in enumerate(images):
+        for n, img in enumerate(tqdm(images)):
             if num_channels > 1:
                 for channel in range(num_channels):
                     array = np.array(img[channel])
@@ -41,7 +42,7 @@ def extract_nd2(file_name: str):
                 image.save(f"nd2totiff/image_{n}.tif")
 
         all_images = []
-        for i in range(len(images)):
+        for i in tqdm(range(len(images))):
             if num_channels > 1:
                 for j in range(num_channels):
                     all_images.append(Image.open(f"nd2totiff/image_{i}_channel_{j}.tif"))
@@ -63,3 +64,5 @@ def process_image(array):
     array /= array.max()  # Normalize to 1
     array *= 255  # Scale to 0-255
     return array.astype(np.uint8) 
+
+extract_nd2("sk326tri30minpi.nd2")
