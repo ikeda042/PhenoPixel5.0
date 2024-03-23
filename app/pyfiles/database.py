@@ -1,5 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, BLOB, FLOAT
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column, Integer, String, BLOB, FLOAT
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
