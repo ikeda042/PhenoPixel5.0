@@ -125,7 +125,6 @@ def extract_tiff(
             for i in range(num_pages):
                 tiff.seek(i)
                 filename = f"TempData/PH/{img_num}.tif"
-                print(filename)
                 tiff.save(filename, format="TIFF")
                 img_num += 1
         elif mode == "normal":
@@ -136,7 +135,6 @@ def extract_tiff(
                     img_num += 1
                 else:
                     filename = f"TempData/PH/{img_num}.tif"
-                print(filename)
                 tiff.save(filename, format="TIFF")
         else:
             raise ValueError("Invalid mode")
@@ -215,8 +213,7 @@ def init(
     # 画像の枚数を取得
     num_tif = extract_tiff(
         input_filename,
-        fluo_dual_layer=fluo_dual_layer_mode,
-        singe_layer_mode=single_layer_mode,
+        mode=mode,
     )
     # フォルダの作成
     for i in range(num_tif // set_num):
@@ -239,7 +236,7 @@ def init(
             except Exception as e:
                 print(e)
 
-        if fluo_dual_layer_mode:
+        if mode == "dual":
             try:
                 os.mkdir(f"TempData/frames/tiff_{i}/Cells/fluo2")
             except Exception as e:
@@ -253,11 +250,11 @@ def init(
             except Exception as e:
                 print(e)
 
-    for k in tqdm(range(num_tif // set_num)):
+    for k in range(num_tif // set_num):
         print(f"TempData/PH/{k}.tif")
         image_ph = cv2.imread(f"TempData/PH/{k}.tif")
         image_fluo_1 = cv2.imread(f"TempData/Fluo1/{k}.tif")
-        if fluo_dual_layer_mode:
+        if mode == "dual":
             image_fluo_2 = cv2.imread(f"TempData/Fluo2/{k}.tif")
         img_gray = cv2.cvtColor(image_ph, cv2.COLOR_BGR2GRAY)
 
