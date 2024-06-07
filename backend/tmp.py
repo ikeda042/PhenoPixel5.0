@@ -78,7 +78,7 @@ def process_image(array):
 
 
 def extract_tiff(
-    tiff_file, fluo_dual_layer: bool = False, singe_layer_mode: bool = True
+    tiff_file_path: str, mode: Literal["normal", "single", "dual"] = "normal"
 ) -> int:
     folders = [
         folder
@@ -86,32 +86,31 @@ def extract_tiff(
         if os.path.isdir(os.path.join(".", folder))
     ]
 
-    if fluo_dual_layer:
+    if mode == "dual":
         for i in [i for i in ["Fluo1", "Fluo2", "PH"] if i not in folders]:
             try:
                 os.mkdir(f"TempData/{i}")
             except:
                 continue
-    elif singe_layer_mode:
+    elif mode == "single":
         for i in [i for i in ["PH"] if i not in folders]:
             try:
                 os.mkdir(f"TempData/{i}")
             except:
                 continue
-    else:
+    elif mode == "normal":
         for i in [i for i in ["Fluo1", "PH"] if i not in folders]:
             try:
                 os.mkdir(f"TempData/{i}")
             except:
                 continue
+    else:
+        raise ValueError("Invalid mode")
 
-    with Image.open(tiff_file) as tiff:
+    with Image.open(tiff_file_path) as tiff:
         num_pages = tiff.n_frames
-        print("###############################################")
-        print(num_pages)
-        print("###############################################")
         img_num = 0
-        if fluo_dual_layer:
+        if mode == "dual":
             for i in range(num_pages):
                 tiff.seek(i)
                 if (i + 2) % 3 == 0:
@@ -121,16 +120,15 @@ def extract_tiff(
                     img_num += 1
                 else:
                     filename = f"TempData/PH/{img_num}.tif"
-                print(filename)
                 tiff.save(filename, format="TIFF")
-        elif singe_layer_mode:
+        elif mode == "single":
             for i in range(num_pages):
                 tiff.seek(i)
                 filename = f"TempData/PH/{img_num}.tif"
                 print(filename)
                 tiff.save(filename, format="TIFF")
                 img_num += 1
-        else:
+        elif mode == "normal":
             for i in range(num_pages):
                 tiff.seek(i)
                 if (i + 1) % 2 == 0:
@@ -140,7 +138,8 @@ def extract_tiff(
                     filename = f"TempData/PH/{img_num}.tif"
                 print(filename)
                 tiff.save(filename, format="TIFF")
-
+        else:
+            raise ValueError("Invalid mode")
     return num_pages
 
 
