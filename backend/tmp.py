@@ -169,6 +169,7 @@ def crop_contours(image, contours, output_size):
             cropped_images.append(cropped)
     return cropped_images
 
+
 import os
 import cv2
 import numpy as np
@@ -177,21 +178,23 @@ from typing import Literal
 
 def init(
     input_filename: str,
+    image_size: int = 100,
+    mode: Literal["normal", "single", "dual"] = "normal",
     param1: int = 140,
     param2: int = 255,
-    image_size: int = 100,
-    mode: 
 ) -> int:
 
-    if fluo_dual_layer_mode:
+    if mode == "dual":
         set_num = 3
         init_folders = ["Fluo1", "Fluo2", "PH", "frames", "app_data"]
-    elif single_layer_mode:
+    elif mode == "single":
         set_num = 1
         init_folders = ["PH", "frames", "app_data"]
-    else:
+    elif mode == "normal":
         set_num = 2
         init_folders = ["Fluo1", "PH", "frames", "app_data"]
+    else:
+        raise ValueError("Invalid mode")
 
     try:
         os.mkdir("TempData")
