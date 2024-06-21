@@ -1,9 +1,8 @@
 "use strict";
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
-// ホットリロードの設定
 require('electron-reload')(path.join(__dirname, '../dist'), {
-    electron: require(`${__dirname}/../../node_modules/electron`)
+    electron: require(path.join(__dirname, '../../node_modules/electron'))
 });
 function createWindow() {
     const mainWindow = new BrowserWindow({
