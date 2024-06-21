@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const react_1 = __importDefault(require("react"));
 const react_dom_1 = __importDefault(require("react-dom"));
 const App = () => {
-    return react_1.default.createElement("h1", null, "Hello, Electron with TypeScript and React!");
+    return (react_1.default.createElement("div", null,
+        react_1.default.createElement("h1", null, "Hello, Electron with TypeScript and React!")));
 };
 react_dom_1.default.render(react_1.default.createElement(App, null), document.getElementById('root'));
