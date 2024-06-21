@@ -62,7 +62,7 @@ function Nav(props) {
             React.createElement(Toolbar_1.default, null,
                 React.createElement(IconButton_1.default, { color: "inherit", "aria-label": "open drawer", edge: "start", onClick: handleDrawerToggle, sx: { mr: 2, display: { sm: 'none' } } },
                     React.createElement(Menu_1.default, null)),
-                React.createElement(Typography_1.default, { variant: "h6", component: "div", sx: { flexGrow: 1, display: { xs: 'none', sm: 'block' } } }, "SKlab portal"),
+                React.createElement(Typography_1.default, { variant: "h6", component: "div", sx: { flexGrow: 1, display: { xs: 'none', sm: 'block' } } }, "PhenoPixcel5.0"),
                 React.createElement(Box_1.default, { sx: { display: { xs: 'none', sm: 'block' } } }, navItems.map((item) => (React.createElement(Button_1.default, { key: item, sx: { color: 'inherit' } }, item)))))),
         React.createElement("nav", null,
             React.createElement(Drawer_1.default, { container: container, variant: "temporary", open: mobileOpen, onClose: handleDrawerToggle, ModalProps: {
