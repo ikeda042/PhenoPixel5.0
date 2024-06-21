@@ -2,7 +2,7 @@
   "name": "your-app",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
+  "main": "dist/main.js",
   "scripts": {
     "start": "webpack serve",
   "electron": "electron .",
