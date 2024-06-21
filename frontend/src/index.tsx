@@ -1,12 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import DrawerAppBar from './components/Component1';
+import Nav from './components/Component1';
 
 const App: React.FC = () => {
     return (
         <div>
             <>
-                <DrawerAppBar />
+                <Nav />
             </>
         </div>
     );
