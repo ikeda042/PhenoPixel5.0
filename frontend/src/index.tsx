@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import DrawerAppBar from './Component1';
+import DrawerAppBar from './components/Component1';
 
 const App: React.FC = () => {
     return (
