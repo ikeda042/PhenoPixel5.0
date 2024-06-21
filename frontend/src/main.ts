@@ -12,8 +12,7 @@ function createWindow() {
     }
   });
 
-  const startUrl = `file://${path.join(__dirname, '../dist/index.html')}`;
-  mainWindow.loadURL(startUrl);
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
 }
 
 app.on('ready', createWindow);
