@@ -1,6 +1,9 @@
 #!/bin/bash
 
-# ビルド
+# TypeScript のコンパイル
+npx tsc
+
+# Webpack のビルド
 npm run build
 
 # Webpack Dev Server の起動
