@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Nav from './components/Component1';
+import Nav from './components/NavigationBar';
 
 const App: React.FC = () => {
     return (
