@@ -11,7 +11,8 @@ function createWindow() {
             contextIsolation: false
         }
     });
-    mainWindow.loadURL('http://localhost:9000');
+    const startUrl = `file://${path.join(__dirname, '../dist/index.html')}`;
+    mainWindow.loadURL(startUrl);
 }
 app.on('ready', createWindow);
 app.on('window-all-closed', () => {

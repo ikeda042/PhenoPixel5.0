@@ -30,9 +30,9 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js'
   },
- devServer: {
-  static: path.join(__dirname, 'dist'),
-  compress: true,
-  port: 9000
-}
+  devServer: {
+    contentBase: path.join(__dirname, 'dist'),
+    compress: true,
+    port: 9000
+  }
 };
