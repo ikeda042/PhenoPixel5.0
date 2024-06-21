@@ -1,4 +1,3 @@
-
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
@@ -13,7 +12,8 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadURL('http://localhost:9000');
+  const startUrl = `file://${path.join(__dirname, '../dist/index.html')}`;
+  mainWindow.loadURL(startUrl);
 }
 
 app.on('ready', createWindow);
