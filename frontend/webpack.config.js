@@ -2,7 +2,7 @@ const path = require('path');
 
 module.exports = {
   mode: 'development',
-  entry: './src/main.tsx',
+  entry: './src/index.tsx',
   module: {
     rules: [
       {
@@ -21,18 +21,8 @@ module.exports = {
     extensions: ['.ts', '.tsx', '.js', '.jsx']
   },
   output: {
-    filename: 'main.js',
+    filename: 'renderer.js',
     path: path.resolve(__dirname, 'dist')
   },
-  target: 'electron-main',
-  "compilerOptions": {
-    "target": "ES6",
-    "module": "commonjs",
-    "strict": true,
-    "esModuleInterop": true,
-    "outDir": "dist",
-    "sourceMap": true,
-    "jsx": "react"  
-  },
-  "include": ["src/**/*"]
+  target: 'electron-renderer'
 };
