@@ -2,7 +2,7 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 require('electron-reload')(path.join(__dirname, '../dist'), {
-    electron: require(path.join(__dirname, '../../node_modules/electron'))
+    electron: require.resolve('electron')
 });
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -14,7 +14,7 @@ function createWindow() {
             contextIsolation: false
         }
     });
-    mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    mainWindow.loadURL('http://localhost:9000');
 }
 app.on('ready', createWindow);
 app.on('window-all-closed', () => {
