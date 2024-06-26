@@ -167,7 +167,7 @@ def init(
     param1: int = 85,
     param2: int = 255,
 ) -> int:
-
+    extract_nd2(input_filename)
     if mode == "dual":
         set_num = 3
         init_folders = ["Fluo1", "Fluo2", "PH", "frames", "app_data"]
@@ -340,6 +340,6 @@ def init(
     return num_tif
 
 
-file = "backend/sk328gen120min.nd2"
-extract_nd2(file)
-init("sk328gen120min.tif", mode="dual")
+# file = "backend/sk328gen120min.nd2"
+# extract_nd2(file)
+# init("sk328gen120min.tif", mode="dual")
