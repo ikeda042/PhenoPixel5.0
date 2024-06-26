@@ -17,7 +17,9 @@ async def init_api(filename: str):
     loop = asyncio.get_event_loop()
 
     await loop.run_in_executor(None, extract_nd2, filename)
-    await loop.run_in_executor(None, init, filename.split(".")[0] + ".tif", 100, "dual")
+    return await loop.run_in_executor(
+        None, init, filename.split(".")[0] + ".tif", 100, "dual"
+    )
 
 
 if __name__ == "__main__":
