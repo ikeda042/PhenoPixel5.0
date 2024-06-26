@@ -7,3 +7,4 @@ TempData/
 ph_contours/
 **/__pycache__/
 *.pyc
+*.db
