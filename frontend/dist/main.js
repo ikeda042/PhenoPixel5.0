@@ -9,7 +9,7 @@ function createWindow() {
             nodeIntegration: true
         }
     });
-    mainWindow.loadFile('index.html');
+    mainWindow.loadFile('src/index.html');
 }
 electron_1.app.whenReady().then(createWindow);
 electron_1.app.on('window-all-closed', () => {
