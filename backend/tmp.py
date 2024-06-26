@@ -74,6 +74,30 @@ def process_image(array):
     return array.astype(np.uint8)
 
 
+def streamlined_save_tiff(tiff, mode, num_pages):
+    img_num = 0
+    folder_map = {
+        "dual": lambda i: (
+            "Fluo1" if (i + 2) % 3 == 0 else "Fluo2" if (i + 2) % 3 == 1 else "PH",
+            1 if (i + 2) % 3 == 1 else 0,
+        ),
+        "single": lambda i: ("PH", 1),
+        "normal": lambda i: (
+            "Fluo1" if (i + 1) % 2 == 0 else "PH",
+            1 if (i + 1) % 2 == 0 else 0,
+        ),
+    }
+    if mode not in folder_map:
+        raise ValueError("Invalid mode")
+
+    for i in range(num_pages):
+        tiff.seek(i)
+        folder, increment = folder_map[mode](i)
+        filename = f"TempData/{folder}/{img_num}.tif"
+        tiff.save(filename, format="TIFF")
+        img_num += increment
+
+
 def extract_tiff(
     tiff_file_path: str, mode: Literal["normal", "single", "dual"] = "normal"
 ) -> int:
@@ -106,35 +130,7 @@ def extract_tiff(
 
     with Image.open(tiff_file_path) as tiff:
         num_pages = tiff.n_frames
-        img_num = 0
-        if mode == "dual":
-            for i in range(num_pages):
-                tiff.seek(i)
-                if (i + 2) % 3 == 0:
-                    filename = f"TempData/Fluo1/{img_num}.tif"
-                elif (i + 2) % 3 == 1:
-                    filename = f"TempData/Fluo2/{img_num}.tif"
-                    img_num += 1
-                else:
-                    filename = f"TempData/PH/{img_num}.tif"
-                tiff.save(filename, format="TIFF")
-        elif mode == "single":
-            for i in range(num_pages):
-                tiff.seek(i)
-                filename = f"TempData/PH/{img_num}.tif"
-                tiff.save(filename, format="TIFF")
-                img_num += 1
-        elif mode == "normal":
-            for i in range(num_pages):
-                tiff.seek(i)
-                if (i + 1) % 2 == 0:
-                    filename = f"TempData/Fluo1/{img_num}.tif"
-                    img_num += 1
-                else:
-                    filename = f"TempData/PH/{img_num}.tif"
-                tiff.save(filename, format="TIFF")
-        else:
-            raise ValueError("Invalid mode")
+        streamlined_save_tiff(tiff, mode, num_pages)
     return num_pages
 
 
@@ -346,4 +342,4 @@ def crop_contours(image, contours, output_size):
 
 file = "backend/sk328gen120min.nd2"
 extract_nd2(file)
-extract_tiff("nd2totiff/image_0_channel_0.tif", mode="dual")
+extract_tiff("sk328gen120min.tif", mode="dual")
