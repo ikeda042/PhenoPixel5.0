@@ -4,6 +4,7 @@ from tmp import init, extract_nd2, image_process
 import asyncio
 from fastapi.responses import FileResponse
 import os
+import re
 
 
 app = FastAPI()
@@ -27,9 +28,19 @@ async def init_api(filename: str):
     )
 
 
+def custom_sort_key(filename):
+    match = re.match(r"F(\d+)C(\d+)", filename)
+    if match:
+        f_num = int(match.group(1))
+        c_num = int(match.group(2))
+        return (f_num, c_num)
+    return (float("inf"), float("inf"))
+
+
 @app.get("/image/filenames")
 async def get_image_filenames():
-    return {"filenames": os.listdir("TempData/app_data")}
+    filenames = sorted(os.listdir("TempData/app_data"), key=custom_sort_key)
+    return {"filenames": filenames}
 
 
 @app.get("/image/{filename}")
