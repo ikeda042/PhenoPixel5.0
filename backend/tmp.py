@@ -86,25 +86,22 @@ def extract_tiff(
         if os.path.isdir(os.path.join(".", folder))
     ]
 
-    if mode == "dual":
-        for i in [i for i in ["Fluo1", "Fluo2", "PH"] if i not in folders]:
+    mode_to_folders = {
+        "dual": ["Fluo1", "Fluo2", "PH"],
+        "single": ["PH"],
+        "normal": ["Fluo1", "PH"],
+    }
+
+    folders_to_create = mode_to_folders.get(mode, [])
+
+    for folder in folders_to_create:
+        if folder not in folders:
             try:
-                os.mkdir(f"TempData/{i}")
+                os.mkdir(f"TempData/{folder}")
             except:
                 continue
-    elif mode == "single":
-        for i in [i for i in ["PH"] if i not in folders]:
-            try:
-                os.mkdir(f"TempData/{i}")
-            except:
-                continue
-    elif mode == "normal":
-        for i in [i for i in ["Fluo1", "PH"] if i not in folders]:
-            try:
-                os.mkdir(f"TempData/{i}")
-            except:
-                continue
-    else:
+
+    if mode not in mode_to_folders:
         raise ValueError("Invalid mode")
 
     with Image.open(tiff_file_path) as tiff:
