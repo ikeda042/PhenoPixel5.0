@@ -679,7 +679,7 @@ def image_process(
                         session.commit()
 
 
-image_process("sk328gen120min.tif", param1=85, param2=255, image_size=100)
 # file = "sk328gen120min.nd2"
 # extract_nd2(file)
 # init("sk328gen120min.tif", mode="dual")
+# image_process("sk328gen120min.tif", param1=85, param2=255, image_size=100)
