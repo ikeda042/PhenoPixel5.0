@@ -4,6 +4,9 @@ import nd2reader
 import numpy as np
 import cv2
 from typing import Literal
+from sqlalchemy import create_engine, Column, Integer, String, BLOB, FLOAT
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 
 
 def extract_nd2(file_name: str):
@@ -424,10 +427,6 @@ def unify_images_ndarray6(image1, image2, image3, image4, image5, image6, output
     # 画像を保存
     cv2.imwrite(f"{output_name}.png", cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
 
-
-from sqlalchemy import create_engine, Column, Integer, String, BLOB, FLOAT
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
