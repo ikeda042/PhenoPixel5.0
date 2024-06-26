@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 import uvicorn
 from tmp import init
+import asyncio
 
 
 app = FastAPI()
@@ -13,8 +14,9 @@ async def read_root():
 
 @app.get("/init/{filename}")
 async def init_api(filename: str):
-    init(filename, mode="dual")
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, init, filename, "dual")
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
