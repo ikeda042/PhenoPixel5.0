@@ -7,6 +7,12 @@ from typing import Literal
 from sqlalchemy import create_engine, Column, Integer, String, BLOB, FLOAT
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+import os
+import cv2
+from tqdm import tqdm
+import pickle
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 
 def extract_nd2(file_name: str):
@@ -146,13 +152,6 @@ def get_contour_center(contour):
 
 
 def crop_contours(image, contours, output_size):
-    print(
-        "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    )
-    print(output_size)
-    print(
-        "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    )
     cropped_images = []
     for contour in contours:
         # 各輪郭の中心座標を取得
@@ -447,22 +446,13 @@ class Cell(Base):
     center_y = Column(FLOAT)
 
 
-import os
-import cv2
-from tqdm import tqdm
-import pickle
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-
 def image_process(
     input_filename: str = "data.tif",
     param1: int = 80,
     param2: int = 255,
     image_size: int = 100,
     draw_scale_bar: bool = True,
-    fluo_dual_layer_mode: bool = True,
-    single_layer_mode: bool = False,
+    mode: Literal["normal", "single", "dual"] = "normal",
 ) -> None:
     engine = create_engine(f'sqlite:///{input_filename.split(".")[0]}.db', echo=True)
     Base.metadata.create_all(engine)
@@ -472,13 +462,14 @@ def image_process(
         param1=param1,
         param2=param2,
         image_size=image_size,
-        fluo_dual_layer_mode=fluo_dual_layer_mode,
-        single_layer_mode=single_layer_mode,
+        mode=mode,
     )
     print(num_tif)
     print(
         "Processing images...\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n"
     )
+    single_layer_mode = True if mode == "single" else False
+    fluo_dual_layer_mode = True if mode == "dual" else False
     iter_n = num_tif // 3 if not single_layer_mode else num_tif
     for k in tqdm(range(0, iter_n)):
         for j in range(len(os.listdir(f"TempData/frames/tiff_{k}/Cells/ph/"))):
@@ -688,6 +679,7 @@ def image_process(
                         session.commit()
 
 
+image_process("sk328gen120min.tif", param1=85, param2=255, image_size=100)
 # file = "sk328gen120min.nd2"
 # extract_nd2(file)
 # init("sk328gen120min.tif", mode="dual")
