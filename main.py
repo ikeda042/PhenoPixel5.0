@@ -29,8 +29,12 @@ async def init_api(filename: str):
 
 @app.get("/image/filenames")
 async def get_image_filenames():
-
     return {"filenames": os.listdir("TempData/app_data")}
+
+
+@app.get("/image/{filename}")
+async def get_image(filename: str):
+    return FileResponse(f"TempData/app_data/{filename}")
 
 
 if __name__ == "__main__":
