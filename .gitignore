@@ -1,2 +1,5 @@
 venv/
 frontend/node_modules/
+nd2totiff/
+TempData/
+*.tif
