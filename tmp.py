@@ -447,8 +447,6 @@ class Cell(Base):
     center_y = Column(FLOAT)
 
 
-from .database import Cell, Base
-from .calc_center import get_contour_center
 import os
 import cv2
 from tqdm import tqdm
