@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import uvicorn
-from tmp import init
+from tmp import init, extract_nd2
 import asyncio
 
 
@@ -14,8 +14,10 @@ async def read_root():
 
 @app.get("/init/{filename}")
 async def init_api(filename: str):
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, init, filename, "dual")
+    loop = asyncio.get_event_loop()
+
+    await loop.run_in_executor(None, extract_nd2, filename)
+    await loop.run_in_executor(None, init, filename.split(".")[0] + ".tif", 100, "dual")
 
 
 if __name__ == "__main__":

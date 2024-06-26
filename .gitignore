@@ -3,4 +3,7 @@ frontend/node_modules/
 nd2totiff/
 TempData/
 *.tif
+*.nd2
 ph_contours/
+**/__pycache__/
+*.pyc

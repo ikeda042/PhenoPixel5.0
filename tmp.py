@@ -143,6 +143,13 @@ def get_contour_center(contour):
 
 
 def crop_contours(image, contours, output_size):
+    print(
+        "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+    )
+    print(output_size)
+    print(
+        "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+    )
     cropped_images = []
     for contour in contours:
         # 各輪郭の中心座標を取得
@@ -339,6 +346,6 @@ def init(
     return num_tif
 
 
-# file = "backend/sk328gen120min.nd2"
+# file = "sk328gen120min.nd2"
 # extract_nd2(file)
 # init("sk328gen120min.tif", mode="dual")
