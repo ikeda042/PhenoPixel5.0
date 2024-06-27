@@ -56,6 +56,11 @@ async def get_image_filenames():
     return {"filenames": filenames}
 
 
+@app.get("/image/filenames/count")
+async def get_image_filenames_count():
+    return {"count": len(os.listdir("TempData/app_data"))}
+
+
 @app.get("/image/{filename}")
 async def get_image(filename: str):
     return FileResponse(f"TempData/app_data/{filename}")
