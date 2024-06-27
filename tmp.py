@@ -694,31 +694,47 @@ def image_process(
 
 class AsyncCellCRUD:
     def __init__(self, db_name: str):
-        self.DATABASE_URL = f"sqlite+aiosqlite://{db_name}.db"
+        self.DATABASE_URL = f"sqlite+aiosqlite:///{db_name}.db"
         self.engine = create_async_engine(self.DATABASE_URL, echo=True)
         self.AsyncSessionLocal = sessionmaker(
             bind=self.engine, class_=AsyncSession, expire_on_commit=False
         )
+        self.Base = declarative_base()
+
+        class Cell(self.Base):
+            __tablename__ = "cells"
+            id = Column(Integer, primary_key=True)
+            cell_id = Column(String)
+            label_experiment = Column(String)
+            manual_label = Column(Integer)
+            perimeter = Column(FLOAT)
+            area = Column(FLOAT)
+            img_ph = Column(BLOB)
+            img_fluo1 = Column(BLOB)
+            img_fluo2 = Column(BLOB)
+            contour = Column(BLOB)
+            center_x = Column(FLOAT)
+            center_y = Column(FLOAT)
 
     async def init_db(self, Base):
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    async def read_all_cell_ids(self, Cell):
+    async def read_all_cell_ids(self):
         async with self.AsyncSessionLocal() as session:
             async with session.begin():
                 result = await session.execute(select(Cell.cell_id))
                 cell_ids = result.scalars().all()
                 return cell_ids
 
-    async def read_cell(self, Cell, cell_id: str):
+    async def read_cell(self, cell_id: str):
         async with self.AsyncSessionLocal() as session:
             async with session.begin():
                 result = await session.execute(select(Cell).filter_by(cell_id=cell_id))
                 cell = result.scalars().first()
                 return cell
 
-    async def update_cell(self, Cell, cell_id: str, **kwargs):
+    async def update_cell(self, cell_id: str, **kwargs):
         async with self.AsyncSessionLocal() as session:
             async with session.begin():
                 await session.execute(
