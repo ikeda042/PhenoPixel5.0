@@ -1,12 +1,10 @@
 from fastapi import FastAPI
 import uvicorn
-from tmp import init, extract_nd2, image_process
+from tmp import init, extract_nd2, image_process, init_db
 import asyncio
 from fastapi.responses import FileResponse
 import os
 import re
-
-## CORs
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -21,6 +19,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    await init_db()
 
 
 @app.get("/")
