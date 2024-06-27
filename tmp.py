@@ -694,7 +694,7 @@ def image_process(
 
 class AsyncCellCRUD:
     def __init__(self, db_name: str):
-        self.DATABASE_URL = f"sqlite+aiosqlite://./{db_name}.db"
+        self.DATABASE_URL = f"sqlite+aiosqlite://{db_name}.db"
         self.engine = create_async_engine(self.DATABASE_URL, echo=True)
         self.AsyncSessionLocal = sessionmaker(
             bind=self.engine, class_=AsyncSession, expire_on_commit=False
