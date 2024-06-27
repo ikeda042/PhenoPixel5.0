@@ -17,7 +17,10 @@ import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import Column, Integer, String, Float, BLOB, select, update
+from sqlalchemy import Column, Integer, String, BLOB, select, update
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select, update
 
 
 def extract_nd2(file_name: str):
@@ -689,61 +692,40 @@ def image_process(
                         session.commit()
 
 
-DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+class AsyncCellCRUD:
+    def __init__(self, db_name: str):
+        self.DATABASE_URL = f"sqlite+aiosqlite://./{db_name}.db"
+        self.engine = create_async_engine(self.DATABASE_URL, echo=True)
+        self.AsyncSessionLocal = sessionmaker(
+            bind=self.engine, class_=AsyncSession, expire_on_commit=False
+        )
 
-engine = create_async_engine(DATABASE_URL, echo=True)
-AsyncSessionLocal = sessionmaker(
-    bind=engine, class_=AsyncSession, expire_on_commit=False
-)
+    async def init_db(self, Base):
+        async with self.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
 
+    async def read_all_cell_ids(self, Cell):
+        async with self.AsyncSessionLocal() as session:
+            async with session.begin():
+                result = await session.execute(select(Cell.cell_id))
+                cell_ids = result.scalars().all()
+                return cell_ids
 
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    async def read_cell(self, Cell, cell_id: str):
+        async with self.AsyncSessionLocal() as session:
+            async with session.begin():
+                result = await session.execute(select(Cell).filter_by(cell_id=cell_id))
+                cell = result.scalars().first()
+                return cell
 
+    async def update_cell(self, Cell, cell_id: str, **kwargs):
+        async with self.AsyncSessionLocal() as session:
+            async with session.begin():
+                await session.execute(
+                    update(Cell).where(Cell.cell_id == cell_id).values(**kwargs)
+                )
+                await session.commit()
 
-async def read_all_cell_ids():
-    async with AsyncSessionLocal() as session:
-        async with session.begin():
-            result = await session.execute(select(Cell.cell_id))
-            cell_ids = result.scalars().all()
-            return cell_ids
-
-
-async def read_cell(cell_id: str):
-    async with AsyncSessionLocal() as session:
-        async with session.begin():
-            result = await session.execute(select(Cell).filter_by(cell_id=cell_id))
-            cell = result.scalars().first()
-            return cell
-
-
-async def update_cell(cell_id: str, **kwargs):
-    async with AsyncSessionLocal() as session:
-        async with session.begin():
-            await session.execute(
-                update(Cell).where(Cell.cell_id == cell_id).values(**kwargs)
-            )
-            await session.commit()
-
-
-# テスト用の例
-async def main():
-    await init_db()
-    # 全てのcell_idを取得
-    cell_ids = await read_all_cell_ids()
-    print("Cell IDs:", cell_ids)
-
-    # 特定のcell_idに対応するセル情報を取得
-    cell = await read_cell("some_cell_id")
-    print("Cell:", cell)
-
-    # セル情報を更新
-    await update_cell("some_cell_id", label_experiment="new_label", manual_label=2)
-
-
-# 非同期実行
-asyncio.run(main())
 
 # file = "sk328gen120min.nd2"
 # extract_nd2(file)
