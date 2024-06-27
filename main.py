@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import uvicorn
-from tmp import init, extract_nd2, image_process, init_db
+from tmp import init, extract_nd2, image_process, AsyncCellCRUD
 import asyncio
 from fastapi.responses import FileResponse
 import os
@@ -19,11 +19,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-async def startup_event():
-    await init_db()
 
 
 @app.get("/")
@@ -67,6 +62,13 @@ async def get_image_filenames_count():
 @app.get("/image/{filename}")
 async def get_image(filename: str):
     return FileResponse(f"TempData/app_data/{filename}")
+
+
+@app.get("/database/cell/{dbname}")
+async def get_cell(dbname: str):
+    CELLDB: AsyncCellCRUD = AsyncCellCRUD(db_name=dbname)
+    cell_ids = await CELLDB.read_all_cell_ids()
+    return {"cells": cell_ids}
 
 
 if __name__ == "__main__":
