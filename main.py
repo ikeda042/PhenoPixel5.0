@@ -71,5 +71,13 @@ async def get_cell(dbname: str):
     return {"cells": cell_ids}
 
 
+@app.get("/database/cell/{dbname}/{cell_id}")
+async def get_cell(dbname: str, cell_id: str):
+    CELLDB: AsyncCellCRUD = AsyncCellCRUD(db_name=dbname)
+    cell = await CELLDB.read_cell(cell_id)
+
+    return cell
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

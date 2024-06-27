@@ -742,6 +742,16 @@ class AsyncCellCRUD:
                 )
                 await session.commit()
 
+    async def update_cell_manual_label(self, cell_id: str, manual_label: str):
+        async with self.AsyncSessionLocal() as session:
+            async with session.begin():
+                await session.execute(
+                    update(Cell)
+                    .where(Cell.cell_id == cell_id)
+                    .values(manual_label=manual_label)
+                )
+                await session.commit()
+
 
 # file = "sk328gen120min.nd2"
 # extract_nd2(file)
