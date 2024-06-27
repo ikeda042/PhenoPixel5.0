@@ -67,16 +67,24 @@ async def get_image(filename: str):
 @app.get("/database/cell/{dbname}")
 async def get_cell(dbname: str):
     CELLDB: AsyncCellCRUD = AsyncCellCRUD(db_name=dbname)
-    cell_ids = await CELLDB.read_all_cell_ids()
+    cell_ids: list[str] = await CELLDB.read_all_cell_ids()
     return {"cells": cell_ids}
 
 
-@app.get("/database/cell/{dbname}/{cell_id}")
+@app.get("/database/cell/{dbname}/{cell_id}/manual_label")
 async def get_cell(dbname: str, cell_id: str):
     CELLDB: AsyncCellCRUD = AsyncCellCRUD(db_name=dbname)
     cell = await CELLDB.read_cell(cell_id)
+    if cell is None:
+        return {"cell": None}
+    return {"cell": cell["manual_label"]}
 
-    return cell
+
+@app.patch("/database/cell/{dbname}/{cell_id}/{label}")
+async def get_cell(dbname: str, cell_id: str, label: str):
+    CELLDB: AsyncCellCRUD = AsyncCellCRUD(db_name=dbname)
+    cell = await CELLDB.update_cell_manual_label(cell_id, label)
+    return {"cell": cell}
 
 
 if __name__ == "__main__":
