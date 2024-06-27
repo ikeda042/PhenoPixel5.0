@@ -74,13 +74,21 @@ async def get_cell(dbname: str):
 
 @app.get("/database/cell/{dbname}/{cell_id}/manual_label")
 async def get_cell_manual_label(dbname: str, cell_id: str):
+    cell_id = cell_id.replace(" ", "").replace("\n", "")
+    if "." in cell_id:
+        cell_id = cell_id.split(".")[0]
     CELLDB: AsyncCellCRUD = AsyncCellCRUD(db_name=dbname)
     cell: Cell = await CELLDB.read_cell(cell_id)
+    if cell is None:
+        return {"cell": None}
     return {"cell": cell.manual_label}
 
 
 @app.patch("/database/cell/{dbname}/{cell_id}/{label}")
 async def update_cell(dbname: str, cell_id: str, label: str):
+    cell_id = cell_id.replace(" ", "").replace("\n", "")
+    if "." in cell_id:
+        cell_id = cell_id.split(".")[0]
     CELLDB: AsyncCellCRUD = AsyncCellCRUD(db_name=dbname)
     await CELLDB.update_cell_manual_label(cell_id, label)
     return {"response": "success"}
