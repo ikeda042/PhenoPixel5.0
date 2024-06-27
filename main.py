@@ -73,7 +73,7 @@ async def get_cell(dbname: str):
 
 
 @app.get("/database/cell/{dbname}/{cell_id}/manual_label")
-async def get_cell(dbname: str, cell_id: str):
+async def get_cell_manual_label(dbname: str, cell_id: str):
     CELLDB: AsyncCellCRUD = AsyncCellCRUD(db_name=dbname)
     cell: Cell = await CELLDB.read_cell(cell_id)
     return {"cell": cell.manual_label}
