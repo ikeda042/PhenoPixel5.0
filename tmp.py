@@ -699,22 +699,6 @@ class AsyncCellCRUD:
         self.AsyncSessionLocal = sessionmaker(
             bind=self.engine, class_=AsyncSession, expire_on_commit=False
         )
-        self.Base = declarative_base()
-
-        class Cell(self.Base):
-            __tablename__ = "cells"
-            id = Column(Integer, primary_key=True)
-            cell_id = Column(String)
-            label_experiment = Column(String)
-            manual_label = Column(Integer)
-            perimeter = Column(FLOAT)
-            area = Column(FLOAT)
-            img_ph = Column(BLOB)
-            img_fluo1 = Column(BLOB)
-            img_fluo2 = Column(BLOB)
-            contour = Column(BLOB)
-            center_x = Column(FLOAT)
-            center_y = Column(FLOAT)
 
     async def init_db(self, Base):
         async with self.engine.begin() as conn:
