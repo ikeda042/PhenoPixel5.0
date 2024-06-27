@@ -37,7 +37,9 @@ def extract_nd2(file_name: str):
         num_channels = images.sizes.get("c", 1)
         print(f"Total images: {len(images)}")
         print(f"Channels: {num_channels}")
-        print("##############################################")
+        print(
+            "########################################################################################################################################################################################"
+        )
 
         # チャンネル名を取得（なければデフォルト名を使用）
         channels = images.metadata.get("channels", ["Default"])
@@ -452,7 +454,8 @@ def image_process(
     param2: int = 255,
     image_size: int = 100,
     draw_scale_bar: bool = True,
-    mode: Literal["normal", "single", "dual"] = "normal",
+    fluo_dual_layer_mode: bool = True,
+    single_layer_mode: bool = False,
 ) -> None:
     engine = create_engine(f'sqlite:///{input_filename.split(".")[0]}.db', echo=True)
     Base.metadata.create_all(engine)
@@ -462,14 +465,16 @@ def image_process(
         param1=param1,
         param2=param2,
         image_size=image_size,
-        mode=mode,
+        mode=(
+            "dual"
+            if fluo_dual_layer_mode
+            else "single" if single_layer_mode else "normal"
+        ),
     )
     print(num_tif)
     print(
         "Processing images...\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n"
     )
-    single_layer_mode = True if mode == "single" else False
-    fluo_dual_layer_mode = True if mode == "dual" else False
     iter_n = num_tif // 3 if not single_layer_mode else num_tif
     for k in tqdm(range(0, iter_n)):
         for j in range(len(os.listdir(f"TempData/frames/tiff_{k}/Cells/ph/"))):
@@ -682,4 +687,11 @@ def image_process(
 # file = "sk328gen120min.nd2"
 # extract_nd2(file)
 # init("sk328gen120min.tif", mode="dual")
-# image_process("sk328gen120min.tif", param1=85, param2=255, image_size=100)
+# image_process(
+#     "sk328gen120min.tif",
+#     param1=85,
+#     param2=255,
+#     image_size=100,
+#     fluo_dual_layer_mode=True,
+#     single_layer_mode=False,
+# )
