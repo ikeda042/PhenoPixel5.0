@@ -151,16 +151,6 @@ const CellImageGrid: React.FC = () => {
                     )}
                 </Grid>
             </Grid>
-            <Box>
-                <Typography variant="h4" gutterBottom>
-                    Cell Image Viewer
-                </Typography>
-                <CellImageGrid />
-                <Typography variant="h4" gutterBottom style={{ marginTop: 20 }}>
-                    Scatter Plot
-                </Typography>
-                {/* <Replot /> */}
-            </Box>
         </Box >
     );
 };
