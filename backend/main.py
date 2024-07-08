@@ -23,23 +23,23 @@ db_name = "test_database.db"
 
 
 @app.get("/cells")
-async def read_cell_ids():
-    return await CellCrudBase.read_cell_ids(dbname=db_name)
+async def read_cell_ids(label: str | None = None):
+    return await CellCrudBase.read_cell_ids(dbname=db_name, label=label)
 
 
-@app.get("/cells/{cell_id}")
-async def get_cell(cell_id: str):
-    return await get_cell_ph(dbname=db_name, cell_id=cell_id)
+# @app.get("/cells/{cell_id}")
+# async def get_cell(cell_id: str):
+#     return await get_cell_ph(dbname=db_name, cell_id=cell_id)
 
 
-@app.get("/cells/label/{label}")
-async def get_cells_by_label(label: str):
-    return await get_cells_with_label(dbname=db_name, label=label)
+# @app.get("/cells/label/{label}")
+# async def get_cells_by_label(label: str):
+#     return await get_cells_with_label(dbname=db_name, label=label)
 
 
-@app.get("/cells/label/{label}/count")
-async def count_cells_by_label(label: str):
-    return await count_cells_with_label(db_name, label=label)
+# @app.get("/cells/label/{label}/count")
+# async def count_cells_by_label(label: str):
+#     return await count_cells_with_label(db_name, label=label)
 
 
 if __name__ == "__main__":
