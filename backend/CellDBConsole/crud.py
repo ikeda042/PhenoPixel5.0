@@ -1,7 +1,7 @@
-from schemas import CellDB, CellDBAll, BasicCellInfo, CellStatsv2, CellId
+from CellDBConsole.schemas import CellDB, CellDBAll, BasicCellInfo, CellStatsv2, CellId
 from database import get_session, Cell, Cell2
 from sqlalchemy.future import select
-from Exceptions import CellNotFoundError
+from exceptions import CellNotFoundError
 import cv2
 import numpy as np
 from fastapi.responses import StreamingResponse

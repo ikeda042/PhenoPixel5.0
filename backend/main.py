@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import uvicorn
-from crud import CellCrudBase
 from fastapi.responses import StreamingResponse
+from CellDBConsole.router import router_cell
 
 app = FastAPI(
     title="CellAPI", docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json"
@@ -19,31 +19,6 @@ async def healthcheck():
     return {"status": "ok"}
 
 
-# define a global var called db_name
-db_name = "test_database.db"
-
-
-@app.get("/cells")
-async def read_cell_ids(label: str | None = None):
-    return await CellCrudBase(db_name="test_database.db").read_cell_ids(label=label)
-
-
-@app.get("/cells/{cell_id}/ph_image")
-async def get_cell_ph(cell_id: str, draw_contour: bool = False):
-    return await CellCrudBase(db_name="test_database.db").get_cell_ph(
-        cell_id=cell_id, draw_contour=draw_contour
-    )
-
-
-# @app.get("/cells/label/{label}")
-# async def get_cells_by_label(label: str):
-#     return await get_cells_with_label(dbname=db_name, label=label)
-
-
-# @app.get("/cells/label/{label}/count")
-# async def count_cells_by_label(label: str):
-#     return await count_cells_with_label(db_name, label=label)
-
-
+app.include_router(router_cell)
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
