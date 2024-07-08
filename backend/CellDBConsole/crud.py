@@ -262,6 +262,15 @@ class AsyncChores:
         return result
 
     @staticmethod
+    async def calc_arc_length(theta: list[float], u_1_1: float, u_1_2: float) -> float:
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            result = await loop.run_in_executor(
+                executor, SyncChores.calc_arc_length, theta, u_1_1, u_1_2
+            )
+        return result
+
+    @staticmethod
     async def morpho_analysis(
         contour: bytes, polyfit_degree: int | None = None
     ) -> np.ndarray:
@@ -287,8 +296,9 @@ class AsyncChores:
         cell_length = max(u1_adj) - min(u1_adj)
         deltaL = cell_length / 20
 
+        area = cv2.contourArea(np.array(contour))
+
         if polyfit_degree is None or polyfit_degree == 1:
-            area = cv2.contourArea(np.array(contour))
             volume, widths = await AsyncChores.calculate_volume_and_widths(
                 u1_adj, [abs(i) for i in u2_adj], 20, deltaL
             )
@@ -298,9 +308,7 @@ class AsyncChores:
                 np.array([u2, u1]).T, degree=polyfit_degree
             )
             y = np.polyval(theta, np.linspace(min(u1_adj), max(u1_adj), 1000))
-            cell_length = SyncChores.calc_arc_length(theta, min(u1), max(u1))
-            area = cv2.contourArea(np.array(contour))
-
+            cell_length = await AsyncChores.calc_arc_length(theta, min(u1), max(u1))
             raw_points = []
             for i, j in zip(u1, u2):
                 min_distance, min_point = SyncChores.find_minimum_distance_and_point(
