@@ -24,7 +24,7 @@ db_name = "test_database.db"
 
 @app.get("/cells")
 async def read_cell_ids(label: str | None = None):
-    return await CellCrudBase.read_cell_ids(dbname=db_name, label=label)
+    return await CellCrudBase().read_cell_ids(dbname=db_name, label=label)
 
 
 # @app.get("/cells/{cell_id}")
