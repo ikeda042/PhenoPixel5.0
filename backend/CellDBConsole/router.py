@@ -13,8 +13,11 @@ async def read_cell_ids(db_bame: str = "test_database.db", label: str | None = N
 
 @router_cell.get("/cells/{cell_id}/ph_image")
 async def get_cell_ph(
-    cell_id: str, db_bame: str = "test_database.db", draw_contour: bool = False
+    cell_id: str,
+    db_bame: str = "test_database.db",
+    draw_contour: bool = False,
+    draw_scale_bar: bool = False,
 ):
     return await CellCrudBase(db_name=db_bame).get_cell_ph(
-        cell_id=cell_id, draw_contour=draw_contour
+        cell_id=cell_id, draw_contour=draw_contour, draw_scale_bar=False
     )
