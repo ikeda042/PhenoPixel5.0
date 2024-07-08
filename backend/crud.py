@@ -21,26 +21,15 @@ class CellCrudBase:
     async def read_cell_ids_count(self, label: str | None = None) -> int:
         return len(await self.read_cell_ids(self.db_name, label))
 
-    async def read_cell(self, cell_id: str) -> CellDBAll:
-        stmt = select(Cell)
-        stmt = stmt.where(Cell.cell_id == cell_id)
+    async def read_cell(self, cell_id: str) -> Cell:
+        stmt = select(Cell).where(Cell.cell_id == cell_id)
         async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
             cell: Cell = result.scalars().first()
         await session.close()
-        return CellDBAll(
-            cell_id=cell.cell_id,
-            label_experiment=cell.label_experiment,
-            manual_label=cell.manual_label,
-            perimeter=round(cell.perimeter, 2),
-            area=cell.area,
-            img_ph=bytes(cell.img_ph),
-            img_fluo1=bytes(cell.img_fluo1) if cell.img_fluo1 else None,
-            img_fluo2=bytes(cell.img_fluo2) if cell.img_fluo2 else None,
-            contour=bytes(cell.contour),
-            center_x=cell.center_x,
-            center_y=cell.center_y,
-        )
+        if cell is None:
+            raise CellNotFoundError(cell_id, "Cell with given ID does not exist")
+        return cell
 
     async def get_cell_ph(self, cell_id: str) -> bytes:
         cell = await self.read_cell(cell_id)
@@ -48,7 +37,7 @@ class CellCrudBase:
             raise CellNotFoundError(
                 cell_id, "Cell with given ID does not exist for phase image"
             )
-        return cell.img_ph
+        return bytes(cell.img_ph)
 
     async def get_cell_fluo(self, cell_id: str) -> bytes:
         async for session in get_session(self.db_name):
