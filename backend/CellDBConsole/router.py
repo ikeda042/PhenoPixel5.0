@@ -19,5 +19,5 @@ async def get_cell_ph(
     draw_scale_bar: bool = False,
 ):
     return await CellCrudBase(db_name=db_bame).get_cell_ph(
-        cell_id=cell_id, draw_contour=draw_contour, draw_scale_bar=False
+        cell_id=cell_id, draw_contour=draw_contour, draw_scale_bar=draw_scale_bar
     )
