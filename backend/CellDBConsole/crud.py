@@ -51,6 +51,27 @@ class AsyncChores:
         return success, buffer
 
     @staticmethod
+    async def drac_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
+        """
+        Draw a contour on an image.
+
+        Parameters:
+        - image: Image on which to draw the contour.
+        - contour: Contour data in bytes.
+
+        Returns:
+        - Image with the contour drawn on it.
+        """
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            contour = pickle.loads(contour)
+            image = await loop.run_in_executor(
+                executor,
+                lambda: cv2.drawContours(image, contour, -1, (0, 255, 0), 2),
+            )
+        return image
+
+    @staticmethod
     async def draw_scale_bar_with_centered_text(image_ph) -> np.ndarray:
         """
         Draws a 5 um white scale bar on the lower right corner of the image with "5 um" text centered under it.
@@ -166,9 +187,9 @@ class CellCrudBase:
         Returns:
         - StreamingResponse object with the image data.
         """
-        img = await CellCrudBase.async_imdecode(data)
+        img = await AsyncChores.async_imdecode(data)
         if contour:
-            cv2.drawContours(img, pickle.loads(contour), -1, (0, 255, 0), 1)
+            img = await AsyncChores.drac_contour(img, pickle.loads(contour))
         if brightness_factor != 1.0:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
         if scale_bar:
