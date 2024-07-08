@@ -14,6 +14,15 @@ class CellCrudBase:
     def __init__(self, db_name: str) -> None:
         self.db_name: str = db_name
 
+    @staticmethod
+    async def parse_image(data: bytes, contour: bytes | None) -> StreamingResponse:
+        img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+        if contour:
+            cv2.drawContours(img, pickle.loads(contour), -1, (0, 255, 0), 1)
+        _, buffer = cv2.imencode(".png", img)
+        buffer_io = io.BytesIO(buffer)
+        return StreamingResponse(buffer_io, media_type="image/png")
+
     async def read_cell_ids(self, label: str | None = None) -> list[CellId]:
         stmt = select(Cell)
         if label:
@@ -37,28 +46,13 @@ class CellCrudBase:
             raise CellNotFoundError(cell_id, "Cell with given ID does not exist")
         return cell
 
-    async def get_cell_ph(self, cell_id: str) -> StreamingResponse:
+    async def get_cell_ph(
+        self, cell_id: str, draw_contour: bool = False
+    ) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
+        if draw_contour:
+            return await self.parse_image(cell.img_ph, cell.contour)
         return await self.parse_image(cell.img_ph)
-
-    @staticmethod
-    async def parse_image(data, contour) -> StreamingResponse:
-        img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-        if contour:
-            cv2.drawContours(img, pickle.loads(contour), -1, (0, 255, 0), 1)
-        _, buffer = cv2.imencode(".png", img)
-        buffer_io = io.BytesIO(buffer)
-        return StreamingResponse(buffer_io, media_type="image/png")
-
-    async def get_cell_ph_contour(self, cell_id: str) -> bytes:
-        cell: Cell = await self.read_cell(cell_id)
-        cv2.drawContours(cell.img_ph, pickle.loads(cell.contour), -1, (0, 255, 0), 1)
-        _, buffer = cv2.imencode(".png", cell.img_ph)
-        async with aiofiles.open("temp_phcontour.png", "wb") as afp:
-            await afp.write(buffer)
-        return StreamingResponse(
-            open("temp_phcontour.png", "rb"), media_type="image/png"
-        )
 
     async def get_cell_fluo(self, cell_id: str) -> bytes:
         cell = await self.read_cell(cell_id)
