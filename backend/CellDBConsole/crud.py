@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from exceptions import CellNotFoundError
 import cv2
 import numpy as np
-from numpy.linalg import eig
+from numpy.linalg import eig, inv
 from fastapi.responses import StreamingResponse
 import io
 import pickle
@@ -163,6 +163,234 @@ class AsyncChores:
         u2_contour = [i[0] for i in contour_U]
         min_u1, max_u1 = min(u1), max(u1)
         return u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U
+
+    @staticmethod
+    def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
+        u1_values = np.array([i[1] for i in U])
+        f_values = np.array([i[0] for i in U])
+        W = np.vander(u1_values, degree + 1)
+
+        return inv(W.T @ W) @ W.T @ f_values
+
+    @staticmethod
+    async def morpho_analysis(
+        contour: bytes, polyfit_degree: int | None = None
+    ) -> np.ndarray:
+        img_size = 100
+        contour = [list(i[0]) for i in contour]
+
+        X = np.array(
+            [
+                [i[1] for i in contour],
+                [i[0] for i in contour],
+            ]
+        )
+
+        # 基底変換関数を呼び出して必要な変数を取得
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = await AsyncChores.basis_conversion(
+            contour,
+            X,
+            img_size / 2,
+            img_size / 2,
+            contour,
+        )
+
+        if polyfit_degree is None or polyfit_degree == 1:
+
+            # 中心座標(u1_c, u2_c)が(0,0)になるように補正
+            u1_adj = u1 - u1_c
+            u2_adj = u2 - u2_c
+
+            # 細胞を長軸ベースに細分化(Meta parameters)
+            split_num = 20
+            deltaL = cell_length / split_num
+
+            x = np.linspace(min(u1_adj), max(u1_adj), 1000)
+            theta = AsyncChores.poly_fit(np.array([u1_adj, u2_adj]).T)
+            y = np.polyval(theta, x)
+
+            # 細胞情報の初期化および定義
+            cell_length = max(u1_adj) - min(u1_adj)
+            area = cv2.contourArea(np.array(contour))
+            volume = 0
+
+            # u_2をすべて正にする
+            fig_volume = plt.figure(figsize=(6, 6))
+            u_2_abs = [abs(i) for i in u2_adj]
+
+            plt.scatter(u1_adj, u_2_abs, s=5, color="lime")
+            # plt.scatter(0, 0, color="red", s=100)
+            plt.axis("equal")
+
+            margin_width = 10
+            margin_height = 10
+            plt.xlim([min(u1_adj) - margin_width, max(u1_adj) + margin_width])
+            plt.ylim([min(u_2_abs) - margin_height, max(u_2_abs) + margin_height])
+            y = np.polyval(theta, x)
+
+            # 区間ΔLごとに分割して、縦の線を引く。この時、縦の線のy座標はその線に最も近い点のy座標とする。
+            points_init = [
+                p
+                for p in [[i, j] for i, j in zip(u1_adj, u_2_abs)]
+                if min(u1_adj) <= p[0] <= min(u1_adj) + deltaL
+            ]
+
+            # 区間中のyの平均値を求める
+            y_mean = sum([i[1] for i in points_init]) / len(points_init)
+            plt.scatter(
+                (min(u1_adj) + min(u1_adj + deltaL)) / 2, y_mean, color="magenta", s=20
+            )
+            plt.plot([min(u1_adj), min(u1_adj)], [0, y_mean], color="lime")
+
+            # 円柱ポリゴンの定義
+            cylinders = []
+
+            # 幅を格納
+            widths = []
+
+            for i in range(0, split_num):
+                x_0 = min(u1_adj) + i * deltaL
+                x_1 = min(u1_adj) + (i + 1) * deltaL
+                points = [
+                    p
+                    for p in [[i, j] for i, j in zip(u1_adj, u_2_abs)]
+                    if x_0 <= p[0] <= x_1
+                ]
+                if len(points) == 0:
+                    # 前の点を使う
+                    y_mean = y_mean
+                else:
+                    # 区間中のyの平均値を求める
+                    y_mean = sum([i[1] for i in points]) / len(points)
+                plt.scatter(((x_0) + (x_1)) / 2, y_mean, color="magenta", s=20)
+                plt.plot([x_0, x_0], [0, y_mean], color="lime")
+
+                volume += y_mean**2 * np.pi * deltaL
+
+                cylinders.append((x_0, deltaL, y_mean, "lime", 0.3))
+
+                widths.append(y_mean)
+
+            plt.xlabel("u1")
+            plt.ylabel("u2")
+            plt.savefig(f"{self.dir_volume}/{self.cell_id}_volume.png", dpi=300)
+            plt.close(fig_volume)
+            Cell._plot_cylinders(
+                cylinders, f"{self.dir_cylinders}/{self.cell_id}_cylinders.png"
+            )
+
+            # width はwidthsの大きい順から3つの平均値を取る。
+            # widthsの各値は、その区間のy座標の平均値である。
+            # この際、区間のy軸方向は細胞の片側の幅を表すため、値を単純に二倍する。
+            widths = sorted(widths, reverse=True)
+            widths = widths[:3]
+            width = sum(widths) / len(widths)
+            width *= 2
+            return (area, volume, width, cell_length)
+        else:
+
+            fig = plt.figure(figsize=(6, 6))
+            plt.scatter(u1, u2, s=5, color="lime")
+            plt.scatter(u1_c, u2_c, color="red", s=100)
+            plt.axis("equal")
+            margin_width = 10
+            margin_height = 10
+            plt.xlim([min(u1) - margin_width, max(u1) + margin_width])
+            plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
+
+            x = np.linspace(min(u1), max(u1), 100)
+
+            # 多項式フィッティングの際にu1,u2を入れ替える事に注意
+            theta = self._poly_fit(np.array([u2, u1]).T, degree=polyfit_degree)
+            y = np.polyval(theta, x)
+            plt.plot(x, y, color="red")
+            plt.xlabel("u1")
+            plt.ylabel("u2")
+            plt.savefig(f"{self.dir_replot}/{self.cell_id}_replot.png")
+            plt.savefig("realtime_replot.png")
+            plt.close(fig)
+
+            cell_length = Cell._calc_arc_length(theta, min(u1), max(u1))
+            area = cv2.contourArea(np.array(contour))
+            volume = 0
+            widths = []
+
+            fig_volume = plt.figure(figsize=(6, 6))
+
+            # 細胞を長軸ベースに細分化(Meta parameters)
+            split_num = 20
+            deltaL = cell_length / split_num
+
+            raw_points: list[list[float]] = []
+            for i, j in zip(u1, u2):
+                min_distance, min_point = Cell._find_minimum_distance_and_point(
+                    theta, i, j
+                )
+                arc_length = Cell._calc_arc_length(theta, min(u1), i)
+                raw_points.append([arc_length, min_distance])
+
+            # raw pointsをソート
+            raw_points.sort(key=lambda x: x[0])
+
+            # 円柱ポリゴンの定義
+            cylinders = []
+
+            for i in range(0, split_num):
+                x_0 = i * deltaL
+                x_1 = (i + 1) * deltaL
+                points = [p for p in raw_points if x_0 <= p[0] <= x_1]
+                if len(points) == 0:
+                    # 前の点を使う
+                    y_mean = y_mean
+                else:
+                    # 区間中のyの平均値を求める
+                    y_mean = sum([i[1] for i in points]) / len(points)
+                plt.scatter(
+                    ((x_0) + (x_1)) / 2, y_mean, color="magenta", s=20, zorder=100
+                )
+                plt.plot([x_0, x_0], [0, y_mean], color="lime")
+                volume += y_mean**2 * np.pi * deltaL
+
+                widths.append(y_mean)
+
+                cylinders.append((x_0, deltaL, y_mean, "lime", 0.3))
+
+            plt.axis("equal")
+            plt.scatter(
+                [i[0] for i in raw_points],
+                [i[1] for i in raw_points],
+                s=5,
+                color="lime",
+            )
+            plt.xlabel("Arc length(px)")
+            plt.ylabel("D_i(px)")
+            plt.savefig(f"{self.dir_volume}/{self.cell_id}_volume.png", dpi=300)
+            plt.savefig("realtime_volume.png")
+            plt.close(fig_volume)
+            Cell._plot_cylinders(
+                cylinders, f"{self.dir_cylinders}/{self.cell_id}_cylinders.png"
+            )
+
+            # width はwidthsの大きい順から3つの平均値を取る。
+            # widthsの各値は、その区間のy座標の平均値である。
+            # この際、区間のy軸方向は細胞の片側の幅を表すため、値を単純に二倍する。
+            widths = sorted(widths, reverse=True)
+            widths = widths[:3]
+            width = sum(widths) / len(widths)
+            width *= 2
+
+            return (area, volume, width, cell_length)
 
 
 class CellCrudBase:
