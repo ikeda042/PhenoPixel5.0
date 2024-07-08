@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox } from "@mui/material";
-
+import { SelectChangeEvent } from "@mui/material/Select";
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string } }>({});
@@ -34,17 +34,22 @@ const CellImageGrid: React.FC = () => {
                 const phImage = await fetchImage(`http://localhost:8000/cells/${cellId}/ph_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}`);
                 const fluoImage = await fetchImage(`http://localhost:8000/cells/${cellId}/fluo_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
 
-                setImages((prevImages) => ({
-                    ...prevImages,
-                    [cellId]: { ph: phImage, fluo: fluoImage }
-                }));
+                return { ph: phImage, fluo: fluoImage };
             } catch (error) {
                 console.error("Error fetching images:", error);
+                return null;
             }
         };
 
-        if (cellIds.length > 0 && !images[cellIds[currentIndex]]) {
-            fetchImages(cellIds[currentIndex]);
+        if (cellIds.length > 0) {
+            fetchImages(cellIds[currentIndex]).then(newImages => {
+                if (newImages) {
+                    setImages((prevImages) => ({
+                        ...prevImages,
+                        [cellIds[currentIndex]]: newImages
+                    }));
+                }
+            });
         }
     }, [cellIds, currentIndex, drawContour, drawScaleBar, brightnessFactor]);
 
@@ -56,6 +61,22 @@ const CellImageGrid: React.FC = () => {
         setCurrentIndex((prevIndex) => (prevIndex - 1 + cellIds.length) % cellIds.length);
     };
 
+    const handleModeChange = (event: SelectChangeEvent<string>) => {
+        setMode(event.target.value);
+    };
+
+    const handleContourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setDrawContour(e.target.checked);
+    };
+
+    const handleScaleBarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setDrawScaleBar(e.target.checked);
+    };
+
+    const handleBrightnessChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setBrightnessFactor(parseFloat(e.target.value));
+    };
+
     return (
         <Box>
             <FormControl fullWidth>
@@ -63,7 +84,7 @@ const CellImageGrid: React.FC = () => {
                 <Select
                     labelId="mode-select-label"
                     value={mode}
-                    onChange={(e) => setMode(e.target.value)}
+                    onChange={handleModeChange}
                 >
                     <MenuItem value="ph">PH</MenuItem>
                     <MenuItem value="fluo">Fluo</MenuItem>
@@ -82,18 +103,18 @@ const CellImageGrid: React.FC = () => {
             </Box>
             <Box mt={2}>
                 <FormControlLabel
-                    control={<Checkbox checked={drawContour} onChange={(e) => setDrawContour(e.target.checked)} />}
+                    control={<Checkbox checked={drawContour} onChange={handleContourChange} />}
                     label="Draw Contour"
                 />
                 <FormControlLabel
-                    control={<Checkbox checked={drawScaleBar} onChange={(e) => setDrawScaleBar(e.target.checked)} />}
+                    control={<Checkbox checked={drawScaleBar} onChange={handleScaleBarChange} />}
                     label="Draw Scale Bar"
                 />
                 <TextField
                     label="Brightness Factor"
                     type="number"
                     value={brightnessFactor}
-                    onChange={(e) => setBrightnessFactor(parseFloat(e.target.value))}
+                    onChange={handleBrightnessChange}
                     InputProps={{
                         inputProps: { min: 0.1, step: 0.1 },
                         onWheel: (e) => e.currentTarget.blur() // Disable mouse wheel adjustments
