@@ -36,8 +36,10 @@ class CellCrudBase:
         return cell
 
     async def get_cell_ph(self, cell_id: str) -> bytes:
-        cell: bytes = await self.get_cell_ph(cell_id)
-        image_ph = cv2.imdecode(np.frombuffer(cell, dtype=np.uint8), cv2.IMREAD_COLOR)
+        cell: bytes = await self.read_cell(cell_id)
+        image_ph = cv2.imdecode(
+            np.frombuffer(cell.img_ph, dtype=np.uint8), cv2.IMREAD_COLOR
+        )
         _, buffer = cv2.imencode(".png", image_ph)
         async with aiofiles.open("temp.png", "wb") as afp:
             await afp.write(buffer)
