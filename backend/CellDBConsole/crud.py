@@ -60,6 +60,41 @@ class SyncChores:
 
         return min_distance, min_point
 
+    @staticmethod
+    def basis_conversion(
+        contour: list[list[int]],
+        X: np.ndarray,
+        center_x: float,
+        center_y: float,
+        coordinates_incide_cell: list[list[int]],
+    ) -> list[list[float]]:
+        Sigma = np.cov(X)
+        eigenvalues, eigenvectors = eig(Sigma)
+        if eigenvalues[1] < eigenvalues[0]:
+            Q = np.array([eigenvectors[1], eigenvectors[0]])
+            U = [Q.transpose() @ np.array([i, j]) for i, j in coordinates_incide_cell]
+            U = [[j, i] for i, j in U]
+            contour_U = [Q.transpose() @ np.array([j, i]) for i, j in contour]
+            contour_U = [[j, i] for i, j in contour_U]
+            center = [center_x, center_y]
+            u1_c, u2_c = center @ Q
+        else:
+            Q = np.array([eigenvectors[0], eigenvectors[1]])
+            U = [
+                Q.transpose() @ np.array([j, i]).transpose()
+                for i, j in coordinates_incide_cell
+            ]
+            contour_U = [Q.transpose() @ np.array([i, j]) for i, j in contour]
+            center = [center_x, center_y]
+            u2_c, u1_c = center @ Q
+
+        u1 = [i[1] for i in U]
+        u2 = [i[0] for i in U]
+        u1_contour = [i[1] for i in contour_U]
+        u2_contour = [i[0] for i in contour_U]
+        min_u1, max_u1 = min(u1), max(u1)
+        return u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U
+
 
 class AsyncChores:
     @staticmethod
@@ -178,40 +213,6 @@ class AsyncChores:
             eigenvalues, eigenvectors = await loop.run_in_executor(executor, eig, Sigma)
         return eigenvalues, eigenvectors
 
-    async def basis_conversion(
-        contour: list[list[int]],
-        X: np.ndarray,
-        center_x: float,
-        center_y: float,
-        coordinates_incide_cell: list[list[int]],
-    ) -> list[list[float]]:
-        Sigma = np.cov(X)
-        eigenvalues, eigenvectors = eig(Sigma)
-        if eigenvalues[1] < eigenvalues[0]:
-            Q = np.array([eigenvectors[1], eigenvectors[0]])
-            U = [Q.transpose() @ np.array([i, j]) for i, j in coordinates_incide_cell]
-            U = [[j, i] for i, j in U]
-            contour_U = [Q.transpose() @ np.array([j, i]) for i, j in contour]
-            contour_U = [[j, i] for i, j in contour_U]
-            center = [center_x, center_y]
-            u1_c, u2_c = center @ Q
-        else:
-            Q = np.array([eigenvectors[0], eigenvectors[1]])
-            U = [
-                Q.transpose() @ np.array([j, i]).transpose()
-                for i, j in coordinates_incide_cell
-            ]
-            contour_U = [Q.transpose() @ np.array([i, j]) for i, j in contour]
-            center = [center_x, center_y]
-            u2_c, u1_c = center @ Q
-
-        u1 = [i[1] for i in U]
-        u2 = [i[0] for i in U]
-        u1_contour = [i[1] for i in contour_U]
-        u2_contour = [i[0] for i in contour_U]
-        min_u1, max_u1 = min(u1), max(u1)
-        return u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U
-
     @staticmethod
     async def morpho_analysis(
         contour: bytes, polyfit_degree: int | None = None
@@ -257,7 +258,7 @@ class AsyncChores:
             deltaL = cell_length / split_num
 
             x = np.linspace(min(u1_adj), max(u1_adj), 1000)
-            theta = AsyncChores.poly_fit(np.array([u1_adj, u2_adj]).T)
+            theta = SyncChores.poly_fit(np.array([u1_adj, u2_adj]).T)
             y = np.polyval(theta, x)
 
             # 細胞情報の初期化および定義
@@ -315,10 +316,10 @@ class AsyncChores:
             return (area, volume, width, cell_length)
         else:
             # 多項式フィッティングの際にu1,u2を入れ替える事に注意
-            theta = AsyncChores.poly_fit(np.array([u2, u1]).T, degree=polyfit_degree)
+            theta = SyncChores.poly_fit(np.array([u2, u1]).T, degree=polyfit_degree)
             y = np.polyval(theta, x)
 
-            cell_length = AsyncChores.calc_arc_length(theta, min(u1), max(u1))
+            cell_length = SyncChores.calc_arc_length(theta, min(u1), max(u1))
             area = cv2.contourArea(np.array(contour))
             volume = 0
             widths = []
@@ -329,7 +330,7 @@ class AsyncChores:
 
             raw_points: list[list[float]] = []
             for i, j in zip(u1, u2):
-                min_distance, min_point = AsyncChores.find_minimum_distance_and_point(
+                min_distance, min_point = SyncChores.find_minimum_distance_and_point(
                     theta, i, j
                 )
                 arc_length = AsyncChores.calc_arc_length(theta, min(u1), i)
