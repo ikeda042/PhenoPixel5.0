@@ -333,7 +333,7 @@ class AsyncChores:
                 min_distance, min_point = SyncChores.find_minimum_distance_and_point(
                     theta, i, j
                 )
-                arc_length = AsyncChores.calc_arc_length(theta, min(u1), i)
+                arc_length = SyncChores.calc_arc_length(theta, min(u1), i)
                 raw_points.append([arc_length, min_distance])
 
             # raw pointsをソート
@@ -366,7 +366,12 @@ class AsyncChores:
             width = sum(widths) / len(widths)
             width *= 2
 
-            return (area, volume, width, cell_length)
+            return (
+                area,
+                volume,
+                width,
+                cell_length,
+            )
 
 
 class CellCrudBase:
