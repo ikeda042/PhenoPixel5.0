@@ -1,9 +1,29 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox } from "@mui/material";
+import { Stack, Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material/Select";
 import { settings } from "../settings";
+import { Line } from 'react-chartjs-2';
 
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js';
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+);
 
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
@@ -13,6 +33,7 @@ const CellImageGrid: React.FC = () => {
     const [drawContour, setDrawContour] = useState<boolean>(false);
     const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
     const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
+    const [contourData, setContourData] = useState<number[][]>([]);
 
     useEffect(() => {
         const fetchCellIds = async () => {
@@ -56,6 +77,21 @@ const CellImageGrid: React.FC = () => {
         }
     }, [cellIds, currentIndex, drawContour, drawScaleBar, brightnessFactor]);
 
+    useEffect(() => {
+        const fetchContour = async (cellId: string) => {
+            try {
+                const response = await axios.get(`${settings.api_url}/cells/${cellId}/contour/raw`);
+                setContourData(response.data.contour);
+            } catch (error) {
+                console.error("Error fetching contour data:", error);
+            }
+        };
+
+        if (cellIds.length > 0) {
+            fetchContour(cellIds[currentIndex]);
+        }
+    }, [cellIds, currentIndex]);
+
     const handleNext = () => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % cellIds.length);
     };
@@ -80,78 +116,99 @@ const CellImageGrid: React.FC = () => {
         setBrightnessFactor(parseFloat(e.target.value));
     };
 
-
     const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
         event.currentTarget.blur();
         event.preventDefault();
     };
 
+    // プロット用のデータを生成
+    const contourPlotData = {
+        labels: contourData.map((_, index) => index),
+        datasets: [
+            {
+                label: 'Contour',
+                data: contourData.map(point => ({ x: point[0], y: point[1] })),
+                borderColor: 'rgba(75,192,192,1)',
+                backgroundColor: 'rgba(75,192,192,0.2)',
+                fill: false,
+                showLine: true,
+                pointRadius: 1,
+            }
+        ]
+    };
 
     return (
-        <Box>
-            <FormControl fullWidth>
-                <InputLabel id="label-select-label">Label</InputLabel>
-                <Select
-                    labelId="label-select-label"
-                    value={label}
-                    onChange={handleLabelChange}
-                >
-                    <MenuItem value="N/A">N/A</MenuItem>
-                    <MenuItem value="1">1</MenuItem>
-                    <MenuItem value="2">2</MenuItem>
-                    <MenuItem value="3">3</MenuItem>
-                </Select>
-            </FormControl>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
-                <Button variant="contained" color="primary" onClick={handlePrev} disabled={cellIds.length === 0} style={{ backgroundColor: "black" }}>
-                    Prev
-                </Button>
-                <Typography variant="h6">
-                    {cellIds.length > 0 ? `Cell ${currentIndex + 1} of ${cellIds.length}` : "Loading..."}
-                </Typography>
-                <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0} style={{ backgroundColor: "black" }}>
-                    Next
-                </Button>
-            </Box>
-            <Box mt={2}>
-                <FormControlLabel
-                    control={<Checkbox checked={drawContour} onChange={handleContourChange} style={{ color: "black" }} />}
-                    label="Draw Contour"
-                    style={{ color: "black" }}
-                />
-                <FormControlLabel
-                    control={<Checkbox checked={drawScaleBar} onChange={handleScaleBarChange} style={{ color: "black" }} />}
-                    label="Draw Scale Bar"
-                    style={{ color: "black" }}
-                />
-                <TextField
-                    label="Brightness Factor"
-                    type="number"
-                    value={brightnessFactor}
-                    onChange={handleBrightnessChange}
-                    InputProps={{
-                        inputProps: { min: 0.1, step: 0.1 },
-                        onWheel: handleWheel
-                    }}
-                />
-            </Box>
-            <Grid container spacing={2} style={{ marginTop: 20 }}>
-                <Grid item xs={6}>
-                    {images[cellIds[currentIndex]] ? (
-                        <img src={images[cellIds[currentIndex]].ph} alt={`Cell ${cellIds[currentIndex]} PH`} style={{ width: "100%" }} />
-                    ) : (
-                        <div>Loading PH...</div>
-                    )}
-                </Grid>
-                <Grid item xs={6}>
-                    {images[cellIds[currentIndex]] ? (
-                        <img src={images[cellIds[currentIndex]].fluo} alt={`Cell ${cellIds[currentIndex]} Fluo`} style={{ width: "100%" }} />
-                    ) : (
-                        <div>Loading Fluo...</div>
-                    )}
-                </Grid>
-            </Grid>
-        </Box >
+        <>
+            <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Box>
+                    <FormControl fullWidth>
+                        <InputLabel id="label-select-label">Label</InputLabel>
+                        <Select
+                            labelId="label-select-label"
+                            value={label}
+                            onChange={handleLabelChange}
+                        >
+                            <MenuItem value="N/A">N/A</MenuItem>
+                            <MenuItem value="1">1</MenuItem>
+                            <MenuItem value="2">2</MenuItem>
+                            <MenuItem value="3">3</MenuItem>
+                        </Select>
+                    </FormControl>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+                        <Button variant="contained" color="primary" onClick={handlePrev} disabled={cellIds.length === 0} style={{ backgroundColor: "black" }}>
+                            Prev
+                        </Button>
+                        <Typography variant="h6">
+                            {cellIds.length > 0 ? `Cell ${currentIndex + 1} of ${cellIds.length}` : "Loading..."}
+                        </Typography>
+                        <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0} style={{ backgroundColor: "black" }}>
+                            Next
+                        </Button>
+                    </Box>
+                    <Box mt={2}>
+                        <FormControlLabel
+                            control={<Checkbox checked={drawContour} onChange={handleContourChange} style={{ color: "black" }} />}
+                            label="Draw Contour"
+                            style={{ color: "black" }}
+                        />
+                        <FormControlLabel
+                            control={<Checkbox checked={drawScaleBar} onChange={handleScaleBarChange} style={{ color: "black" }} />}
+                            label="Draw Scale Bar"
+                            style={{ color: "black" }}
+                        />
+                        <TextField
+                            label="Brightness Factor"
+                            type="number"
+                            value={brightnessFactor}
+                            onChange={handleBrightnessChange}
+                            InputProps={{
+                                inputProps: { min: 0.1, step: 0.1 },
+                                onWheel: handleWheel
+                            }}
+                        />
+                    </Box>
+                    <Grid container spacing={2} style={{ marginTop: 20 }}>
+                        <Grid item xs={6}>
+                            {images[cellIds[currentIndex]] ? (
+                                <img src={images[cellIds[currentIndex]].ph} alt={`Cell ${cellIds[currentIndex]} PH`} style={{ width: "100%" }} />
+                            ) : (
+                                <div>Loading PH...</div>
+                            )}
+                        </Grid>
+                        <Grid item xs={6}>
+                            {images[cellIds[currentIndex]] ? (
+                                <img src={images[cellIds[currentIndex]].fluo} alt={`Cell ${cellIds[currentIndex]} Fluo`} style={{ width: "100%" }} />
+                            ) : (
+                                <div>Loading Fluo...</div>
+                            )}
+                        </Grid>
+                    </Grid>
+                </Box>
+                <Box>
+                    <Line data={contourPlotData} />
+                </Box>
+            </Stack>
+        </>
     );
 };
 
