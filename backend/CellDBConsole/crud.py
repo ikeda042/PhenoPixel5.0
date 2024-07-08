@@ -95,7 +95,7 @@ class CellCrudBase:
         font = cv2.FONT_HERSHEY_SIMPLEX
         text = f"{scale_bar_um} um"
         text_scale = 0.4
-        text_thickness = 1
+        text_thickness = 0
         text_color = (255, 255, 255)
 
         text_size = cv2.getTextSize(text, font, text_scale, text_thickness)[0]
