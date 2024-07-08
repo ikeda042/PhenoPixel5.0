@@ -80,6 +80,11 @@ const CellImageGrid: React.FC = () => {
         setBrightnessFactor(parseFloat(e.target.value));
     };
 
+    const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+        event.currentTarget.blur();
+        event.preventDefault();
+    };
+
     return (
         <Box>
             <FormControl fullWidth>
@@ -94,24 +99,26 @@ const CellImageGrid: React.FC = () => {
                 </Select>
             </FormControl>
             <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
-                <Button variant="contained" color="primary" onClick={handlePrev} disabled={cellIds.length === 0}>
+                <Button variant="contained" color="primary" onClick={handlePrev} disabled={cellIds.length === 0} style={{ backgroundColor: "black" }}>
                     Prev
                 </Button>
                 <Typography variant="h6">
                     {cellIds.length > 0 ? `Cell ${currentIndex + 1} of ${cellIds.length}` : "Loading..."}
                 </Typography>
-                <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0}>
+                <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0} style={{ backgroundColor: "black" }}>
                     Next
                 </Button>
             </Box>
             <Box mt={2}>
                 <FormControlLabel
-                    control={<Checkbox checked={drawContour} onChange={handleContourChange} />}
+                    control={<Checkbox checked={drawContour} onChange={handleContourChange} style={{ color: "black" }} />}
                     label="Draw Contour"
+                    style={{ color: "black" }}
                 />
                 <FormControlLabel
-                    control={<Checkbox checked={drawScaleBar} onChange={handleScaleBarChange} />}
+                    control={<Checkbox checked={drawScaleBar} onChange={handleScaleBarChange} style={{ color: "black" }} />}
                     label="Draw Scale Bar"
+                    style={{ color: "black" }}
                 />
                 <TextField
                     label="Brightness Factor"
@@ -120,7 +127,7 @@ const CellImageGrid: React.FC = () => {
                     onChange={handleBrightnessChange}
                     InputProps={{
                         inputProps: { min: 0.1, step: 0.1 },
-                        onWheel: (e) => e.currentTarget.blur() // Disable mouse wheel adjustments
+                        onWheel: handleWheel
                     }}
                 />
             </Box>
