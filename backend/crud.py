@@ -54,8 +54,12 @@ class CellCrudBase:
             return await self.parse_image(cell.img_ph, cell.contour)
         return await self.parse_image(cell.img_ph)
 
-    async def get_cell_fluo(self, cell_id: str) -> bytes:
+    async def get_cell_fluo(
+        self, cell_id: str, draw_contour: bool = False
+    ) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
+        if draw_contour:
+            return await self.parse_image(cell.img_fluo1, cell.contour)
         return await self.parse_image(cell.img_fluo1)
 
     async def get_cell_contour(self, cell_id: str) -> bytes:
