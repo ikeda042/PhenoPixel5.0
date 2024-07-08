@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import uvicorn
 from crud import (
     get_cell_ph,
     get_cells_all,
@@ -6,7 +7,10 @@ from crud import (
     count_cells_with_label,
 )
 
-app = FastAPI()
+app = FastAPI(
+    "CellAPI", docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json"
+)
+
 
 cors_origins = [
     "localhost",
@@ -42,3 +46,7 @@ async def get_cells_by_label(label: str):
 @app.get("/cells/label/{label}/count")
 async def count_cells_by_label(label: str):
     return await count_cells_with_label(db_name, label=label)
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
