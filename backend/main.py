@@ -30,11 +30,7 @@ async def read_cell_ids(label: str | None = None):
 
 @app.get("/cells/{cell_id}")
 async def get_cell(cell_id: str):
-    data: bytes = await CellCrudBase(db_name="test_database.db").read_cell(
-        cell_id=cell_id
-    )
-    print(data)
-    return StreamingResponse(content=iter([data]), media_type="image/png")
+    return await CellCrudBase(db_name="test_database.db").get_cell_ph(cell_id=cell_id)
 
 
 # @app.get("/cells/label/{label}")
