@@ -1,5 +1,5 @@
 from __future__ import annotations
-from CellDBConsole.schemas import CellId
+from CellDBConsole.schemas import CellId, CellMorhology
 from database import get_session, Cell
 from sqlalchemy.future import select
 from exceptions import CellNotFoundError
@@ -238,12 +238,6 @@ class AsyncChores:
     async def morpho_analysis(
         contour: bytes, polyfit_degree: int | None = None
     ) -> np.ndarray:
-        class PlotData:
-            contour_raw: list[list[float]]
-            converted_contour: list[list[float]]
-            center_raw: list[float]
-            center_converted: list[float]
-
         img_size = 100
         contour_unpickled = await AsyncChores.async_pickle_loads(contour)
         contour = np.array([[j, i] for i, j in [i[0] for i in contour_unpickled]])
@@ -255,58 +249,61 @@ class AsyncChores:
             ]
         )
 
-        # # 基底変換関数を呼び出して必要な変数を取得
-        # u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U = (
-        #     SyncChores.basis_conversion(contour, X, img_size / 2, img_size / 2, contour)
-        # )
+        # 基底変換関数を呼び出して必要な変数を取得
+        u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U = (
+            SyncChores.basis_conversion(contour, X, img_size / 2, img_size / 2, contour)
+        )
 
-        # # 中心座標(u1_c, u2_c)が(0,0)になるように補正
-        # u1_adj = u1 - u1_c
-        # u2_adj = u2 - u2_c
-        # cell_length = max(u1_adj) - min(u1_adj)
-        # deltaL = cell_length / 20
+        # 中心座標(u1_c, u2_c)が(0,0)になるように補正
+        u1_adj = u1 - u1_c
+        u2_adj = u2 - u2_c
+        cell_length = max(u1_adj) - min(u1_adj)
+        deltaL = cell_length / 20
 
-        # if polyfit_degree is None or polyfit_degree == 1:
-        #     area = cv2.contourArea(np.array(contour))
-        #     volume, widths = AsyncChores.calculate_volume_and_widths(
-        #         u1_adj, [abs(i) for i in u2_adj], 20, deltaL
-        #     )
-        #     width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
-        # else:
-        #     theta = SyncChores.poly_fit(np.array([u2, u1]).T, degree=polyfit_degree)
-        #     y = np.polyval(theta, np.linspace(min(u1_adj), max(u1_adj), 1000))
-        #     cell_length = SyncChores.calc_arc_length(theta, min(u1), max(u1))
-        #     area = cv2.contourArea(np.array(contour))
+        if polyfit_degree is None or polyfit_degree == 1:
+            area = cv2.contourArea(np.array(contour))
+            volume, widths = AsyncChores.calculate_volume_and_widths(
+                u1_adj, [abs(i) for i in u2_adj], 20, deltaL
+            )
+            width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
+        else:
+            theta = SyncChores.poly_fit(np.array([u2, u1]).T, degree=polyfit_degree)
+            y = np.polyval(theta, np.linspace(min(u1_adj), max(u1_adj), 1000))
+            cell_length = SyncChores.calc_arc_length(theta, min(u1), max(u1))
+            area = cv2.contourArea(np.array(contour))
 
-        #     raw_points = []
-        #     for i, j in zip(u1, u2):
-        #         min_distance, min_point = SyncChores.find_minimum_distance_and_point(
-        #             theta, i, j
-        #         )
-        #         arc_length = SyncChores.calc_arc_length(theta, min(u1), i)
-        #         raw_points.append([arc_length, min_distance])
-        #     raw_points.sort(key=lambda x: x[0])
+            raw_points = []
+            for i, j in zip(u1, u2):
+                min_distance, min_point = SyncChores.find_minimum_distance_and_point(
+                    theta, i, j
+                )
+                arc_length = SyncChores.calc_arc_length(theta, min(u1), i)
+                raw_points.append([arc_length, min_distance])
+            raw_points.sort(key=lambda x: x[0])
 
-        #     volume = 0
-        #     widths = []
-        #     y_mean = 0
-        #     for i in range(20):
-        #         x_0 = i * deltaL
-        #         x_1 = (i + 1) * deltaL
-        #         points = [p for p in raw_points if x_0 <= p[0] <= x_1]
-        #         if points:
-        #             y_mean = sum([i[1] for i in points]) / len(points)
-        #         volume += y_mean**2 * np.pi * deltaL
-        #         widths.append(y_mean)
-        #     width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
-
-        # plotdata = PlotData()
-        # plotdata.contour_raw = contour
-        # plotdata.converted_contour = contour_U
-        # plotdata.center_raw = [img_size / 2, img_size / 2]
-        # plotdata.center_converted = [u1_c, u2_c]
-
-        # return (area, volume, width, cell_length, plotdata)
+            volume = 0
+            widths = []
+            y_mean = 0
+            for i in range(20):
+                x_0 = i * deltaL
+                x_1 = (i + 1) * deltaL
+                points = [p for p in raw_points if x_0 <= p[0] <= x_1]
+                if points:
+                    y_mean = sum([i[1] for i in points]) / len(points)
+                volume += y_mean**2 * np.pi * deltaL
+                widths.append(y_mean)
+            width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
+        return CellMorhology(
+            cell_id="",
+            area=area,
+            volume=volume,
+            width=width,
+            length=cell_length,
+            contour_raw=contour,
+            converted_contour=contour_U,
+            center_raw=[img_size / 2, img_size / 2],
+            center_converted=[u1_c, u2_c],
+        )
 
 
 class CellCrudBase:

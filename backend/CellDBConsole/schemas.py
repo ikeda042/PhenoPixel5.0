@@ -18,6 +18,18 @@ class CellId(BaseModel):
     cell_id: str
 
 
+class CellMorhology(BaseModel):
+    cell_id: str
+    area: float
+    volume: float
+    width: float
+    length: float
+    contour_raw: list[list[float]]
+    converted_contour: list[list[float]]
+    center_raw: list[float]
+    center_converted: list[float]
+
+
 class CellDBAll(BaseModel):
     cell_id: str
     label_experiment: str
