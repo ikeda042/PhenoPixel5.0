@@ -7,11 +7,19 @@ import numpy as np
 from fastapi.responses import StreamingResponse
 import aiofiles
 import io
+import pickle
 
 
 class CellCrudBase:
     def __init__(self, db_name: str) -> None:
         self.db_name: str = db_name
+
+    @staticmethod
+    async def parse_image(data) -> StreamingResponse:
+        img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+        _, buffer = cv2.imencode(".png", img)
+        buffer_io = io.BytesIO(buffer)
+        return StreamingResponse(buffer_io, media_type="image/png")
 
     async def read_cell_ids(self, label: str | None = None) -> list[CellId]:
         stmt = select(Cell)
@@ -38,24 +46,21 @@ class CellCrudBase:
 
     async def get_cell_ph(self, cell_id: str) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
-        image_ph = cv2.imdecode(
-            np.frombuffer(cell.img_ph, dtype=np.uint8), cv2.IMREAD_COLOR
-        )
-        _, buffer = cv2.imencode(".png", image_ph)
-        buffer_io = io.BytesIO(buffer)
+        return await self.parse_image(cell.img_ph)
 
-        return StreamingResponse(buffer_io, media_type="image/png")
+    async def get_cell_ph_contour(self, cell_id: str) -> bytes:
+        cell = await self.read_cell(cell_id)
+        cv2.drawContours(image_ph, pickle.loads(contour), -1, (0, 255, 0), 1)
+        _, buffer = cv2.imencode(".png", image_ph)
+        async with aiofiles.open("temp_phcontour.png", "wb") as afp:
+            await afp.write(buffer)
+        return StreamingResponse(
+            open("temp_phcontour.png", "rb"), media_type="image/png"
+        )
 
     async def get_cell_fluo(self, cell_id: str) -> bytes:
-        async for session in get_session(self.db_name):
-            result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
-            cell: Cell = result.scalars().first()
-            if cell is None:
-                raise CellNotFoundError(
-                    cell_id, "Cell with given ID does not exist for fluorescence image"
-                )
-        await session.close()
-        return cell.img_fluo1
+        cell = await self.read_cell(cell_id)
+        return await self.parse_image(cell.img_fluo1)
 
     async def get_cell_contour(self, cell_id: str) -> bytes:
         async for session in get_session(self.db_name):
