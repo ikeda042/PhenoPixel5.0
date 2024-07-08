@@ -2,15 +2,14 @@ from fastapi import FastAPI
 import uvicorn
 from crud import (
     get_cell_ph,
-    get_cells_all,
+    get_cell_ids,
     get_cells_with_label,
     count_cells_with_label,
 )
 
 app = FastAPI(
-    "CellAPI", docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json"
+    title="CellAPI", docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json"
 )
-
 
 cors_origins = [
     "localhost",
@@ -25,12 +24,12 @@ async def healthcheck():
 
 
 # define a global var called db_name
-db_name = "data.db"
+db_name = "test_database.db"
 
 
 @app.get("/cells")
 async def get_cells():
-    return await get_cells_all(dbname=db_name)
+    return await get_cell_ids(dbname=db_name)
 
 
 @app.get("/cells/{cell_id}")
