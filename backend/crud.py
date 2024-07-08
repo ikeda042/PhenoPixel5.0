@@ -1,30 +1,15 @@
-from schemas import CellDB, CellDBAll, BasicCellInfo, CellStatsv2
+from schemas import CellDB, CellDBAll, BasicCellInfo, CellStatsv2, CellId
 from database import get_session, Cell, Cell2
 from sqlalchemy.future import select
 from Exceptions import CellNotFoundError
 
 
-async def get_cells_all(dbname: str) -> list[CellDBAll]:
+async def get_cell_ids(dbname: str) -> list[CellId]:
     async for session in get_session(dbname=dbname):
         result = await session.execute(select(Cell))
         cells: list[Cell] = result.scalars().all()
     await session.close()
-    return [
-        CellDBAll(
-            cell_id=cell.cell_id,
-            label_experiment=cell.label_experiment,
-            manual_label=cell.manual_label,
-            perimeter=round(cell.perimeter, 2),
-            area=cell.area,
-            img_ph=cell.img_ph,
-            img_fluo1=cell.img_fluo1,
-            img_fluo2=cell.img_fluo2,
-            contour=cell.contour,
-            center_x=cell.center_x,
-            center_y=cell.center_y,
-        )
-        for cell in cells
-    ]
+    return [CellId(cell_id=cell.cell_id) for cell in cells]
 
 
 async def get_cell(dbname: str, cell_id: str) -> CellDBAll:
