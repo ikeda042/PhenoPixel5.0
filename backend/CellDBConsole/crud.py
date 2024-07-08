@@ -149,6 +149,17 @@ class CellCrudBase:
     async def get_cell_ph(
         self, cell_id: str, draw_contour: bool = False, draw_scale_bar: bool = False
     ) -> StreamingResponse:
+        """
+        Get the phase contrast images for a cell by its ID.
+
+        Parameters:
+        - cell_id: ID of the cell to fetch images for.
+        - draw_contour: Whether to draw the contour on the image.
+        - draw_scale_bar: Whether to draw the scale bar on the image.
+
+        Returns:
+        - StreamingResponse object with the phase contrast image data.
+        """
         cell = await self.read_cell(cell_id)
         if draw_contour:
             return await self.parse_image(cell.img_ph, cell.contour, draw_scale_bar)
@@ -168,6 +179,7 @@ class CellCrudBase:
         - cell_id: ID of the cell to fetch images for.
         - draw_contour: Whether to draw the contour on the image.
         - draw_scale_bar: Whether to draw the scale bar on the image.
+        - brightness_factor: Brightness factor to apply to the image.
 
         Returns:
         - StreamingResponse object with the fluorescence image data.
