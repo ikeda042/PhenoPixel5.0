@@ -1,11 +1,6 @@
 from fastapi import FastAPI
 import uvicorn
-from crud import (
-    get_cell_ph,
-    get_cell_ids,
-    get_cells_with_label,
-    count_cells_with_label,
-)
+from crud import CellCrudBase
 
 app = FastAPI(
     title="CellAPI", docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json"
@@ -28,8 +23,8 @@ db_name = "test_database.db"
 
 
 @app.get("/cells")
-async def get_cells():
-    return await get_cell_ids(dbname=db_name)
+async def read_cell_ids():
+    return await CellCrudBase.read_cell_ids(dbname=db_name)
 
 
 @app.get("/cells/{cell_id}")
