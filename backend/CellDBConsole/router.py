@@ -1,8 +1,5 @@
 from fastapi import APIRouter
 from CellDBConsole.crud import CellCrudBase
-from typing import Annotated
-from fastapi.params import Query
-from CellDBConsole.schemas import CellId
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 

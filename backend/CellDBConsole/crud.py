@@ -15,7 +15,10 @@ class CellCrudBase:
 
     @staticmethod
     async def parse_image(
-        data: bytes, contour: bytes | None = None, scale_bar: bool = False
+        data: bytes,
+        contour: bytes | None = None,
+        scale_bar: bool = False,
+        brightness_factor: float = 1.0,
     ) -> StreamingResponse:
         """
         Parse the image data and return a StreamingResponse object.
@@ -31,6 +34,8 @@ class CellCrudBase:
         img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         if contour:
             cv2.drawContours(img, pickle.loads(contour), -1, (0, 255, 0), 1)
+        if brightness_factor != 1.0:
+            img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
         if scale_bar:
             img = await CellCrudBase.draw_scale_bar_with_centered_text(img)
         _, buffer = cv2.imencode(".png", img)
@@ -130,7 +135,11 @@ class CellCrudBase:
         return await self.parse_image(cell.img_ph, scale_bar=draw_scale_bar)
 
     async def get_cell_fluo(
-        self, cell_id: str, draw_contour: bool = False, draw_scale_bar: bool = False
+        self,
+        cell_id: str,
+        draw_contour: bool = False,
+        draw_scale_bar: bool = False,
+        brightness_factor: float = 1.0,
     ) -> StreamingResponse:
         """
         Get the fluorescence images for a cell by its ID.
