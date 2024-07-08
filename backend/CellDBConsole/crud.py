@@ -458,7 +458,6 @@ class CellCrudBase:
             )
         return await self.parse_image(
             data=cell.img_fluo1,
-            contour=cell.contour,
             scale_bar=draw_scale_bar,
             brightness_factor=brightness_factor,
         )

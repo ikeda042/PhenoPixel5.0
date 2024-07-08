@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material/Select";
+
+import { settings } from "../settings";
+
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string } }>({});
@@ -13,7 +16,7 @@ const CellImageGrid: React.FC = () => {
 
     useEffect(() => {
         const fetchCellIds = async () => {
-            const response = await axios.get("http://localhost:8000/cells");
+            const response = await axios.get(`${settings.api_url}/cells`);
             const ids = response.data.map((cell: { cell_id: string }) => cell.cell_id);
             setCellIds(ids);
         };
@@ -31,8 +34,8 @@ const CellImageGrid: React.FC = () => {
                     return imageUrl;
                 };
 
-                const phImage = await fetchImage(`http://localhost:8000/cells/${cellId}/ph_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}`);
-                const fluoImage = await fetchImage(`http://localhost:8000/cells/${cellId}/fluo_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
+                const phImage = await fetchImage(`${settings.api_url}/cells/${cellId}/ph_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
+                const fluoImage = await fetchImage(`${settings.api_url}/cells/${cellId}/fluo_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
 
                 return { ph: phImage, fluo: fluoImage };
             } catch (error) {
