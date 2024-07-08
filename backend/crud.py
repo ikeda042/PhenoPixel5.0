@@ -2,6 +2,10 @@ from schemas import CellDB, CellDBAll, BasicCellInfo, CellStatsv2, CellId
 from database import get_session, Cell, Cell2
 from sqlalchemy.future import select
 from Exceptions import CellNotFoundError
+import cv2
+import numpy as np
+from fastapi.responses import StreamingResponse
+import aiofiles
 
 
 class CellCrudBase:
@@ -32,12 +36,12 @@ class CellCrudBase:
         return cell
 
     async def get_cell_ph(self, cell_id: str) -> bytes:
-        cell = await self.read_cell(cell_id)
-        if cell is None:
-            raise CellNotFoundError(
-                cell_id, "Cell with given ID does not exist for phase image"
-            )
-        return bytes(cell.img_ph)
+        cell: bytes = await self.get_cell_ph(cell_id)
+        image_ph = cv2.imdecode(np.frombuffer(cell, dtype=np.uint8), cv2.IMREAD_COLOR)
+        _, buffer = cv2.imencode(".png", image_ph)
+        async with aiofiles.open("temp.png", "wb") as afp:
+            await afp.write(buffer)
+        return StreamingResponse(open("temp.png", "rb"), media_type="image/png")
 
     async def get_cell_fluo(self, cell_id: str) -> bytes:
         async for session in get_session(self.db_name):
