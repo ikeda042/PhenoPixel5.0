@@ -1,5 +1,10 @@
 from fastapi import FastAPI
-
+from crud import (
+    get_cell_ph,
+    get_cells_all,
+    get_cells_with_label,
+    count_cells_with_label,
+)
 
 app = FastAPI()
 
@@ -13,3 +18,27 @@ cors_origins = [
 @app.get("/healthcheck")
 async def healthcheck():
     return {"status": "ok"}
+
+
+# define a global var called db_name
+db_name = "data.db"
+
+
+@app.get("/cells")
+async def get_cells():
+    return await get_cells_all(dbname=db_name)
+
+
+@app.get("/cells/{cell_id}")
+async def get_cell(cell_id: str):
+    return await get_cell_ph(dbname=db_name, cell_id=cell_id)
+
+
+@app.get("/cells/label/{label}")
+async def get_cells_by_label(label: str):
+    return await get_cells_with_label(dbname=db_name, label=label)
+
+
+@app.get("/cells/label/{label}/count")
+async def count_cells_by_label(label: str):
+    return await count_cells_with_label(db_name, label=label)
