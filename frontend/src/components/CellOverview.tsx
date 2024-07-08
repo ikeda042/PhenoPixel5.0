@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography } from "@mui/material";
+import { Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox } from "@mui/material";
 
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string } }>({});
     const [mode, setMode] = useState<string>("ph");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
+    const [drawContour, setDrawContour] = useState<boolean>(false);
+    const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
+    const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
 
     useEffect(() => {
         const fetchCellIds = async () => {
@@ -20,25 +23,30 @@ const CellImageGrid: React.FC = () => {
 
     useEffect(() => {
         const fetchImages = async (cellId: string) => {
-            const fetchImage = async (url: string) => {
-                const response = await axios.get(url, { responseType: 'blob' });
-                const imageUrl = URL.createObjectURL(response.data);
-                return imageUrl;
-            };
+            try {
+                const fetchImage = async (url: string) => {
+                    console.log(`Fetching image from URL: ${url}`);
+                    const response = await axios.get(url, { responseType: 'blob' });
+                    const imageUrl = URL.createObjectURL(response.data);
+                    return imageUrl;
+                };
 
-            const phImage = await fetchImage(`http://localhost:8000/cells/${cellId}/ph_image`);
-            const fluoImage = await fetchImage(`http://localhost:8000/cells/${cellId}/fluo_image`);
+                const phImage = await fetchImage(`http://localhost:8000/cells/${cellId}/ph_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}`);
+                const fluoImage = await fetchImage(`http://localhost:8000/cells/${cellId}/fluo_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
 
-            setImages((prevImages) => ({
-                ...prevImages,
-                [cellId]: { ph: phImage, fluo: fluoImage }
-            }));
+                setImages((prevImages) => ({
+                    ...prevImages,
+                    [cellId]: { ph: phImage, fluo: fluoImage }
+                }));
+            } catch (error) {
+                console.error("Error fetching images:", error);
+            }
         };
 
         if (cellIds.length > 0 && !images[cellIds[currentIndex]]) {
             fetchImages(cellIds[currentIndex]);
         }
-    }, [cellIds, currentIndex]);
+    }, [cellIds, currentIndex, drawContour, drawScaleBar, brightnessFactor]);
 
     const handleNext = () => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % cellIds.length);
@@ -71,6 +79,26 @@ const CellImageGrid: React.FC = () => {
                 <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0}>
                     Next
                 </Button>
+            </Box>
+            <Box mt={2}>
+                <FormControlLabel
+                    control={<Checkbox checked={drawContour} onChange={(e) => setDrawContour(e.target.checked)} />}
+                    label="Draw Contour"
+                />
+                <FormControlLabel
+                    control={<Checkbox checked={drawScaleBar} onChange={(e) => setDrawScaleBar(e.target.checked)} />}
+                    label="Draw Scale Bar"
+                />
+                <TextField
+                    label="Brightness Factor"
+                    type="number"
+                    value={brightnessFactor}
+                    onChange={(e) => setBrightnessFactor(parseFloat(e.target.value))}
+                    InputProps={{
+                        inputProps: { min: 0.1, step: 0.1 },
+                        onWheel: (e) => e.currentTarget.blur() // Disable mouse wheel adjustments
+                    }}
+                />
             </Box>
             <Grid container spacing={2} style={{ marginTop: 20 }}>
                 <Grid item xs={6}>

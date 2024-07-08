@@ -150,7 +150,7 @@ class AsyncChores:
         return success, buffer
 
     @staticmethod
-    async def drac_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
+    async def draw_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
         """
         Draw a contour on an image.
 
@@ -166,7 +166,7 @@ class AsyncChores:
             contour = pickle.loads(contour)
             image = await loop.run_in_executor(
                 executor,
-                lambda: cv2.drawContours(image, contour, -1, (0, 255, 0), 2),
+                lambda: cv2.drawContours(image, contour, -1, (0, 255, 0), 1),
             )
         return image
 
@@ -349,7 +349,7 @@ class CellCrudBase:
         """
         img = await AsyncChores.async_imdecode(data)
         if contour:
-            img = await AsyncChores.drac_contour(img, pickle.loads(contour))
+            img = await AsyncChores.draw_contour(img, contour)
         if brightness_factor != 1.0:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
         if scale_bar:
@@ -424,8 +424,10 @@ class CellCrudBase:
         """
         cell = await self.read_cell(cell_id)
         if draw_contour:
-            return await self.parse_image(cell.img_ph, cell.contour, draw_scale_bar)
-        return await self.parse_image(cell.img_ph, scale_bar=draw_scale_bar)
+            return await self.parse_image(
+                data=cell.img_ph, contour=cell.contour, scale_bar=draw_scale_bar
+            )
+        return await self.parse_image(data=cell.img_ph, scale_bar=draw_scale_bar)
 
     async def get_cell_fluo(
         self,
@@ -449,10 +451,14 @@ class CellCrudBase:
         cell = await self.read_cell(cell_id)
         if draw_contour:
             return await self.parse_image(
-                cell.img_fluo1, cell.contour, draw_scale_bar, brightness_factor
+                data=cell.img_fluo1,
+                contour=cell.contour,
+                scale_bar=draw_scale_bar,
+                brightness_factor=brightness_factor,
             )
         return await self.parse_image(
-            cell.img_fluo1,
+            data=cell.img_fluo1,
+            contour=cell.contour,
             scale_bar=draw_scale_bar,
             brightness_factor=brightness_factor,
         )
