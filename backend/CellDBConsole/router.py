@@ -39,3 +39,10 @@ async def get_cell_fluo(
         draw_scale_bar=draw_scale_bar,
         brightness_factor=brightness_factor,
     )
+
+
+@router_cell.get("/cells/{cell_id}/morphology")
+async def get_cell_morphology(cell_id: str, db_bame: str = "test_database.db"):
+    return await CellCrudBase(db_name=db_bame).morpho_analysis(
+        cell_id=cell_id, polyfit_degree=3
+    )
