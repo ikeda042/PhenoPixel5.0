@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material/Select";
-
 import { settings } from "../settings";
 
 
@@ -152,7 +151,17 @@ const CellImageGrid: React.FC = () => {
                     )}
                 </Grid>
             </Grid>
-        </Box>
+            <Box>
+                <Typography variant="h4" gutterBottom>
+                    Cell Image Viewer
+                </Typography>
+                <CellImageGrid />
+                <Typography variant="h4" gutterBottom style={{ marginTop: 20 }}>
+                    Scatter Plot
+                </Typography>
+                {/* <Replot /> */}
+            </Box>
+        </Box >
     );
 };
 
