@@ -31,6 +31,8 @@ class CellCrudBase:
         img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         if contour:
             cv2.drawContours(img, pickle.loads(contour), -1, (0, 255, 0), 1)
+        if scale_bar:
+            img = await CellCrudBase.draw_scale_bar_with_centered_text(img)
         _, buffer = cv2.imencode(".png", img)
         buffer_io = io.BytesIO(buffer)
         return StreamingResponse(buffer_io, media_type="image/png")
