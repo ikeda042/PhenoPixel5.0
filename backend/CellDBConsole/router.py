@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from CellDBConsole.crud import CellCrudBase
+from CellDBConsole.schemas import CellMorhology
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 
@@ -41,7 +42,7 @@ async def get_cell_fluo(
     )
 
 
-@router_cell.get("/cells/{cell_id}/morphology")
+@router_cell.get("/cells/{cell_id}/morphology", response_model=CellMorhology)
 async def get_cell_morphology(cell_id: str, db_bame: str = "test_database.db"):
     return await CellCrudBase(db_name=db_bame).morpho_analysis(
         cell_id=cell_id, polyfit_degree=3
