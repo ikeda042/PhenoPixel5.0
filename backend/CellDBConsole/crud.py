@@ -11,6 +11,7 @@ import io
 import pickle
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import scipy
 
 
 class AsyncChores:
@@ -173,6 +174,16 @@ class AsyncChores:
         return inv(W.T @ W) @ W.T @ f_values
 
     @staticmethod
+    def _calc_arc_length(theta: list[float], u_1_1: float, u_1_2: float) -> float:
+        fx = lambda x: np.sqrt(
+            1
+            + sum(i * j * x ** (i - 1) for i, j in enumerate(theta[::-1][1:], start=1))
+            ** 2
+        )
+        arc_length, _ = scipy.integrate.quad(fx, u_1_1, u_1_2, epsabs=1e-01)
+        return arc_length
+
+    @staticmethod
     async def morpho_analysis(
         contour: bytes, polyfit_degree: int | None = None
     ) -> np.ndarray:
@@ -226,17 +237,10 @@ class AsyncChores:
             volume = 0
 
             # u_2をすべて正にする
-            fig_volume = plt.figure(figsize=(6, 6))
             u_2_abs = [abs(i) for i in u2_adj]
-
-            plt.scatter(u1_adj, u_2_abs, s=5, color="lime")
-            # plt.scatter(0, 0, color="red", s=100)
-            plt.axis("equal")
 
             margin_width = 10
             margin_height = 10
-            plt.xlim([min(u1_adj) - margin_width, max(u1_adj) + margin_width])
-            plt.ylim([min(u_2_abs) - margin_height, max(u_2_abs) + margin_height])
             y = np.polyval(theta, x)
 
             # 区間ΔLごとに分割して、縦の線を引く。この時、縦の線のy座標はその線に最も近い点のy座標とする。
@@ -245,13 +249,8 @@ class AsyncChores:
                 for p in [[i, j] for i, j in zip(u1_adj, u_2_abs)]
                 if min(u1_adj) <= p[0] <= min(u1_adj) + deltaL
             ]
-
             # 区間中のyの平均値を求める
             y_mean = sum([i[1] for i in points_init]) / len(points_init)
-            plt.scatter(
-                (min(u1_adj) + min(u1_adj + deltaL)) / 2, y_mean, color="magenta", s=20
-            )
-            plt.plot([min(u1_adj), min(u1_adj)], [0, y_mean], color="lime")
 
             # 円柱ポリゴンの定義
             cylinders = []
@@ -273,22 +272,9 @@ class AsyncChores:
                 else:
                     # 区間中のyの平均値を求める
                     y_mean = sum([i[1] for i in points]) / len(points)
-                plt.scatter(((x_0) + (x_1)) / 2, y_mean, color="magenta", s=20)
-                plt.plot([x_0, x_0], [0, y_mean], color="lime")
-
                 volume += y_mean**2 * np.pi * deltaL
-
                 cylinders.append((x_0, deltaL, y_mean, "lime", 0.3))
-
                 widths.append(y_mean)
-
-            plt.xlabel("u1")
-            plt.ylabel("u2")
-            plt.savefig(f"{self.dir_volume}/{self.cell_id}_volume.png", dpi=300)
-            plt.close(fig_volume)
-            Cell._plot_cylinders(
-                cylinders, f"{self.dir_cylinders}/{self.cell_id}_cylinders.png"
-            )
 
             # width はwidthsの大きい順から3つの平均値を取る。
             # widthsの各値は、その区間のy座標の平均値である。
@@ -299,34 +285,16 @@ class AsyncChores:
             width *= 2
             return (area, volume, width, cell_length)
         else:
-
-            fig = plt.figure(figsize=(6, 6))
-            plt.scatter(u1, u2, s=5, color="lime")
-            plt.scatter(u1_c, u2_c, color="red", s=100)
-            plt.axis("equal")
-            margin_width = 10
-            margin_height = 10
-            plt.xlim([min(u1) - margin_width, max(u1) + margin_width])
-            plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
-
-            x = np.linspace(min(u1), max(u1), 100)
-
             # 多項式フィッティングの際にu1,u2を入れ替える事に注意
-            theta = self._poly_fit(np.array([u2, u1]).T, degree=polyfit_degree)
+            theta = await AsyncChores.poly_fit(
+                np.array([u2, u1]).T, degree=polyfit_degree
+            )
             y = np.polyval(theta, x)
-            plt.plot(x, y, color="red")
-            plt.xlabel("u1")
-            plt.ylabel("u2")
-            plt.savefig(f"{self.dir_replot}/{self.cell_id}_replot.png")
-            plt.savefig("realtime_replot.png")
-            plt.close(fig)
 
-            cell_length = Cell._calc_arc_length(theta, min(u1), max(u1))
+            cell_length = calc_arc_length(theta, min(u1), max(u1))
             area = cv2.contourArea(np.array(contour))
             volume = 0
             widths = []
-
-            fig_volume = plt.figure(figsize=(6, 6))
 
             # 細胞を長軸ベースに細分化(Meta parameters)
             split_num = 20
