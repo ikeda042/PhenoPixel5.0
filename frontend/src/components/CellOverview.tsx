@@ -3,7 +3,8 @@ import axios from "axios";
 import { Stack, Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material/Select";
 import { settings } from "../settings";
-import { Line } from 'react-chartjs-2';
+import { Scatter } from 'react-chartjs-2';
+import { ChartOptions } from 'chart.js';
 
 import {
     Chart as ChartJS,
@@ -123,18 +124,31 @@ const CellImageGrid: React.FC = () => {
 
     // プロット用のデータを生成
     const contourPlotData = {
-        labels: contourData.map((_, index) => index),
         datasets: [
             {
                 label: 'Contour',
                 data: contourData.map(point => ({ x: point[0], y: point[1] })),
-                borderColor: 'rgba(75,192,192,1)',
-                backgroundColor: 'rgba(75,192,192,0.2)',
-                fill: false,
-                showLine: true,
-                pointRadius: 1,
+                borderColor: 'lime',
+                backgroundColor: 'lime',
+                pointRadius: 3,
             }
         ]
+    };
+
+    const contourPlotOptions: ChartOptions<'scatter'> = {
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+        scales: {
+            x: {
+                type: 'linear',
+                position: 'bottom',
+                min: Math.min(...contourData.map(point => point[0])) ?? 0,
+            },
+            y: {
+                type: 'linear',
+                min: Math.min(...contourData.map(point => point[1])) ?? 0,
+            }
+        },
     };
 
     return (
@@ -204,8 +218,8 @@ const CellImageGrid: React.FC = () => {
                         </Grid>
                     </Grid>
                 </Box>
-                <Box>
-                    <Line data={contourPlotData} />
+                <Box sx={{ width: 450, height: 450, marginLeft: 2 }}>
+                    <Scatter data={contourPlotData} options={contourPlotOptions} />
                 </Box>
             </Stack>
         </>
