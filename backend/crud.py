@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 from fastapi.responses import StreamingResponse
 import aiofiles
+import io
 
 
 class CellCrudBase:
@@ -35,15 +36,15 @@ class CellCrudBase:
             raise CellNotFoundError(cell_id, "Cell with given ID does not exist")
         return cell
 
-    async def get_cell_ph(self, cell_id: str) -> bytes:
-        cell: bytes = await self.read_cell(cell_id)
+    async def get_cell_ph(self, cell_id: str) -> StreamingResponse:
+        cell = await self.read_cell(cell_id)
         image_ph = cv2.imdecode(
             np.frombuffer(cell.img_ph, dtype=np.uint8), cv2.IMREAD_COLOR
         )
         _, buffer = cv2.imencode(".png", image_ph)
-        async with aiofiles.open("temp.png", "wb") as afp:
-            await afp.write(buffer)
-        return StreamingResponse(open("temp.png", "rb"), media_type="image/png")
+        buffer_io = io.BytesIO(buffer)
+
+        return StreamingResponse(buffer_io, media_type="image/png")
 
     async def get_cell_fluo(self, cell_id: str) -> bytes:
         async for session in get_session(self.db_name):
