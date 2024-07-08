@@ -14,14 +14,18 @@ class DBInfo(BaseModel):
     cell_count: int
 
 
+class CellId(BaseModel):
+    cell_id: str
+
+
 class CellDBAll(BaseModel):
     cell_id: str
     label_experiment: str
-    manual_label: int
+    manual_label: str
     perimeter: float
     area: float
     img_ph: bytes
-    img_fluo1: bytes
+    img_fluo1: bytes | None
     img_fluo2: bytes | None
     contour: bytes
     center_x: float
