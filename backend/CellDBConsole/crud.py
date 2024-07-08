@@ -253,6 +253,15 @@ class AsyncChores:
         return result
 
     @staticmethod
+    async def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            result = await loop.run_in_executor(
+                executor, SyncChores.poly_fit, U, degree
+            )
+        return result
+
+    @staticmethod
     async def morpho_analysis(
         contour: bytes, polyfit_degree: int | None = None
     ) -> np.ndarray:
@@ -285,7 +294,9 @@ class AsyncChores:
             )
             width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
         else:
-            theta = SyncChores.poly_fit(np.array([u2, u1]).T, degree=polyfit_degree)
+            theta = await AsyncChores.poly_fit(
+                np.array([u2, u1]).T, degree=polyfit_degree
+            )
             y = np.polyval(theta, np.linspace(min(u1_adj), max(u1_adj), 1000))
             cell_length = SyncChores.calc_arc_length(theta, min(u1), max(u1))
             area = cv2.contourArea(np.array(contour))
