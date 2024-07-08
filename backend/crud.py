@@ -4,6 +4,103 @@ from sqlalchemy.future import select
 from Exceptions import CellNotFoundError
 
 
+class CellCrudBase:
+    async def read_cell_ids(
+        self, dbname: str, label: str | None = None
+    ) -> list[CellId]:
+        async for session in get_session(dbname=dbname):
+            if label:
+                result = await session.execute(
+                    select(Cell).where(Cell.manual_label == label)
+                )
+            else:
+                result = await session.execute(select(Cell))
+            cells: list[Cell] = result.scalars().all()
+        await session.close()
+        return [CellId(cell_id=cell.cell_id) for cell in cells]
+
+    async def read_cell(self, dbname: str, cell_id: str) -> CellDBAll:
+        async for session in get_session(dbname=dbname):
+            result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
+            cell: Cell = result.scalars().first()
+        await session.close()
+        return CellDBAll(
+            cell_id=cell.cell_id,
+            label_experiment=cell.label_experiment,
+            manual_label=cell.manual_label,
+            perimeter=round(cell.perimeter, 2),
+            area=cell.area,
+            img_ph=bytes(cell.img_ph),
+            img_fluo1=bytes(cell.img_fluo1),
+            img_fluo2=None,
+            contour=bytes(cell.contour),
+            center_x=cell.center_x,
+            center_y=cell.center_y,
+        )
+
+    async def read_cells_with_label(
+        self, dbname: str, label: str = "1"
+    ) -> list[CellDB]:
+        async for session in get_session(dbname=dbname):
+            result = await session.execute(
+                select(Cell).where(Cell.manual_label == label)
+            )
+            cells: list[Cell] = result.scalars().all()
+        await session.close()
+        return [
+            CellDB(
+                cell_id=cell.cell_id,
+                label_experiment=cell.label_experiment,
+                manual_label=cell.manual_label,
+                perimeter=round(cell.perimeter, 2),
+                area=cell.area,
+            )
+            for cell in cells
+        ]
+
+    async def count_cells_with_label(self, db_name: str, label: str = "1") -> int:
+        async for session in get_session(db_name):
+            result = await session.execute(
+                select(Cell).where(Cell.manual_label == label)
+            )
+            cells = result.scalars().all()
+        await session.close()
+        return len(cells)
+
+    async def get_cell_ph(self, db_name: str, cell_id: str) -> bytes:
+        async for session in get_session(db_name):
+            result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
+            cell: Cell = result.scalars().first()
+            if cell is None:
+                raise CellNotFoundError(
+                    cell_id, "Cell with given ID does not exist for fluorescence image"
+                )
+        await session.close()
+        return cell.img_ph
+
+    async def get_cell_fluo(self, db_name: str, cell_id: str) -> bytes:
+        async for session in get_session(db_name):
+            result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
+            cell: Cell = result.scalars().first()
+            if cell is None:
+                raise CellNotFoundError(
+                    cell_id, "Cell with given ID does not exist for fluorescence image"
+                )
+        await session.close()
+        return cell.img_fluo1
+
+    async def get_cell_contour(self, db_name: str, cell_id: str) -> bytes:
+        async for session in get_session(db_name):
+            result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
+            cell: Cell = result.scalars().first()
+            if cell is None:
+                raise CellNotFoundError(
+                    cell_id, "Cell with given ID does not exist for contour"
+                )
+        await session.close()
+        return cell.contour
+
+
 async def get_cell_ids(dbname: str) -> list[CellId]:
     async for session in get_session(dbname=dbname):
         result = await session.execute(select(Cell))
