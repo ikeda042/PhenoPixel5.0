@@ -5,8 +5,8 @@ from Exceptions import CellNotFoundError
 
 
 class CellCrudBase:
-    def __init__(self) -> None:
-        self.db_name = "test_database.db"
+    def __init__(self, db_name: str) -> None:
+        self.db_name: str = db_name
 
     async def read_cell_ids(self, label: str | None = None) -> list[CellId]:
         stmt = select(Cell)
