@@ -18,8 +18,10 @@ class CellCrudBase:
         return [CellId(cell_id=cell.cell_id) for cell in cells]
 
     async def read_cell(self, dbname: str, cell_id: str) -> CellDBAll:
+        stmt = select(Cell)
+        stmt = stmt.where(Cell.cell_id == cell_id)
         async for session in get_session(dbname=dbname):
-            result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
+            result = await session.execute(stmt)
             cell: Cell = result.scalars().first()
         await session.close()
         return CellDBAll(
