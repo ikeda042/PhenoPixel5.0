@@ -5,7 +5,6 @@ from Exceptions import CellNotFoundError
 import cv2
 import numpy as np
 from fastapi.responses import StreamingResponse
-import aiofiles
 import io
 import pickle
 
@@ -15,7 +14,9 @@ class CellCrudBase:
         self.db_name: str = db_name
 
     @staticmethod
-    async def parse_image(data: bytes, contour: bytes | None) -> StreamingResponse:
+    async def parse_image(
+        data: bytes, contour: bytes | None = None
+    ) -> StreamingResponse:
         img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         if contour:
             cv2.drawContours(img, pickle.loads(contour), -1, (0, 255, 0), 1)
