@@ -15,6 +15,52 @@ import scipy
 from scipy.optimize import minimize
 
 
+class SyncChores:
+
+    @staticmethod
+    def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
+        u1_values = np.array([i[1] for i in U])
+        f_values = np.array([i[0] for i in U])
+        W = np.vander(u1_values, degree + 1)
+
+        return inv(W.T @ W) @ W.T @ f_values
+
+    @staticmethod
+    def calc_arc_length(theta: list[float], u_1_1: float, u_1_2: float) -> float:
+        fx = lambda x: np.sqrt(
+            1
+            + sum(i * j * x ** (i - 1) for i, j in enumerate(theta[::-1][1:], start=1))
+            ** 2
+        )
+        arc_length, _ = scipy.integrate.quad(fx, u_1_1, u_1_2, epsabs=1e-01)
+        return arc_length
+
+    @staticmethod
+    def find_minimum_distance_and_point(coefficients, x_Q, y_Q):
+        # 関数の定義
+        def f_x(x):
+            return sum(
+                coefficient * x**i for i, coefficient in enumerate(coefficients[::-1])
+            )
+
+        # 点Qから関数上の点までの距離 D の定義
+        def distance(x):
+            return np.sqrt((x - x_Q) ** 2 + (f_x(x) - y_Q) ** 2)
+
+        # scipyのminimize関数を使用して最短距離を見つける
+        # 初期値は0とし、精度は低く設定して計算速度を向上させる
+        result = minimize(
+            distance, 0, method="Nelder-Mead", options={"xatol": 1e-4, "fatol": 1e-2}
+        )
+
+        # 最短距離とその時の関数上の点
+        x_min = result.x[0]
+        min_distance = distance(x_min)
+        min_point = (x_min, f_x(x_min))
+
+        return min_distance, min_point
+
+
 class AsyncChores:
     @staticmethod
     async def async_imdecode(data: bytes) -> np.ndarray:
@@ -167,50 +213,6 @@ class AsyncChores:
         return u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U
 
     @staticmethod
-    def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
-        u1_values = np.array([i[1] for i in U])
-        f_values = np.array([i[0] for i in U])
-        W = np.vander(u1_values, degree + 1)
-
-        return inv(W.T @ W) @ W.T @ f_values
-
-    @staticmethod
-    def calc_arc_length(theta: list[float], u_1_1: float, u_1_2: float) -> float:
-        fx = lambda x: np.sqrt(
-            1
-            + sum(i * j * x ** (i - 1) for i, j in enumerate(theta[::-1][1:], start=1))
-            ** 2
-        )
-        arc_length, _ = scipy.integrate.quad(fx, u_1_1, u_1_2, epsabs=1e-01)
-        return arc_length
-
-    @staticmethod
-    @staticmethod
-    def _find_minimum_distance_and_point(coefficients, x_Q, y_Q):
-        # 関数の定義
-        def f_x(x):
-            return sum(
-                coefficient * x**i for i, coefficient in enumerate(coefficients[::-1])
-            )
-
-        # 点Qから関数上の点までの距離 D の定義
-        def distance(x):
-            return np.sqrt((x - x_Q) ** 2 + (f_x(x) - y_Q) ** 2)
-
-        # scipyのminimize関数を使用して最短距離を見つける
-        # 初期値は0とし、精度は低く設定して計算速度を向上させる
-        result = minimize(
-            distance, 0, method="Nelder-Mead", options={"xatol": 1e-4, "fatol": 1e-2}
-        )
-
-        # 最短距離とその時の関数上の点
-        x_min = result.x[0]
-        min_distance = distance(x_min)
-        min_point = (x_min, f_x(x_min))
-
-        return min_distance, min_point
-
-    @staticmethod
     async def morpho_analysis(
         contour: bytes, polyfit_degree: int | None = None
     ) -> np.ndarray:
@@ -327,10 +329,10 @@ class AsyncChores:
 
             raw_points: list[list[float]] = []
             for i, j in zip(u1, u2):
-                min_distance, min_point = Cell._find_minimum_distance_and_point(
+                min_distance, min_point = AsyncChores.find_minimum_distance_and_point(
                     theta, i, j
                 )
-                arc_length = Cell._calc_arc_length(theta, min(u1), i)
+                arc_length = AsyncChores.calc_arc_length(theta, min(u1), i)
                 raw_points.append([arc_length, min_distance])
 
             # raw pointsをソート
