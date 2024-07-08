@@ -48,24 +48,12 @@ async def get_cell_fluo(
 async def get_cell_contour(
     cell_id: str,
     contour_type: Literal["raw", "converted"] = "raw",
+    polyfit_degree: int = 3,
     db_name: str = "test_database.db",
 ):
-    # if contour_type == "raw":
-    #     contour = [
-    #         [int(j), int(i)]
-    #         for i, j in [
-    #             i[0]
-    #             for i in await CellCrudBase(db_name=db_name).get_cell_contour(
-    #                 cell_id=cell_id
-    #             )
-    #         ]
-    #     ]
-    # else:
-    #     contour = []
-
     cell_morphology: CellMorhology = await CellCrudBase(
         db_name=db_name
-    ).morpho_analysis(cell_id=cell_id, polyfit_degree=3)
+    ).morpho_analysis(cell_id=cell_id, polyfit_degree=polyfit_degree)
 
     if contour_type == "raw":
         contour = cell_morphology.contour_raw
