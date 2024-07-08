@@ -249,7 +249,7 @@ class AsyncChores:
 
         # 基底変換関数を呼び出して必要な変数を取得
         u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U = (
-            await AsyncChores.basis_conversion(
+            await SyncChores.basis_conversion(
                 contour, X, img_size / 2, img_size / 2, contour
             )
         )
