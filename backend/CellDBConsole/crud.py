@@ -33,7 +33,7 @@ class AsyncChores:
         return img
 
     @staticmethod
-    async def async_cv2_imencode(img):
+    async def async_cv2_imencode(img) -> tuple[bool, np.ndarray]:
         """
         Encode an image to PNG format.
 
@@ -51,7 +51,7 @@ class AsyncChores:
         return success, buffer
 
     @staticmethod
-    async def draw_scale_bar_with_centered_text(image_ph):
+    async def draw_scale_bar_with_centered_text(image_ph) -> np.ndarray:
         """
         Draws a 5 um white scale bar on the lower right corner of the image with "5 um" text centered under it.
         Assumes 1 pixel = 0.0625 um.
@@ -103,7 +103,7 @@ class AsyncChores:
         return image_ph
 
     @staticmethod
-    async def async_eig(Sigma: np.ndarray):
+    async def async_eig(Sigma: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         loop = asyncio.get_event_loop()
         with ThreadPoolExecutor(max_workers=5) as executor:
             eigenvalues, eigenvectors = await loop.run_in_executor(executor, eig, Sigma)
