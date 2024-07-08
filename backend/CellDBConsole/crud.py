@@ -271,6 +271,19 @@ class AsyncChores:
         return result
 
     @staticmethod
+    async def find_minimum_distance_and_point(coefficients, x_Q, y_Q):
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            result = await loop.run_in_executor(
+                executor,
+                SyncChores.find_minimum_distance_and_point,
+                coefficients,
+                x_Q,
+                y_Q,
+            )
+        return result
+
+    @staticmethod
     async def morpho_analysis(
         contour: bytes, polyfit_degree: int | None = None
     ) -> np.ndarray:
@@ -311,10 +324,10 @@ class AsyncChores:
             cell_length = await AsyncChores.calc_arc_length(theta, min(u1), max(u1))
             raw_points = []
             for i, j in zip(u1, u2):
-                min_distance, min_point = SyncChores.find_minimum_distance_and_point(
-                    theta, i, j
+                min_distance, min_point = (
+                    await AsyncChores.find_minimum_distance_and_point(theta, i, j)
                 )
-                arc_length = SyncChores.calc_arc_length(theta, min(u1), i)
+                arc_length = await AsyncChores.calc_arc_length(theta, min(u1), i)
                 raw_points.append([arc_length, min_distance])
             raw_points.sort(key=lambda x: x[0])
 
