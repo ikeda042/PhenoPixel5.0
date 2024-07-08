@@ -28,9 +28,11 @@ async def read_cell_ids(label: str | None = None):
     return await CellCrudBase(db_name="test_database.db").read_cell_ids(label=label)
 
 
-@app.get("/cells/{cell_id}")
-async def get_cell(cell_id: str):
-    return await CellCrudBase(db_name="test_database.db").get_cell_ph(cell_id=cell_id)
+@app.get("/cells/{cell_id}/ph_image")
+async def get_cell_ph(cell_id: str, draw_contour: bool = False):
+    return await CellCrudBase(db_name="test_database.db").get_cell_ph(
+        cell_id=cell_id, draw_contour=draw_contour
+    )
 
 
 # @app.get("/cells/label/{label}")
