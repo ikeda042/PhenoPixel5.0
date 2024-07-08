@@ -16,7 +16,6 @@ from scipy.optimize import minimize
 
 
 class SyncChores:
-
     @staticmethod
     def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
         u1_values = np.array([i[1] for i in U])
