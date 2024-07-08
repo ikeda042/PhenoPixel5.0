@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from CellDBConsole.crud import CellCrudBase
 from CellDBConsole.schemas import CellMorhology
 from fastapi.responses import JSONResponse
+from typing import Literal
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 
@@ -43,10 +44,22 @@ async def get_cell_fluo(
     )
 
 
-@router_cell.get("/{cell_id}/contour")
-async def get_cell_contour(cell_id: str, db_name: str = "test_database.db"):
-    contour = await CellCrudBase(db_name=db_name).get_cell_contour(cell_id=cell_id)
-    return JSONResponse(content={"contour": contour.tolist()})
+@router_cell.get("/{cell_id}/contour/{contour_type}")
+async def get_cell_contour_raw(
+    cell_id: str,
+    contour_type: Literal["raw", "converted"],
+    db_name: str = "test_database.db",
+):
+    contour = [
+        [int(j), int(i)]
+        for i, j in [
+            i[0]
+            for i in await CellCrudBase(db_name=db_name).get_cell_contour(
+                cell_id=cell_id
+            )
+        ]
+    ]
+    return JSONResponse(content={"contour": contour})
 
 
 @router_cell.get("/{cell_id}/morphology", response_model=CellMorhology)
