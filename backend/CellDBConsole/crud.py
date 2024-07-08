@@ -1,3 +1,4 @@
+from __future__ import annotations
 from CellDBConsole.schemas import CellId
 from database import get_session, Cell
 from sqlalchemy.future import select
@@ -10,7 +11,6 @@ import io
 import pickle
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from __future__ import annotations
 
 
 class AsyncChores:
@@ -193,8 +193,8 @@ class CellCrudBase:
         if brightness_factor != 1.0:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
         if scale_bar:
-            img = await CellCrudBase.draw_scale_bar_with_centered_text(img)
-        _, buffer = await CellCrudBase.async_cv2_imencode(img)
+            img = await AsyncChores.draw_scale_bar_with_centered_text(img)
+        _, buffer = await AsyncChores.async_cv2_imencode(img)
         buffer_io = io.BytesIO(buffer)
         return StreamingResponse(buffer_io, media_type="image/png")
 
