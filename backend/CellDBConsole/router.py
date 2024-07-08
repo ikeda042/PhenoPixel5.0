@@ -45,20 +45,23 @@ async def get_cell_fluo(
 
 
 @router_cell.get("/{cell_id}/contour/{contour_type}")
-async def get_cell_contour_raw(
+async def get_cell_contour(
     cell_id: str,
-    contour_type: Literal["raw", "converted"],
+    contour_type: Literal["raw", "converted"] = "raw",
     db_name: str = "test_database.db",
 ):
-    contour = [
-        [int(j), int(i)]
-        for i, j in [
-            i[0]
-            for i in await CellCrudBase(db_name=db_name).get_cell_contour(
-                cell_id=cell_id
-            )
+    if contour_type == "raw":
+        contour = [
+            [int(j), int(i)]
+            for i, j in [
+                i[0]
+                for i in await CellCrudBase(db_name=db_name).get_cell_contour(
+                    cell_id=cell_id
+                )
+            ]
         ]
-    ]
+    else:
+        contour = []
     return JSONResponse(content={"contour": contour})
 
 
