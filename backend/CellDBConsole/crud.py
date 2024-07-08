@@ -115,6 +115,15 @@ class CellCrudBase:
         return image_ph
 
     async def read_cell_ids(self, label: str | None = None) -> list[CellId]:
+        """
+        Read all cell IDs from the database.
+
+        Parameters:
+        - label: Optional label to filter cells by.
+
+        Returns:
+        - List of CellId objects.
+        """
         stmt = select(Cell)
         if label:
             stmt = stmt.where(Cell.manual_label == label)
@@ -125,9 +134,27 @@ class CellCrudBase:
         return [CellId(cell_id=cell.cell_id) for cell in cells]
 
     async def read_cell_ids_count(self, label: str | None = None) -> int:
+        """
+        Read the number of cell IDs from the database.
+
+        Parameters:
+        - label: Optional label to filter cells by.
+
+        Returns:
+        - Number of cell IDs with respect to the label.
+        """
         return len(await self.read_cell_ids(self.db_name, label))
 
     async def read_cell(self, cell_id: str) -> Cell:
+        """
+        Read a cell by its ID.
+
+        Parameters:
+        - cell_id: ID of the cell to fetch.
+
+        Returns:
+        - Cell object with the given ID.
+        """
         stmt = select(Cell).where(Cell.cell_id == cell_id)
         async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
