@@ -358,10 +358,6 @@ class AsyncChores:
 
                 cylinders.append((x_0, deltaL, y_mean, "lime", 0.3))
 
-            Cell._plot_cylinders(
-                cylinders, f"{self.dir_cylinders}/{self.cell_id}_cylinders.png"
-            )
-
             # width はwidthsの大きい順から3つの平均値を取る。
             # widthsの各値は、その区間のy座標の平均値である。
             # この際、区間のy軸方向は細胞の片側の幅を表すため、値を単純に二倍する。
