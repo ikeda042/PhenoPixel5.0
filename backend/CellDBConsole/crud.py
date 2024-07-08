@@ -286,9 +286,7 @@ class AsyncChores:
         return result
 
     @staticmethod
-    async def get_contour(
-        contour: bytes, polyfit_degree: int | None = None
-    ) -> np.ndarray:
+    async def get_contour(contour: bytes) -> np.ndarray:
         img_size = 100
         contour_unpickled = await AsyncChores.async_pickle_loads(contour)
         contour = np.array([[j, i] for i, j in [i[0] for i in contour_unpickled]])
@@ -519,6 +517,10 @@ class CellCrudBase:
     async def get_cell_contour(self, cell_id: str) -> list[list[float]]:
         cell = await self.read_cell(cell_id)
         return await AsyncChores.async_pickle_loads(cell.contour)
+
+    async def get_cell_contour_plot_data(self, cell_id: str) -> dict:
+        cell = await self.read_cell(cell_id)
+        return await AsyncChores.get_contour(cell.contour)
 
     async def morpho_analysis(
         self, cell_id: str, polyfit_degree: int | None = None
