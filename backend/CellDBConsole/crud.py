@@ -12,6 +12,7 @@ import pickle
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import scipy
+from scipy.optimize import minimize
 
 
 class AsyncChores:
@@ -174,7 +175,7 @@ class AsyncChores:
         return inv(W.T @ W) @ W.T @ f_values
 
     @staticmethod
-    def _calc_arc_length(theta: list[float], u_1_1: float, u_1_2: float) -> float:
+    def calc_arc_length(theta: list[float], u_1_1: float, u_1_2: float) -> float:
         fx = lambda x: np.sqrt(
             1
             + sum(i * j * x ** (i - 1) for i, j in enumerate(theta[::-1][1:], start=1))
@@ -182,6 +183,32 @@ class AsyncChores:
         )
         arc_length, _ = scipy.integrate.quad(fx, u_1_1, u_1_2, epsabs=1e-01)
         return arc_length
+
+    @staticmethod
+    @staticmethod
+    def _find_minimum_distance_and_point(coefficients, x_Q, y_Q):
+        # 関数の定義
+        def f_x(x):
+            return sum(
+                coefficient * x**i for i, coefficient in enumerate(coefficients[::-1])
+            )
+
+        # 点Qから関数上の点までの距離 D の定義
+        def distance(x):
+            return np.sqrt((x - x_Q) ** 2 + (f_x(x) - y_Q) ** 2)
+
+        # scipyのminimize関数を使用して最短距離を見つける
+        # 初期値は0とし、精度は低く設定して計算速度を向上させる
+        result = minimize(
+            distance, 0, method="Nelder-Mead", options={"xatol": 1e-4, "fatol": 1e-2}
+        )
+
+        # 最短距離とその時の関数上の点
+        x_min = result.x[0]
+        min_distance = distance(x_min)
+        min_point = (x_min, f_x(x_min))
+
+        return min_distance, min_point
 
     @staticmethod
     async def morpho_analysis(
@@ -286,12 +313,10 @@ class AsyncChores:
             return (area, volume, width, cell_length)
         else:
             # 多項式フィッティングの際にu1,u2を入れ替える事に注意
-            theta = await AsyncChores.poly_fit(
-                np.array([u2, u1]).T, degree=polyfit_degree
-            )
+            theta = AsyncChores.poly_fit(np.array([u2, u1]).T, degree=polyfit_degree)
             y = np.polyval(theta, x)
 
-            cell_length = calc_arc_length(theta, min(u1), max(u1))
+            cell_length = AsyncChores.calc_arc_length(theta, min(u1), max(u1))
             area = cv2.contourArea(np.array(contour))
             volume = 0
             widths = []
@@ -324,28 +349,12 @@ class AsyncChores:
                 else:
                     # 区間中のyの平均値を求める
                     y_mean = sum([i[1] for i in points]) / len(points)
-                plt.scatter(
-                    ((x_0) + (x_1)) / 2, y_mean, color="magenta", s=20, zorder=100
-                )
-                plt.plot([x_0, x_0], [0, y_mean], color="lime")
                 volume += y_mean**2 * np.pi * deltaL
 
                 widths.append(y_mean)
 
                 cylinders.append((x_0, deltaL, y_mean, "lime", 0.3))
 
-            plt.axis("equal")
-            plt.scatter(
-                [i[0] for i in raw_points],
-                [i[1] for i in raw_points],
-                s=5,
-                color="lime",
-            )
-            plt.xlabel("Arc length(px)")
-            plt.ylabel("D_i(px)")
-            plt.savefig(f"{self.dir_volume}/{self.cell_id}_volume.png", dpi=300)
-            plt.savefig("realtime_volume.png")
-            plt.close(fig_volume)
             Cell._plot_cylinders(
                 cylinders, f"{self.dir_cylinders}/{self.cell_id}_cylinders.png"
             )
