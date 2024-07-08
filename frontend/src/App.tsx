@@ -16,13 +16,13 @@ import React, { useEffect, useState } from 'react';
 import { settings } from './settings';
 
 function App() {
-  const [data, setData] = useState([]);
+  // const [data, setData] = useState([]);
 
-  useEffect(() => {
-    fetch(`${settings.url_prefix}/cellapi/cells/databases`)
-      .then(response => response.json())
-      .then(data => setData(data));
-  }, []);
+  // useEffect(() => {
+  //   fetch(`${settings.url_prefix}/cellapi/cells/databases`)
+  //     .then(response => response.json())
+  //     .then(data => setData(data));
+  // }, []);
 
   return (
     <Router>
