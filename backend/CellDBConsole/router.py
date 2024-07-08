@@ -2,6 +2,8 @@ from fastapi import APIRouter
 from CellDBConsole.crud import CellCrudBase
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
+
+
 # define a global var called db_name
 db_name = "test_database.db"
 
