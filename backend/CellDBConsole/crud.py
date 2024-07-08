@@ -230,7 +230,7 @@ class AsyncChores:
         return eigenvalues, eigenvectors
 
     @staticmethod
-    async def async_pickle_loads(data: bytes) -> list[list[int]]:
+    async def async_pickle_loads(data: bytes) -> list[list[float]]:
         loop = asyncio.get_event_loop()
         with ThreadPoolExecutor(max_workers=5) as executor:
             result = await loop.run_in_executor(executor, pickle.loads, data)
@@ -462,9 +462,9 @@ class CellCrudBase:
             brightness_factor=brightness_factor,
         )
 
-    async def get_cell_contour(self, cell_id: str) -> bytes:
+    async def get_cell_contour(self, cell_id: str) -> list[list[float]]:
         cell = await self.read_cell(cell_id)
-        return cell.contour
+        return await AsyncChores.async_pickle_loads(cell.contour)
 
     async def morpho_analysis(
         self, cell_id: str, polyfit_degree: int | None = None
