@@ -51,14 +51,14 @@ async def get_cell_contour(
     polyfit_degree: int = 3,
     db_name: str = "test_database.db",
 ):
-    contours = await CellCrudBase(db_name=db_name).get_cell_contour(
-        cell_id=cell_id, polyfit_degree=polyfit_degree
+    contours = await CellCrudBase(db_name=db_name).get_cell_contour_plot_data(
+        cell_id=cell_id
     )
     if contour_type == "raw":
-        contour = contours["raw"]
+        contour = contours["raw"].tolist()
         return JSONResponse(content={"contour": contour})
     else:
-        contour = contours["converted"]
+        contour = contours["converted"].tolist()
         return JSONResponse(content={"contour": contour})
 
 
