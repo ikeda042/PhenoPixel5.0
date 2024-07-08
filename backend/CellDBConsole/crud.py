@@ -271,7 +271,9 @@ class AsyncChores:
         return result
 
     @staticmethod
-    async def find_minimum_distance_and_point(coefficients, x_Q, y_Q):
+    async def find_minimum_distance_and_point(
+        coefficients, x_Q, y_Q
+    ) -> tuple[float, tuple[float, float]]:
         loop = asyncio.get_event_loop()
         with ThreadPoolExecutor(max_workers=5) as executor:
             result = await loop.run_in_executor(
@@ -282,6 +284,26 @@ class AsyncChores:
                 y_Q,
             )
         return result
+
+    @staticmethod
+    async def get_contour(
+        contour: bytes, polyfit_degree: int | None = None
+    ) -> np.ndarray:
+        img_size = 100
+        contour_unpickled = await AsyncChores.async_pickle_loads(contour)
+        contour = np.array([[j, i] for i, j in [i[0] for i in contour_unpickled]])
+        X = np.array(
+            [
+                [i[1] for i in contour],
+                [i[0] for i in contour],
+            ]
+        )
+
+        # 基底変換関数を呼び出して必要な変数を取得
+        u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U = (
+            SyncChores.basis_conversion(contour, X, img_size / 2, img_size / 2, contour)
+        )
+        return contour_U
 
     @staticmethod
     async def morpho_analysis(
