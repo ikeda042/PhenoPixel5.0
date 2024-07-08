@@ -1,5 +1,8 @@
 from fastapi import APIRouter
 from CellDBConsole.crud import CellCrudBase
+from typing import Annotated
+from fastapi.params import Query
+from CellDBConsole.schemas import CellId
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 
@@ -34,16 +37,4 @@ async def get_cell_fluo(
 ):
     return await CellCrudBase(db_name=db_bame).get_cell_fluo(
         cell_id=cell_id, draw_contour=draw_contour, draw_scale_bar=draw_scale_bar
-    )
-
-
-@router_cell.get("/cells/ph_image")
-async def get_all_cell_ph(
-    cell_ids: list[str],
-    db_bame: str = "test_database.db",
-    draw_contour: bool = False,
-    draw_scale_bar: bool = False,
-):
-    return await CellCrudBase(db_name=db_bame).get_all_cell_ph(
-        cell_ids=cell_ids, draw_contour=draw_contour, draw_scale_bar=draw_scale_bar
     )

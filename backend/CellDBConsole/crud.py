@@ -129,40 +129,21 @@ class CellCrudBase:
             return await self.parse_image(cell.img_ph, cell.contour, draw_scale_bar)
         return await self.parse_image(cell.img_ph, scale_bar=draw_scale_bar)
 
-    async def get_all_cell_ph(
-        self,
-        cell_ids: list[str],
-        draw_contour: bool = False,
-        draw_scale_bar: bool = False,
-    ) -> StreamingResponse:
-        images = []
-        for cell_id in cell_ids:
-            cell = await self.read_cell(cell_id)
-            if draw_contour:
-                images.append(
-                    await self.parse_image(cell.img_ph, cell.contour, draw_scale_bar)
-                )
-            else:
-                images.append(
-                    await self.parse_image(cell.img_ph, scale_bar=draw_scale_bar)
-                )
-        return images
-
     async def get_cell_fluo(
         self, cell_id: str, draw_contour: bool = False, draw_scale_bar: bool = False
     ) -> StreamingResponse:
+        """
+        Get the fluorescence images for a cell by its ID.
+
+        Parameters:
+        - cell_id: ID of the cell to fetch images for.
+        - draw_contour: Whether to draw the contour on the image.
+        - draw_scale_bar: Whether to draw the scale bar on the image.
+
+        Returns:
+        - StreamingResponse object with the fluorescence image data.
+        """
         cell = await self.read_cell(cell_id)
         if draw_contour:
             return await self.parse_image(cell.img_fluo1, cell.contour, draw_scale_bar)
         return await self.parse_image(cell.img_fluo1, scale_bar=draw_scale_bar)
-
-    # async def get_cell_contour(self, cell_id: str) -> bytes:
-    #     async for session in get_session(self.db_name):
-    #         result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
-    #         cell: Cell = result.scalars().first()
-    #         if cell is None:
-    #             raise CellNotFoundError(
-    #                 cell_id, "Cell with given ID does not exist for contour"
-    #             )
-    #     await session.close()
-    #     return cell.contour
