@@ -27,9 +27,9 @@ async def read_cell_ids(label: str | None = None):
     return await CellCrudBase().read_cell_ids(dbname=db_name, label=label)
 
 
-# @app.get("/cells/{cell_id}")
-# async def get_cell(cell_id: str):
-#     return await get_cell_ph(dbname=db_name, cell_id=cell_id)
+@app.get("/cells/{cell_id}")
+async def get_cell(cell_id: str):
+    return await CellCrudBase().get_cell_ph(dbname=db_name, cell_id=cell_id)
 
 
 # @app.get("/cells/label/{label}")
