@@ -2,17 +2,18 @@
 import './App.css';
 import Nav from './components/Nav';
 import { Box } from '@mui/system';
-import SquareImage from './components/Squareimage';
-import DBtable from './components/Dbtable';
-import Dbcontents from './pages/Ddcontents';
+// import SquareImage from './components/Squareimage';
+// import DBtable from './components/Dbtable';
+// import Dbcontents from './pages/Ddcontents';
 import Grid from '@mui/material/Unstable_Grid2';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';  // Import Routes
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
-import Cell from './pages/Cell'
-import DbcontentsOverview from './pages/Cellsoverview';
+// import Cell from './pages/Cell'
+// import DbcontentsOverview from './pages/Cellsoverview';
+// import { settings } from './settings';
+// import MCPR from './pages/MCPR';
+// import Slots from './components/Slots';
 import { settings } from './settings';
-import MCPR from './pages/MCPR';
-import Slots from './components/Slots';
 
 function App() {
   const [data, setData] = useState([]);
@@ -31,9 +32,9 @@ function App() {
 
           <Route path="/" element={
             <>
-              <Nav title='データベース一括管理システム' />
+              <Nav title='PhenoPixel5.0' />
               <Grid container spacing={4} margin={5}>
-                <DBtable data={data} />
+                {/* <DBtable data={data} /> */}
               </Grid >
             </>
           } />
@@ -41,30 +42,30 @@ function App() {
           <Route path="/dbcontents/:filename" element={
             <>
               <Nav title='データベース一括管理システム' />
-              <Dbcontents />
+              {/* <Dbcontents /> */}
             </>} />
           <Route path="/dbcontents/:filename/cell/:cellId" element={
             <>
               <Nav title='データベース一括管理システム' />
-              <Cell />
+              {/* <Cell /> */}
             </>} />
           <Route path="/dbcontents/:filename/overview" element={
             <>
               <Nav title='データベース一括管理システム' />
-              <DbcontentsOverview />
+              {/* <DbcontentsOverview /> */}
             </>
           } />
           <Route path="/mcpr" element=
             {<>
               <Nav title='増殖曲線自動プロット' />
-              <MCPR />
+              {/* <MCPR /> */}
             </>
             } />
           <Route path="/slots" element=
             {<>
               <Nav title='顕微鏡予約状況' />
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <Slots />
+                {/* <Slots /> */}
               </Box>
             </>
             } />
