@@ -2,16 +2,22 @@ from fastapi import FastAPI
 import uvicorn
 from fastapi.responses import StreamingResponse
 from CellDBConsole.router import router_cell
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="CellAPI", docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json"
 )
 
-cors_origins = [
-    "localhost",
-    "localhost:8080",
-    "localhost:3000",
-]
+cors_origins = ["*"]
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/healthcheck")

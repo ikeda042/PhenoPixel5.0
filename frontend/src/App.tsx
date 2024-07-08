@@ -14,6 +14,7 @@ import React, { useEffect, useState } from 'react';
 // import MCPR from './pages/MCPR';
 // import Slots from './components/Slots';
 import { settings } from './settings';
+import CellImageGrid from './components/CellOverview';
 
 function App() {
   // const [data, setData] = useState([]);
@@ -34,7 +35,7 @@ function App() {
             <>
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={4} margin={5}>
-                {/* <DBtable data={data} /> */}
+                <CellImageGrid />
               </Grid >
             </>
           } />

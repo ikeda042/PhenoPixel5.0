@@ -9,12 +9,12 @@ router_cell = APIRouter(prefix="/cells", tags=["cells"])
 db_name = "test_database.db"
 
 
-@router_cell.get("/cells")
+@router_cell.get("/")
 async def read_cell_ids(db_bame: str = "test_database.db", label: str | None = None):
     return await CellCrudBase(db_name=db_bame).read_cell_ids(label=label)
 
 
-@router_cell.get("/cells/{cell_id}/ph_image")
+@router_cell.get("/{cell_id}/ph_image")
 async def get_cell_ph(
     cell_id: str,
     db_bame: str = "test_database.db",
@@ -26,7 +26,7 @@ async def get_cell_ph(
     )
 
 
-@router_cell.get("/cells/{cell_id}/fluo_image")
+@router_cell.get("/{cell_id}/fluo_image")
 async def get_cell_fluo(
     cell_id: str,
     db_bame: str = "test_database.db",
@@ -42,7 +42,7 @@ async def get_cell_fluo(
     )
 
 
-@router_cell.get("/cells/{cell_id}/morphology", response_model=CellMorhology)
+@router_cell.get("/{cell_id}/morphology", response_model=CellMorhology)
 async def get_cell_morphology(cell_id: str, db_bame: str = "test_database.db"):
     return await CellCrudBase(db_name=db_bame).morpho_analysis(
         cell_id=cell_id, polyfit_degree=3
