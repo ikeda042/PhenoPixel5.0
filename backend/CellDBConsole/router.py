@@ -50,19 +50,29 @@ async def get_cell_contour(
     contour_type: Literal["raw", "converted"] = "raw",
     db_name: str = "test_database.db",
 ):
+    # if contour_type == "raw":
+    #     contour = [
+    #         [int(j), int(i)]
+    #         for i, j in [
+    #             i[0]
+    #             for i in await CellCrudBase(db_name=db_name).get_cell_contour(
+    #                 cell_id=cell_id
+    #             )
+    #         ]
+    #     ]
+    # else:
+    #     contour = []
+
+    cell_morphology: CellMorhology = await CellCrudBase(
+        db_name=db_name
+    ).morpho_analysis(cell_id=cell_id, polyfit_degree=3)
+
     if contour_type == "raw":
-        contour = [
-            [int(j), int(i)]
-            for i, j in [
-                i[0]
-                for i in await CellCrudBase(db_name=db_name).get_cell_contour(
-                    cell_id=cell_id
-                )
-            ]
-        ]
+        contour = cell_morphology.contour_raw
+        return JSONResponse(content={"contour": contour})
     else:
-        contour = []
-    return JSONResponse(content={"contour": contour})
+        contour = cell_morphology.converted_contour
+        return JSONResponse(content={"contour": contour})
 
 
 @router_cell.get("/{cell_id}/morphology", response_model=CellMorhology)
