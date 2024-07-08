@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 import uvicorn
 from crud import CellCrudBase
+from fastapi.responses import StreamingResponse
 
 app = FastAPI(
     title="CellAPI", docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json"
@@ -29,9 +30,11 @@ async def read_cell_ids(label: str | None = None):
 
 @app.get("/cells/{cell_id}")
 async def get_cell(cell_id: str):
-    return await CellCrudBase(db_name="test_database.db").get_cell_ph(
-        dbname=db_name, cell_id=cell_id
+    data: bytes = await CellCrudBase(db_name="test_database.db").read_cell(
+        cell_id=cell_id
     )
+    print(data)
+    return StreamingResponse(content=iter([data]), media_type="image/png")
 
 
 # @app.get("/cells/label/{label}")

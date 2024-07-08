@@ -43,14 +43,11 @@ class CellCrudBase:
         )
 
     async def get_cell_ph(self, cell_id: str) -> bytes:
-        async for session in get_session(self.db_name):
-            result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
-            cell: Cell = result.scalars().first()
-            if cell is None:
-                raise CellNotFoundError(
-                    cell_id, "Cell with given ID does not exist for fluorescence image"
-                )
-        await session.close()
+        cell = await self.read_cell(cell_id)
+        if cell is None:
+            raise CellNotFoundError(
+                cell_id, "Cell with given ID does not exist for phase image"
+            )
         return cell.img_ph
 
     async def get_cell_fluo(self, cell_id: str) -> bytes:
