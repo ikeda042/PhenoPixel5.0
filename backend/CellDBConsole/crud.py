@@ -303,7 +303,7 @@ class AsyncChores:
         u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U = (
             SyncChores.basis_conversion(contour, X, img_size / 2, img_size / 2, contour)
         )
-        return contour_U
+        return {"raw": contour, "converted": contour_U}
 
     @staticmethod
     async def morpho_analysis(
