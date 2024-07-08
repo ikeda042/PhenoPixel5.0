@@ -15,14 +15,86 @@ class CellCrudBase:
 
     @staticmethod
     async def parse_image(
-        data: bytes, contour: bytes | None = None
+        data: bytes, contour: bytes | None = None, scale_bar: bool = False
     ) -> StreamingResponse:
+        """
+        Parse the image data and return a StreamingResponse object.
+
+        Parameters:
+        - data: Image data in bytes.
+        - contour: Contour data in bytes.
+        - scale_bar: Whether to draw a scale bar on the image.
+
+        Returns:
+        - StreamingResponse object with the image data.
+        """
         img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         if contour:
             cv2.drawContours(img, pickle.loads(contour), -1, (0, 255, 0), 1)
         _, buffer = cv2.imencode(".png", img)
         buffer_io = io.BytesIO(buffer)
         return StreamingResponse(buffer_io, media_type="image/png")
+
+    @staticmethod
+    async def draw_scale_bar_with_centered_text(image_ph):
+        """
+        Draws a 5 um white scale bar on the lower right corner of the image with "5 um" text centered under it.
+        Assumes 1 pixel = 0.0625 um.
+
+        Parameters:
+        - image_ph: Input image on which the scale bar and text will be drawn.
+
+        Returns:
+        - Modified image with the scale bar and text.
+        """
+        # Conversion factor and scale bar desired length
+        pixels_per_um = 1 / 0.0625  # pixels per micrometer
+        scale_bar_um = 5  # scale bar length in micrometers
+
+        # Calculate the scale bar length in pixels
+        scale_bar_length_px = int(scale_bar_um * pixels_per_um)
+
+        # Define the scale bar thickness and color
+        scale_bar_thickness = 2  # in pixels
+        scale_bar_color = (255, 255, 255)  # white for the scale bar
+
+        # Determine the position for the scale bar (lower right corner)
+        margin = 20  # margin from the edges in pixels, increased for text space
+        x1 = image_ph.shape[1] - margin - scale_bar_length_px
+        y1 = image_ph.shape[0] - margin
+        x2 = x1 + scale_bar_length_px
+        y2 = y1 + scale_bar_thickness
+
+        # Draw the scale bar
+        cv2.rectangle(
+            image_ph, (x1, y1), (x2, y2), scale_bar_color, thickness=cv2.FILLED
+        )
+
+        # Add text "5 um" under the scale bar
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        text = "5 um"
+        text_scale = 0.4  # font scale
+        text_thickness = 1  # font thickness
+        text_color = (255, 255, 255)  # white for the text
+
+        # Calculate text size to position it
+        text_size = cv2.getTextSize(text, font, text_scale, text_thickness)[0]
+        # Calculate the starting x-coordinate of the text to center it under the scale bar
+        text_x = x1 + (scale_bar_length_px - text_size[0]) // 2
+        text_y = y2 + text_size[1] + 5  # a little space below the scale bar
+
+        # Draw the text
+        cv2.putText(
+            image_ph,
+            text,
+            (text_x, text_y),
+            font,
+            text_scale,
+            text_color,
+            text_thickness,
+        )
+
+        return image_ph
 
     async def read_cell_ids(self, label: str | None = None) -> list[CellId]:
         stmt = select(Cell)
@@ -48,7 +120,7 @@ class CellCrudBase:
         return cell
 
     async def get_cell_ph(
-        self, cell_id: str, draw_contour: bool = False
+        self, cell_id: str, draw_contour: bool = False, draw_scale_bar: bool = False
     ) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
         if draw_contour:
