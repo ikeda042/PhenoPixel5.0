@@ -5,10 +5,11 @@ import { SelectChangeEvent } from "@mui/material/Select";
 
 import { settings } from "../settings";
 
+
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string } }>({});
-    const [mode, setMode] = useState<string>("ph");
+    const [label, setLabel] = useState<string>("N/A");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [drawContour, setDrawContour] = useState<boolean>(false);
     const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
@@ -16,13 +17,13 @@ const CellImageGrid: React.FC = () => {
 
     useEffect(() => {
         const fetchCellIds = async () => {
-            const response = await axios.get(`${settings.api_url}/cells`);
+            const response = await axios.get(`${settings.api_url}/cells`, { params: { label } });
             const ids = response.data.map((cell: { cell_id: string }) => cell.cell_id);
             setCellIds(ids);
         };
 
         fetchCellIds();
-    }, []);
+    }, [label]);
 
     useEffect(() => {
         const fetchImages = async (cellId: string) => {
@@ -64,8 +65,8 @@ const CellImageGrid: React.FC = () => {
         setCurrentIndex((prevIndex) => (prevIndex - 1 + cellIds.length) % cellIds.length);
     };
 
-    const handleModeChange = (event: SelectChangeEvent<string>) => {
-        setMode(event.target.value);
+    const handleLabelChange = (event: SelectChangeEvent<string>) => {
+        setLabel(event.target.value);
     };
 
     const handleContourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,22 +81,26 @@ const CellImageGrid: React.FC = () => {
         setBrightnessFactor(parseFloat(e.target.value));
     };
 
+
     const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
         event.currentTarget.blur();
         event.preventDefault();
     };
 
+
     return (
         <Box>
             <FormControl fullWidth>
-                <InputLabel id="mode-select-label">Mode</InputLabel>
+                <InputLabel id="label-select-label">Label</InputLabel>
                 <Select
-                    labelId="mode-select-label"
-                    value={mode}
-                    onChange={handleModeChange}
+                    labelId="label-select-label"
+                    value={label}
+                    onChange={handleLabelChange}
                 >
-                    <MenuItem value="ph">PH</MenuItem>
-                    <MenuItem value="fluo">Fluo</MenuItem>
+                    <MenuItem value="N/A">N/A</MenuItem>
+                    <MenuItem value="1">1</MenuItem>
+                    <MenuItem value="2">2</MenuItem>
+                    <MenuItem value="3">3</MenuItem>
                 </Select>
             </FormControl>
             <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
