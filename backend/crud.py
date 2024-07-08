@@ -5,25 +5,26 @@ from Exceptions import CellNotFoundError
 
 
 class CellCrudBase:
-    async def read_cell_ids(
-        self, dbname: str, label: str | None = None
-    ) -> list[CellId]:
+    def __init__(self) -> None:
+        self.db_name = "test_database.db"
+
+    async def read_cell_ids(self, label: str | None = None) -> list[CellId]:
         stmt = select(Cell)
         if label:
             stmt = stmt.where(Cell.manual_label == label)
-        async for session in get_session(dbname=dbname):
+        async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
             cells: list[Cell] = result.scalars().all()
         await session.close()
         return [CellId(cell_id=cell.cell_id) for cell in cells]
 
-    async def read_cell_ids_count(self, dbname: str, label: str | None = None) -> int:
-        return len(await self.read_cell_ids(dbname, label))
+    async def read_cell_ids_count(self, label: str | None = None) -> int:
+        return len(await self.read_cell_ids(self.db_name, label))
 
-    async def read_cell(self, dbname: str, cell_id: str) -> CellDBAll:
+    async def read_cell(self, cell_id: str) -> CellDBAll:
         stmt = select(Cell)
         stmt = stmt.where(Cell.cell_id == cell_id)
-        async for session in get_session(dbname=dbname):
+        async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
             cell: Cell = result.scalars().first()
         await session.close()
@@ -41,8 +42,8 @@ class CellCrudBase:
             center_y=cell.center_y,
         )
 
-    async def get_cell_ph(self, db_name: str, cell_id: str) -> bytes:
-        async for session in get_session(db_name):
+    async def get_cell_ph(self, cell_id: str) -> bytes:
+        async for session in get_session(self.db_name):
             result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
             cell: Cell = result.scalars().first()
             if cell is None:
@@ -52,8 +53,8 @@ class CellCrudBase:
         await session.close()
         return cell.img_ph
 
-    async def get_cell_fluo(self, db_name: str, cell_id: str) -> bytes:
-        async for session in get_session(db_name):
+    async def get_cell_fluo(self, cell_id: str) -> bytes:
+        async for session in get_session(self.db_name):
             result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
             cell: Cell = result.scalars().first()
             if cell is None:
@@ -63,8 +64,8 @@ class CellCrudBase:
         await session.close()
         return cell.img_fluo1
 
-    async def get_cell_contour(self, db_name: str, cell_id: str) -> bytes:
-        async for session in get_session(db_name):
+    async def get_cell_contour(self, cell_id: str) -> bytes:
+        async for session in get_session(self.db_name):
             result = await session.execute(select(Cell).where(Cell.cell_id == cell_id))
             cell: Cell = result.scalars().first()
             if cell is None:
