@@ -17,6 +17,15 @@ class CellCrudBase:
 
     @staticmethod
     async def async_imdecode(data: bytes) -> np.ndarray:
+        """
+        Decode an image from bytes.
+
+        Parameters:
+        - data: Image data in bytes.
+
+        Returns:
+        - Image in numpy array format.
+        """
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=5) as executor:
             img = await loop.run_in_executor(
@@ -26,6 +35,15 @@ class CellCrudBase:
 
     @staticmethod
     async def async_cv2_imencode(img):
+        """
+        Encode an image to PNG format.
+
+        Parameters:
+        - img: Image to encode.
+
+        Returns:
+        - Tuple containing success status and image buffer.
+        """
         loop = asyncio.get_event_loop()
         with ThreadPoolExecutor(max_workers=5) as executor:
             success, buffer = await loop.run_in_executor(
