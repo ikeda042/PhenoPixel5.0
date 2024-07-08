@@ -21,3 +21,15 @@ async def get_cell_ph(
     return await CellCrudBase(db_name=db_bame).get_cell_ph(
         cell_id=cell_id, draw_contour=draw_contour, draw_scale_bar=draw_scale_bar
     )
+
+
+@router_cell.get("/cells/{cell_id}/fluo_image")
+async def get_cell_fluo(
+    cell_id: str,
+    db_bame: str = "test_database.db",
+    draw_contour: bool = False,
+    draw_scale_bar: bool = False,
+):
+    return await CellCrudBase(db_name=db_bame).get_cell_fluo(
+        cell_id=cell_id, draw_contour=draw_contour, draw_scale_bar=draw_scale_bar
+    )

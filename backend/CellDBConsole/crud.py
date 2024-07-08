@@ -1,5 +1,5 @@
-from CellDBConsole.schemas import CellDB, CellDBAll, BasicCellInfo, CellStatsv2, CellId
-from database import get_session, Cell, Cell2
+from CellDBConsole.schemas import CellId
+from database import get_session, Cell
 from sqlalchemy.future import select
 from exceptions import CellNotFoundError
 import cv2
