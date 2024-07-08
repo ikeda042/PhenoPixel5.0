@@ -102,7 +102,6 @@ class CellCrudBase:
         text_x = x1 + (scale_bar_length_px - text_size[0]) // 2
         text_y = y2 + text_size[1] + 5
 
-        # Draw the text
         cv2.putText(
             image_ph,
             text,
