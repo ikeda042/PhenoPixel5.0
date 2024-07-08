@@ -94,6 +94,23 @@ class SyncChores:
         min_u1, max_u1 = min(u1), max(u1)
         return u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U
 
+    @staticmethod
+    def calculate_volume_and_widths(
+        u1_adj: list[float], u2_adj: list[float], split_num: int, deltaL: float
+    ) -> tuple[float, list[float]]:
+        volume = 0
+        widths = []
+        y_mean = 0
+        for i in range(split_num):
+            x_0 = min(u1_adj) + i * deltaL
+            x_1 = min(u1_adj) + (i + 1) * deltaL
+            points = [p for p in zip(u1_adj, u2_adj) if x_0 <= p[0] <= x_1]
+            if points:
+                y_mean = sum([i[1] for i in points]) / len(points)
+            volume += y_mean**2 * np.pi * deltaL
+            widths.append(y_mean)
+        return volume, widths
+
 
 class AsyncChores:
     @staticmethod
@@ -220,19 +237,20 @@ class AsyncChores:
         return result
 
     @staticmethod
-    async def calculate_volume_and_widths(u1_adj, u2_adj, split_num, deltaL):
-        volume = 0
-        widths = []
-        y_mean = 0
-        for i in range(split_num):
-            x_0 = min(u1_adj) + i * deltaL
-            x_1 = min(u1_adj) + (i + 1) * deltaL
-            points = [p for p in zip(u1_adj, u2_adj) if x_0 <= p[0] <= x_1]
-            if points:
-                y_mean = sum([i[1] for i in points]) / len(points)
-            volume += y_mean**2 * np.pi * deltaL
-            widths.append(y_mean)
-        return volume, widths
+    async def calculate_volume_and_widths(
+        u1_adj: list[float], u2_adj: list[float], split_num: int, deltaL: float
+    ) -> tuple[float, list[float]]:
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            result = await loop.run_in_executor(
+                executor,
+                SyncChores.calculate_volume_and_widths,
+                u1_adj,
+                u2_adj,
+                split_num,
+                deltaL,
+            )
+        return result
 
     @staticmethod
     async def morpho_analysis(
@@ -262,7 +280,7 @@ class AsyncChores:
 
         if polyfit_degree is None or polyfit_degree == 1:
             area = cv2.contourArea(np.array(contour))
-            volume, widths = AsyncChores.calculate_volume_and_widths(
+            volume, widths = await AsyncChores.calculate_volume_and_widths(
                 u1_adj, [abs(i) for i in u2_adj], 20, deltaL
             )
             width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
@@ -303,6 +321,7 @@ class AsyncChores:
             converted_contour=contour_U,
             center_raw=[img_size / 2, img_size / 2],
             center_converted=[u1_c, u2_c],
+            coefficents=theta,
         )
 
 

@@ -28,6 +28,7 @@ class CellMorhology(BaseModel):
     converted_contour: list[list[float]]
     center_raw: list[float]
     center_converted: list[float]
+    coefficents: list[float]
 
 
 class CellDBAll(BaseModel):
