@@ -7,11 +7,31 @@ import numpy as np
 from fastapi.responses import StreamingResponse
 import io
 import pickle
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 
 class CellCrudBase:
     def __init__(self, db_name: str) -> None:
         self.db_name: str = db_name
+
+    @staticmethod
+    async def async_imdecode(data: bytes) -> np.ndarray:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            img = await loop.run_in_executor(
+                executor, cv2.imdecode, np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR
+            )
+        return img
+
+    @staticmethod
+    async def async_cv2_imencode(img):
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            success, buffer = await loop.run_in_executor(
+                executor, lambda: cv2.imencode(".png", img)
+            )
+        return success, buffer
 
     @staticmethod
     async def parse_image(
@@ -31,14 +51,14 @@ class CellCrudBase:
         Returns:
         - StreamingResponse object with the image data.
         """
-        img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+        img = await CellCrudBase.async_imdecode(data)
         if contour:
             cv2.drawContours(img, pickle.loads(contour), -1, (0, 255, 0), 1)
         if brightness_factor != 1.0:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
         if scale_bar:
             img = await CellCrudBase.draw_scale_bar_with_centered_text(img)
-        _, buffer = cv2.imencode(".png", img)
+        _, buffer = await CellCrudBase.async_cv2_imencode(img)
         buffer_io = io.BytesIO(buffer)
         return StreamingResponse(buffer_io, media_type="image/png")
 
@@ -154,5 +174,11 @@ class CellCrudBase:
         """
         cell = await self.read_cell(cell_id)
         if draw_contour:
-            return await self.parse_image(cell.img_fluo1, cell.contour, draw_scale_bar)
-        return await self.parse_image(cell.img_fluo1, scale_bar=draw_scale_bar)
+            return await self.parse_image(
+                cell.img_fluo1, cell.contour, draw_scale_bar, brightness_factor
+            )
+        return await self.parse_image(
+            cell.img_fluo1,
+            scale_bar=draw_scale_bar,
+            brightness_factor=brightness_factor,
+        )
