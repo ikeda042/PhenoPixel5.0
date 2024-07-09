@@ -336,45 +336,93 @@ class AsyncChores:
     async def morpho_analysis(
         image_ph: bytes, image_fluo_raw: bytes, contour_raw: bytes, degree: int
     ) -> np.ndarray:
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            image_fluo = await loop.run_in_executor(
+                executor,
+                cv2.imdecode,
+                np.frombuffer(image_fluo_raw, np.uint8),
+                cv2.IMREAD_COLOR,
+            )
+            image_fluo_gray = await loop.run_in_executor(
+                executor, cv2.cvtColor, image_fluo, cv2.COLOR_BGR2GRAY
+            )
 
-        image_ph = await AsyncChores.async_imdecode(image_ph)
-        image_ph_gray = cv2.cvtColor(image_ph, cv2.COLOR_BGR2GRAY)
-        image_fluo = await AsyncChores.async_imdecode(image_fluo_raw)
-        image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+            image_ph = await loop.run_in_executor(
+                executor,
+                cv2.imdecode,
+                np.frombuffer(image_ph, np.uint8),
+                cv2.IMREAD_COLOR,
+            )
+            image_ph_gray = await loop.run_in_executor(
+                executor, cv2.cvtColor, image_ph, cv2.COLOR_BGR2GRAY
+            )
 
-        mask = np.zeros_like(image_fluo_gray)
-        contour = np.array(
-            [
-                [i, j]
-                for i, j in [
-                    i[0] for i in await AsyncChores.async_pickle_loads(contour_raw)
-                ]
-            ]
-        )
-
-        cv2.fillPoly(mask, [contour], 255)
+            mask = np.zeros_like(image_fluo_gray)
+            unpickled_contour = pickle.loads(contour_raw)
+            await loop.run_in_executor(
+                executor, cv2.fillPoly, mask, [unpickled_contour], 255
+            )
 
         coords_inside_cell_1 = np.column_stack(np.where(mask))
         points_inside_cell_1 = image_fluo_gray[
             coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
         ]
+
         ph_points_inside_cell_1 = image_ph_gray[
             coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
         ]
 
-        img_size = image_fluo.shape[0]
-
         X = np.array(
             [
-                [i[1] for i in contour],
-                [i[0] for i in contour],
+                [i[1] for i in coords_inside_cell_1],
+                [i[0] for i in coords_inside_cell_1],
             ]
         )
 
-        # 基底変換関数を呼び出して必要な変数を取得
-        u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U = (
-            SyncChores.basis_conversion(contour, X, img_size / 2, img_size / 2, contour)
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = SyncChores.basis_conversion(
+            [list(i[0]) for i in unpickled_contour],
+            X,
+            image_fluo.shape[0] / 2,
+            image_fluo.shape[1] / 2,
+            coords_inside_cell_1,
         )
+
+        # for testing purposes
+        if False:
+            fig = plt.figure(figsize=(6, 6))
+            plt.scatter(u1, u2, s=5)
+            plt.scatter(u1_c, u2_c, color="red", s=100)
+            plt.axis("equal")
+            margin_width = 50
+            margin_height = 50
+            plt.scatter(
+                [i[1] for i in U],
+                [i[0] for i in U],
+                points_inside_cell_1,
+                c=points_inside_cell_1,
+                cmap="inferno",
+                marker="o",
+            )
+            plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
+            plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
+            x = np.linspace(min_u1, max_u1, 1000)
+            theta = await AsyncChores.poly_fit(U, degree=degree)
+            y = np.polyval(theta, x)
+            plt.plot(x, y, color="red")
+            plt.scatter(u1_contour, u2_contour, color="lime", s=3)
+            fig.savefig("test.png")
 
         # 中心座標(u1_c, u2_c)が(0,0)になるように補正
         u1_adj = u1 - u1_c
@@ -382,7 +430,7 @@ class AsyncChores:
         cell_length = max(u1_adj) - min(u1_adj)
         deltaL = cell_length / 20
 
-        area = cv2.contourArea(np.array(contour))
+        area = cv2.contourArea(np.array([i[0] for i in unpickled_contour]))
 
         if degree is None or degree == 1:
             volume, widths = await AsyncChores.calculate_volume_and_widths(
@@ -414,6 +462,7 @@ class AsyncChores:
                 volume += y_mean**2 * np.pi * deltaL
                 widths.append(y_mean)
             width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
+
         return CellMorhology(
             area=area,
             volume=volume,
