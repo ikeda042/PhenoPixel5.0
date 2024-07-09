@@ -12,3 +12,4 @@ ph_contours/
 *.pem
 .env
 backend/app/letsencrypt/
+backend/app/letsencrypt/*
