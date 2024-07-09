@@ -158,7 +158,7 @@ const CellImageGrid: React.FC = () => {
                 type: 'linear',
                 min: 0,
                 max: imageDimensions?.height,
-                reverse: true,
+                reverse: true
             }
         },
     };

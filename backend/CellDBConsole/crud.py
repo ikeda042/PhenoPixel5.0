@@ -311,7 +311,7 @@ class AsyncChores:
     async def get_contour(contour: bytes) -> np.ndarray:
         img_size = 200
         contour_unpickled = await AsyncChores.async_pickle_loads(contour)
-        contour = np.array([[j, i] for i, j in [i[0] for i in contour_unpickled]])
+        contour = np.array([[i, j] for i, j in [i[0] for i in contour_unpickled]])
         X = np.array(
             [
                 [i[1] for i in contour],
