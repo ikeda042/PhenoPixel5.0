@@ -7,9 +7,9 @@ WORKDIR /app
 # Copy the requirements file into the container
 COPY ./app/requirements.txt /app/requirements.txt
 
-# Install dependencies
+# Install dependencies including libglib2.0-0 for libgthread-2.0.so.0
 RUN apt-get update && \
-    apt-get install -y libgl1-mesa-glx && \
+    apt-get install -y libgl1-mesa-glx libglib2.0-0 && \
     pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the rest of the application code
