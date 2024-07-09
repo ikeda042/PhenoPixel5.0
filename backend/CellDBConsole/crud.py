@@ -13,6 +13,10 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import scipy
 from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+import matplotlib
+
+matplotlib.use("Agg")
 
 
 class SyncChores:
@@ -375,6 +379,52 @@ class AsyncChores:
             center_converted=[u1_c, u2_c],
             coefficents=theta,
         )
+
+    @staticmethod
+    async def replot(image_ph, image_fluo, contour):
+        class Point:
+            def __init__(self, u1: float, G: float):
+                self.u1 = u1
+                self.G = G
+
+            def __gt__(self, other):
+                return self.u1 > other.u1
+
+        contour_raw = [[j, i] for i, j in [i[0] for i in contour]]
+        coords_inside_cell_1, points_inside_cell_1, projected_points = [], [], []
+        for i in range(image_fluo.shape[1]):
+            for j in range(image_fluo.shape[0]):
+                if cv2.pointPolygonTest(contour, (i, j), False) >= 0:
+                    coords_inside_cell_1.append([i, j])
+                    points_inside_cell_1.append(image_ph[j][i])
+        X = np.array(
+            [
+                [i[1] for i in coords_inside_cell_1],
+                [i[0] for i in coords_inside_cell_1],
+            ]
+        )
+
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = SyncChores.basis_conversion(
+            contour,
+            X,
+            image_fluo.shape[0] // 2,
+            image_fluo.shape[1] // 2,
+            coords_inside_cell_1,
+        )
+        min_u1, max_u1 = min(u1), max(u1)
+        fig = plt.figure(figsize=[6, 6])
+        cmap = plt.get_cmap("inferno")
 
 
 class CellCrudBase:
