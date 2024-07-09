@@ -4,6 +4,7 @@ from CellDBConsole.schemas import CellMorhology
 from fastapi.responses import JSONResponse, StreamingResponse
 from typing import Literal
 import os
+from typing import Annotated
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 
@@ -37,15 +38,13 @@ async def get_cell_ph(
     )
 
 
-@router_cell.get(
-    "/{cell_id}/{db_name}/{draw_contour}/{draw_scale_bar}/{brightness_factor}/fluo_image"
-)
+@router_cell.get("/{cell_id}/{db_name}/{draw_contour}/{draw_scale_bar}/fluo_image")
 async def get_cell_fluo(
     cell_id: str,
     db_name: str,
     draw_contour: bool = False,
     draw_scale_bar: bool = False,
-    brightness_factor: float = 1.0,
+    brightness_factor: Annotated[float, 0.0] = 1.0,
 ):
     return await CellCrudBase(db_name=db_name).get_cell_fluo(
         cell_id=cell_id,
