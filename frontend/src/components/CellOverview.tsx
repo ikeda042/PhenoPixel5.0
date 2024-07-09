@@ -123,7 +123,7 @@ const CellImageGrid: React.FC = () => {
                 fetchReplotImage(cellId);
             }
         }
-    }, [drawMode, cellIds, currentIndex]);
+    }, [drawMode, cellIds, currentIndex, fitDegree]);
 
     const handleNext = () => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % cellIds.length);
@@ -264,36 +264,53 @@ const CellImageGrid: React.FC = () => {
                     </Grid>
                 </Box>
                 <Box sx={{ width: 420, height: 420, marginLeft: 2 }}>
-                    <Grid container spacing={2}>
-                        <Grid item xs={8}>
-                            <FormControl fullWidth>
-                                <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
-                                <Select
-                                    labelId="draw-mode-select-label"
-                                    value={drawMode}
-                                    onChange={handleDrawModeChange}
-                                    displayEmpty
-                                >
-                                    <MenuItem value="light">Light</MenuItem>
-                                    <MenuItem value="replot">Replot</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={4}>
-                            <TextField
-                                label="Polyfit Degree"
-                                type="number"
-                                value={fitDegree}
-                                onChange={handleFitDegreeChange}
-                                InputProps={{
-                                    inputProps: { min: 0, step: 1 },
-                                    onWheel: handleWheel,
-                                    autoComplete: "off"
-                                }}
 
-                            />
+                    {drawMode === "replot" && (
+                        <Grid container spacing={2}>
+                            <Grid item xs={8}>
+                                <FormControl fullWidth>
+                                    <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                                    <Select
+                                        labelId="draw-mode-select-label"
+                                        value={drawMode}
+                                        onChange={handleDrawModeChange}
+                                        displayEmpty
+                                    >
+                                        <MenuItem value="light">Light</MenuItem>
+                                        <MenuItem value="replot">Replot</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                            <Grid item xs={4}>
+                                <TextField
+                                    label="Polyfit Degree"
+                                    type="number"
+                                    value={fitDegree}
+                                    onChange={handleFitDegreeChange}
+                                    InputProps={{
+                                        inputProps: { min: 0, step: 1 },
+                                        onWheel: handleWheel,
+                                        autoComplete: "off"
+                                    }}
+
+                                />
+                            </Grid>
                         </Grid>
-                    </Grid>
+                    )}
+                    {drawMode === "light" && (<FormControl fullWidth>
+                        <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                        <Select
+                            labelId="draw-mode-select-label"
+                            value={drawMode}
+                            onChange={handleDrawModeChange}
+                            displayEmpty
+                        >
+                            <MenuItem value="light">Light</MenuItem>
+                            <MenuItem value="replot">Replot</MenuItem>
+                        </Select>
+                    </FormControl>)}
+
+
                     <Box mt={2}>
                         {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
                         {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
