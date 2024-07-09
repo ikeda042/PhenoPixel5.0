@@ -442,7 +442,7 @@ class AsyncChores:
             s=10,
             cmap=cmap,
         )
-        # plt.scatter(u1_contour, u2_contour, s=10, color="lime")
+        plt.scatter(u1_contour, u2_contour, s=10, color="lime")
         W = np.array([[i**4, i**3, i**2, i, 1] for i in [i[1] for i in U]])
         f = np.array([i[0] for i in U])
         theta = inv(W.transpose() @ W) @ W.transpose() @ f
