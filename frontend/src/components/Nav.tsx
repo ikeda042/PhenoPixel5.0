@@ -57,21 +57,21 @@ export default function Nav(props: Props) {
     return (
         <Box sx={{ display: 'flex' }}>
             <CssBaseline />
-            <AppBar component="nav" sx={{ backgroundColor: '#000' }}>
+            <AppBar component="nav" sx={{ backgroundColor: '#fff' }}>
                 <Toolbar>
                     <IconButton
                         color="inherit"
                         aria-label="open drawer"
                         edge="start"
                         onClick={handleDrawerToggle}
-                        sx={{ mr: 2, display: { sm: 'none' } }}
+                        sx={{ mr: 2, display: { sm: 'none' }, color: '#000' }}
                     >
                         <MenuIcon />
                     </IconButton>
-                    {/* AppBar内のタイトルもLinkでラップ可能 */}
-                    <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <Typography variant="h6" component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-                            <Box component={BallotIcon} sx={{ marginRight: 1 }} />
+
+                    <Link to="/" style={{ textDecoration: 'none', color: '#000' }}>
+                        <Typography variant="h5" component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', color: '#000' }}>
+                            <Box component={BallotIcon} sx={{ marginRight: 1, color: '#000' }} />
                             {props.title}
                         </Typography>
                     </Link>
