@@ -64,8 +64,19 @@ async def get_cell_contour(
 
 @router_cell.get("/{cell_id}/morphology", response_model=CellMorhology)
 async def get_cell_morphology(
-    cell_id: str, polyfit_degree: int = 3, db_bame: str = "test_database.db"
+    cell_id: str, polyfit_degree: int = 3, db_name: str = "test_database.db"
 ):
     cell_morphology: CellMorhology = await CellCrudBase(
         db_name=db_name
     ).morpho_analysis(cell_id=cell_id, polyfit_degree=polyfit_degree)
+    return cell_morphology
+
+
+@router_cell.get("/{cell_id}/replot")
+async def replot_cell(cell_id: str, db_name: str = "test_database.db"):
+    return await CellCrudBase(db_name=db_name).replot(cell_id=cell_id)
+
+
+@router_cell.get("/{cell_id}/path")
+async def get_cell_path(cell_id: str, db_name: str = "test_database.db"):
+    return await CellCrudBase(db_name=db_name).path_analysis(cell_id=cell_id)
