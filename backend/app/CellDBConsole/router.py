@@ -11,6 +11,13 @@ router_cell = APIRouter(prefix="/cells", tags=["cells"])
 db_name = "test_database.db"
 
 
+@router_cell.get("/database/healtcheck")
+async def db_healthcheck():
+    return await CellCrudBase(db_name="test_database.db").get_cell_ph(
+        cell_id="F0C1", draw_contour=False, draw_scale_bar=False
+    )
+
+
 @router_cell.get("/{db_name}/{label}")
 async def read_cell_ids(db_name: str, label: str):
     if label == "1000":
