@@ -10,3 +10,4 @@ ph_contours/
 *.db
 !app/CellDBConsole/databases/test_database.db
 *.pem
+.env
