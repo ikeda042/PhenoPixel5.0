@@ -292,7 +292,6 @@ const CellImageGrid: React.FC = () => {
                                         onWheel: handleWheel,
                                         autoComplete: "off"
                                     }}
-
                                 />
                             </Grid>
                         </Grid>
