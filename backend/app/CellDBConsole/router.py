@@ -4,8 +4,10 @@ from CellDBConsole.schemas import CellMorhology
 from fastapi.responses import JSONResponse
 from typing import Literal
 from fastapi.responses import StreamingResponse
+import os
 
-router_cell = APIRouter(prefix="/cells", tags=["cells"])
+api_prefix = os.getenv("API_PREFIX", "/api")
+router_cell = APIRouter(prefix=f"{api_prefix}/cells", tags=["cells"])
 
 
 # define a global var called db_name
