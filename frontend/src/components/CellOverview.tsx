@@ -46,7 +46,7 @@ const CellImageGrid: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [Temp, setTemp] = useState<string>("1");
 
-    //get the "status" from here https://open.ikeda042api.net/api/healthcheck and set it to the Temp
+    // get the "status" from here https://open.ikeda042api.net/api/healthcheck and set it to the Temp
     useEffect(() => {
         const fetchTemp = async () => {
             console.log(`Fetching Temp`);
@@ -57,14 +57,11 @@ const CellImageGrid: React.FC = () => {
         fetchTemp();
     }, []);
 
-
-
-
     useEffect(() => {
         const fetchCellIds = async () => {
             console.log(`Fetching cell IDs with label: ${label}`);
             console.log(`${url_prefix}/cells`);
-            const response = await axios.get(`${url_prefix}/cells`, { params: { label, db_bame: db_name } });
+            const response = await axios.get(`${url_prefix}/cells`, { params: { label, db_name: db_name } });
             const ids = response.data.map((cell: { cell_id: string }) => cell.cell_id);
             setCellIds(ids);
         };
@@ -89,7 +86,7 @@ const CellImageGrid: React.FC = () => {
                     return imageUrl;
                 };
 
-                const phImage = await fetchImage(`${url_prefix}/cells/${cellId}/ph_image?db_name=${db_name}&draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
+                const phImage = await fetchImage(`${url_prefix}/cells/${cellId}/ph_image?db_name=${db_name}&draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}`);
                 const fluoImage = await fetchImage(`${url_prefix}/cells/${cellId}/fluo_image?db_name=${db_name}&draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
 
                 return { ph: phImage, fluo: fluoImage };

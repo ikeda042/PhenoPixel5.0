@@ -1,31 +1,31 @@
 from fastapi import APIRouter
 from CellDBConsole.crud import CellCrudBase
 from CellDBConsole.schemas import CellMorhology
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from typing import Literal
-from fastapi.responses import StreamingResponse
 import os
 
-router_cell = APIRouter(prefix=f"/cells", tags=["cells"])
-
+router_cell = APIRouter(prefix="/cells", tags=["cells"])
 
 # define a global var called db_name
 db_name = "test_database.db"
 
 
 @router_cell.get("/")
-async def read_cell_ids(db_bame: str, label: str | None = None):
-    return await CellCrudBase(db_name=db_bame).read_cell_ids(label=label)
+async def read_cell_ids(db_name: str, label: str | None = None):
+    if label is None:
+        label = "1"
+    return await CellCrudBase(db_name=db_name).read_cell_ids(label=label)
 
 
 @router_cell.get("/{cell_id}/ph_image")
 async def get_cell_ph(
     cell_id: str,
-    db_bame: str,
+    db_name: str,
     draw_contour: bool = False,
     draw_scale_bar: bool = False,
 ):
-    return await CellCrudBase(db_name=db_bame).get_cell_ph(
+    return await CellCrudBase(db_name=db_name).get_cell_ph(
         cell_id=cell_id, draw_contour=draw_contour, draw_scale_bar=draw_scale_bar
     )
 
@@ -33,12 +33,12 @@ async def get_cell_ph(
 @router_cell.get("/{cell_id}/fluo_image")
 async def get_cell_fluo(
     cell_id: str,
-    db_bame: str,
+    db_name: str,
     draw_contour: bool = False,
     draw_scale_bar: bool = False,
     brightness_factor: float = 1.0,
 ):
-    return await CellCrudBase(db_name=db_bame).get_cell_fluo(
+    return await CellCrudBase(db_name=db_name).get_cell_fluo(
         cell_id=cell_id,
         draw_contour=draw_contour,
         draw_scale_bar=draw_scale_bar,
@@ -50,7 +50,7 @@ async def get_cell_fluo(
 async def get_cell_contour(
     cell_id: str,
     db_name: str,
-    contour_type: Literal["raw", "converted"] = "copn",
+    contour_type: Literal["raw", "converted"] = "raw",
     polyfit_degree: int = 3,
 ):
     contours = await CellCrudBase(db_name=db_name).get_cell_contour_plot_data(
