@@ -5,9 +5,6 @@ WORKDIR /app
 
 COPY ./app /app
 COPY ./app/requirements.txt /app/requirements.txt
-COPY ./app/wait-for-it.sh /wait-for-it.sh
-
-RUN chmod +x /wait-for-it.sh
 
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
