@@ -466,7 +466,7 @@ class AsyncChores:
         image_fluo_raw: bytes,
         contour_raw: bytes,
         degree: int,
-    ) -> None:
+    ) -> io.BytesIO:
 
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
@@ -531,7 +531,11 @@ class AsyncChores:
         y = np.polyval(theta, x)
         plt.plot(x, y, color="red")
         plt.scatter(u1_contour, u2_contour, color="lime", s=3)
-        await AsyncChores.save_fig_async(fig, f"replot.png")
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+
+        return buf
 
 
 class CellCrudBase:
@@ -695,12 +699,12 @@ class CellCrudBase:
         cell = await self.read_cell(cell_id)
         return await AsyncChores.morpho_analysis(cell.contour, polyfit_degree)
 
-    async def replot(self, cell_id: str, degree: int) -> None:
+    async def replot(self, cell_id: str, degree: int) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
-        return await AsyncChores.replot(cell.img_fluo1, cell.contour, degree)
-
-    async def replot_fig(self) -> StreamingResponse:
-        return StreamingResponse("replot.png")
+        return StreamingResponse(
+            await AsyncChores.replot(cell.img_fluo1, cell.contour, degree),
+            media_type="image/png",
+        )
 
     # async def re(self, cell_id: str) -> np.ndarray:
     #     cell = await self.read_cell(cell_id)
