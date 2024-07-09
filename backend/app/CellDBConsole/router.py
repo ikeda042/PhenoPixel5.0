@@ -12,10 +12,10 @@ db_name = "test_database.db"
 
 
 @router_cell.get("/")
-async def read_cell_ids(db_name: str, label: str | None = None):
+async def read_cell_ids():
     if label is None:
         label = "1"
-    return await CellCrudBase(db_name=db_name).read_cell_ids(label=label)
+    return await CellCrudBase(db_name="test_database.db").read_cell_ids(label=label)
 
 
 @router_cell.get("/{cell_id}/ph_image")
