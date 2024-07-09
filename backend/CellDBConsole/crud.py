@@ -292,8 +292,8 @@ class AsyncChores:
         contour = np.array([[j, i] for i, j in [i[0] for i in contour_unpickled]])
         X = np.array(
             [
-                [i[1] for i in contour],
                 [i[0] for i in contour],
+                [i[1] for i in contour],
             ]
         )
 
