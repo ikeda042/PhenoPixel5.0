@@ -11,9 +11,9 @@ router_cell = APIRouter(prefix="/cells", tags=["cells"])
 db_name = "test_database.db"
 
 
-@router_cell.get("/")
-async def read_cell_ids():
-    return await CellCrudBase(db_name="test_database.db").read_cell_ids(label="1")
+@router_cell.get("/{db_name}/{label}")
+async def read_cell_ids(db_name: str, label: str):
+    return await CellCrudBase(db_name=db_name).read_cell_ids(label=label)
 
 
 @router_cell.get("/{cell_id}/ph_image")
