@@ -6,6 +6,7 @@ import { settings } from "../settings";
 import { Scatter } from 'react-chartjs-2';
 import { ChartOptions } from 'chart.js';
 import Spinner from './Spinner';
+import CellMorphologyTable from "./CellMorphoTable";
 
 import {
     Chart as ChartJS,
@@ -384,6 +385,9 @@ const CellImageGrid: React.FC = () => {
                             <img src={images[cellIds[currentIndex]]?.path} alt={`Cell ${cellIds[currentIndex]} Path`} style={{ width: "100%" }} />
                         )}
                     </Box>
+                </Box>
+                <Box>
+                    <CellMorphologyTable cellId={cellIds[currentIndex]} />
                 </Box>
             </Stack>
         </>

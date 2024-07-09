@@ -31,10 +31,10 @@ const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId }) => 
         <TableContainer component={Paper}>
             <Table>
                 <TableHead>
-                    <TableRow>
+                    {/* <TableRow>
                         <TableCell>Parameter</TableCell>
                         <TableCell align="right">Value</TableCell>
-                    </TableRow>
+                    </TableRow> */}
                 </TableHead>
                 <TableBody>
                     {Object.entries(cellMorphology).map(([key, value]) => (
@@ -42,7 +42,7 @@ const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId }) => 
                             <TableCell component="th" scope="row">
                                 {key}
                             </TableCell>
-                            <TableCell align="right">{value}</TableCell>
+                            <TableCell align="right">{String(value)}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
