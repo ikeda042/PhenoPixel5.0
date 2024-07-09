@@ -11,6 +11,7 @@ services:
       - "traefik.http.routers.web-docs.entrypoints=websecure"
       - "traefik.http.services.web-docs.loadbalancer.server.port=80"
       - "traefik.http.routers.web-docs.tls.certresolver=myresolver"
+      - "traefik.http.middlewares.calibre_web_headers.headers.customrequestheaders.X-SCHEME=https"
     networks:
       - webnet
     env_file:
