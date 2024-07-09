@@ -37,6 +37,7 @@ const CellImageGrid: React.FC = () => {
     const [contourData, setContourData] = useState<number[][]>([]);
     const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [drawMode, setDrawMode] = useState<string>("light");
+    const [fitDegree, setFitDegree] = useState<number>(4);
 
     useEffect(() => {
         const fetchCellIds = async () => {
@@ -104,7 +105,7 @@ const CellImageGrid: React.FC = () => {
 
     const fetchReplotImage = async (cellId: string) => {
         try {
-            const response = await axios.get(`${settings.api_url}/cells/${cellId}/replot`, { responseType: 'blob' });
+            const response = await axios.get(`${settings.api_url}/cells/${cellId}/replot?degree=${fitDegree}`, { responseType: 'blob' });
             const replotImageUrl = URL.createObjectURL(response.data);
             setImages((prevImages) => ({
                 ...prevImages,
@@ -156,6 +157,10 @@ const CellImageGrid: React.FC = () => {
     const handleDrawModeChange = (event: SelectChangeEvent<string>) => {
         setDrawMode(event.target.value);
     };
+
+    const handleFitDegreeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFitDegree(parseInt(e.target.value));
+    }
 
     // プロット用のデータを生成
     const contourPlotData = {
@@ -258,18 +263,34 @@ const CellImageGrid: React.FC = () => {
                     </Grid>
                 </Box>
                 <Box sx={{ width: 420, height: 420, marginLeft: 2 }}>
-                    <FormControl fullWidth>
-                        <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
-                        <Select
-                            labelId="draw-mode-select-label"
-                            value={drawMode}
-                            onChange={handleDrawModeChange}
-                            displayEmpty
-                        >
-                            <MenuItem value="light">Light</MenuItem>
-                            <MenuItem value="replot">Replot</MenuItem>
-                        </Select>
-                    </FormControl>
+                    <Grid container spacing={2}>
+                        <Grid item xs={8}>
+                            <FormControl fullWidth>
+                                <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                                <Select
+                                    labelId="draw-mode-select-label"
+                                    value={drawMode}
+                                    onChange={handleDrawModeChange}
+                                    displayEmpty
+                                >
+                                    <MenuItem value="light">Light</MenuItem>
+                                    <MenuItem value="replot">Replot</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={4}>
+                            <TextField
+                                label="Polyfit Degree"
+                                type="number"
+                                value={fitDegree}
+                                onChange={handleFitDegreeChange}
+                                InputProps={{
+                                    inputProps: { min: 0, step: 1 },
+                                    onWheel: handleWheel
+                                }}
+                            />
+                        </Grid>
+                    </Grid>
                     <Box mt={2}>
                         {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
                         {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
