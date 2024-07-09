@@ -75,13 +75,3 @@ async def get_cell_morphology(
 @router_cell.get("/{cell_id}/replot")
 async def replot_cell(cell_id: str, degree: int = 4, db_name: str = "test_database.db"):
     return await CellCrudBase(db_name=db_name).replot(cell_id=cell_id, degree=degree)
-
-
-# @router_cell.get("/{cell_id}/reolot_fig")
-# async def replot_cell():
-#     return
-
-
-# @router_cell.get("/{cell_id}/path")
-# async def get_cell_path(cell_id: str, db_name: str = "test_database.db"):
-#     return await CellCrudBase(db_name=db_name).path_analysis(cell_id=cell_id)
