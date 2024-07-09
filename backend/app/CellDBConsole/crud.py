@@ -654,7 +654,7 @@ class AsyncChores:
         x = np.linspace(min_u1, max_u1, 1000)
         theta = await AsyncChores.poly_fit(U, degree=degree)
         y = np.polyval(theta, x)
-        plt.plot(x, y, color="blue")
+        plt.plot(x, y, color="red")
         plt.scatter(u1_contour, u2_contour, color="lime", s=3)
         buf = io.BytesIO()
         plt.savefig(buf, format="png")
