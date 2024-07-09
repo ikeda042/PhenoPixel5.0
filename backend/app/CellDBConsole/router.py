@@ -14,14 +14,14 @@ db_name = "test_database.db"
 
 
 @router_cell.get("/")
-async def read_cell_ids(db_bame: str = "test_database.db", label: str | None = None):
+async def read_cell_ids(db_bame: str, label: str | None = None):
     return await CellCrudBase(db_name=db_bame).read_cell_ids(label=label)
 
 
 @router_cell.get("/{cell_id}/ph_image")
 async def get_cell_ph(
     cell_id: str,
-    db_bame: str = "test_database.db",
+    db_bame: str,
     draw_contour: bool = False,
     draw_scale_bar: bool = False,
 ):
@@ -33,7 +33,7 @@ async def get_cell_ph(
 @router_cell.get("/{cell_id}/fluo_image")
 async def get_cell_fluo(
     cell_id: str,
-    db_bame: str = "test_database.db",
+    db_bame: str,
     draw_contour: bool = False,
     draw_scale_bar: bool = False,
     brightness_factor: float = 1.0,
@@ -49,9 +49,9 @@ async def get_cell_fluo(
 @router_cell.get("/{cell_id}/contour/{contour_type}")
 async def get_cell_contour(
     cell_id: str,
+    db_name: str,
     contour_type: Literal["raw", "converted"] = "copn",
     polyfit_degree: int = 3,
-    db_name: str = "test_database.db",
 ):
     contours = await CellCrudBase(db_name=db_name).get_cell_contour_plot_data(
         cell_id=cell_id
@@ -65,9 +65,7 @@ async def get_cell_contour(
 
 
 @router_cell.get("/{cell_id}/morphology", response_model=CellMorhology)
-async def get_cell_morphology(
-    cell_id: str, polyfit_degree: int = 3, db_name: str = "test_database.db"
-):
+async def get_cell_morphology(cell_id: str, db_name: str, polyfit_degree: int = 3):
     cell_morphology: CellMorhology = await CellCrudBase(
         db_name=db_name
     ).morpho_analysis(cell_id=cell_id, polyfit_degree=polyfit_degree)
@@ -75,12 +73,10 @@ async def get_cell_morphology(
 
 
 @router_cell.get("/{cell_id}/replot", response_class=StreamingResponse)
-async def replot_cell(cell_id: str, degree: int = 3, db_name: str = "test_database.db"):
+async def replot_cell(cell_id: str, db_name: str, degree: int = 3):
     return await CellCrudBase(db_name=db_name).replot(cell_id=cell_id, degree=degree)
 
 
 @router_cell.get("/{cell_id}/path", response_class=StreamingResponse)
-async def get_cell_path(
-    cell_id: str, degree: int = 3, db_name: str = "test_database.db"
-):
+async def get_cell_path(cell_id: str, db_name: str, degree: int = 3):
     return await CellCrudBase(db_name=db_name).find_path(cell_id=cell_id, degree=degree)
