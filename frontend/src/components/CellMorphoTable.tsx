@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box } from '@material-ui/core';
-import { settings } from '../settings';
 
 interface CellMorphologyTableProps {
     cellId: string;
@@ -9,7 +8,7 @@ interface CellMorphologyTableProps {
 
 const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId }) => {
     const [cellMorphology, setCellMorphology] = useState(null);
-
+    const url_prefix = "https://general.ikeda042api.net/api-ikeda042"
     const parameterDisplayNameMapping: { [key: string]: string } = {
         area: 'Area(px^2)',
         volume: 'Volume(px^3)',
@@ -28,7 +27,7 @@ const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId }) => 
     useEffect(() => {
         const fetchCellMorphology = async () => {
             try {
-                const response = await axios.get(`${settings.api_url}/cells/${cellId}/morphology`);
+                const response = await axios.get(`${url_prefix}/cells/${cellId}/morphology`);
                 setCellMorphology(response.data);
             } catch (error) {
                 console.error("Error fetching cell morphology data:", error);

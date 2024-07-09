@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Stack, Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material/Select";
-import { settings } from "../settings";
 import { Scatter } from 'react-chartjs-2';
 import { ChartOptions } from 'chart.js';
 import Spinner from './Spinner';
@@ -18,6 +17,7 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
+import { url } from "inspector";
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -27,6 +27,8 @@ ChartJS.register(
     Tooltip,
     Legend
 );
+
+const url_prefix = "https://general.ikeda042api.net/api-ikeda042";
 
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
@@ -45,8 +47,8 @@ const CellImageGrid: React.FC = () => {
     useEffect(() => {
         const fetchCellIds = async () => {
             console.log(`Fetching cell IDs with label: ${label}`);
-            console.log(`${settings.api_url}/cells`);
-            const response = await axios.get(`${settings.api_url}/cells`, { params: { label } });
+            console.log(`${url_prefix}/cells`);
+            const response = await axios.get(`${url_prefix}/cells`, { params: { label } });
             const ids = response.data.map((cell: { cell_id: string }) => cell.cell_id);
             setCellIds(ids);
         };
@@ -71,8 +73,8 @@ const CellImageGrid: React.FC = () => {
                     return imageUrl;
                 };
 
-                const phImage = await fetchImage(`${settings.api_url}/cells/${cellId}/ph_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
-                const fluoImage = await fetchImage(`${settings.api_url}/cells/${cellId}/fluo_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
+                const phImage = await fetchImage(`${url_prefix}/cells/${cellId}/ph_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
+                const fluoImage = await fetchImage(`${url_prefix}/cells/${cellId}/fluo_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
 
                 return { ph: phImage, fluo: fluoImage };
             } catch (error) {
@@ -99,7 +101,7 @@ const CellImageGrid: React.FC = () => {
 
     const fetchContour = async (cellId: string) => {
         try {
-            const response = await axios.get(`${settings.api_url}/cells/${cellId}/contour/raw`);
+            const response = await axios.get(`${url_prefix}/cells/${cellId}/contour/raw`);
             setContourData(response.data.contour);
         } catch (error) {
             console.error("Error fetching contour data:", error);
@@ -108,7 +110,7 @@ const CellImageGrid: React.FC = () => {
 
     const fetchReplotImage = async (cellId: string) => {
         try {
-            const response = await axios.get(`${settings.api_url}/cells/${cellId}/replot?degree=${fitDegree}`, { responseType: 'blob' });
+            const response = await axios.get(`${url_prefix}/cells/${cellId}/replot?degree=${fitDegree}`, { responseType: 'blob' });
             const replotImageUrl = URL.createObjectURL(response.data);
             setImages((prevImages) => ({
                 ...prevImages,
@@ -123,7 +125,7 @@ const CellImageGrid: React.FC = () => {
     const fetchPeakPath = async (cellId: string) => {
         setIsLoading(true);
         try {
-            const response = await axios.get(`${settings.api_url}/cells/${cellId}/path?degree=${fitDegree}`, { responseType: 'blob' });
+            const response = await axios.get(`${url_prefix}/cells/${cellId}/path?degree=${fitDegree}`, { responseType: 'blob' });
             const pathImageUrl = URL.createObjectURL(response.data);
             setImages((prevImages) => ({
                 ...prevImages,
