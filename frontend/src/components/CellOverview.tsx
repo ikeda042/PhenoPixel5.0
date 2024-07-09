@@ -182,7 +182,7 @@ const CellImageGrid: React.FC = () => {
                     <Box mt={2}>
                         <FormControlLabel
                             control={<Checkbox checked={drawContour} onChange={handleContourChange} style={{ color: "black" }} />}
-                            label="Draw Contour"
+                            label="Detect Contour"
                             style={{ color: "black" }}
                         />
                         <FormControlLabel
