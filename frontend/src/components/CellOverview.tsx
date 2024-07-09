@@ -138,7 +138,7 @@ const CellImageGrid: React.FC = () => {
                 data: contourData.map(point => ({ x: point[0], y: point[1] })),
                 borderColor: 'lime',
                 backgroundColor: 'lime',
-                pointRadius: 3,
+                pointRadius: 1,
             }
         ]
     };
@@ -152,11 +152,13 @@ const CellImageGrid: React.FC = () => {
                 position: 'bottom',
                 min: 0,
                 max: imageDimensions?.width,
+                reverse: false,
             },
             y: {
                 type: 'linear',
                 min: 0,
                 max: imageDimensions?.height,
+                reverse: true,
             }
         },
     };
