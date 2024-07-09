@@ -462,8 +462,7 @@ class AsyncChores:
         return path
 
     @staticmethod
-    async def path_analysis(
-        cell_id: str,
+    async def replot(
         image_fluo_raw: bytes,
         contour_raw: bytes,
         degree: int,
@@ -532,12 +531,7 @@ class AsyncChores:
         y = np.polyval(theta, x)
         plt.plot(x, y, color="red")
         plt.scatter(u1_contour, u2_contour, color="lime", s=3)
-        path_raw: list[Point] = await AsyncChores.find_path(
-            cell_id, u1, u2, theta, points_inside_cell_1
-        )
-        path = [i.G for i in path_raw]
-        await AsyncChores.save_fig_async(fig, f"{cell_id}_path.png")
-        return [(i - min(path)) / (max(path) - min(path)) for i in path]
+        await AsyncChores.save_fig_async(fig, f"replot.png")
 
 
 class CellCrudBase:
@@ -701,12 +695,10 @@ class CellCrudBase:
         cell = await self.read_cell(cell_id)
         return await AsyncChores.morpho_analysis(cell.contour, polyfit_degree)
 
-    async def replot(self, cell_id: str) -> StreamingResponse:
+    async def replot(self, cell_id: str, degree: int) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
-        return await AsyncChores.replot(cell.img_ph, cell.img_fluo1, cell.contour)
+        return await AsyncChores.replot(cell.img_fluo1, cell.contour, degree)
 
-    async def path_analysis(self, cell_id: str) -> np.ndarray:
-        cell = await self.read_cell(cell_id)
-        return await AsyncChores.path_analysis(
-            cell_id, cell.img_fluo1, cell.contour, degree=4
-        )
+    # async def re(self, cell_id: str) -> np.ndarray:
+    #     cell = await self.read_cell(cell_id)
+    #     return await AsyncChores.replot(cell_id, cell.img_fluo1, cell.contour, degree=4)
