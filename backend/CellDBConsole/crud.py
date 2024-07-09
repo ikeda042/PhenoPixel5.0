@@ -343,8 +343,14 @@ class AsyncChores:
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
 
         mask = np.zeros_like(image_fluo_gray)
-
-        contour = await AsyncChores.async_pickle_loads(contour_raw)
+        contour = np.array(
+            [
+                [i, j]
+                for i, j in [
+                    i[0] for i in await AsyncChores.async_pickle_loads(contour_raw)
+                ]
+            ]
+        )
 
         cv2.fillPoly(mask, [contour], 255)
 
