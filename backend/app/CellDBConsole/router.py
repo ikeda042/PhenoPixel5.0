@@ -13,6 +13,8 @@ db_name = "test_database.db"
 
 @router_cell.get("/{db_name}/{label}")
 async def read_cell_ids(db_name: str, label: str):
+    if label == "1000":
+        label = "N/A"
     return await CellCrudBase(db_name=db_name).read_cell_ids(label=label)
 
 
