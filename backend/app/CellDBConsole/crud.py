@@ -656,6 +656,8 @@ class AsyncChores:
         y = np.polyval(theta, x)
         plt.plot(x, y, color="red")
         plt.scatter(u1_contour, u2_contour, color="lime", s=3)
+        plt.tick_params(direction="in")
+        plt.grid(True)
         buf = io.BytesIO()
         plt.savefig(buf, format="png")
         buf.seek(0)
