@@ -1,18 +1,7 @@
-from fastapi import FastAPI, Request
-import uvicorn
+from fastapi import FastAPI
 from CellDBConsole.router import router_cell
 from fastapi.middleware.cors import CORSMiddleware
 import os
-
-
-class CORSCustomMiddleware(CORSMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        response.headers["Access-Control-Allow-Origin"] = "https://phenopixel5.site"
-        response.headers["Access-Control-Allow-Headers"] = (
-            "Origin, X-Requested-With, Content-Type, Accept"
-        )
-        return response
 
 
 api_title = os.getenv("API_TITLE", "FastAPI")
@@ -32,7 +21,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(CORSCustomMiddleware)
 
 
 @app.get(f"{api_prefix}/healthcheck")
