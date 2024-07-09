@@ -8,6 +8,6 @@ ph_contours/
 **/__pycache__/
 *.pyc
 *.db
-!backend/CellDBConsole/databases/test_database.db
+!backend/app/test_database.db
 *.pem
 .env
