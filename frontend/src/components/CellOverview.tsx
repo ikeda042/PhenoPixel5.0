@@ -227,7 +227,7 @@ const CellImageGrid: React.FC = () => {
     return (
         <>
             <Stack direction="row" spacing={2} alignItems="flex-start">
-                <Box>
+                <Box sx={{ width: 520, height: 420, marginLeft: 2 }}>
                     <FormControl fullWidth>
                         <InputLabel id="label-select-label">Label</InputLabel>
                         <Select
@@ -386,7 +386,7 @@ const CellImageGrid: React.FC = () => {
                         )}
                     </Box>
                 </Box>
-                <Box>
+                <Box sx={{ width: 350, height: 420, marginLeft: 2 }}>
                     <Typography variant="body1" align="center">Morphology profile</Typography>
                     <CellMorphologyTable cellId={cellIds[currentIndex]} />
                 </Box>
