@@ -749,9 +749,7 @@ class CellCrudBase:
         cell = await self.read_cell(cell_id)
         return await AsyncChores.get_contour(cell.contour)
 
-    async def morpho_analysis(
-        self, cell_id: str, polyfit_degree: int | None = None
-    ) -> tuple[float, float, float, float, dict]:
+    async def morpho_analysis(self, cell_id: str, polyfit_degree: int) -> CellMorhology:
         """
         Perform morphological analysis on a cell by its ID.
 
@@ -763,7 +761,9 @@ class CellCrudBase:
         - Tuple containing the area, volume, width, and cell length of the cell.
         """
         cell = await self.read_cell(cell_id)
-        return await AsyncChores.morpho_analysis(cell.contour, polyfit_degree)
+        return await AsyncChores.morpho_analysis(
+            cell.img_ph, cell.img_fluo1, cell.contour, polyfit_degree
+        )
 
     async def replot(self, cell_id: str, degree: int) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
