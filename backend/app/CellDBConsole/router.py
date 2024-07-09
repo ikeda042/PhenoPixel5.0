@@ -25,7 +25,7 @@ async def read_cell_ids(db_name: str, label: str):
     return await CellCrudBase(db_name=db_name).read_cell_ids(label=label)
 
 
-@router_cell.get("/{cell_id}/ph_image")
+@router_cell.get("/{cell_id}/{db_name}/{draw_contour}/{draw_scale_bar}/ph_image")
 async def get_cell_ph(
     cell_id: str,
     db_name: str,
