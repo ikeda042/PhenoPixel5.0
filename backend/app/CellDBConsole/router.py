@@ -44,7 +44,7 @@ async def get_cell_fluo(
     db_name: str,
     draw_contour: bool = False,
     draw_scale_bar: bool = False,
-    brightness_factor: Annotated[float, 0.0] = 1.0,
+    brightness_factor: float = 1.0,
 ):
     return await CellCrudBase(db_name=db_name).get_cell_fluo(
         cell_id=cell_id,
