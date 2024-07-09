@@ -29,7 +29,7 @@ ChartJS.register(
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string } }>({});
-    const [label, setLabel] = useState<string>("N/A");
+    const [label, setLabel] = useState<string>("1");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [drawContour, setDrawContour] = useState<boolean>(false);
     const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
@@ -169,13 +169,13 @@ const CellImageGrid: React.FC = () => {
                         </Select>
                     </FormControl>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
-                        <Button variant="contained" color="primary" onClick={handlePrev} disabled={cellIds.length === 0} style={{ backgroundColor: "black" }}>
+                        <Button variant="contained" color="primary" onClick={handlePrev} disabled={cellIds.length === 0} style={{ backgroundColor: "black", minWidth: "100px" }}>
                             Prev
                         </Button>
                         <Typography variant="h6">
                             {cellIds.length > 0 ? `Cell ${currentIndex + 1} of ${cellIds.length}` : "Loading..."}
                         </Typography>
-                        <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0} style={{ backgroundColor: "black" }}>
+                        <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0} style={{ backgroundColor: "black", minWidth: "100px" }}>
                             Next
                         </Button>
                     </Box>
@@ -216,11 +216,20 @@ const CellImageGrid: React.FC = () => {
                                 <div>Loading Fluo...</div>
                             )}
                         </Grid>
+                        {/* <Grid item xs={4} style={{ height: '400px', width: '100%' }}>
+                            <Scatter
+                                data={contourPlotData}
+                                options={{
+                                    ...contourPlotOptions,
+                                    animation: false, // アニメーションを無効にする
+                                }}
+                            />
+                        </Grid> */}
                     </Grid>
                 </Box>
-                <Box sx={{ width: 450, height: 450, marginLeft: 2 }}>
+                {/* <Box sx={{ width: 450, height: 450, marginLeft: 2 }}>
                     <Scatter data={contourPlotData} options={contourPlotOptions} />
-                </Box>
+                </Box> */}
             </Stack>
         </>
     );
