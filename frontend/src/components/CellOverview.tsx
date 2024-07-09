@@ -36,6 +36,8 @@ const CellImageGrid: React.FC = () => {
     const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
     const [contourData, setContourData] = useState<number[][]>([]);
     const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
+    const [drawMode, setDrawMode] = useState<string>("light");
+
 
     useEffect(() => {
         const fetchCellIds = async () => {
@@ -128,6 +130,10 @@ const CellImageGrid: React.FC = () => {
     const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
         event.currentTarget.blur();
         event.preventDefault();
+    };
+
+    const handleDrawModeChange = (event: SelectChangeEvent<string>) => {
+        setDrawMode(event.target.value);
     };
 
     // プロット用のデータを生成
@@ -240,7 +246,20 @@ const CellImageGrid: React.FC = () => {
                     </Grid>
                 </Box>
                 <Box sx={{ width: 450, height: 450, marginLeft: 2 }}>
-                    <Scatter data={contourPlotData} options={contourPlotOptions} />
+                    <FormControl fullWidth>
+                        <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                        <Select
+                            labelId="draw-mode-select-label"
+                            value={drawMode}
+                            onChange={handleDrawModeChange}
+                            displayEmpty
+                        >
+                            <MenuItem value="light">Light</MenuItem>
+                            <MenuItem value="replot">Replot</MenuItem>
+                        </Select>
+                    </FormControl>
+                    {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
+
                 </Box>
             </Stack>
         </>
