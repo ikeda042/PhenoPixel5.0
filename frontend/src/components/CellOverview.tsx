@@ -47,15 +47,13 @@ const CellImageGrid: React.FC = () => {
 
     useEffect(() => {
         const fetchCellIds = async () => {
-            console.log(`Fetching cell IDs with label: ${label}`);
-            console.log(`${url_prefix}/cells/`);
-            const response = await axios.get(`${url_prefix}/cells/`, { params: { db_name, label } });
+            const response = await axios.get(`${url_prefix}/cells/${db_name}/${label}`);
             const ids = response.data.map((cell: { cell_id: string }) => cell.cell_id);
             setCellIds(ids);
         };
 
         fetchCellIds();
-    }, [label]);
+    }, [db_name, label]);
 
     useEffect(() => {
         const fetchImages = async (cellId: string) => {
@@ -73,13 +71,13 @@ const CellImageGrid: React.FC = () => {
                     setImageDimensions(imageDimensions);
                     return imageUrl;
                 };
-
+                // URL sample https://open.ikeda042api.net/api/cells/F0C1/ph_image?db_name=test_database.db&draw_contour=false&draw_scale_bar=false
                 const phImage = await fetchImage(`${url_prefix}/cells/${cellId}/ph_image?db_name=${db_name}&draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}`);
                 const fluoImage = await fetchImage(`${url_prefix}/cells/${cellId}/fluo_image?db_name=${db_name}&draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
 
                 return { ph: phImage, fluo: fluoImage };
             } catch (error) {
-                console.error("Error fetching images:", error);
+                console.error("Error fetching images: FE", error);
                 return null;
             }
         };
