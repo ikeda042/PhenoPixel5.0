@@ -6,8 +6,7 @@ from typing import Literal
 from fastapi.responses import StreamingResponse
 import os
 
-api_prefix = os.getenv("API_PREFIX", "/api")
-router_cell = APIRouter(prefix=f"{api_prefix}/cells", tags=["cells"])
+router_cell = APIRouter(prefix=f"/cells", tags=["cells"])
 
 
 # define a global var called db_name
