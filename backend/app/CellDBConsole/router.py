@@ -80,7 +80,7 @@ async def get_cell_morphology(cell_id: str, db_name: str, polyfit_degree: int = 
     return cell_morphology
 
 
-@router_cell.get("/{cell_id}/replot", response_class=StreamingResponse)
+@router_cell.get("/{cell_id}/{db_name}/replot", response_class=StreamingResponse)
 async def replot_cell(cell_id: str, db_name: str, degree: int = 3):
     return await CellCrudBase(db_name=db_name).replot(cell_id=cell_id, degree=degree)
 

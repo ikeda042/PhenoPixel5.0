@@ -113,9 +113,9 @@ const CellImageGrid: React.FC = () => {
         }
     };
 
-    const fetchReplotImage = async (cellId: string) => {
+    const fetchReplotImage = async (cellId: string, dbName: string, fitDegree: number) => {
         try {
-            const response = await axios.get(`${url_prefix}/cells/${cellId}/replot?db_name=${db_name}&degree=${fitDegree}`, { responseType: 'blob' });
+            const response = await axios.get(`${url_prefix}/cells/${cellId}/${dbName}/replot?degree=${fitDegree}`, { responseType: 'blob' });
             const replotImageUrl = URL.createObjectURL(response.data);
             setImages((prevImages) => ({
                 ...prevImages,
@@ -125,7 +125,6 @@ const CellImageGrid: React.FC = () => {
             console.error("Error fetching replot image:", error);
         }
     };
-
     const fetchPeakPath = async (cellId: string) => {
         setIsLoading(true);
         try {
@@ -146,7 +145,7 @@ const CellImageGrid: React.FC = () => {
         if (drawMode === "replot" && cellIds.length > 0) {
             const cellId = cellIds[currentIndex];
             if (!images[cellId]?.replot) {
-                fetchReplotImage(cellId);
+                fetchReplotImage(cellId, db_name, fitDegree);
             }
         }
     }, [drawMode, cellIds, currentIndex, fitDegree]);
