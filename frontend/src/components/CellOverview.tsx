@@ -102,22 +102,25 @@ const CellImageGrid: React.FC = () => {
         }
     }, [cellIds, currentIndex]);
 
-    useEffect(() => {
-        const fetchReplotImage = async (cellId: string) => {
-            try {
-                const response = await axios.get(`${settings.api_url}/cells/${cellId}/replot`, { responseType: 'blob' });
-                const replotImageUrl = URL.createObjectURL(response.data);
-                setImages((prevImages) => ({
-                    ...prevImages,
-                    [cellId]: { ...prevImages[cellId], replot: replotImageUrl }
-                }));
-            } catch (error) {
-                console.error("Error fetching replot image:", error);
-            }
-        };
+    const fetchReplotImage = async (cellId: string) => {
+        try {
+            const response = await axios.get(`${settings.api_url}/cells/${cellId}/replot`, { responseType: 'blob' });
+            const replotImageUrl = URL.createObjectURL(response.data);
+            setImages((prevImages) => ({
+                ...prevImages,
+                [cellId]: { ...prevImages[cellId], replot: replotImageUrl }
+            }));
+        } catch (error) {
+            console.error("Error fetching replot image:", error);
+        }
+    };
 
+    useEffect(() => {
         if (drawMode === "replot" && cellIds.length > 0) {
-            fetchReplotImage(cellIds[currentIndex]);
+            const cellId = cellIds[currentIndex];
+            if (!images[cellId]?.replot) {
+                fetchReplotImage(cellId);
+            }
         }
     }, [drawMode, cellIds, currentIndex]);
 
