@@ -480,20 +480,24 @@ class AsyncChores:
         path.append(last_point)
         fig = plt.figure(figsize=(6, 6))
         plt.axis("equal")
+        x = [i.u1 for i in raw_points]
+        y = [i.G for i in raw_points]
         plt.scatter(
-            [i.u1 for i in raw_points],
-            [i.G for i in raw_points],
+            x,
+            y,
             s=10,
             color="lime",
         )
+        px, py = [i.u1 for i in path], [i.G for i in path]
         plt.scatter(
-            [i.u1 for i in path],
-            [i.G for i in path],
+            px,
+            py,
             s=50,
             color="magenta",
             zorder=100,
         )
-        plt.plot([i.u1 for i in path], [i.G for i in path], color="lime")
+        plt.xlim(min(px) - 10, max(px) + 10)
+        plt.plot(px, py, color="magenta")
         buf = io.BytesIO()
         plt.savefig(buf, format="png")
         buf.seek(0)
