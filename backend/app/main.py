@@ -12,6 +12,18 @@ app = FastAPI(
     openapi_url=f"{api_prefix}/openapi.json",
 )
 
+origins = [
+    "https://phenopixel5.site",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get(f"{api_prefix}/healthcheck")
 async def healthcheck():
@@ -19,12 +31,3 @@ async def healthcheck():
 
 
 app.include_router(router_cell, prefix=api_prefix)
-# if __name__ == "__main__":
-#     uvicorn.run(
-#         "main:app",
-#         host="0.0.0.0",
-#         port=8000,
-#         reload=True,
-#         ssl_certfile="./cert.pem",
-#         ssl_keyfile="./key.pem",
-#     )
