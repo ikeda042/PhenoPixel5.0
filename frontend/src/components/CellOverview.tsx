@@ -79,32 +79,30 @@ const CellImageGrid: React.FC = () => {
             }
         };
 
-        if (cellIds.length > 0) {
-            fetchImages(cellIds[currentIndex]).then(newImages => {
-                if (newImages) {
-                    setImages((prevImages) => ({
-                        ...prevImages,
-                        [cellIds[currentIndex]]: { ...prevImages[cellIds[currentIndex]], ...newImages }
-                    }));
-                }
-            });
-        }
-    }, [cellIds, currentIndex, drawContour, drawScaleBar, brightnessFactor]);
-
-    useEffect(() => {
-        const fetchContour = async (cellId: string) => {
-            try {
-                const response = await axios.get(`${settings.api_url}/cells/${cellId}/contour/raw`);
-                setContourData(response.data.contour);
-            } catch (error) {
-                console.error("Error fetching contour data:", error);
+        const handleFetchImages = async (cellId: string) => {
+            const newImages = await fetchImages(cellId);
+            if (newImages) {
+                setImages((prevImages) => ({
+                    ...prevImages,
+                    [cellId]: { ...prevImages[cellId], ...newImages }
+                }));
+                fetchContour(cellId);
             }
         };
 
         if (cellIds.length > 0) {
-            fetchContour(cellIds[currentIndex]);
+            handleFetchImages(cellIds[currentIndex]);
         }
-    }, [cellIds, currentIndex]);
+    }, [cellIds, currentIndex, drawContour, drawScaleBar, brightnessFactor]);
+
+    const fetchContour = async (cellId: string) => {
+        try {
+            const response = await axios.get(`${settings.api_url}/cells/${cellId}/contour/raw`);
+            setContourData(response.data.contour);
+        } catch (error) {
+            console.error("Error fetching contour data:", error);
+        }
+    };
 
     const fetchReplotImage = async (cellId: string) => {
         try {
