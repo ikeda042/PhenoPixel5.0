@@ -250,7 +250,6 @@ const CellImageGrid: React.FC = () => {
                         </Select>
                     </FormControl>
                     {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
-
                 </Box>
             </Stack>
         </>
