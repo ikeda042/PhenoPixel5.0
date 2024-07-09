@@ -61,7 +61,7 @@ const CellImageGrid: React.FC = () => {
                 const fetchImage = async (type: 'ph_image' | 'fluo_image', brightnessFactor: number = 1.0) => {
                     let url = `https://open.ikeda042api.net/api/cells/${cellId}/${db_name}/${drawContour}/${drawScaleBar}/`;
                     if (type === 'fluo_image') {
-                        url += `${brightnessFactor}/${type}`;
+                        url += `${type}?brightness_factor=${brightnessFactor}`;
                     } else {
                         url += `${type}`;
                     }
@@ -77,6 +77,7 @@ const CellImageGrid: React.FC = () => {
                     setImageDimensions(imageDimensions);
                     return imageUrl;
                 };
+
                 const phImage = await fetchImage('ph_image');
                 const brightnessFactor = 1.0;
                 const fluoImage = await fetchImage('fluo_image', brightnessFactor);
@@ -102,7 +103,7 @@ const CellImageGrid: React.FC = () => {
         if (cellIds.length > 0) {
             handleFetchImages(cellIds[currentIndex]);
         }
-    }, [cellIds, currentIndex, db_name, drawContour, drawScaleBar]);
+    }, [cellIds, currentIndex, db_name, drawContour, drawScaleBar, brightnessFactor]);
 
     const fetchContour = async (cellId: string) => {
         try {
