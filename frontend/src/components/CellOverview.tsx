@@ -28,7 +28,7 @@ ChartJS.register(
 
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
-    const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string } }>({});
+    const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string, replot?: string } }>({});
     const [label, setLabel] = useState<string>("1");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [drawContour, setDrawContour] = useState<boolean>(false);
@@ -37,7 +37,6 @@ const CellImageGrid: React.FC = () => {
     const [contourData, setContourData] = useState<number[][]>([]);
     const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [drawMode, setDrawMode] = useState<string>("light");
-
 
     useEffect(() => {
         const fetchCellIds = async () => {
@@ -102,6 +101,25 @@ const CellImageGrid: React.FC = () => {
             fetchContour(cellIds[currentIndex]);
         }
     }, [cellIds, currentIndex]);
+
+    useEffect(() => {
+        const fetchReplotImage = async (cellId: string) => {
+            try {
+                const response = await axios.get(`${settings.api_url}/cells/${cellId}/replot`, { responseType: 'blob' });
+                const replotImageUrl = URL.createObjectURL(response.data);
+                setImages((prevImages) => ({
+                    ...prevImages,
+                    [cellId]: { ...prevImages[cellId], replot: replotImageUrl }
+                }));
+            } catch (error) {
+                console.error("Error fetching replot image:", error);
+            }
+        };
+
+        if (drawMode === "replot" && cellIds.length > 0) {
+            fetchReplotImage(cellIds[currentIndex]);
+        }
+    }, [drawMode, cellIds, currentIndex]);
 
     const handleNext = () => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % cellIds.length);
@@ -250,6 +268,9 @@ const CellImageGrid: React.FC = () => {
                         </Select>
                     </FormControl>
                     {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
+                    {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
+                        <img src={images[cellIds[currentIndex]]?.replot} alt={`Cell ${cellIds[currentIndex]} Replot`} style={{ width: "100%" }} />
+                    )}
                 </Box>
             </Stack>
         </>

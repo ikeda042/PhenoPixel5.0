@@ -3,6 +3,7 @@ from CellDBConsole.crud import CellCrudBase
 from CellDBConsole.schemas import CellMorhology
 from fastapi.responses import JSONResponse
 from typing import Literal
+from fastapi.responses import StreamingResponse
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 
@@ -72,6 +73,6 @@ async def get_cell_morphology(
     return cell_morphology
 
 
-@router_cell.get("/{cell_id}/replot")
+@router_cell.get("/{cell_id}/replot", response_class=StreamingResponse)
 async def replot_cell(cell_id: str, degree: int = 4, db_name: str = "test_database.db"):
     return await CellCrudBase(db_name=db_name).replot(cell_id=cell_id, degree=degree)
