@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from CellDBConsole.router import router_cell
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 
 api_title = os.getenv("API_TITLE", "FastAPI")
@@ -28,4 +29,5 @@ async def healthcheck():
     return {"status": "ok"}
 
 
+app.add_middleware(HTTPSRedirectMiddleware)
 app.include_router(router_cell, prefix=api_prefix)
