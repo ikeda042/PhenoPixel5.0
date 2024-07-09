@@ -9,3 +9,4 @@ ph_contours/
 *.pyc
 *.db
 !backend/CellDBConsole/databases/test_database.db
+*.pem
