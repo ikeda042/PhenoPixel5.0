@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 import uvicorn
-from fastapi.responses import StreamingResponse
 from CellDBConsole.router import router_cell
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -27,9 +26,11 @@ async def healthcheck():
 
 app.include_router(router_cell)
 if __name__ == "__main__":
-    uvicorn.run("main:app", 
-                host="0.0.0.0", 
-                port=8000, 
-                reload=True, 
-                ssl_certfile="./cert.pem",  
-                ssl_keyfile="./key.pem"  )
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        ssl_certfile="./cert.pem",
+        ssl_keyfile="./key.pem",
+    )
