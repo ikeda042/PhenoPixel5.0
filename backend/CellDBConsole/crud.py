@@ -147,7 +147,7 @@ class AsyncChores:
         - Image in numpy array format.
         """
         loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             img = await loop.run_in_executor(
                 executor, cv2.imdecode, np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR
             )
@@ -165,7 +165,7 @@ class AsyncChores:
         - Tuple containing success status and image buffer.
         """
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             success, buffer = await loop.run_in_executor(
                 executor, lambda: cv2.imencode(".png", img)
             )
@@ -184,7 +184,7 @@ class AsyncChores:
         - Image with the contour drawn on it.
         """
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             contour = pickle.loads(contour)
             image = await loop.run_in_executor(
                 executor,
@@ -247,14 +247,14 @@ class AsyncChores:
     @staticmethod
     async def async_eig(Sigma: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             eigenvalues, eigenvectors = await loop.run_in_executor(executor, eig, Sigma)
         return eigenvalues, eigenvectors
 
     @staticmethod
     async def async_pickle_loads(data: bytes) -> list[list[float]]:
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(executor, pickle.loads, data)
         return result
 
@@ -263,7 +263,7 @@ class AsyncChores:
         u1_adj: list[float], u2_adj: list[float], split_num: int, deltaL: float
     ) -> tuple[float, list[float]]:
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(
                 executor,
                 SyncChores.calculate_volume_and_widths,
@@ -277,7 +277,7 @@ class AsyncChores:
     @staticmethod
     async def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(
                 executor, SyncChores.poly_fit, U, degree
             )
@@ -286,7 +286,7 @@ class AsyncChores:
     @staticmethod
     async def calc_arc_length(theta: list[float], u_1_1: float, u_1_2: float) -> float:
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(
                 executor, SyncChores.calc_arc_length, theta, u_1_1, u_1_2
             )
@@ -297,7 +297,7 @@ class AsyncChores:
         coefficients, x_Q, y_Q
     ) -> tuple[float, tuple[float, float]]:
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(
                 executor,
                 SyncChores.find_minimum_distance_and_point,
@@ -328,7 +328,7 @@ class AsyncChores:
     @staticmethod
     async def save_fig_async(fig: Figure, filename: str) -> None:
         loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             await loop.run_in_executor(executor, fig.savefig, filename)
             plt.close(fig)
 
