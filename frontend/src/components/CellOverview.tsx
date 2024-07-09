@@ -269,7 +269,7 @@ const CellImageGrid: React.FC = () => {
                             Prev
                         </Button>
                         <Typography variant="h6">
-                            {cellIds.length > 0 ? `Cell ${currentIndex + 1} of ${cellIds.length}` : "Loading..."}
+                            {cellIds.length > 0 ? `Cell ${currentIndex + 1} of ${cellIds.length}` : `Cell ${currentIndex} of ${cellIds.length}`}
                         </Typography>
                         <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0} style={{ backgroundColor: "black", minWidth: "100px" }}>
                             Next
