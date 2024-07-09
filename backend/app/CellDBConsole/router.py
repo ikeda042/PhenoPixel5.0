@@ -37,7 +37,9 @@ async def get_cell_ph(
     )
 
 
-@router_cell.get("/{cell_id}/fluo_image")
+@router_cell.get(
+    "/{cell_id}/{db_name}/{draw_contour}/{draw_scale_bar}/{brightness_factor}/fluo_image"
+)
 async def get_cell_fluo(
     cell_id: str,
     db_name: str,

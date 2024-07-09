@@ -58,7 +58,13 @@ const CellImageGrid: React.FC = () => {
     useEffect(() => {
         const fetchImages = async (cellId: string) => {
             try {
-                const fetchImage = async (url: string) => {
+                const fetchImage = async (type: 'ph_image' | 'fluo_image', brightnessFactor: number = 1.0) => {
+                    let url = `https://open.ikeda042api.net/api/cells/${cellId}/${db_name}/${drawContour}/${drawScaleBar}/`;
+                    if (type === 'fluo_image') {
+                        url += `${brightnessFactor}/${type}`;
+                    } else {
+                        url += `${type}`;
+                    }
                     console.log(`Fetching image from URL: ${url}`);
                     const response = await axios.get(url, { responseType: 'blob' });
                     const imageUrl = URL.createObjectURL(response.data);
@@ -71,9 +77,9 @@ const CellImageGrid: React.FC = () => {
                     setImageDimensions(imageDimensions);
                     return imageUrl;
                 };
-                // URL sample https://open.ikeda042api.net/api/cells/F0C1/ph_image?db_name=test_database.db&draw_contour=false&draw_scale_bar=false
-                const phImage = await fetchImage(`${url_prefix}/cells/${cellId}/ph_image?db_name=${db_name}&draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}`);
-                const fluoImage = await fetchImage(`${url_prefix}/cells/${cellId}/fluo_image?db_name=${db_name}&draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
+                const phImage = await fetchImage('ph_image');
+                const brightnessFactor = 1.0;
+                const fluoImage = await fetchImage('fluo_image', brightnessFactor);
 
                 return { ph: phImage, fluo: fluoImage };
             } catch (error) {
@@ -96,7 +102,7 @@ const CellImageGrid: React.FC = () => {
         if (cellIds.length > 0) {
             handleFetchImages(cellIds[currentIndex]);
         }
-    }, [cellIds, currentIndex, drawContour, drawScaleBar, brightnessFactor]);
+    }, [cellIds, currentIndex, db_name, drawContour, drawScaleBar]);
 
     const fetchContour = async (cellId: string) => {
         try {
