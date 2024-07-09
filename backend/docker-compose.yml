@@ -18,10 +18,6 @@ services:
       - .env
     entrypoint: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
 
-labels:
-  traefik.http.middlewares.https-redirect.redirectscheme.scheme: "https"
-  traefik.http.middlewares.https-redirect.redirectscheme.permanent: "true"
-
 networks:
   webnet:
   traefik_net:
