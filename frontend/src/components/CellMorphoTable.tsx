@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box } from '@material-ui/core';
 
 interface CellMorphologyTableProps {
     cellId: string;
 }
-
+interface CellMorphologyData {
+    [key: string]: number;
+}
 const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId }) => {
-    const [cellMorphology, setCellMorphology] = useState(null);
-    const url_prefix = "https://open.ikeda042api.net/api"
+    const [cellMorphology, setCellMorphology] = useState<CellMorphologyData | null>(null);
+
+
     const parameterDisplayNameMapping: { [key: string]: string } = {
         area: 'Area(px^2)',
         volume: 'Volume(px^3)',
@@ -25,20 +27,15 @@ const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId }) => 
     };
 
     useEffect(() => {
-        const fetchCellMorphology = async () => {
-            try {
-                const params = {
-                    db_name: "test_database.db",
-                    polyfit_degree: 3
-                };
-                const response = await axios.get(`${url_prefix}/cells/${cellId}/morphology`, { params });
-                setCellMorphology(response.data);
-            } catch (error) {
-                console.error("Error fetching cell morphology data:", error);
-            }
+        const generateDummyData = () => {
+            const dummyData: CellMorphologyData = Object.keys(parameterDisplayNameMapping).reduce((acc, key) => {
+                acc[key] = Math.floor(Math.random() * 100);
+                return acc;
+            }, {} as CellMorphologyData);
+            setCellMorphology(dummyData);
         };
 
-        fetchCellMorphology();
+        generateDummyData();
     }, [cellId]);
 
     if (!cellMorphology) {
@@ -59,7 +56,7 @@ const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId }) => 
                         {Object.entries(cellMorphology).map(([key, value]) => (
                             <TableRow key={key}>
                                 <TableCell component="th" scope="row">
-                                    {parameterDisplayNameMapping[key] || key} {/* マッピングを使用して表示名を取得 */}
+                                    {parameterDisplayNameMapping[key] || key}
                                 </TableCell>
                                 <TableCell align="right">{String(value)}</TableCell>
                             </TableRow>
