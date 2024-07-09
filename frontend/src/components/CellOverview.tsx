@@ -60,8 +60,8 @@ const CellImageGrid: React.FC = () => {
     useEffect(() => {
         const fetchCellIds = async () => {
             console.log(`Fetching cell IDs with label: ${label}`);
-            console.log(`${url_prefix}/cells`);
-            const response = await axios.get(`${url_prefix}/cells`, { params: { label, db_name: db_name } });
+            console.log(`${url_prefix}/cells/`);
+            const response = await axios.get(`${url_prefix}/cells/`);
             const ids = response.data.map((cell: { cell_id: string }) => cell.cell_id);
             setCellIds(ids);
         };
