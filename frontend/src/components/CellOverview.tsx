@@ -44,6 +44,21 @@ const CellImageGrid: React.FC = () => {
     const [drawMode, setDrawMode] = useState<string>("light");
     const [fitDegree, setFitDegree] = useState<number>(4);
     const [isLoading, setIsLoading] = useState(false);
+    const [Temp, setTemp] = useState<string>("1");
+
+    //get the "status" from here https://open.ikeda042api.net/api/healthcheck and set it to the Temp
+    useEffect(() => {
+        const fetchTemp = async () => {
+            console.log(`Fetching Temp`);
+            const response = await axios.get(`${url_prefix}/healthcheck`);
+            setTemp(response.data.status);
+        };
+
+        fetchTemp();
+    }, []);
+
+
+
 
     useEffect(() => {
         const fetchCellIds = async () => {
@@ -230,6 +245,7 @@ const CellImageGrid: React.FC = () => {
         <>
             <Stack direction="row" spacing={2} alignItems="flex-start">
                 <Box sx={{ width: 520, height: 420, marginLeft: 2 }}>
+                    <Typography variant="h5" style={{ color: "black" }}>{Temp}</Typography>
                     <FormControl fullWidth>
                         <InputLabel id="label-select-label">Label</InputLabel>
                         <Select
