@@ -407,13 +407,51 @@ class AsyncChores:
 
     @staticmethod
     async def find_path(
-        cell_id: str,
-        u1: list[float],
-        u2: list[float],
-        theta: list[float],
-        points_inside_cell_1: list[float],
-    ) -> list[Point]:
+        image_fluo_raw: bytes, contour_raw: bytes, degree: int
+    ) -> io.BytesIO:
 
+        image_fluo = cv2.imdecode(
+            np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
+        )
+        image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+
+        mask = np.zeros_like(image_fluo_gray)
+
+        unpickled_contour = pickle.loads(contour_raw)
+        cv2.fillPoly(mask, [unpickled_contour], 255)
+
+        coords_inside_cell_1 = np.column_stack(np.where(mask))
+        points_inside_cell_1 = image_fluo_gray[
+            coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
+        ]
+
+        X = np.array(
+            [
+                [i[1] for i in coords_inside_cell_1],
+                [i[0] for i in coords_inside_cell_1],
+            ]
+        )
+
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = SyncChores.basis_conversion(
+            [list(i[0]) for i in unpickled_contour],
+            X,
+            image_fluo.shape[0] / 2,
+            image_fluo.shape[1] / 2,
+            coords_inside_cell_1,
+        )
+
+        theta = await AsyncChores.poly_fit(U, degree=degree)
         ### projection
         raw_points: list[Point] = []
         for i, j, p in zip(u1, u2, points_inside_cell_1):
@@ -427,7 +465,6 @@ class AsyncChores:
         ### Meta parameters
         split_num: int = 35
         delta_L: float = (max(u1) - min(u1)) / split_num
-        visualize: bool = True
 
         first_point: Point = raw_points[0]
         last_point: Point = raw_points[-1]
@@ -441,25 +478,28 @@ class AsyncChores:
             point = max(points, key=lambda x: x.G)
             path.append(point)
         path.append(last_point)
-        if visualize:
-            fig = plt.figure(figsize=(6, 6))
-            plt.axis("equal")
-            plt.scatter(
-                [i.u1 for i in raw_points],
-                [i.G for i in raw_points],
-                s=10,
-                color="lime",
-            )
-            plt.scatter(
-                [i.u1 for i in path],
-                [i.G for i in path],
-                s=50,
-                color="magenta",
-                zorder=100,
-            )
-            plt.plot([i.u1 for i in path], [i.G for i in path], color="lime")
-            await AsyncChores.save_fig_async(fig, f"{cell_id}_path.png")
-        return path
+        fig = plt.figure(figsize=(6, 6))
+        plt.axis("equal")
+        plt.scatter(
+            [i.u1 for i in raw_points],
+            [i.G for i in raw_points],
+            s=10,
+            color="lime",
+        )
+        plt.scatter(
+            [i.u1 for i in path],
+            [i.G for i in path],
+            s=50,
+            color="magenta",
+            zorder=100,
+        )
+        plt.plot([i.u1 for i in path], [i.G for i in path], color="lime")
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        plt.close(fig)
+        return buf
+        # return path
 
     @staticmethod
     async def replot(
@@ -706,6 +746,9 @@ class CellCrudBase:
             media_type="image/png",
         )
 
-    # async def re(self, cell_id: str) -> np.ndarray:
-    #     cell = await self.read_cell(cell_id)
-    #     return await AsyncChores.replot(cell_id, cell.img_fluo1, cell.contour, degree=4)
+    async def find_path(self, cell_id: str, degree: int) -> StreamingResponse:
+        cell = await self.read_cell(cell_id)
+        return StreamingResponse(
+            await AsyncChores.find_path(cell.img_fluo1, cell.contour, degree),
+            media_type="image/png",
+        )
