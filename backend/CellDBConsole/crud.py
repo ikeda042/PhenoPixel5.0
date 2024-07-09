@@ -464,22 +464,26 @@ class AsyncChores:
             width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
 
         return CellMorhology(
-            area=area,
-            volume=volume,
-            width=width,
-            length=cell_length,
-            mean_fluo_intensity=np.mean(points_inside_cell_1),
-            mean_ph_intensity=np.mean(ph_points_inside_cell_1),
-            mean_fluo_intensity_normalized=np.mean(points_inside_cell_1)
-            / np.max(points_inside_cell_1),
-            mean_ph_intensity_normalized=np.mean(ph_points_inside_cell_1)
-            / np.max(ph_points_inside_cell_1),
-            median_fluo_intensity=np.median(points_inside_cell_1),
-            median_ph_intensity=np.median(ph_points_inside_cell_1),
-            median_fluo_intensity_normalized=np.median(points_inside_cell_1)
-            / np.max(points_inside_cell_1),
-            median_ph_intensity_normalized=np.median(ph_points_inside_cell_1)
-            / np.max(ph_points_inside_cell_1),
+            area=round(area, 2),
+            volume=round(volume, 2),
+            width=round(width, 2),
+            length=round(cell_length, 2),
+            mean_fluo_intensity=round(np.mean(points_inside_cell_1), 2),
+            mean_ph_intensity=round(np.mean(ph_points_inside_cell_1), 2),
+            mean_fluo_intensity_normalized=round(
+                np.mean(points_inside_cell_1) / np.max(points_inside_cell_1), 2
+            ),
+            mean_ph_intensity_normalized=round(
+                np.mean(ph_points_inside_cell_1) / np.max(ph_points_inside_cell_1), 2
+            ),
+            median_fluo_intensity=round(np.median(points_inside_cell_1), 2),
+            median_ph_intensity=round(np.median(ph_points_inside_cell_1), 2),
+            median_fluo_intensity_normalized=round(
+                np.median(points_inside_cell_1) / np.max(points_inside_cell_1), 2
+            ),
+            median_ph_intensity_normalized=round(
+                np.median(ph_points_inside_cell_1) / np.max(ph_points_inside_cell_1), 2
+            ),
         )
 
     @staticmethod
