@@ -236,7 +236,7 @@ const CellImageGrid: React.FC = () => {
                         </Grid>
                     </Grid>
                 </Box>
-                <Box sx={{ width: 450, height: 450, marginLeft: 2 }}>
+                <Box sx={{ width: 430, height: 430, marginLeft: 2 }}>
                     <FormControl fullWidth>
                         <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
                         <Select
