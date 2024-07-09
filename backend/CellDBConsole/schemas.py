@@ -24,11 +24,14 @@ class CellMorhology(BaseModel):
     volume: float
     width: float
     length: float
-    contour_raw: list[list[float]]
-    converted_contour: list[list[float]]
-    center_raw: list[float]
-    center_converted: list[float]
-    coefficents: list[float]
+    mean_fluo_intensity: float
+    mean_ph_intensity: float
+    mean_fluo_intensity_normalized: float
+    mean_ph_intensity_normalized: float
+    median_fluo_intensity: float
+    median_ph_intensity: float
+    median_fluo_intensity_normalized: float
+    median_ph_intensity_normalized: float
 
 
 class CellDBAll(BaseModel):
