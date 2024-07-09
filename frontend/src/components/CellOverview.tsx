@@ -230,7 +230,8 @@ const CellImageGrid: React.FC = () => {
                             onChange={handleBrightnessChange}
                             InputProps={{
                                 inputProps: { min: 0.1, step: 0.1 },
-                                onWheel: handleWheel
+                                onWheel: handleWheel,
+                                autoComplete: "off"
                             }}
                         />
                     </Box>
@@ -286,8 +287,10 @@ const CellImageGrid: React.FC = () => {
                                 onChange={handleFitDegreeChange}
                                 InputProps={{
                                     inputProps: { min: 0, step: 1 },
-                                    onWheel: handleWheel
+                                    onWheel: handleWheel,
+                                    autoComplete: "off"
                                 }}
+
                             />
                         </Grid>
                     </Grid>
