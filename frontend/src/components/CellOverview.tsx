@@ -257,7 +257,7 @@ const CellImageGrid: React.FC = () => {
                         </Grid>
                     </Grid>
                 </Box>
-                <Box sx={{ width: 430, height: 430, marginLeft: 2 }}>
+                <Box sx={{ width: 420, height: 420, marginLeft: 2 }}>
                     <FormControl fullWidth>
                         <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
                         <Select
@@ -270,10 +270,12 @@ const CellImageGrid: React.FC = () => {
                             <MenuItem value="replot">Replot</MenuItem>
                         </Select>
                     </FormControl>
-                    {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
-                    {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
-                        <img src={images[cellIds[currentIndex]]?.replot} alt={`Cell ${cellIds[currentIndex]} Replot`} style={{ width: "100%" }} />
-                    )}
+                    <Box mt={2}>
+                        {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
+                        {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
+                            <img src={images[cellIds[currentIndex]]?.replot} alt={`Cell ${cellIds[currentIndex]} Replot`} style={{ width: "100%" }} />
+                        )}
+                    </Box>
                 </Box>
             </Stack>
         </>
