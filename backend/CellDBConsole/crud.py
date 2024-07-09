@@ -334,11 +334,29 @@ class AsyncChores:
 
     @staticmethod
     async def morpho_analysis(
-        contour: bytes, polyfit_degree: int | None = None
+        image_ph: bytes, image_fluo_raw: bytes, contour_raw: bytes, degree: int
     ) -> np.ndarray:
-        img_size = 100
-        contour_unpickled = await AsyncChores.async_pickle_loads(contour)
-        contour = np.array([[j, i] for i, j in [i[0] for i in contour_unpickled]])
+
+        image_ph = await AsyncChores.async_imdecode(image_ph)
+        image_ph_gray = cv2.cvtColor(image_ph, cv2.COLOR_BGR2GRAY)
+        image_fluo = await AsyncChores.async_imdecode(image_fluo_raw)
+        image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+
+        mask = np.zeros_like(image_fluo_gray)
+
+        contour = await AsyncChores.async_pickle_loads(contour_raw)
+
+        cv2.fillPoly(mask, [contour], 255)
+
+        coords_inside_cell_1 = np.column_stack(np.where(mask))
+        points_inside_cell_1 = image_fluo_gray[
+            coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
+        ]
+        ph_points_inside_cell_1 = image_ph_gray[
+            coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
+        ]
+
+        img_size = image_fluo.shape[0]
 
         X = np.array(
             [
@@ -360,15 +378,13 @@ class AsyncChores:
 
         area = cv2.contourArea(np.array(contour))
 
-        if polyfit_degree is None or polyfit_degree == 1:
+        if degree is None or degree == 1:
             volume, widths = await AsyncChores.calculate_volume_and_widths(
                 u1_adj, [abs(i) for i in u2_adj], 20, deltaL
             )
             width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
         else:
-            theta = await AsyncChores.poly_fit(
-                np.array([u2, u1]).T, degree=polyfit_degree
-            )
+            theta = await AsyncChores.poly_fit(np.array([u2, u1]).T, degree=degree)
             y = np.polyval(theta, np.linspace(min(u1_adj), max(u1_adj), 1000))
             cell_length = await AsyncChores.calc_arc_length(theta, min(u1), max(u1))
             raw_points = []
@@ -393,16 +409,22 @@ class AsyncChores:
                 widths.append(y_mean)
             width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
         return CellMorhology(
-            cell_id="",
             area=area,
             volume=volume,
             width=width,
             length=cell_length,
-            contour_raw=contour,
-            converted_contour=contour_U,
-            center_raw=[img_size / 2, img_size / 2],
-            center_converted=[u1_c, u2_c],
-            coefficents=theta,
+            mean_fluo_intensity=np.mean(points_inside_cell_1),
+            mean_ph_intensity=np.mean(ph_points_inside_cell_1),
+            mean_fluo_intensity_normalized=np.mean(points_inside_cell_1)
+            / np.max(points_inside_cell_1),
+            mean_ph_intensity_normalized=np.mean(ph_points_inside_cell_1)
+            / np.max(ph_points_inside_cell_1),
+            median_fluo_intensity=np.median(points_inside_cell_1),
+            median_ph_intensity=np.median(ph_points_inside_cell_1),
+            median_fluo_intensity_normalized=np.median(points_inside_cell_1)
+            / np.max(points_inside_cell_1),
+            median_ph_intensity_normalized=np.median(ph_points_inside_cell_1)
+            / np.max(ph_points_inside_cell_1),
         )
 
     @staticmethod
