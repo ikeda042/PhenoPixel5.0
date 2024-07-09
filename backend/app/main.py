@@ -2,9 +2,14 @@ from fastapi import FastAPI
 import uvicorn
 from CellDBConsole.router import router_cell
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
+api_title = os.getenv("API_TITLE", "FastAPI")
+api_prefix = os.getenv("API_PREFIX", "/api")
 app = FastAPI(
-    title="CellAPI", docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json"
+    title=api_title,
+    docs_url=f"{api_prefix}/docs",
+    openapi_url=f"{api_prefix}/openapi.json",
 )
 
 cors_origins = ["*"]
