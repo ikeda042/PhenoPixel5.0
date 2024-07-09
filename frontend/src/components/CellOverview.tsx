@@ -79,7 +79,6 @@ const CellImageGrid: React.FC = () => {
                 };
 
                 const phImage = await fetchImage('ph_image');
-                const brightnessFactor = 1.0;
                 const fluoImage = await fetchImage('fluo_image', brightnessFactor);
 
                 return { ph: phImage, fluo: fluoImage };
