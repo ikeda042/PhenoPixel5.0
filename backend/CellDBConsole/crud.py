@@ -825,6 +825,16 @@ class CellCrudBase:
         )
 
     async def replot(self, cell_id: str, degree: int) -> StreamingResponse:
+        """
+        Replot the cell boundary with the given polynomial degree.
+
+        Parameters:
+        - cell_id: ID of the cell to replot.
+        - degree: Degree of the polynomial to fit the cell boundary.
+
+        Returns:
+        - StreamingResponse object with the replot image data.
+        """
         cell = await self.read_cell(cell_id)
         return StreamingResponse(
             await AsyncChores.replot(cell.img_fluo1, cell.contour, degree),
