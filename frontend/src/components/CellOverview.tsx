@@ -306,8 +306,15 @@ const CellImageGrid: React.FC = () => {
                         >
                             <MenuItem value="light">Light</MenuItem>
                             <MenuItem value="replot">Replot</MenuItem>
+                            <MenuItem value="path">Peak-path</MenuItem>
                         </Select>
                     </FormControl>)}
+                    {drawMode === "path" && (
+                        <Box>
+                            <Typography variant="h6">Peak-path</Typography>
+                            <Typography variant="body1">Coming soon...</Typography>
+                        </Box>
+                    )}
 
 
                     <Box mt={2}>
