@@ -16,8 +16,25 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.figure import Figure
+from dataclasses import dataclass
 
 matplotlib.use("Agg")
+
+
+@dataclass
+class Point:
+    def __init__(self, u1: float, G: float) -> None:
+        self.u1 = u1
+        self.G = G
+
+    def __gt__(self, other) -> bool:
+        return self.u1 > other.u1
+
+    def __lt__(self, other) -> bool:
+        return self.u1 < other.u1
+
+    def __repr__(self) -> str:
+        return f"({self.u1},{self.G})"
 
 
 class SyncChores:
@@ -389,22 +406,84 @@ class AsyncChores:
         )
 
     @staticmethod
-    async def replot(image_ph, image_fluo, contour):
-        class Point:
-            def __init__(self, u1: float, G: float):
-                self.u1 = u1
-                self.G = G
+    async def find_path(
+        cell_id: str,
+        u1: list[float],
+        u2: list[float],
+        theta: list[float],
+        points_inside_cell_1: list[float],
+    ) -> list[Point]:
 
-            def __gt__(self, other):
-                return self.u1 > other.u1
+        ### projection
+        raw_points: list[Point] = []
+        for i, j, p in zip(u1, u2, points_inside_cell_1):
+            min_distance, min_point = await AsyncChores.find_minimum_distance_and_point(
+                theta, i, j
+            )
+            raw_points.append(Point(min_point[0], p))
+        raw_points.sort()
 
-        contour_raw = [[j, i] for i, j in [i[0] for i in contour]]
-        coords_inside_cell_1, points_inside_cell_1, projected_points = [], [], []
-        for i in range(image_fluo.shape[1]):
-            for j in range(image_fluo.shape[0]):
-                if cv2.pointPolygonTest(contour, (i, j), False) >= 0:
-                    coords_inside_cell_1.append([i, j])
-                    points_inside_cell_1.append(image_ph[j][i])
+        ### peak-path finder
+        ### Meta parameters
+        split_num: int = 35
+        delta_L: float = (max(u1) - min(u1)) / split_num
+        visualize: bool = True
+
+        first_point: Point = raw_points[0]
+        last_point: Point = raw_points[-1]
+        path: list[Point] = [first_point]
+        for i in range(1, int(split_num)):
+            x_0 = min(u1) + i * delta_L
+            x_1 = min(u1) + (i + 1) * delta_L
+            points = [p for p in raw_points if x_0 <= p.u1 <= x_1]
+            if len(points) == 0:
+                continue
+            point = max(points, key=lambda x: x.G)
+            path.append(point)
+        path.append(last_point)
+        if visualize:
+            fig = plt.figure(figsize=(6, 6))
+            plt.axis("equal")
+            plt.scatter(
+                [i.u1 for i in raw_points],
+                [i.G for i in raw_points],
+                s=10,
+                color="lime",
+            )
+            plt.scatter(
+                [i.u1 for i in path],
+                [i.G for i in path],
+                s=50,
+                color="magenta",
+                zorder=100,
+            )
+            plt.plot([i.u1 for i in path], [i.G for i in path], color="lime")
+            await AsyncChores.save_fig_async(fig, f"{cell_id}_path.png")
+        return path
+
+    @staticmethod
+    async def path_analysis(
+        cell_id: str,
+        image_fluo_raw: bytes,
+        contour_raw: bytes,
+        degree: int,
+    ) -> np.ndarray:
+
+        image_fluo = cv2.imdecode(
+            np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
+        )
+        image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+
+        mask = np.zeros_like(image_fluo_gray)
+
+        unpickled_contour = pickle.loads(contour_raw)
+        cv2.fillPoly(mask, [unpickled_contour], 255)
+
+        coords_inside_cell_1 = np.column_stack(np.where(mask))
+        points_inside_cell_1 = image_fluo_gray[
+            coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
+        ]
+
         X = np.array(
             [
                 [i[1] for i in coords_inside_cell_1],
@@ -424,98 +503,41 @@ class AsyncChores:
             U,
             contour_U,
         ) = SyncChores.basis_conversion(
-            contour,
+            [list(i[0]) for i in unpickled_contour],
             X,
-            image_fluo.shape[0] // 2,
-            image_fluo.shape[1] // 2,
+            image_fluo.shape[0] / 2,
+            image_fluo.shape[1] / 2,
             coords_inside_cell_1,
         )
-        min_u1, max_u1 = min(u1), max(u1)
-        fig = plt.figure(figsize=[6, 6])
-        cmap = plt.get_cmap("inferno")
-        x = np.linspace(0, 100, 1000)
-        max_points = max(points_inside_cell_1)
-        plt.scatter(
-            u1,
-            u2,
-            c=[i / max_points for i in points_inside_cell_1],
-            s=10,
-            cmap=cmap,
-        )
-        plt.scatter(u1_contour, u2_contour, s=10, color="lime")
-        W = np.array([[i**4, i**3, i**2, i, 1] for i in [i[1] for i in U]])
-        f = np.array([i[0] for i in U])
-        theta = inv(W.transpose() @ W) @ W.transpose() @ f
-        x = np.linspace(min_u1, max_u1, 1000)
-        y = [
-            theta[0] * i**4
-            + theta[1] * i**3
-            + theta[2] * i**2
-            + theta[3] * i
-            + theta[4]
-            for i in x
-        ]
-        plt.plot(x, y, color="blue", linewidth=1)
-        plt.scatter(
-            min_u1,
-            theta[0] * min_u1**4
-            + theta[1] * min_u1**3
-            + theta[2] * min_u1**2
-            + theta[3] * min_u1
-            + theta[4],
-            s=100,
-            color="red",
-            zorder=100,
-            marker="x",
-        )
-        plt.scatter(
-            max_u1,
-            theta[0] * max_u1**4
-            + theta[1] * max_u1**3
-            + theta[2] * max_u1**2
-            + theta[3] * max_u1
-            + theta[4],
-            s=100,
-            color="red",
-            zorder=100,
-            marker="x",
-        )
 
-        plt.xlabel("u1")
-        plt.ylabel("u2")
+        fig = plt.figure(figsize=(6, 6))
+        plt.scatter(u1, u2, s=5)
+        plt.scatter(u1_c, u2_c, color="red", s=100)
         plt.axis("equal")
-        plt.xlim(min_u1 - 80, max_u1 + 80)
-        plt.ylim(u2_c - 80, u2_c + 80)
-        # Y軸の範囲を取得
-        ymin, ymax = plt.ylim()
-        y_pos = ymin + 0.2 * (ymax - ymin)
-        y_pos_text = ymax - 0.15 * (ymax - ymin)
-        plt.text(
-            u1_c,
-            y_pos_text,
-            s=f"",
-            color="red",
-            ha="center",
-            va="top",
+        margin_width = 50
+        margin_height = 50
+        plt.scatter(
+            [i[1] for i in U],
+            [i[0] for i in U],
+            points_inside_cell_1,
+            c=points_inside_cell_1,
+            cmap="inferno",
+            marker="o",
         )
-        for u, g in zip(u1, points_inside_cell_1):
-            point = Point(u, g)
-            projected_points.append(point)
-        sorted_projected_points = sorted(projected_points)
-        # add second axis
-        ax2 = plt.twinx()
-        ax2.grid(False)
-        ax2.set_xlabel("u1")
-        ax2.set_ylabel("Brightness")
-        ax2.set_ylim(0, 900)
-        ax2.set_xlim(min_u1 - 40, max_u1 + 40)
-        ax2.scatter(
-            [i.u1 for i in sorted_projected_points],
-            [i.G for i in sorted_projected_points],
-            color="lime",
-            s=1,
+        plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
+        plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
+
+        x = np.linspace(min_u1, max_u1, 1000)
+        theta = await AsyncChores.poly_fit(U, degree=degree)
+        y = np.polyval(theta, x)
+        plt.plot(x, y, color="red")
+        plt.scatter(u1_contour, u2_contour, color="lime", s=3)
+        path_raw: list[Point] = await AsyncChores.find_path(
+            cell_id, u1, u2, theta, points_inside_cell_1
         )
-        await AsyncChores.save_fig_async(fig, "morpho_analysis.png")
+        path = [i.G for i in path_raw]
+        await AsyncChores.save_fig_async(fig, f"{cell_id}_path.png")
+        return [(i - min(path)) / (max(path) - min(path)) for i in path]
 
 
 class CellCrudBase:
@@ -678,3 +700,13 @@ class CellCrudBase:
         """
         cell = await self.read_cell(cell_id)
         return await AsyncChores.morpho_analysis(cell.contour, polyfit_degree)
+
+    async def replot(self, cell_id: str) -> StreamingResponse:
+        cell = await self.read_cell(cell_id)
+        return await AsyncChores.replot(cell.img_ph, cell.img_fluo1, cell.contour)
+
+    async def path_analysis(self, cell_id: str) -> np.ndarray:
+        cell = await self.read_cell(cell_id)
+        return await AsyncChores.path_analysis(
+            cell_id, cell.img_fluo1, cell.contour, degree=4
+        )
