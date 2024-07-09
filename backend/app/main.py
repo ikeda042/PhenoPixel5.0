@@ -12,17 +12,6 @@ app = FastAPI(
     openapi_url=f"{api_prefix}/openapi.json",
 )
 
-cors_origins = ["*", "https://phenopixel5.site"]
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 @app.get(f"{api_prefix}/healthcheck")
 async def healthcheck():
