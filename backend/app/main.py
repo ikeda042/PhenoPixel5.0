@@ -12,7 +12,7 @@ app = FastAPI(
     openapi_url=f"{api_prefix}/openapi.json",
 )
 
-origins = ["https://phenopixel5.site", "*"]
+origins = ["https://phenopixel5.site", "*", "http://localhost:3000/"]
 
 app.add_middleware(
     CORSMiddleware,
