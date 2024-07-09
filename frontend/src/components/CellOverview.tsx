@@ -17,7 +17,6 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
-import { url } from "inspector";
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -29,9 +28,8 @@ ChartJS.register(
 );
 
 const url_prefix = "https://open.ikeda042api.net/api";
-const db_name = "test_database.db";
 
-const CellImageGrid: React.FC = () => {
+const CellImageGrid: React.FC<{ db_name?: string }> = ({ db_name = 'test_database.db' }) => {
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string, replot?: string, path?: string } }>({});
     const [label, setLabel] = useState<string>("1");
