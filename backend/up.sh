@@ -16,6 +16,6 @@ docker-compose -f docker-compose.yml up -d traefik
 
 # プロジェクトサービスをビルドして起動
 echo "Starting project services..."
-docker-compose -f docker-compose.yml up --build -d web
+docker-compose -f docker-compose.yml up --build web
 
 echo "All services are up and running."
