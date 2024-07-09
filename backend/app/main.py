@@ -24,12 +24,12 @@ app.add_middleware(
 )
 
 
-@app.get(f"/healthcheck")
+@app.get(f"{api_prefix}/healthcheck")
 async def healthcheck():
     return {"status": "ok"}
 
 
-app.include_router(router_cell)
+app.include_router(router_cell, prefix=api_prefix)
 # if __name__ == "__main__":
 #     uvicorn.run(
 #         "main:app",
