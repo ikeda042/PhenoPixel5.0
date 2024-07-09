@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
-
 api_title = os.getenv("API_TITLE", "FastAPI")
 api_prefix = os.getenv("API_PREFIX", "/api")
 app = FastAPI(
@@ -13,8 +12,8 @@ app = FastAPI(
     openapi_url=f"{api_prefix}/openapi.json",
 )
 
-origins = ["https://phenopixel5.site", "*", "http://localhost:3000/"]
-
+app.add_middleware(HTTPSRedirectMiddleware)
+origins = ["https://phenopixel5.site", "http://localhost:3000"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -29,5 +28,4 @@ async def healthcheck():
     return {"status": "ok"}
 
 
-app.add_middleware(HTTPSRedirectMiddleware)
 app.include_router(router_cell, prefix=api_prefix)
