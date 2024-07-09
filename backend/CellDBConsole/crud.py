@@ -515,6 +515,7 @@ class AsyncChores:
             color="lime",
             s=1,
         )
+        await AsyncChores.save_fig_async(fig, "morpho_analysis.png")
 
 
 class CellCrudBase:
