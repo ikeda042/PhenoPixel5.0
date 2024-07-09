@@ -1,6 +1,6 @@
 from __future__ import annotations
 from CellDBConsole.schemas import CellId, CellMorhology
-from backend.app.database import get_session, Cell
+from app.database import get_session, Cell
 from sqlalchemy.future import select
 from exceptions import CellNotFoundError
 import cv2
