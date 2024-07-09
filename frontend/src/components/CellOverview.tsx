@@ -5,6 +5,7 @@ import { SelectChangeEvent } from "@mui/material/Select";
 import { settings } from "../settings";
 import { Scatter } from 'react-chartjs-2';
 import { ChartOptions } from 'chart.js';
+import Spinner from './Spinner';
 
 import {
     Chart as ChartJS,
@@ -38,6 +39,7 @@ const CellImageGrid: React.FC = () => {
     const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [drawMode, setDrawMode] = useState<string>("light");
     const [fitDegree, setFitDegree] = useState<number>(4);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const fetchCellIds = async () => {
@@ -118,6 +120,7 @@ const CellImageGrid: React.FC = () => {
 
 
     const fetchPeakPath = async (cellId: string) => {
+        setIsLoading(true);
         try {
             const response = await axios.get(`${settings.api_url}/cells/${cellId}/path?degree=${fitDegree}`, { responseType: 'blob' });
             const pathImageUrl = URL.createObjectURL(response.data);
@@ -127,6 +130,8 @@ const CellImageGrid: React.FC = () => {
             }));
         } catch (error) {
             console.error("Error fetching peak path:", error);
+        } finally {
+            setIsLoading(false);
         }
     }
 
@@ -366,14 +371,16 @@ const CellImageGrid: React.FC = () => {
                             </Grid>
                         </Grid>
                     )}
-
-
                     <Box mt={2}>
                         {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
                         {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
                             <img src={images[cellIds[currentIndex]]?.replot} alt={`Cell ${cellIds[currentIndex]} Replot`} style={{ width: "100%" }} />
                         )}
-                        {drawMode === "path" && images[cellIds[currentIndex]]?.path && (
+                        {drawMode === "path" && isLoading ? (
+                            <Box display="flex" justifyContent="center" alignItems="center" style={{ height: 400 }}>
+                                <Spinner />
+                            </Box>
+                        ) : drawMode === "path" && images[cellIds[currentIndex]]?.path && (
                             <img src={images[cellIds[currentIndex]]?.path} alt={`Cell ${cellIds[currentIndex]} Path`} style={{ width: "100%" }} />
                         )}
                     </Box>
