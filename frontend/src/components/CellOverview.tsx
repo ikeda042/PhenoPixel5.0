@@ -35,6 +35,7 @@ const CellImageGrid: React.FC = () => {
     const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
     const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
     const [contourData, setContourData] = useState<number[][]>([]);
+    const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
 
     useEffect(() => {
         const fetchCellIds = async () => {
@@ -53,6 +54,13 @@ const CellImageGrid: React.FC = () => {
                     console.log(`Fetching image from URL: ${url}`);
                     const response = await axios.get(url, { responseType: 'blob' });
                     const imageUrl = URL.createObjectURL(response.data);
+                    const imageDimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+                        const img = new Image();
+                        img.onload = () => resolve({ width: img.width, height: img.height });
+                        img.onerror = reject;
+                        img.src = imageUrl;
+                    });
+                    setImageDimensions(imageDimensions);
                     return imageUrl;
                 };
 
@@ -142,11 +150,13 @@ const CellImageGrid: React.FC = () => {
             x: {
                 type: 'linear',
                 position: 'bottom',
-                min: Math.min(...contourData.map(point => point[0])) ?? 0,
+                min: 0,
+                max: imageDimensions?.width,
             },
             y: {
                 type: 'linear',
-                min: Math.min(...contourData.map(point => point[1])) ?? 0,
+                min: 0,
+                max: imageDimensions?.height,
             }
         },
     };
@@ -227,9 +237,9 @@ const CellImageGrid: React.FC = () => {
                         </Grid> */}
                     </Grid>
                 </Box>
-                {/* <Box sx={{ width: 450, height: 450, marginLeft: 2 }}>
+                <Box sx={{ width: 450, height: 450, marginLeft: 2 }}>
                     <Scatter data={contourPlotData} options={contourPlotOptions} />
-                </Box> */}
+                </Box>
             </Stack>
         </>
     );
