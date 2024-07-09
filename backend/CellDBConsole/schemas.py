@@ -19,7 +19,6 @@ class CellId(BaseModel):
 
 
 class CellMorhology(BaseModel):
-    cell_id: str
     area: float
     volume: float
     width: float
