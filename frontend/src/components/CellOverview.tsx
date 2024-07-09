@@ -234,15 +234,6 @@ const CellImageGrid: React.FC = () => {
                                 <div>Loading Fluo...</div>
                             )}
                         </Grid>
-                        {/* <Grid item xs={4} style={{ height: '400px', width: '100%' }}>
-                            <Scatter
-                                data={contourPlotData}
-                                options={{
-                                    ...contourPlotOptions,
-                                    animation: false, // アニメーションを無効にする
-                                }}
-                            />
-                        </Grid> */}
                     </Grid>
                 </Box>
                 <Box sx={{ width: 450, height: 450, marginLeft: 2 }}>
