@@ -27,7 +27,11 @@ const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId }) => 
     useEffect(() => {
         const fetchCellMorphology = async () => {
             try {
-                const response = await axios.get(`${url_prefix}/cells/${cellId}/morphology`);
+                const params = {
+                    db_name: "test_database.db",
+                    polyfit_degree: 3
+                };
+                const response = await axios.get(`${url_prefix}/cells/${cellId}/morphology`, { params });
                 setCellMorphology(response.data);
             } catch (error) {
                 console.error("Error fetching cell morphology data:", error);

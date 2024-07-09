@@ -29,6 +29,7 @@ ChartJS.register(
 );
 
 const url_prefix = "https://open.ikeda042api.net/api";
+const db_name = "test_database.db";
 
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
@@ -48,7 +49,7 @@ const CellImageGrid: React.FC = () => {
         const fetchCellIds = async () => {
             console.log(`Fetching cell IDs with label: ${label}`);
             console.log(`${url_prefix}/cells`);
-            const response = await axios.get(`${url_prefix}/cells`, { params: { label } });
+            const response = await axios.get(`${url_prefix}/cells`, { params: { label, db_bame: db_name } });
             const ids = response.data.map((cell: { cell_id: string }) => cell.cell_id);
             setCellIds(ids);
         };
@@ -73,8 +74,8 @@ const CellImageGrid: React.FC = () => {
                     return imageUrl;
                 };
 
-                const phImage = await fetchImage(`${url_prefix}/cells/${cellId}/ph_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
-                const fluoImage = await fetchImage(`${url_prefix}/cells/${cellId}/fluo_image?draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
+                const phImage = await fetchImage(`${url_prefix}/cells/${cellId}/ph_image?db_name=${db_name}&draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
+                const fluoImage = await fetchImage(`${url_prefix}/cells/${cellId}/fluo_image?db_name=${db_name}&draw_contour=${drawContour}&draw_scale_bar=${drawScaleBar}&brightness_factor=${brightnessFactor}`);
 
                 return { ph: phImage, fluo: fluoImage };
             } catch (error) {
@@ -101,7 +102,7 @@ const CellImageGrid: React.FC = () => {
 
     const fetchContour = async (cellId: string) => {
         try {
-            const response = await axios.get(`${url_prefix}/cells/${cellId}/contour/raw`);
+            const response = await axios.get(`${url_prefix}/cells/${cellId}/contour/raw?db_name=${db_name}`);
             setContourData(response.data.contour);
         } catch (error) {
             console.error("Error fetching contour data:", error);
@@ -110,7 +111,7 @@ const CellImageGrid: React.FC = () => {
 
     const fetchReplotImage = async (cellId: string) => {
         try {
-            const response = await axios.get(`${url_prefix}/cells/${cellId}/replot?degree=${fitDegree}`, { responseType: 'blob' });
+            const response = await axios.get(`${url_prefix}/cells/${cellId}/replot?db_name=${db_name}&degree=${fitDegree}`, { responseType: 'blob' });
             const replotImageUrl = URL.createObjectURL(response.data);
             setImages((prevImages) => ({
                 ...prevImages,
@@ -121,11 +122,10 @@ const CellImageGrid: React.FC = () => {
         }
     };
 
-
     const fetchPeakPath = async (cellId: string) => {
         setIsLoading(true);
         try {
-            const response = await axios.get(`${url_prefix}/cells/${cellId}/path?degree=${fitDegree}`, { responseType: 'blob' });
+            const response = await axios.get(`${url_prefix}/cells/${cellId}/path?db_name=${db_name}&degree=${fitDegree}`, { responseType: 'blob' });
             const pathImageUrl = URL.createObjectURL(response.data);
             setImages((prevImages) => ({
                 ...prevImages,
@@ -136,7 +136,7 @@ const CellImageGrid: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }
+    };
 
     useEffect(() => {
         if (drawMode === "replot" && cellIds.length > 0) {
@@ -191,7 +191,7 @@ const CellImageGrid: React.FC = () => {
 
     const handleFitDegreeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFitDegree(parseInt(e.target.value));
-    }
+    };
 
     // プロット用のデータを生成
     const contourPlotData = {
