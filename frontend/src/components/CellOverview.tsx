@@ -28,7 +28,7 @@ ChartJS.register(
     Legend
 );
 
-const url_prefix = "https://general.ikeda042api.net/api-ikeda042";
+const url_prefix = "https://open.ikeda042api.net/api";
 
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);

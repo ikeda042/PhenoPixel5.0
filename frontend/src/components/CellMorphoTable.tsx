@@ -8,7 +8,7 @@ interface CellMorphologyTableProps {
 
 const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId }) => {
     const [cellMorphology, setCellMorphology] = useState(null);
-    const url_prefix = "https://general.ikeda042api.net/api-ikeda042"
+    const url_prefix = "https://open.ikeda042api.net/api"
     const parameterDisplayNameMapping: { [key: string]: string } = {
         area: 'Area(px^2)',
         volume: 'Volume(px^3)',
