@@ -186,17 +186,6 @@ const CellImageGrid: React.FC = () => {
                             <MenuItem value="3">3</MenuItem>
                         </Select>
                     </FormControl>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
-                        <Button variant="contained" color="primary" onClick={handlePrev} disabled={cellIds.length === 0} style={{ backgroundColor: "black", minWidth: "100px" }}>
-                            Prev
-                        </Button>
-                        <Typography variant="h6">
-                            {cellIds.length > 0 ? `Cell ${currentIndex + 1} of ${cellIds.length}` : "Loading..."}
-                        </Typography>
-                        <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0} style={{ backgroundColor: "black", minWidth: "100px" }}>
-                            Next
-                        </Button>
-                    </Box>
                     <Box mt={2}>
                         <FormControlLabel
                             control={<Checkbox checked={drawContour} onChange={handleContourChange} style={{ color: "black" }} />}
@@ -218,6 +207,17 @@ const CellImageGrid: React.FC = () => {
                                 onWheel: handleWheel
                             }}
                         />
+                    </Box>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+                        <Button variant="contained" color="primary" onClick={handlePrev} disabled={cellIds.length === 0} style={{ backgroundColor: "black", minWidth: "100px" }}>
+                            Prev
+                        </Button>
+                        <Typography variant="h6">
+                            {cellIds.length > 0 ? `Cell ${currentIndex + 1} of ${cellIds.length}` : "Loading..."}
+                        </Typography>
+                        <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0} style={{ backgroundColor: "black", minWidth: "100px" }}>
+                            Next
+                        </Button>
                     </Box>
                     <Grid container spacing={2} style={{ marginTop: 20 }}>
                         <Grid item xs={6}>
