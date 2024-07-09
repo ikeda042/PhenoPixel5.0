@@ -28,7 +28,7 @@ ChartJS.register(
 
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
-    const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string, replot?: string } }>({});
+    const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string, replot?: string, path?: string } }>({});
     const [label, setLabel] = useState<string>("1");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [drawContour, setDrawContour] = useState<boolean>(false);
@@ -116,11 +116,34 @@ const CellImageGrid: React.FC = () => {
         }
     };
 
+
+    const fetchPeakPath = async (cellId: string) => {
+        try {
+            const response = await axios.get(`${settings.api_url}/cells/${cellId}/path?degree=${fitDegree}`, { responseType: 'blob' });
+            const pathImageUrl = URL.createObjectURL(response.data);
+            setImages((prevImages) => ({
+                ...prevImages,
+                [cellId]: { ...prevImages[cellId], path: pathImageUrl }
+            }));
+        } catch (error) {
+            console.error("Error fetching peak path:", error);
+        }
+    }
+
     useEffect(() => {
         if (drawMode === "replot" && cellIds.length > 0) {
             const cellId = cellIds[currentIndex];
             if (!images[cellId]?.replot) {
                 fetchReplotImage(cellId);
+            }
+        }
+    }, [drawMode, cellIds, currentIndex, fitDegree]);
+
+    useEffect(() => {
+        if (drawMode === "path" && cellIds.length > 0) {
+            const cellId = cellIds[currentIndex];
+            if (!images[cellId]?.path) {
+                fetchPeakPath(cellId);
             }
         }
     }, [drawMode, cellIds, currentIndex, fitDegree]);
@@ -278,6 +301,7 @@ const CellImageGrid: React.FC = () => {
                                     >
                                         <MenuItem value="light">Light</MenuItem>
                                         <MenuItem value="replot">Replot</MenuItem>
+                                        <MenuItem value="path">Peak-path</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Grid>
@@ -310,10 +334,19 @@ const CellImageGrid: React.FC = () => {
                         </Select>
                     </FormControl>)}
                     {drawMode === "path" && (
-                        <Box>
-                            <Typography variant="h6">Peak-path</Typography>
-                            <Typography variant="body1">Coming soon...</Typography>
-                        </Box>
+                        <FormControl fullWidth>
+                            <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                            <Select
+                                labelId="draw-mode-select-label"
+                                value={drawMode}
+                                onChange={handleDrawModeChange}
+                                displayEmpty
+                            >
+                                <MenuItem value="light">Light</MenuItem>
+                                <MenuItem value="replot">Replot</MenuItem>
+                                <MenuItem value="path">Peak-path</MenuItem>
+                            </Select>
+                        </FormControl>
                     )}
 
 
@@ -321,6 +354,9 @@ const CellImageGrid: React.FC = () => {
                         {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
                         {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
                             <img src={images[cellIds[currentIndex]]?.replot} alt={`Cell ${cellIds[currentIndex]} Replot`} style={{ width: "100%" }} />
+                        )}
+                        {drawMode === "path" && images[cellIds[currentIndex]]?.path && (
+                            <img src={images[cellIds[currentIndex]]?.path} alt={`Cell ${cellIds[currentIndex]} Path`} style={{ width: "100%" }} />
                         )}
                     </Box>
                 </Box>
