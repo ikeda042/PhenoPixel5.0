@@ -387,6 +387,7 @@ const CellImageGrid: React.FC = () => {
                     </Box>
                 </Box>
                 <Box>
+                    <Typography variant="body1" align="center">Morphology profile</Typography>
                     <CellMorphologyTable cellId={cellIds[currentIndex]} />
                 </Box>
             </Stack>
