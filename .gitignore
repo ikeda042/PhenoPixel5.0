@@ -11,3 +11,4 @@ ph_contours/
 !backend/app/test_database.db
 *.pem
 .env
+backend/app/letsencrypt/
