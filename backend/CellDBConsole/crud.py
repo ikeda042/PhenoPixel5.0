@@ -15,6 +15,7 @@ import scipy
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 import matplotlib
+from matplotlib.figure import Figure
 
 matplotlib.use("Agg")
 
@@ -308,6 +309,13 @@ class AsyncChores:
         return {"raw": contour, "converted": contour_U}
 
     @staticmethod
+    async def save_fig_async(fig: Figure, filename: str) -> None:
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            await loop.run_in_executor(executor, fig.savefig, filename)
+            plt.close(fig)
+
+    @staticmethod
     async def morpho_analysis(
         contour: bytes, polyfit_degree: int | None = None
     ) -> np.ndarray:
@@ -425,6 +433,88 @@ class AsyncChores:
         min_u1, max_u1 = min(u1), max(u1)
         fig = plt.figure(figsize=[6, 6])
         cmap = plt.get_cmap("inferno")
+        x = np.linspace(0, 100, 1000)
+        max_points = max(points_inside_cell_1)
+        plt.scatter(
+            u1,
+            u2,
+            c=[i / max_points for i in points_inside_cell_1],
+            s=10,
+            cmap=cmap,
+        )
+        # plt.scatter(u1_contour, u2_contour, s=10, color="lime")
+        W = np.array([[i**4, i**3, i**2, i, 1] for i in [i[1] for i in U]])
+        f = np.array([i[0] for i in U])
+        theta = inv(W.transpose() @ W) @ W.transpose() @ f
+        x = np.linspace(min_u1, max_u1, 1000)
+        y = [
+            theta[0] * i**4
+            + theta[1] * i**3
+            + theta[2] * i**2
+            + theta[3] * i
+            + theta[4]
+            for i in x
+        ]
+        plt.plot(x, y, color="blue", linewidth=1)
+        plt.scatter(
+            min_u1,
+            theta[0] * min_u1**4
+            + theta[1] * min_u1**3
+            + theta[2] * min_u1**2
+            + theta[3] * min_u1
+            + theta[4],
+            s=100,
+            color="red",
+            zorder=100,
+            marker="x",
+        )
+        plt.scatter(
+            max_u1,
+            theta[0] * max_u1**4
+            + theta[1] * max_u1**3
+            + theta[2] * max_u1**2
+            + theta[3] * max_u1
+            + theta[4],
+            s=100,
+            color="red",
+            zorder=100,
+            marker="x",
+        )
+
+        plt.xlabel("u1")
+        plt.ylabel("u2")
+        plt.axis("equal")
+        plt.xlim(min_u1 - 80, max_u1 + 80)
+        plt.ylim(u2_c - 80, u2_c + 80)
+        # Y軸の範囲を取得
+        ymin, ymax = plt.ylim()
+        y_pos = ymin + 0.2 * (ymax - ymin)
+        y_pos_text = ymax - 0.15 * (ymax - ymin)
+        plt.text(
+            u1_c,
+            y_pos_text,
+            s=f"",
+            color="red",
+            ha="center",
+            va="top",
+        )
+        for u, g in zip(u1, points_inside_cell_1):
+            point = Point(u, g)
+            projected_points.append(point)
+        sorted_projected_points = sorted(projected_points)
+        # add second axis
+        ax2 = plt.twinx()
+        ax2.grid(False)
+        ax2.set_xlabel("u1")
+        ax2.set_ylabel("Brightness")
+        ax2.set_ylim(0, 900)
+        ax2.set_xlim(min_u1 - 40, max_u1 + 40)
+        ax2.scatter(
+            [i.u1 for i in sorted_projected_points],
+            [i.G for i in sorted_projected_points],
+            color="lime",
+            s=1,
+        )
 
 
 class CellCrudBase:
