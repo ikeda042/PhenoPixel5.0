@@ -80,7 +80,7 @@ const CellImageGrid: React.FC = () => {
                 if (newImages) {
                     setImages((prevImages) => ({
                         ...prevImages,
-                        [cellIds[currentIndex]]: newImages
+                        [cellIds[currentIndex]]: { ...prevImages[cellIds[currentIndex]], ...newImages }
                     }));
                 }
             });
