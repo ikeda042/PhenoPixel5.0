@@ -76,7 +76,7 @@ async def get_cell_contour(
         return JSONResponse(content={"contour": contour})
 
 
-@router_cell.get("/{cell_id}/morphology", response_model=CellMorhology)
+@router_cell.get("/{cell_id}/{db_name}/morphology", response_model=CellMorhology)
 async def get_cell_morphology(cell_id: str, db_name: str, polyfit_degree: int = 3):
     await AsyncChores().validate_database_name(db_name)
     cell_morphology: CellMorhology = await CellCrudBase(
