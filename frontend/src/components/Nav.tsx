@@ -76,7 +76,7 @@ export default function Nav(props: Props) {
                                     display: 'block',
                                     marginRight: '10px'
                                 }}
-                                src={"/logo192.png"} // ルートからの絶対パス
+                                src={"/logo192.png"}
                             />
                             {props.title}
                         </Typography>
