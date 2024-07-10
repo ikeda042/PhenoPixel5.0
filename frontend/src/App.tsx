@@ -9,8 +9,6 @@ import CellImageGrid from './components/CellOverview';
 import TopPage from './components/TopPage';
 
 function App() {
-
-
   return (
     <Router>
       <Box sx={{ bgcolor: "#f7f6f5", color: 'black', minHeight: '100vh' }}>
