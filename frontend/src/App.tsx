@@ -32,7 +32,7 @@ function App() {
 
         <Routes>
 
-          <Route path="/" element={
+          <Route path="/databases" element={
             <>
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={4} margin={5}>
@@ -41,36 +41,7 @@ function App() {
             </>
           } />
 
-          <Route path="/dbcontents/:filename" element={
-            <>
-              <Nav title='データベース一括管理システム' />
-              {/* <Dbcontents /> */}
-            </>} />
-          <Route path="/dbcontents/:filename/cell/:cellId" element={
-            <>
-              <Nav title='データベース一括管理システム' />
-              {/* <Cell /> */}
-            </>} />
-          <Route path="/dbcontents/:filename/overview" element={
-            <>
-              <Nav title='データベース一括管理システム' />
-              {/* <DbcontentsOverview /> */}
-            </>
-          } />
-          <Route path="/mcpr" element=
-            {<>
-              <Nav title='増殖曲線自動プロット' />
-              {/* <MCPR /> */}
-            </>
-            } />
-          <Route path="/slots" element=
-            {<>
-              <Nav title='顕微鏡予約状況' />
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                {/* <Slots /> */}
-              </Box>
-            </>
-            } />
+
 
         </Routes>
 
