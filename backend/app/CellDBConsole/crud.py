@@ -1,5 +1,5 @@
 from __future__ import annotations
-from CellDBConsole.schemas import CellId, CellMorhology
+from CellDBConsole.schemas import CellId, CellMorhology, ListDBresponse
 from database import get_session, Cell
 from sqlalchemy.future import select
 from exceptions import CellNotFoundError
@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 from dataclasses import dataclass
 from fastapi import UploadFile
 import aiofiles
+import os
 
 matplotlib.use("Agg")
 
@@ -153,6 +154,18 @@ class AsyncChores:
                     break
                 await f.write(content)
             await data.close()
+
+    @staticmethod
+    async def get_database_names() -> ListDBresponse:
+        """
+        Get the names of all databases.
+
+        Returns:
+        - List of database names.
+        """
+        loop = asyncio.get_running_loop()
+        names = await loop.run_in_executor(None, os.listdir, "databases/")
+        return ListDBresponse(databases=[i for i in names if i.endswith(".db")])
 
     @staticmethod
     async def async_imdecode(data: bytes) -> np.ndarray:
