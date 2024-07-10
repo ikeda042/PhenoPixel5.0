@@ -60,8 +60,6 @@ const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId, db_na
                 <Table size="small">
                     <TableHead>
                         <TableRow>
-                            <TableCell>Parameter</TableCell>
-                            <TableCell align="right">Value</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
