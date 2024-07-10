@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from CellDBConsole.router import router_cell
+from CellDBConsole.router import router_cell, router_database
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
@@ -26,6 +26,7 @@ async def healthcheck():
 
 
 app.include_router(router_cell, prefix=api_prefix)
+app.include_router(router_database, prefix=api_prefix)
 
 
 if __name__ == "__main__":
