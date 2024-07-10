@@ -14,7 +14,6 @@ function App() {
   return (
     <Router>
       <Box sx={{ bgcolor: "#f7f6f5", color: 'black', minHeight: '100vh' }}>
-
         <Routes>
           <Route path="/" element={
             <>
