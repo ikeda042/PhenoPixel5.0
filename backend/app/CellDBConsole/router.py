@@ -7,7 +7,7 @@ import os
 from fastapi import UploadFile
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
-
+router_database = APIRouter(prefix="/databases", tags=["databases"])
 # define a global var called db_name
 db_name = "test_database.db"
 
@@ -90,7 +90,12 @@ async def get_cell_path(cell_id: str, db_name: str, degree: int = 3):
     return await CellCrudBase(db_name=db_name).find_path(cell_id=cell_id, degree=degree)
 
 
-@router_cell.post("/databases/upload")
+@router_database.post("/upload")
 async def upload_database(file: UploadFile = UploadFile(...)):
     await AsyncChores().upload_file_chunked(file)
     return file.filename
+
+
+@router_database.get("/")
+async def get_databases():
+    return await AsyncChores().get_database_names()
