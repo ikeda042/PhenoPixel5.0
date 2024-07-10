@@ -6,7 +6,7 @@ import Grid from '@mui/material/Unstable_Grid2';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import CellImageGrid from './components/CellOverview';
-
+import TopPage from './components/TopPage';
 
 function App() {
 
@@ -20,7 +20,7 @@ function App() {
             <>
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={4} margin={5}>
-                {/* <CellImageGrid /> */}
+                <TopPage />
               </Grid >
             </>
           } />
