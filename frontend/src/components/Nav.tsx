@@ -70,8 +70,22 @@ export default function Nav(props: Props) {
                     </IconButton>
 
                     <Link to="/" style={{ textDecoration: 'none', color: '#000' }}>
+
                         <Typography variant="h5" component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', color: '#000' }}>
-                            <Box component={BallotIcon} sx={{ marginRight: 1, color: '#000' }} />
+                            <Box
+                                component="img"
+                                sx={{
+                                    height: 24,
+                                    width: 24,
+                                    display: 'block',
+                                    marginRight: '10px'
+                                }}
+                                alt="Your Logo"
+                                src={"logo192.png"}
+                                onError={(e) => { e.currentTarget.src = "defaultImagePath.png"; }}
+                            />
+                            {/* <Box component={BallotIcon} sx={{ marginRight: 1, color: '#000' }} /> */}
+
                             {props.title}
                         </Typography>
                     </Link>
