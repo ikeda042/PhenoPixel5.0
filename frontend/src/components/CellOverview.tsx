@@ -44,7 +44,8 @@ const CellImageGrid: React.FC = () => {
     const [drawMode, setDrawMode] = useState<string>("light");
     const [fitDegree, setFitDegree] = useState<number>(4);
     const [isLoading, setIsLoading] = useState(false);
-    const db_name = useParams<{ db_name: string }>().db_name ?? "test_database.db";
+    const [searchParams] = useSearchParams();
+    const db_name = searchParams.get('db_name') ?? "test_database.db";
 
     useEffect(() => {
         const fetchCellIds = async () => {
