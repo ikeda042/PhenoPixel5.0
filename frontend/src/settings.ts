@@ -1,4 +1,4 @@
-const url_prefix = "https://general.ikeda042api.net/api-ikeda042"
+const url_prefix = "http://localhost:8000/api"
 
 export const settings = {
     url_prefix: url_prefix,
