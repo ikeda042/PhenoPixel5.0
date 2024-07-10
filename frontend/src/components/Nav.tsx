@@ -13,7 +13,6 @@ import ListItemText from '@mui/material/ListItemText';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import BallotIcon from '@mui/icons-material/Ballot';
 
 interface Props {
     window?: () => Window;
@@ -41,7 +40,6 @@ export default function Nav(props: Props) {
                 {navItems.map((item) => (
                     <ListItem key={item} disablePadding>
                         <ListItemButton sx={{ textAlign: 'center' }}>
-                            {/* ListItemTextをLinkでラップ */}
                             <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
                                 <ListItemText primary={item} />
                             </Link>
@@ -68,24 +66,18 @@ export default function Nav(props: Props) {
                     >
                         <MenuIcon />
                     </IconButton>
-
                     <Link to="/" style={{ textDecoration: 'none', color: '#000' }}>
-
                         <Typography variant="h5" component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', color: '#000' }}>
                             <Box
                                 component="img"
                                 sx={{
-                                    height: 24,
-                                    width: 24,
+                                    height: 30,
+                                    width: 30,
                                     display: 'block',
                                     marginRight: '10px'
                                 }}
-                                alt="Your Logo"
-                                src={"logo192.png"}
-                                onError={(e) => { e.currentTarget.src = "defaultImagePath.png"; }}
+                                src={"/logo192.png"} // ルートからの絶対パス
                             />
-                            {/* <Box component={BallotIcon} sx={{ marginRight: 1, color: '#000' }} /> */}
-
                             {props.title}
                         </Typography>
                     </Link>
