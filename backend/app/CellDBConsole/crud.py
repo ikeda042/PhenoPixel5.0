@@ -137,6 +137,24 @@ class SyncChores:
 
 
 class AsyncChores:
+
+    @staticmethod
+    async def upload_file_chunked(self, data) -> None:
+        """
+        Upload a file in chunks.
+
+        Parameters:
+        - data: File data to upload.
+        """
+
+        chunk_size = 1024 * 1024
+        async with aiofiles.open(f"databases/{self.db_name}.sqlite", "wb") as f:
+            while True:
+                content = await data.file.read(chunk_size)
+                if not content:
+                    break
+                await f.write(content)
+
     @staticmethod
     async def async_imdecode(data: bytes) -> np.ndarray:
         """
@@ -852,13 +870,11 @@ class CellCrudBase:
             media_type="image/png",
         )
 
-    async def upload_database(self, data: UploadFile):
+    async def upload_database(self, data: UploadFile) -> None:
         """
         Upload a database file to the server.
 
         Parameters:
         - data: Database file to upload.
         """
-        async with aiofiles.open(f"databases/{self.db_name}.sqlite", "wb") as f:
-            content = await data.file.read()
-            await f.write(content)
+        await AsyncChores.upload_file_chunked(self, data)
