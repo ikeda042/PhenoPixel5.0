@@ -32,11 +32,6 @@ function App() {
               </Grid >
             </>
           } />
-
-
-
-
-
         </Routes>
 
 
