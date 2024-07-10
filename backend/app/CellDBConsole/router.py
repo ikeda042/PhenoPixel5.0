@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from CellDBConsole.crud import CellCrudBase
+from CellDBConsole.crud import CellCrudBase, AsyncChores
 from CellDBConsole.schemas import CellMorhology
 from fastapi.responses import JSONResponse, StreamingResponse
 from typing import Literal
@@ -92,5 +92,5 @@ async def get_cell_path(cell_id: str, db_name: str, degree: int = 3):
 
 @router_cell.post("/databases/upload")
 async def upload_database(file: UploadFile = UploadFile(...)):
-    await CellCrudBase(db_name="None").upload_database(file=file)
+    await AsyncChores().upload_file_chunked(file)
     return file.filename
