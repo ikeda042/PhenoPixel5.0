@@ -61,7 +61,8 @@ class Cell2(Base2):
 
 
 async def get_session(dbname: str):
-    db_path = os.path.abspath(dbname)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(base_dir, "databases", dbname)
     engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=False)
     async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
