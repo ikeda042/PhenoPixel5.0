@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Stack, Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox } from "@mui/material";
+import {
+    Stack, Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox, Breadcrumbs, Link
+} from "@mui/material";
 import { SelectChangeEvent } from "@mui/material/Select";
 import { Scatter } from 'react-chartjs-2';
 import { ChartOptions } from 'chart.js';
@@ -234,7 +236,15 @@ const CellImageGrid: React.FC = () => {
 
     return (
         <>
-            <Stack direction="row" spacing={2} alignItems="flex-start">
+            <Box>
+                <Breadcrumbs aria-label="breadcrumb">
+                    <Link underline="hover" color="inherit" href="/">
+                        Top
+                    </Link>
+                    <Typography color="text.primary">{db_name}</Typography>
+                </Breadcrumbs>
+            </Box>
+            <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ marginTop: 8 }}>
                 <Box sx={{ width: 520, height: 420, marginLeft: 2 }}>
                     <FormControl fullWidth>
                         <InputLabel id="label-select-label">Label</InputLabel>
@@ -301,7 +311,6 @@ const CellImageGrid: React.FC = () => {
                     </Grid>
                 </Box>
                 <Box sx={{ width: 420, height: 420, marginLeft: 2 }}>
-
                     {drawMode === "replot" && (
                         <Grid container spacing={2}>
                             <Grid item xs={8}>
@@ -334,21 +343,22 @@ const CellImageGrid: React.FC = () => {
                             </Grid>
                         </Grid>
                     )}
-                    {drawMode === "light" && (<FormControl fullWidth>
-                        <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
-                        <Select
-                            labelId="draw-mode-select-label"
-                            value={drawMode}
-                            onChange={handleDrawModeChange}
-                            displayEmpty
-                        >
-                            <MenuItem value="light">Light</MenuItem>
-                            <MenuItem value="replot">Replot</MenuItem>
-                            <MenuItem value="path">Peak-path</MenuItem>
-                        </Select>
-                    </FormControl>)}
+                    {drawMode === "light" && (
+                        <FormControl fullWidth>
+                            <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                            <Select
+                                labelId="draw-mode-select-label"
+                                value={drawMode}
+                                onChange={handleDrawModeChange}
+                                displayEmpty
+                            >
+                                <MenuItem value="light">Light</MenuItem>
+                                <MenuItem value="replot">Replot</MenuItem>
+                                <MenuItem value="path">Peak-path</MenuItem>
+                            </Select>
+                        </FormControl>
+                    )}
                     {drawMode === "path" && (
-
                         <Grid container spacing={2}>
                             <Grid item xs={8}>
                                 <FormControl fullWidth>
