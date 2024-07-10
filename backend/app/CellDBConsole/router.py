@@ -48,6 +48,7 @@ async def get_cell_fluo(
     draw_scale_bar: bool = False,
     brightness_factor: float = 1.0,
 ):
+    await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).get_cell_fluo(
         cell_id=cell_id,
         draw_contour=draw_contour,
@@ -63,6 +64,7 @@ async def get_cell_contour(
     contour_type: Literal["raw", "converted"] = "raw",
     polyfit_degree: int = 3,
 ):
+    await AsyncChores().validate_database_name(db_name)
     contours = await CellCrudBase(db_name=db_name).get_cell_contour_plot_data(
         cell_id=cell_id
     )
@@ -76,6 +78,7 @@ async def get_cell_contour(
 
 @router_cell.get("/{cell_id}/morphology", response_model=CellMorhology)
 async def get_cell_morphology(cell_id: str, db_name: str, polyfit_degree: int = 3):
+    await AsyncChores().validate_database_name(db_name)
     cell_morphology: CellMorhology = await CellCrudBase(
         db_name=db_name
     ).morpho_analysis(cell_id=cell_id, polyfit_degree=polyfit_degree)
@@ -84,11 +87,13 @@ async def get_cell_morphology(cell_id: str, db_name: str, polyfit_degree: int = 
 
 @router_cell.get("/{cell_id}/{db_name}/replot", response_class=StreamingResponse)
 async def replot_cell(cell_id: str, db_name: str, degree: int = 3):
+    await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).replot(cell_id=cell_id, degree=degree)
 
 
 @router_cell.get("/{cell_id}/{db_name}/path", response_class=StreamingResponse)
 async def get_cell_path(cell_id: str, db_name: str, degree: int = 3):
+    await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).find_path(cell_id=cell_id, degree=degree)
 
 
