@@ -168,6 +168,17 @@ class AsyncChores:
         return ListDBresponse(databases=[i for i in names if i.endswith(".db")])
 
     @staticmethod
+    async def validate_database_name(db_name: str) -> None:
+        """
+        Validate the database name.
+
+        Parameters:
+        - db_name: Name of the database to validate.
+        """
+        if db_name not in await AsyncChores.get_database_names():
+            raise ValueError("Database with given name does not exist")
+
+    @staticmethod
     async def async_imdecode(data: bytes) -> np.ndarray:
         """
         Decode an image from bytes.
