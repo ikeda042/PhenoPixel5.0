@@ -6,6 +6,8 @@ import { Scatter } from 'react-chartjs-2';
 import { ChartOptions } from 'chart.js';
 import Spinner from './Spinner';
 import CellMorphologyTable from "./CellMorphoTable";
+import { settings } from "../settings";
+import { useSearchParams } from 'react-router-dom';
 
 import {
     Chart as ChartJS,
@@ -27,9 +29,9 @@ ChartJS.register(
     Legend
 );
 
-const url_prefix = "https://open.ikeda042api.net/api";
+const url_prefix = settings.url_prefix;
 
-const CellImageGrid: React.FC<{ db_name?: string }> = ({ db_name = 'test_database.db' }) => {
+const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string, replot?: string, path?: string } }>({});
     const [label, setLabel] = useState<string>("1");
@@ -42,6 +44,7 @@ const CellImageGrid: React.FC<{ db_name?: string }> = ({ db_name = 'test_databas
     const [drawMode, setDrawMode] = useState<string>("light");
     const [fitDegree, setFitDegree] = useState<number>(4);
     const [isLoading, setIsLoading] = useState(false);
+    const db_name = useParams<{ db_name: string }>().db_name ?? "test_database.db";
 
     useEffect(() => {
         const fetchCellIds = async () => {
