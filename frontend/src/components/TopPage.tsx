@@ -53,6 +53,7 @@ const TopPage: React.FC = () => {
                                 </TableCell>
                                 <TableCell align="right">
                                     <IconButton onClick={() => handleNavigate(database)}>
+                                        <Typography >Access database </Typography>
                                         <NavigateNextIcon />
                                     </IconButton>
                                 </TableCell>
