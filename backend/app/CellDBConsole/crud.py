@@ -175,7 +175,9 @@ class AsyncChores:
         Parameters:
         - db_name: Name of the database to validate.
         """
-        if db_name not in await AsyncChores.get_database_names():
+        res = await AsyncChores.get_database_names()
+        databases = res.databases
+        if db_name not in databases:
             raise ValueError("Database with given name does not exist")
 
     @staticmethod
