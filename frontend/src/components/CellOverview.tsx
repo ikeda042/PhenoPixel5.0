@@ -46,6 +46,7 @@ const CellImageGrid: React.FC = () => {
     const [drawMode, setDrawMode] = useState<string>("light");
     const [fitDegree, setFitDegree] = useState<number>(4);
     const [isLoading, setIsLoading] = useState(false);
+    const [engineMode, setEngineMode] = useState<string>("Off");
     const [searchParams] = useSearchParams();
     const db_name = searchParams.get('db_name') ?? "test_database.db";
 
@@ -199,6 +200,10 @@ const CellImageGrid: React.FC = () => {
 
     const handleFitDegreeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFitDegree(parseInt(e.target.value));
+    };
+
+    const handleEngineModeChange = (event: SelectChangeEvent<string>) => {
+        setEngineMode(event.target.value);
     };
 
     // プロット用のデータを生成
@@ -405,7 +410,24 @@ const CellImageGrid: React.FC = () => {
                     </Box>
                 </Box>
                 <Box sx={{ width: 350, height: 420, marginLeft: 2 }}>
-                    <CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />
+                    <FormControl fullWidth>
+                        <InputLabel id="engine-mode-select-label">Morpho Engine</InputLabel>
+                        <Select
+                            labelId="engine-mode-select-label"
+                            value={engineMode}
+                            onChange={handleEngineModeChange}
+                        >
+                            <MenuItem value="Off">Off</MenuItem>
+                            <MenuItem value="MorphoEngine2.0">Morpho Engine2.0</MenuItem>
+                        </Select>
+                    </FormControl>
+                    {engineMode === "Off" ? (
+                        <Typography variant="h6" mt={2}>Morphoengine is off</Typography>
+                    ) : (
+                        <Box mt={1}>
+                            <CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />
+                        </Box>
+                    )}
                 </Box>
             </Stack>
         </>
