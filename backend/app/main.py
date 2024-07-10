@@ -27,6 +27,7 @@ async def healthcheck():
 
 app.include_router(router_cell, prefix=api_prefix)
 
+
 if __name__ == "__main__":
     import uvicorn
 

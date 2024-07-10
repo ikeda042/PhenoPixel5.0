@@ -8,7 +8,7 @@ ph_contours/
 **/__pycache__/
 *.pyc
 *.db
-!backend/app/test_database.db
+!backend/app/databases/test_database.db
 *.pem
 .env
 backend/letsencrypt/

@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, BLOB, FLOAT
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+import os
 
 
 Base = declarative_base()
@@ -52,8 +53,16 @@ class Cell2(Base2):
     ph_median_brightness_normalized = Column(FLOAT)
 
 
+# async def get_session(dbname: str):
+#     engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=False)
+#     async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+#     async with async_session() as session:
+#         yield session
+
+
 async def get_session(dbname: str):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=False)
+    db_path = os.path.abspath(dbname)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=False)
     async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
         yield session
