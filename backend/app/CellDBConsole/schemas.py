@@ -88,3 +88,7 @@ class CellStatsv2(BaseModel):
     mean_brightness_normalized: float
     median_brightness_raw: float
     median_brightness_normalized: float
+
+
+class ListDBresponse(BaseModel):
+    databases: list[str]
