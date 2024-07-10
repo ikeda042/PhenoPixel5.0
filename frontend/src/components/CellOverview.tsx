@@ -430,7 +430,7 @@ const CellImageGrid: React.FC = () => {
                                 height: '100%'
                             }}
                         >
-                            <Typography variant="h5">Morpho engine is off</Typography>
+                            <Typography variant="h5">Morpho engine is off.</Typography>
                             <img src="/logo_tp.png" alt="Morpho Engine is off" style={{ maxWidth: '20%', maxHeight: '20%' }} />
                         </Box>
                     ) : (
