@@ -405,7 +405,7 @@ const CellImageGrid: React.FC = () => {
                     </Box>
                 </Box>
                 <Box sx={{ width: 350, height: 420, marginLeft: 2 }}>
-                    <CellMorphologyTable cellId={cellIds[currentIndex]} />
+                    <CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />
                 </Box>
             </Stack>
         </>

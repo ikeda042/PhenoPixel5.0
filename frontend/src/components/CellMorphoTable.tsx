@@ -1,42 +1,54 @@
 import React, { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Box } from '@material-ui/core';
+import { settings } from '../settings';
 
 interface CellMorphologyTableProps {
     cellId: string;
+    db_name: string;
+    polyfitDegree: number;
 }
 interface CellMorphologyData {
     [key: string]: number;
 }
-const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId }) => {
+
+const url_prefix = settings.url_prefix;
+
+const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId, db_name, polyfitDegree }) => {
     const [cellMorphology, setCellMorphology] = useState<CellMorphologyData | null>(null);
 
-
     const parameterDisplayNameMapping: { [key: string]: string } = {
-        area: 'Area(px^2)',
-        volume: 'Volume(px^3)',
-        width: 'Width(px)',
-        length: 'Length(px)',
-        mean_fluo_intensity: 'Mean Fluorescence Intensity',
-        mean_ph_intensity: 'Mean PH Intensity',
-        mean_fluo_intensity_normalized: 'Mean Fluorescence Intensity (Normalized)',
-        mean_ph_intensity_normalized: 'Mean PH Intensity (Normalized)',
-        median_fluo_intensity: 'Median Fluorescence Intensity',
-        median_ph_intensity: 'Median PH Intensity',
-        median_fluo_intensity_normalized: 'Median Fluorescence Intensity (Normalized)',
-        median_ph_intensity_normalized: 'Median PH Intensity (Normalized)',
+        area: "Area",
+        volume: "Volume",
+        width: "Width",
+        length: "Length",
+        mean_fluo_intensity: "Mean Fluorescence Intensity",
+        mean_ph_intensity: "Mean PH Intensity",
+        mean_fluo_intensity_normalized: "Mean Fluorescence Intensity (Normalized)",
+        mean_ph_intensity_normalized: "Mean PH Intensity (Normalized)",
+        median_fluo_intensity: "Median Fluorescence Intensity",
+        median_ph_intensity: "Median PH Intensity",
+        median_fluo_intensity_normalized: "Median Fluorescence Intensity (Normalized)",
+        median_ph_intensity_normalized: "Median PH Intensity (Normalized)"
     };
 
     useEffect(() => {
-        const generateDummyData = () => {
-            const dummyData: CellMorphologyData = Object.keys(parameterDisplayNameMapping).reduce((acc, key) => {
-                acc[key] = Math.floor(Math.random() * 100);
-                return acc;
-            }, {} as CellMorphologyData);
-            setCellMorphology(dummyData);
+        const fetchCellMorphologyData = async () => {
+            const apiUrl = `${url_prefix}/cells/${cellId}/${db_name}/morphology?degree=${polyfitDegree}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data: CellMorphologyData = await response.json();
+                setCellMorphology(data);
+            } catch (error) {
+                console.error("Failed to fetch cell morphology data:", error);
+            }
         };
 
-        generateDummyData();
-    }, [cellId]);
+        fetchCellMorphologyData();
+    }, [cellId, db_name, polyfitDegree]);
 
     if (!cellMorphology) {
         return <div>Loading...</div>;

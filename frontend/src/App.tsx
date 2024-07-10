@@ -19,7 +19,7 @@ function App() {
           <Route path="/" element={
             <>
               <Nav title='PhenoPixel5.0' />
-              <Grid container spacing={4} margin={5}>
+              <Grid container spacing={4} margin={5} mt={-4}>
                 <TopPage />
               </Grid >
             </>
