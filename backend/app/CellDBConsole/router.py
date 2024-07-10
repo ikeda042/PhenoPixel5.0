@@ -4,7 +4,7 @@ from CellDBConsole.schemas import CellMorhology
 from fastapi.responses import JSONResponse, StreamingResponse
 from typing import Literal
 import os
-from typing import Annotated
+from fastapi import UploadFile
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 
@@ -88,3 +88,9 @@ async def replot_cell(cell_id: str, db_name: str, degree: int = 3):
 @router_cell.get("/{cell_id}/{db_name}/path", response_class=StreamingResponse)
 async def get_cell_path(cell_id: str, db_name: str, degree: int = 3):
     return await CellCrudBase(db_name=db_name).find_path(cell_id=cell_id, degree=degree)
+
+
+@router_cell.post("/databases/upload")
+async def upload_database(file: UploadFile = UploadFile(...)):
+    await CellCrudBase(db_name="None").upload_database(file=file)
+    return file.filename
