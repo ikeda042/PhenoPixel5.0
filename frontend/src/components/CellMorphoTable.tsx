@@ -17,10 +17,10 @@ const CellMorphologyTable: React.FC<CellMorphologyTableProps> = ({ cellId, db_na
     const [cellMorphology, setCellMorphology] = useState<CellMorphologyData | null>(null);
 
     const parameterDisplayNameMapping: { [key: string]: string } = {
-        area: "Area",
-        volume: "Volume",
-        width: "Width",
-        length: "Length",
+        area: "Area(px^2)",
+        volume: "Volume(px^3)",
+        width: "Width(px)",
+        length: "Length(px)",
         mean_fluo_intensity: "Mean Fluorescence Intensity",
         mean_ph_intensity: "Mean PH Intensity",
         mean_fluo_intensity_normalized: "Mean Fluorescence Intensity (Normalized)",
