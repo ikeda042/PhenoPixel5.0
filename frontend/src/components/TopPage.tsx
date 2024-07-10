@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton } from "@mui/material";
+import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, TextField } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -13,6 +13,7 @@ const url_prefix = settings.url_prefix;
 
 const TopPage: React.FC = () => {
     const [databases, setDatabases] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -32,11 +33,26 @@ const TopPage: React.FC = () => {
         navigate(`/databases/?db_name=${dbName}`);
     };
 
+    const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(event.target.value);
+    };
+
+    const filteredDatabases = databases.filter(database => database.toLowerCase().includes(searchQuery.toLowerCase()));
+
     return (
         <Container>
             <Typography variant="h4" component="h1" gutterBottom>
                 Database Names
             </Typography>
+            <Box mb={2}>
+                <TextField
+                    fullWidth
+                    label="Search Database"
+                    variant="outlined"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                />
+            </Box>
             <TableContainer component={Paper}>
                 <Table>
                     <TableHead>
@@ -46,7 +62,7 @@ const TopPage: React.FC = () => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {databases.map((database, index) => (
+                        {filteredDatabases.map((database, index) => (
                             <TableRow key={index}>
                                 <TableCell component="th" scope="row">
                                     {database}
