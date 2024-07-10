@@ -31,8 +31,15 @@ function App() {
       <Box sx={{ bgcolor: "#f7f6f5", color: 'black', minHeight: '100vh' }}>
 
         <Routes>
-
-          <Route path="/databases" element={
+          <Route path="/" element={
+            <>
+              <Nav title='PhenoPixel5.0' />
+              <Grid container spacing={4} margin={5}>
+                {/* <CellImageGrid /> */}
+              </Grid >
+            </>
+          } />
+          <Route path="/databases/" element={
             <>
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={4} margin={5}>
@@ -40,6 +47,8 @@ function App() {
               </Grid >
             </>
           } />
+
+
 
 
 
