@@ -422,7 +422,17 @@ const CellImageGrid: React.FC = () => {
                         </Select>
                     </FormControl>
                     {engineMode === "Off" ? (
-                        <Typography variant="h6" mt={2}>Morphoengine is off</Typography>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '100%'
+                            }}
+                        >
+                            <Typography variant="h5">Morpho engine is off</Typography>
+                            <img src="/logo_tp.png" alt="Morpho Engine is off" style={{ maxWidth: '20%', maxHeight: '20%' }} />
+                        </Box>
                     ) : (
                         <Box mt={1}>
                             <CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />
