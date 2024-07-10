@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.figure import Figure
 from dataclasses import dataclass
+from fastapi import UploadFile
+import aiofiles
 
 matplotlib.use("Agg")
 
@@ -849,3 +851,14 @@ class CellCrudBase:
             await AsyncChores.find_path(cell.img_fluo1, cell.contour, degree),
             media_type="image/png",
         )
+
+    async def upload_database(self, data: UploadFile):
+        """
+        Upload a database file to the server.
+
+        Parameters:
+        - data: Database file to upload.
+        """
+        async with aiofiles.open(f"databases/{self.db_name}.sqlite", "wb") as f:
+            content = await data.file.read()
+            await f.write(content)
