@@ -168,6 +168,7 @@ const Databases: React.FC = () => {
                                 }
                             }}
                             startIcon={<FileUploadIcon />}
+                            disabled={!selectedFile}
                         >
                             Upload
                         </Button>
