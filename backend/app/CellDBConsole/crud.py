@@ -174,6 +174,19 @@ class SyncChores:
         plt.close(fig)
         return buf
 
+    @staticmethod
+    def heatmap_path(paths: list[list[float]]) -> io.BytesIO:
+        data = np.array(paths)
+        fig, ax = plt.subplots(figsize=(6, 6))
+        cax = ax.imshow(data, cmap="hot", interpolation="nearest")
+        fig.colorbar(cax)
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=100)
+        buf.seek(0)
+        plt.close(fig)
+        return buf
+
 
 class AsyncChores:
     @staticmethod
@@ -942,6 +955,13 @@ class AsyncChores:
             buf = await loop.run_in_executor(
                 pool, SyncChores.box_plot, values, target_val, y_label, cell_id
             )
+        return buf
+
+    @staticmethod
+    async def heatmap_path(path: list[float]) -> io.BytesIO:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as pool:
+            buf = await loop.run_in_executor(pool, SyncChores.heatmap_path, path)
         return buf
 
 
