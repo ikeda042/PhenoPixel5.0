@@ -41,9 +41,11 @@ const TopPage: React.FC = () => {
 
     return (
         <Container>
-            <Typography variant="h4" component="h1" gutterBottom>
-                Database Names
-            </Typography>
+            <Box display="flex" flexDirection="row" alignItems="center">
+                <Typography variant="h4" component="h1" gutterBottom>
+                    Databases
+                </Typography>
+            </Box>
             <Box mb={2}>
                 <TextField
                     fullWidth
