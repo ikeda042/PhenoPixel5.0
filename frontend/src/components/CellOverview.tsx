@@ -12,6 +12,7 @@ import { settings } from "../settings";
 import { useSearchParams } from 'react-router-dom';
 import MedianEngine from "./MedianEngine";
 import MeanEngine from "./MeanEngine";
+import HeatmapEngine from "./HeatmapEngine";
 
 import {
     Chart as ChartJS,
@@ -204,13 +205,14 @@ const CellImageGrid: React.FC = () => {
         setFitDegree(parseInt(e.target.value));
     };
 
-    type EngineName = 'None' | 'MorphoEngine 2.0' | 'MorphoEngine 3.0' | 'MorphoEngine 4.0';
+    type EngineName = 'None' | 'MorphoEngine 2.0' | 'MorphoEngine 3.0' | 'MorphoEngine 4.0' | 'MorphoEngine 5.0';
 
     const engineLogos: Record<EngineName, string> = {
         None: 'path_to_none_logo.png',
         'MorphoEngine 2.0': '/logo_tp.png',
         'MorphoEngine 3.0': '/logo_dots.png',
         'MorphoEngine 4.0': '/logo_circular.png',
+        'MorphoEngine 5.0': '/logo_heatmap.png',
     };
 
 
@@ -487,6 +489,7 @@ const CellImageGrid: React.FC = () => {
                                         {engine === 'MorphoEngine 2.0' && <span>{engine}</span>}
                                         {engine === 'MorphoEngine 3.0' && <span>MedianEngine</span>}
                                         {engine === 'MorphoEngine 4.0' && <span>MeanEngine</span>}
+                                        {engine === 'MorphoEngine 5.0' && <span>HeatmapEngine</span>}
                                     </Box>
                                 </MenuItem>
                             ))}
@@ -516,6 +519,10 @@ const CellImageGrid: React.FC = () => {
                     {engineMode === "MorphoEngine 4.0" && (
                         <Box mt={2}>
                             <MeanEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} />
+                        </Box>)}
+                    {engineMode === "MorphoEngine 5.0" && (
+                        <Box mt={2}>
+                            <HeatmapEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} degree={fitDegree} />
                         </Box>)}
                 </Box>
             </Stack>
