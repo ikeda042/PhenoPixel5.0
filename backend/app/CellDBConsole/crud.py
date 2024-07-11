@@ -858,6 +858,82 @@ class AsyncChores:
         return buf
 
     @staticmethod
+    async def find_path_return_list(
+        image_fluo_raw: bytes, contour_raw: bytes, degree: int
+    ) -> list[float]:
+
+        image_fluo = cv2.imdecode(
+            np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
+        )
+        image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+
+        mask = np.zeros_like(image_fluo_gray)
+
+        unpickled_contour = pickle.loads(contour_raw)
+        cv2.fillPoly(mask, [unpickled_contour], 255)
+
+        coords_inside_cell_1 = np.column_stack(np.where(mask))
+        points_inside_cell_1 = image_fluo_gray[
+            coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
+        ]
+
+        X = np.array(
+            [
+                [i[1] for i in coords_inside_cell_1],
+                [i[0] for i in coords_inside_cell_1],
+            ]
+        )
+
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = SyncChores.basis_conversion(
+            [list(i[0]) for i in unpickled_contour],
+            X,
+            image_fluo.shape[0] / 2,
+            image_fluo.shape[1] / 2,
+            coords_inside_cell_1,
+        )
+
+        theta = await AsyncChores.poly_fit(U, degree=degree)
+        ### projection
+        raw_points: list[Point] = []
+        for i, j, p in zip(u1, u2, points_inside_cell_1):
+            min_distance, min_point = await AsyncChores.find_minimum_distance_and_point(
+                theta, i, j
+            )
+            raw_points.append(Point(min_point[0], p))
+        raw_points.sort()
+
+        ### peak-path finder
+        ### Meta parameters
+        split_num: int = 35
+        delta_L: float = (max(u1) - min(u1)) / split_num
+
+        first_point: Point = raw_points[0]
+        last_point: Point = raw_points[-1]
+        path: list[Point] = [first_point]
+        for i in range(1, int(split_num)):
+            x_0 = min(u1) + i * delta_L
+            x_1 = min(u1) + (i + 1) * delta_L
+            points = [p for p in raw_points if x_0 <= p.u1 <= x_1]
+            if len(points) == 0:
+                continue
+            point = max(points, key=lambda x: x.G)
+            path.append(point)
+        path.append(last_point)
+
+        return [(p.u1, p.G) for p in path]
+
+    @staticmethod
     async def box_plot(
         values: list[float], target_val: float, y_label: str, cell_id: str
     ) -> io.BytesIO:
