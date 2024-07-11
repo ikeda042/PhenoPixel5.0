@@ -246,7 +246,7 @@ class AsyncChores:
                 coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
             ]
 
-        return np.mean([i / 255 for i in points_inside_cell_1])
+        return round(np.mean([i / 255 for i in points_inside_cell_1]), 2)
 
     @staticmethod
     async def calc_median_normalized_fluo_intensity_inside_cell(
@@ -274,7 +274,7 @@ class AsyncChores:
             points_inside_cell_1 = image_fluo_gray[
                 coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
             ]
-        return np.median([i / 255 for i in points_inside_cell_1])
+        return round(np.median([i / 255 for i in points_inside_cell_1]), 2)
 
     @staticmethod
     async def draw_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
