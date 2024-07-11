@@ -100,7 +100,8 @@ async def upload_database(file: UploadFile = UploadFile(...)):
     db_name = file.filename
     if not db_name.endswith(".db"):
         return JSONResponse(content={"message": "Please upload a .db file."})
-    if db_name in await AsyncChores().get_database_names():
+    exisisting_dbs = await AsyncChores().get_database_names()
+    if db_name in exisisting_dbs:
         return JSONResponse(content={"message": f"Database {db_name} already exists."})
     await AsyncChores().upload_file_chunked(file)
     return file.filename
