@@ -11,8 +11,8 @@ import TopPage from './components/TopPage';
 
 function App() {
   return (
-    <Router>
-      <Box sx={{ bgcolor: "#f7f6f5", color: 'black', minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: "#f7f6f5", color: 'black', minHeight: '100vh' }}>
+      <Router>
         <Routes>
           <Route path="/" element={
             <>
@@ -22,7 +22,7 @@ function App() {
               </Grid >
             </>
           } />
-          <Route path="/databases" element={
+          <Route path="/dbconsole" element={
             <>
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={4} margin={5} mt={-4}>
@@ -39,10 +39,8 @@ function App() {
             </>
           } />
         </Routes>
-
-
-      </Box >
-    </Router>
+      </Router>
+    </Box>
   );
 }
 
