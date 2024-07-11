@@ -311,7 +311,11 @@ class AsyncChores:
             points_inside_cell_1 = image_fluo_gray[
                 coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
             ]
-        return round(np.median([i / 255 for i in points_inside_cell_1]), 2)
+            # flatten points_inside_cell_1
+            points_inside_cell_1 = points_inside_cell_1.flatten()
+            max_val = np.max(points_inside_cell_1)
+
+        return round(np.median([i / max_val for i in points_inside_cell_1]), 2)
 
     @staticmethod
     async def draw_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
@@ -794,6 +798,50 @@ class AsyncChores:
         )
         plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
         plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
+
+        max_val = np.max(points_inside_cell_1)
+        normalized_points = [i / max_val for i in points_inside_cell_1]
+        # plt text of median of points inside cell
+        plt.text(
+            0.5,
+            0.2,
+            f"Median: {np.median(points_inside_cell_1)}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
+
+        normalized_median = round(np.median(normalized_points), 2)
+        # plt text of normalized median of points inside cell
+        plt.text(
+            0.5,
+            0.1,
+            f"Normalized median: {normalized_median}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
+
+        # plt text of mean of points inside cell
+        plt.text(
+            0.5,
+            0.15,
+            f"Mean: {round(np.mean(points_inside_cell_1),2)}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
+
+        normalized_mean = round(np.mean(normalized_points), 2)
+        # plt text of normalized mean of points inside cell
+        plt.text(
+            0.5,
+            0.05,
+            f"Normalized mean: {normalized_mean}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
 
         x = np.linspace(min_u1, max_u1, 1000)
         theta = await AsyncChores.poly_fit(U, degree=degree)
