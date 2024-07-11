@@ -46,7 +46,7 @@ const CellImageGrid: React.FC = () => {
     const [drawMode, setDrawMode] = useState<string>("light");
     const [fitDegree, setFitDegree] = useState<number>(4);
     const [isLoading, setIsLoading] = useState(false);
-    const [engineMode, setEngineMode] = useState<string>("Off");
+    const [engineMode, setEngineMode] = useState<string>("None");
     const [searchParams] = useSearchParams();
     const db_name = searchParams.get('db_name') ?? "test_database.db";
 
@@ -201,6 +201,16 @@ const CellImageGrid: React.FC = () => {
     const handleFitDegreeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFitDegree(parseInt(e.target.value));
     };
+
+    type EngineName = 'None' | 'MorphoEngine 2.0' | 'MorphoEngine 3.0' | 'MorphoEngine 4.0';
+
+    const engineLogos: Record<EngineName, string> = {
+        None: 'path_to_none_logo.png',
+        'MorphoEngine 2.0': '/logo_tp.png',
+        'MorphoEngine 3.0': '/logo_dots.png',
+        'MorphoEngine 4.0': '/logo_circular.png',
+    };
+
 
     const handleEngineModeChange = (event: SelectChangeEvent<string>) => {
         setEngineMode(event.target.value);
@@ -410,7 +420,7 @@ const CellImageGrid: React.FC = () => {
                     </Box>
                 </Box>
                 <Box sx={{ width: 350, height: 420, marginLeft: 2 }}>
-                    <FormControl fullWidth>
+                    {/* <FormControl fullWidth>
                         <InputLabel id="engine-mode-select-label">Morpho Engine</InputLabel>
                         <Select
                             labelId="engine-mode-select-label"
@@ -437,7 +447,52 @@ const CellImageGrid: React.FC = () => {
                         <Box mt={1}>
                             <CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />
                         </Box>
+                    )} */}
+                    <FormControl fullWidth>
+                        <InputLabel id="engine-select-label">MorphoEngine</InputLabel>
+                        <Select
+                            labelId="engine-select-label"
+                            id="engine-select"
+                            value={engineMode}
+                            onChange={handleEngineModeChange}
+                            renderValue={(selected: string) => {
+                                if (selected === 'None') {
+                                    return "None";
+                                } else {
+                                    const engineName = selected as EngineName;
+                                    return (
+                                        <Box display="flex" alignItems="center">
+                                            <img src={engineLogos[engineName]} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />
+                                            {engineName}
+                                        </Box>
+                                    );
+                                }
+                            }}
+                        >
+                            {Object.entries(engineLogos).map(([engine, logoPath]) => (
+                                <MenuItem key={engine} value={engine}>
+                                    <Box display="flex" alignItems="center">
+                                        {engine !== 'None' && <img src={logoPath} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />}
+                                        {engine}
+                                    </Box>
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    {engineMode === "None" && (
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '100%'
+                            }}
+                        >
+                            <Typography variant="h5">Morpho engine is off.</Typography>
+                            <img src="/logo_tp.png" alt="Morpho Engine is off" style={{ maxWidth: '15%', maxHeight: '15%' }} />
+                        </Box>
                     )}
+                    {engineMode === "MorphoEngine 2.0" && (<CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />)}
                 </Box>
             </Stack>
         </>
