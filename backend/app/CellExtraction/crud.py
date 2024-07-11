@@ -79,8 +79,11 @@ class SyncChores:
 
             SyncChores.save_images(images, file_name, num_channels)
         SyncChores.cleanup("nd2totiff")
-        SyncChores.extract_tiff(f"./{file_name.split('/')[-1].split('.')[0]}.tif")
+        num_tiff = SyncChores.extract_tiff(
+            f"./{file_name.split('/')[-1].split('.')[0]}.tif"
+        )
         os.remove(f"./{file_name.split('/')[-1].split('.')[0]}.tif")
+        return num_tiff
 
     @staticmethod
     def extract_tiff(
@@ -150,7 +153,7 @@ class SyncChores:
         cropped_images = []
         for contour in contours:
             # 各輪郭の中心座標を取得
-            cx, cy = get_contour_center(contour)
+            cx, cy = SyncChores.get_contour_center(contour)
             # 　中心座標が画像の中心から離れているものを除外
             if cx > 400 and cx < 2000 and cy > 400 and cy < 2000:
                 # 切り抜く範囲を計算
@@ -289,13 +292,15 @@ class SyncChores:
 
             output_size = (image_size, image_size)
 
-            cropped_images_ph = crop_contours(image_ph, contours, output_size)
+            cropped_images_ph = SyncChores.crop_contours(
+                image_ph, contours, output_size
+            )
             if mode == "triple_layer" or mode == "dual_layer":
-                cropped_images_fluo_1 = crop_contours(
+                cropped_images_fluo_1 = SyncChores.crop_contours(
                     image_fluo_1, contours, output_size
                 )
             if mode == "triple_layer":
-                cropped_images_fluo_2 = crop_contours(
+                cropped_images_fluo_2 = SyncChores.crop_contours(
                     image_fluo_2, contours, output_size
                 )
 
@@ -366,8 +371,15 @@ class SyncChores:
 
 
 if __name__ == "__main__":
-    SyncChores().extract_nd2(
+    num_tiff = SyncChores().extract_nd2(
         "/Users/leeyunosuke/Documents/PhenoPixel5.0/sk326tri30min.nd2"
+    )
+    SyncChores().init(
+        input_filename="sk326tri30min.nd2",
+        num_tiff=24,
+        param1=85,
+        image_size=200,
+        mode="dual_layer",
     )
 
 # from .initialize import init
@@ -612,13 +624,3 @@ if __name__ == "__main__":
 #                     if session.query(Cell).filter_by(cell_id=cell_id).first() is None:
 #                         session.add(cell)
 #                         session.commit()
-
-
-if __name__ == "__main__":
-    init(
-        input_filename="sk326tri30min.nd2",
-        num_tiff=24,
-        param1=85,
-        image_size=100,
-        mode="dual_layer",
-    )
