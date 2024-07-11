@@ -95,21 +95,21 @@ async def get_cell_path(cell_id: str, db_name: str, degree: int = 3):
     return await CellCrudBase(db_name=db_name).find_path(cell_id=cell_id, degree=degree)
 
 
-@router_cell.get("/{db_name}/{label}/mean_fluo_intensities")
-async def get_mean_fluo_intensities(db_name: str, label: str):
+@router_cell.get("/{db_name}/{label}/{cell_id}/mean_fluo_intensities")
+async def get_mean_fluo_intensities(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
     ret: list[float] = await CellCrudBase(
         db_name=db_name
-    ).get_all_mean_normalized_fluo_intensities(label=label)
+    ).get_all_mean_normalized_fluo_intensities(label=label, cell_id=cell_id)
     return ret
 
 
-@router_cell.get("/{db_name}/{label}/median_fluo_intensities")
-async def get_median_fluo_intensities(db_name: str, label: str):
+@router_cell.get("/{db_name}/{label}/{cell_id}/mean_fluo_intensities")
+async def get_mean_fluo_intensities(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
     ret: list[float] = await CellCrudBase(
         db_name=db_name
-    ).get_all_median_normalized_fluo_intensities(label=label)
+    ).get_all_mean_normalized_fluo_intensities(label=label, cell_id=cell_id)
     return ret
 
 
