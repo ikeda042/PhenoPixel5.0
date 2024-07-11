@@ -72,6 +72,8 @@ class SyncChores:
 
             SyncChores.save_images(images, file_name, num_channels)
         SyncChores.cleanup("nd2totiff")
+        SyncChores.extract_tiff(f"./{file_name.split('/')[-1].split('.')[0]}.tif")
+        os.remove(f"./{file_name.split('/')[-1].split('.')[0]}.tif")
 
     @staticmethod
     def extract_tiff(
@@ -130,14 +132,9 @@ class SyncChores:
 
 
 if __name__ == "__main__":
-    # SyncChores().extract_nd2(
-    #     "/Users/leeyunosuke/Documents/PhenoPixel5.0/sk326tri30min.nd2"
-    # )
-    SyncChores().extract_tiff(
-        "/Users/leeyunosuke/Documents/PhenoPixel5.0/backend/app/CellExtraction/sk326tri30min.tif",
-        mode="dual_layer",
+    SyncChores().extract_nd2(
+        "/Users/leeyunosuke/Documents/PhenoPixel5.0/sk326tri30min.nd2"
     )
-
 
 # from .initialize import init
 # from .unify_images import unify_images_ndarray2, unify_images_ndarray
