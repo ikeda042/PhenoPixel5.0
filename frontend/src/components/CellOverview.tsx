@@ -257,8 +257,11 @@ const CellImageGrid: React.FC = () => {
         <>
             <Box>
                 <Breadcrumbs aria-label="breadcrumb">
-                    <Link underline="hover" color="inherit" href="/databases">
-                        Databases
+                    <Link underline="hover" color="inherit" href="/">
+                        Top
+                    </Link>
+                    <Link underline="hover" color="inherit" href="/dbconsole">
+                        Database Console
                     </Link>
                     <Typography color="text.primary">{db_name}</Typography>
                 </Breadcrumbs>
