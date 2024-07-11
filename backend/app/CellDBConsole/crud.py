@@ -141,7 +141,7 @@ class SyncChores:
     def box_plot(
         values: list[float], target_val: float, y_label: str, cell_id: str
     ) -> io.BytesIO:
-        fig = plt.figure(figsize=(6, 6))
+        fig = plt.figure(figsize=(8, 6))
         closest_point = min(values, key=lambda x: abs(x - target_val))
         if abs(closest_point - target_val) <= 0.001:
             close_points = [closest_point]
