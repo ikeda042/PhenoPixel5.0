@@ -956,3 +956,20 @@ class CellCrudBase:
             await AsyncChores.find_path(cell.img_fluo1, cell.contour, degree),
             media_type="image/png",
         )
+
+    async def get_all_mean_normalized_fluo_intensities(
+        self, label: str | None = None
+    ) -> list[float]:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        mean_intensities = await asyncio.gather(
+            *(
+                AsyncChores.calc_mean_normalized_fluo_intensity_incide_cell(
+                    cell.img_fluo1, cell.contour
+                )
+                for cell in cells
+            )
+        )
+        return mean_intensities
