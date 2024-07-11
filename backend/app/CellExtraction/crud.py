@@ -418,8 +418,8 @@ def crop_contours(image, contours, output_size):
 def init(
     input_filename: str,
     num_tiff: int,
-    param1: int = 140,
-    image_size: int = 100,
+    param1: int = 85,
+    image_size: int = 200,
     mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual_layer",
 ) -> int:
 
@@ -450,7 +450,7 @@ def init(
         except:
             continue
     # フォルダの作成
-    for i in tqdm(range(num_tiff // set_num)):
+    for i in range(num_tiff // set_num):
         try:
             os.mkdir(f"TempData/frames/tiff_{i}")
         except Exception as e:
@@ -605,3 +605,13 @@ def init(
                     n += 1
 
     return num_tiff
+
+
+if __name__ == "__main__":
+    init(
+        input_filename="sk326tri30min.nd2",
+        num_tiff=24,
+        param1=85,
+        image_size=100,
+        mode="dual_layer",
+    )
