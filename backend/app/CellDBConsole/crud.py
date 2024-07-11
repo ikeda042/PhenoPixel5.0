@@ -1251,3 +1251,11 @@ class CellCrudBase:
         df.to_csv(buf, index=False)
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
+
+    async def heatmap_path(self, cell_id: str, degree: int) -> StreamingResponse:
+        cell = await self.read_cell(cell_id)
+        path = await AsyncChores.find_path_return_list(
+            cell.img_fluo1, cell.contour, degree
+        )
+        buf = await AsyncChores.heatmap_path(path)
+        return StreamingResponse(buf, media_type="image/png")
