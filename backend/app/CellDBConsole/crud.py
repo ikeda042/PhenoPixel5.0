@@ -727,7 +727,7 @@ class AsyncChores:
             point = max(points, key=lambda x: x.G)
             path.append(point)
         path.append(last_point)
-        fig = plt.figure(figsize=(8, 6))
+        fig = plt.figure(figsize=(6, 6))
         plt.axis("equal")
         x = [i.u1 for i in raw_points]
         y = [i.G for i in raw_points]
@@ -802,7 +802,7 @@ class AsyncChores:
             coords_inside_cell_1,
         )
 
-        fig = plt.figure(figsize=(8, 6))
+        fig = plt.figure(figsize=(6, 6))
         plt.scatter(u1, u2, s=5)
         plt.scatter(u1_c, u2_c, color="red", s=100)
         plt.axis("equal")
