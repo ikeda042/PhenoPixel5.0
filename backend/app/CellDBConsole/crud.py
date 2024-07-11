@@ -799,7 +799,9 @@ class AsyncChores:
     async def box_plot(values: list[float], target_val: float) -> io.BytesIO:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as pool:
-            buf = await loop.run_in_executor(pool, SyncChores.box_plot, values)
+            buf = await loop.run_in_executor(
+                pool, SyncChores.box_plot, values, target_val
+            )
         return buf
 
 
@@ -1007,7 +1009,8 @@ class CellCrudBase:
                 for cell in cells
             )
         )
-        return await AsyncChores.box_plot(mean_intensities, target_val=target_val)
+        ret = await AsyncChores.box_plot(mean_intensities, target_val=target_val)
+        return StreamingResponse(ret, media_type="image/png")
 
     async def get_all_median_normalized_fluo_intensities(
         self, cell_id: str, label: str | None = None
@@ -1030,4 +1033,5 @@ class CellCrudBase:
                 for cell in cells
             )
         )
-        return await AsyncChores.box_plot(median_intensities, target_val=target_val)
+        buf = await AsyncChores.box_plot(median_intensities, target_val=target_val)
+        return StreamingResponse(buf, media_type="image/png")
