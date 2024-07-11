@@ -147,7 +147,8 @@ class AsyncChores:
         - data: File data to upload.
         """
         chunk_size = 1024 * 1024  # 1MB
-        async with aiofiles.open(f"databases/{data.filename}", "wb") as f:
+        save_name = f"databases/{data.filename.split[0]}-uploaded.db"
+        async with aiofiles.open(f"{save_name}", "wb") as f:
             while True:
                 content = await data.read(chunk_size)
                 if not content:
