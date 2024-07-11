@@ -460,10 +460,18 @@ const CellImageGrid: React.FC = () => {
                                     return "None";
                                 } else {
                                     const engineName = selected as EngineName;
+                                    let displayText: string = engineName; // Change the type to string
+                                    if (engineName === 'MorphoEngine 2.0') {
+                                        displayText = engineName; // Keep the original name
+                                    } else if (engineName === 'MorphoEngine 3.0') {
+                                        displayText = "sk326 Engine"; // Custom name for MorphoEngine 3.0
+                                    } else if (engineName === 'MorphoEngine 4.0') {
+                                        displayText = "sk328 Engine"; // Custom name for MorphoEngine 4.0
+                                    }
                                     return (
                                         <Box display="flex" alignItems="center">
-                                            <img src={engineLogos[engineName]} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />
-                                            {engineName}
+                                            {engineName !== 'None' && <img src={engineLogos[engineName]} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />}
+                                            {displayText}
                                         </Box>
                                     );
                                 }
@@ -474,7 +482,7 @@ const CellImageGrid: React.FC = () => {
                                     <Box display="flex" alignItems="center">
                                         {engine !== 'None' && <img src={logoPath} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />}
                                         {engine === 'None' && <span>None</span>}
-                                        {engine === 'MorphoEngine 2.0' && engine}
+                                        {engine === 'MorphoEngine 2.0' && <span>{engine}</span>}
                                         {engine === 'MorphoEngine 3.0' && <span>sk326 Engine</span>}
                                         {engine === 'MorphoEngine 4.0' && <span>sk328 Engine</span>}
                                     </Box>
