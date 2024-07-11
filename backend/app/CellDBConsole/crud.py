@@ -137,7 +137,9 @@ class SyncChores:
         return volume, widths
 
     @staticmethod
-    def box_plot(values: list[float], target_val: float, y_label: str) -> io.BytesIO:
+    def box_plot(
+        values: list[float], target_val: float, y_label: str, cell_id: str
+    ) -> io.BytesIO:
         fig = plt.figure(figsize=(6, 6))
         closest_point = min(values, key=lambda x: abs(x - target_val))
         if abs(closest_point - target_val) <= 0.001:
@@ -157,7 +159,7 @@ class SyncChores:
                 "o",
                 color="red",
                 alpha=0.5,
-                label="Selected cell",
+                label=f"{cell_id}",
             )
 
         plt.boxplot(values, flierprops=dict(marker=""))
@@ -808,12 +810,12 @@ class AsyncChores:
 
     @staticmethod
     async def box_plot(
-        values: list[float], target_val: float, y_label: str
+        values: list[float], target_val: float, y_label: str, cell_id: str
     ) -> io.BytesIO:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as pool:
             buf = await loop.run_in_executor(
-                pool, SyncChores.box_plot, values, target_val, y_label
+                pool, SyncChores.box_plot, values, target_val, y_label, cell_id
             )
         return buf
 
@@ -1023,7 +1025,7 @@ class CellCrudBase:
             )
         )
         ret = await AsyncChores.box_plot(
-            mean_intensities, target_val=target_val, y_label=y_label
+            mean_intensities, target_val=target_val, y_label=y_label, cell_id=cell_id
         )
         return StreamingResponse(ret, media_type="image/png")
 
@@ -1049,6 +1051,6 @@ class CellCrudBase:
             )
         )
         buf = await AsyncChores.box_plot(
-            median_intensities, target_val=target_val, y_label=y_label
+            median_intensities, target_val=target_val, y_label=y_label, cell_id=cell_id
         )
         return StreamingResponse(buf, media_type="image/png")
