@@ -101,7 +101,7 @@ async def get_mean_fluo_intensities(db_name: str, label: str, cell_id: str):
     ret: list[float] = await CellCrudBase(
         db_name=db_name
     ).get_all_mean_normalized_fluo_intensities(
-        label=label, cell_id=cell_id, y_label="Normalized Fluorescence Intensity"
+        label=label, cell_id=cell_id, y_label="Mean Normalized Fluorescence Intensity"
     )
     return ret
 
@@ -112,7 +112,7 @@ async def get_median_fluo_intensities(db_name: str, label: str, cell_id: str):
     ret: list[float] = await CellCrudBase(
         db_name=db_name
     ).get_all_median_normalized_fluo_intensities(
-        label=label, cell_id=cell_id, y_label="Normalized Fluorescence Intensity"
+        label=label, cell_id=cell_id, y_label="Median Normalized Fluorescence Intensity"
     )
     return ret
 
