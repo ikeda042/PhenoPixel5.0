@@ -513,15 +513,15 @@ const CellImageGrid: React.FC = () => {
                             <CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />
                         </Box>)}
                     {engineMode === "MorphoEngine 3.0" && (
-                        <Box mt={2}>
+                        <Box mt={6}>
                             <MedianEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} />
                         </Box>)}
                     {engineMode === "MorphoEngine 4.0" && (
-                        <Box mt={2}>
+                        <Box mt={6}>
                             <MeanEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} />
                         </Box>)}
                     {engineMode === "MorphoEngine 5.0" && (
-                        <Box mt={2}>
+                        <Box mt={6}>
                             <HeatmapEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} degree={fitDegree} />
                         </Box>)}
                 </Box>
