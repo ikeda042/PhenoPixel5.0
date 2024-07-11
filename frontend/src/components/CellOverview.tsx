@@ -11,6 +11,7 @@ import CellMorphologyTable from "./CellMorphoTable";
 import { settings } from "../settings";
 import { useSearchParams } from 'react-router-dom';
 import MedianEngine from "./MedianEngine";
+import MeanEngine from "./MeanEngine";
 
 import {
     Chart as ChartJS,
@@ -465,9 +466,9 @@ const CellImageGrid: React.FC = () => {
                                     if (engineName === 'MorphoEngine 2.0') {
                                         displayText = engineName;
                                     } else if (engineName === 'MorphoEngine 3.0') {
-                                        displayText = "sk326 Engine";
+                                        displayText = "MedianEngine";
                                     } else if (engineName === 'MorphoEngine 4.0') {
-                                        displayText = "sk328 Engine";
+                                        displayText = "MeanEngine";
                                     }
                                     return (
                                         <Box display="flex" alignItems="center">
@@ -511,6 +512,10 @@ const CellImageGrid: React.FC = () => {
                     {engineMode === "MorphoEngine 3.0" && (
                         <Box mt={2}>
                             <MedianEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} />
+                        </Box>)}
+                    {engineMode === "MorphoEngine 4.0" && (
+                        <Box mt={2}>
+                            <MeanEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} />
                         </Box>)}
                 </Box>
             </Stack>
