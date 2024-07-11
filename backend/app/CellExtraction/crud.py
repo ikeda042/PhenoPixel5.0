@@ -386,9 +386,80 @@ class CellExtraction:
     async def main(self):
         chores = SyncChores()
         num_tiff = await self.run_in_thread(chores.extract_nd2, self.nd2_path)
+
         await self.run_in_thread(
             chores.init, f"{self.file_prefix}.nd2", 24, 85, 200, self.mode
         )
+        iter_n = {
+            "triple_layer": num_tiff // 3,
+            "single_layer": num_tiff,
+            "dual_layer": num_tiff // 2,
+        }
+        for i in range(iter_n[self.mode]):
+            for j in range(len(os.listdir(f"TempData/frames/tiff_{i}/Cells/ph/"))):
+                cell_id: str = f"F{i}C{j}"
+                img_ph = cv2.imread(f"TempData/frames/tiff_{i}/Cells/ph/{j}.png")
+                if self.mode != "single_layer":
+                    img_fluo1 = cv2.imread(
+                        f"TempData/frames/tiff_{i}/Cells/fluo1/{j}.png"
+                    )
+
+                img_ph_gray = cv2.cvtColor(img_ph, cv2.COLOR_BGR2GRAY)
+                if self.mode != "single_layer":
+                    img_fluo1_gray = cv2.cvtColor(img_fluo1, cv2.COLOR_BGR2GRAY)
+
+                ret, thresh = cv2.threshold(img_ph_gray, 85, 255, cv2.THRESH_BINARY)
+                img_canny = cv2.Canny(thresh, 0, 130)
+                contours_raw, hierarchy = cv2.findContours(
+                    img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+                )
+                # Filter out contours with small area
+                contours = list(
+                    filter(lambda x: cv2.contourArea(x) >= 300, contours_raw)
+                )
+                # Check if the center of the contour is not too far from the center of the image
+                contours = list(
+                    filter(
+                        lambda x: abs(
+                            cv2.moments(x)["m10"] / cv2.moments(x)["m00"] - 200
+                        )
+                        < 10,
+                        contours,
+                    )
+                )
+                # do the same for y
+                contours = list(
+                    filter(
+                        lambda x: abs(
+                            cv2.moments(x)["m01"] / cv2.moments(x)["m00"] - 200
+                        )
+                        < 10,
+                        contours,
+                    )
+                )
+
+                if self.mode != "single_layer":
+                    cv2.drawContours(img_fluo1, contours, -1, (0, 255, 0), 1)
+                    cv2.imwrite(
+                        f"TempData/frames/tiff_{i}/Cells/fluo1_contour/{j}.png",
+                        img_fluo1,
+                    )
+                cv2.drawContours(img_ph, contours, -1, (0, 255, 0), 1)
+
+                cv2.imwrite(
+                    f"TempData/frames/tiff_{i}/Cells/ph_contour/{j}.png", img_ph
+                )
+
+                if self.mode == "triple_layer":
+                    img_fluo2 = cv2.imread(
+                        f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
+                    )
+                    img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
+                    cv2.drawContours(img_fluo2, contours, -1, (0, 255, 0), 1)
+                    cv2.imwrite(
+                        f"TempData/frames/tiff_{i}/Cells/fluo2_contour/{j}.png",
+                        img_fluo2,
+                    )
 
 
 if __name__ == "__main__":
