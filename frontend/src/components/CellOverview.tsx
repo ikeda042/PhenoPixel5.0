@@ -10,7 +10,7 @@ import Spinner from './Spinner';
 import CellMorphologyTable from "./CellMorphoTable";
 import { settings } from "../settings";
 import { useSearchParams } from 'react-router-dom';
-import SK326Engine from "./Sk326Engine";
+import MedianEngine from "./MedianEngine";
 
 import {
     Chart as ChartJS,
@@ -484,8 +484,8 @@ const CellImageGrid: React.FC = () => {
                                         {engine !== 'None' && <img src={logoPath} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />}
                                         {engine === 'None' && <span>None</span>}
                                         {engine === 'MorphoEngine 2.0' && <span>{engine}</span>}
-                                        {engine === 'MorphoEngine 3.0' && <span>sk326 Engine</span>}
-                                        {engine === 'MorphoEngine 4.0' && <span>sk328 Engine</span>}
+                                        {engine === 'MorphoEngine 3.0' && <span>MedianEngine</span>}
+                                        {engine === 'MorphoEngine 4.0' && <span>MeanEngine</span>}
                                     </Box>
                                 </MenuItem>
                             ))}
@@ -510,7 +510,7 @@ const CellImageGrid: React.FC = () => {
                         </Box>)}
                     {engineMode === "MorphoEngine 3.0" && (
                         <Box mt={2}>
-                            <SK326Engine dbName={db_name} label={label} cellId={cellIds[currentIndex]} />
+                            <MedianEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} />
                         </Box>)}
                 </Box>
             </Stack>
