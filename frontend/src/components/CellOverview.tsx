@@ -492,7 +492,10 @@ const CellImageGrid: React.FC = () => {
                             <img src="/logo_tp.png" alt="Morpho Engine is off" style={{ maxWidth: '15%', maxHeight: '15%' }} />
                         </Box>
                     )}
-                    {engineMode === "MorphoEngine 2.0" && (<CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />)}
+                    {engineMode === "MorphoEngine 2.0" && (
+                        <Box mt={2}>
+                            <CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />
+                        </Box>)}
                 </Box>
             </Stack>
         </>
