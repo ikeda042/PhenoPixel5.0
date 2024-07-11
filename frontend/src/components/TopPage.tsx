@@ -5,6 +5,7 @@ import { settings } from "../settings";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import DatabaseIcon from '@mui/icons-material/Storage';
 import { useNavigate } from "react-router-dom";
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 
 interface ListDBResponse {
     databases: string[];
@@ -77,9 +78,6 @@ const TopPage: React.FC = () => {
     return (
         <Container>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="space-between">
-                <Typography variant="h4" component="h1" gutterBottom>
-                    Databases
-                </Typography>
                 <Grid container spacing={2} alignItems="center">
                     <Grid item xs={6}>
                         <TextField
@@ -132,6 +130,7 @@ const TopPage: React.FC = () => {
                                     backgroundColor: 'grey'
                                 }
                             }}
+                            startIcon={<FileUploadIcon />}
                         >
                             Upload
                         </Button>
