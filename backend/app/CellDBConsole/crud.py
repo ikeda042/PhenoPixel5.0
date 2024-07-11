@@ -153,9 +153,11 @@ class SyncChores:
             x_close = np.random.normal(1, 0.04, size=len(close_points))
             plt.plot(x_close, close_points, "o", color="red", alpha=0.5)
 
-        plt.boxplot(values)
+        plt.boxplot(values, flierprops=dict(marker=""))
+        plt.ylim(0, 1.05)
+        plt.gca().axes.get_xaxis().set_visible(False)
         buf = io.BytesIO()
-        plt.savefig(buf, format="png")
+        plt.savefig(buf, format="png", dpi=200)
         buf.seek(0)
         plt.close(fig)
         return buf
