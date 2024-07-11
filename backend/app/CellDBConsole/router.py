@@ -104,6 +104,15 @@ async def get_mean_fluo_intensities(db_name: str, label: str):
     return ret
 
 
+@router_cell.get("/{db_name}/{label}/median_fluo_intensities")
+async def get_median_fluo_intensities(db_name: str, label: str):
+    await AsyncChores().validate_database_name(db_name)
+    ret: list[float] = await CellCrudBase(
+        db_name=db_name
+    ).get_all_median_normalized_fluo_intensities(label=label)
+    return ret
+
+
 @router_database.post("/upload")
 async def upload_database(file: UploadFile = UploadFile(...)):
     db_name = file.filename
