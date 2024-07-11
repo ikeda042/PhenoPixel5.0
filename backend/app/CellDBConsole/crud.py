@@ -989,11 +989,17 @@ class CellCrudBase:
         )
 
     async def get_all_mean_normalized_fluo_intensities(
-        self, target_val: float, label: str | None = None
+        self, cell_id: str, label: str | None = None
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        target_cell = await self.read_cell(cell_id=cell_id)
+        target_val = (
+            await AsyncChores.calc_mean_normalized_fluo_intensity_incide_cell(
+                target_cell.img_fluo1, target_cell.contour
+            )
         )
         mean_intensities = await asyncio.gather(
             *(
@@ -1004,13 +1010,21 @@ class CellCrudBase:
             )
         )
         return await AsyncChores.box_plot(mean_intensities, target_val=target_val)
+    )
+       
 
     async def get_all_median_normalized_fluo_intensities(
-        self, target_val: float, label: str | None = None
+        self, cell_id: str, label: str | None = None
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        target_cell = await self.read_cell(cell_id=cell_id)
+        target_val = (
+            await AsyncChores.calc_median_normalized_fluo_intensity_inside_cell(
+                target_cell.img_fluo1, target_cell.contour
+            )
         )
         median_intensities = await asyncio.gather(
             *(
