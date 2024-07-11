@@ -486,6 +486,8 @@ class AsyncChores:
             theta = await AsyncChores.poly_fit(np.array([u2, u1]).T, degree=degree)
             y = np.polyval(theta, np.linspace(min(u1_adj), max(u1_adj), 1000))
             cell_length = await AsyncChores.calc_arc_length(theta, min(u1), max(u1))
+            split_num = 20
+            deltaL = cell_length / split_num
             raw_points = []
             for i, j in zip(u1, u2):
                 min_distance, min_point = (
