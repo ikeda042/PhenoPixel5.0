@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Box, CircularProgress, Button } from '@mui/material';
 import { settings } from '../settings';
+import DownloadIcon from '@mui/icons-material/Download';
 
 interface ImageFetcherProps {
     dbName: string;
@@ -56,13 +57,25 @@ const SK326Engine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId }) => 
     }
 
     return (
-        <Box display="flex" flexDirection="column" alignItems="center">
-            <Box>
-                <img src={imageUrl} alt="Cell" style={{ maxWidth: '100%', height: 'auto' }} />
-            </Box>
-            <Button variant="contained" color="primary" onClick={handleDownloadCsv}>
+        <Box display="flex" flexDirection="column" alignItems="right">
+            <img src={imageUrl} alt="Cell" style={{ maxWidth: '100%', height: 'auto' }} />
+            <Button
+                variant="contained"
+                onClick={handleDownloadCsv}
+                sx={{
+                    color: 'black',
+                    backgroundColor: '#ffffff',
+                    '&:hover': {
+                        backgroundColor: '#e0e0e0',
+                    },
+                    marginTop: 1,
+                }}
+                startIcon={<DownloadIcon />}
+            >
                 Download CSV
             </Button>
+
+
         </Box>
     );
 };
