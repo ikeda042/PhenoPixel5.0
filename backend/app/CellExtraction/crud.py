@@ -368,19 +368,27 @@ class SyncChores:
                         )
                         n += 1
         return num_tiff
-
+    
+import asyncio
+class CellExtraction:
+    def __init__(self,nd2_path:str = "/Users/leeyunosuke/Documents/PhenoPixel5.0/sk326tri30min.nd2",mode:str = "dual_layer"):
+        self.nd2_path = nd2_path
+        self.file_prefix = self.nd2_path.split("/")[-1].split(".")[0]
+        self.mode = mode
+   
+    async def run_in_thread(self,func, *args):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, func, *args)
+    
+    async def main(self):
+        chores = SyncChores()
+        num_tiff = await self.run_in_thread(chores.extract_nd2, self.nd2_path)
+        await self.run_in_thread(chores.init, f"{self.file_prefix}.nd2", 24, 85, 200, self.mode)
+    
+    
 
 if __name__ == "__main__":
-    num_tiff = SyncChores().extract_nd2(
-        "/Users/leeyunosuke/Documents/PhenoPixel5.0/sk326tri30min.nd2"
-    )
-    SyncChores().init(
-        input_filename="sk326tri30min.nd2",
-        num_tiff=24,
-        param1=85,
-        image_size=200,
-        mode="dual_layer",
-    )
+   
 
 # from .initialize import init
 # from .unify_images import unify_images_ndarray2, unify_images_ndarray
