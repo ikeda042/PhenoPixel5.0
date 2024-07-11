@@ -460,13 +460,13 @@ const CellImageGrid: React.FC = () => {
                                     return "None";
                                 } else {
                                     const engineName = selected as EngineName;
-                                    let displayText: string = engineName; // Change the type to string
+                                    let displayText: string = engineName;
                                     if (engineName === 'MorphoEngine 2.0') {
-                                        displayText = engineName; // Keep the original name
+                                        displayText = engineName;
                                     } else if (engineName === 'MorphoEngine 3.0') {
-                                        displayText = "sk326 Engine"; // Custom name for MorphoEngine 3.0
+                                        displayText = "sk326 Engine";
                                     } else if (engineName === 'MorphoEngine 4.0') {
-                                        displayText = "sk328 Engine"; // Custom name for MorphoEngine 4.0
+                                        displayText = "sk328 Engine";
                                     }
                                     return (
                                         <Box display="flex" alignItems="center">
