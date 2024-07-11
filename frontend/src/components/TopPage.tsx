@@ -4,8 +4,8 @@ import axios from "axios";
 import { settings } from "../settings";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import DatabaseIcon from '@mui/icons-material/Storage';
-import { useNavigate } from "react-router-dom";
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+import { useNavigate } from "react-router-dom";
 
 interface ListDBResponse {
     databases: string[];
@@ -78,7 +78,12 @@ const TopPage: React.FC = () => {
         setDialogOpen(false);
     };
 
-    const filteredDatabases = databases.filter(database => database.toLowerCase().includes(searchQuery.toLowerCase()));
+    const filteredDatabases = databases.filter(database => {
+        if (displayMode === 'User uploaded') {
+            return database.toLowerCase().includes(searchQuery.toLowerCase()) && database.endsWith('-uploaded.db');
+        }
+        return database.toLowerCase().includes(searchQuery.toLowerCase());
+    });
 
     return (
         <Container>
@@ -100,6 +105,8 @@ const TopPage: React.FC = () => {
                             onChange={handleDisplayModeChange}
                             displayEmpty
                             inputProps={{ 'aria-label': 'Without label' }}
+                            fullWidth
+                            sx={{ height: '56px' }}
                         >
                             <MenuItem value="Validated">Validated</MenuItem>
                             <MenuItem value="User uploaded">Uploaded</MenuItem>
