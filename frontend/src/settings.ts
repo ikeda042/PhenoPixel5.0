@@ -1,4 +1,4 @@
-const url_prefix = "http://localhost:8000/api"
+const url_prefix = "http://10.32.17.108:8000/api"
 
 export const settings = {
     url_prefix: url_prefix,
