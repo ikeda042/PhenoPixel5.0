@@ -176,11 +176,17 @@ class SyncChores:
 
     @staticmethod
     def heatmap_path(paths: list[list[float]]) -> io.BytesIO:
-        data = np.array(paths)
-        fig, ax = plt.subplots(figsize=(6, 6))
-        cax = ax.imshow(data, cmap="hot", interpolation="nearest")
-        fig.colorbar(cax)
 
+        paths = [i[1] for i in paths]
+        data = np.array(paths)
+
+        data = data.reshape(-1, 1)
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+        cax = ax.imshow(data, cmap="inferno", interpolation="nearest", aspect="auto")
+
+        fig.colorbar(cax)
+        plt.ylabel("Relative position")
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=100)
         buf.seek(0)
