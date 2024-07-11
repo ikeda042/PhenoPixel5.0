@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from fastapi import UploadFile
 import aiofiles
 import os
+import pandas as pd
 
 matplotlib.use("Agg")
 
@@ -1102,3 +1103,29 @@ class CellCrudBase:
             median_intensities, target_val=target_val, y_label=y_label, cell_id=cell_id
         )
         return StreamingResponse(buf, media_type="image/png")
+
+    async def get_all_median_normalized_fluo_intensities_csv(
+        self, label: str | None = None
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        median_intensities = await asyncio.gather(
+            *(
+                AsyncChores.calc_median_normalized_fluo_intensity_inside_cell(
+                    cell.img_fluo1, cell.contour
+                )
+                for cell in cells
+            )
+        )
+        df = pd.DataFrame(
+            median_intensities,
+            columns=[
+                f"Median normalized fluorescence intensity {self.db_name} cells with label {label}"
+            ],
+        )
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
