@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Button } from '@mui/material';
 import { settings } from '../settings';
 
 interface ImageFetcherProps {
@@ -32,6 +32,21 @@ const SK326Engine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId }) => 
         fetchImageData();
     }, [dbName, label, cellId]);
 
+    const handleDownloadCsv = async () => {
+        try {
+            const response = await axios.get(`${url_prefix}/${dbName}/${label}/mean_fluo_intensities/csv`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${label}_mean_fluo_intensities.csv`); // or any other extension
+            document.body.appendChild(link);
+            link.click();
+            link?.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error('Failed to download CSV:', error);
+        }
+    };
+
     if (loading) {
         return <Box display="flex" justifyContent="center"><CircularProgress /></Box>;
     }
@@ -41,8 +56,13 @@ const SK326Engine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId }) => 
     }
 
     return (
-        <Box display="flex" justifyContent="center">
-            <img src={imageUrl} alt="Cell" style={{ maxWidth: '100%', height: 'auto' }} />
+        <Box display="flex" flexDirection="column" alignItems="center">
+            <Box>
+                <img src={imageUrl} alt="Cell" style={{ maxWidth: '100%', height: 'auto' }} />
+            </Box>
+            <Button variant="contained" color="primary" onClick={handleDownloadCsv}>
+                Download CSV
+            </Button>
         </Box>
     );
 };
