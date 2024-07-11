@@ -473,7 +473,10 @@ const CellImageGrid: React.FC = () => {
                                 <MenuItem key={engine} value={engine}>
                                     <Box display="flex" alignItems="center">
                                         {engine !== 'None' && <img src={logoPath} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />}
-                                        {engine}
+                                        {engine === 'None' && <span>None</span>}
+                                        {engine === 'MorphoEngine 2.0' && engine}
+                                        {engine === 'MorphoEngine 3.0' && <span>sk326</span>}
+                                        {engine === 'MorphoEngine 4.0' && <span>sk328</span>}
                                     </Box>
                                 </MenuItem>
                             ))}
