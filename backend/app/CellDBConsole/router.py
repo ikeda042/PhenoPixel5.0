@@ -99,6 +99,12 @@ async def get_cell_path(cell_id: str, db_name: str, degree: int = 3):
 
 @router_database.post("/upload")
 async def upload_database(file: UploadFile = UploadFile(...)):
+    db_name = file.filename
+    if not db_name.endswith(".db"):
+        return JSONResponse(content={"message": "Please upload a .db file."})
+    if db_name in await AsyncChores().get_database_names():
+        return JSONResponse(content={"message": f"Database {db_name} already exists."})
+
     await AsyncChores().upload_file_chunked(file)
     return file.filename
 
