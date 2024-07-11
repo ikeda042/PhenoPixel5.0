@@ -20,7 +20,7 @@ const HeatmapEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, deg
         const fetchImageData = async () => {
             setLoading(true);
             try {
-                const response = await axios.get(`${url_prefix}/cells/${dbName}/${label}/${cellId}/heatmap_path?degree=${degree}`, { responseType: 'blob' });
+                const response = await axios.get(`${url_prefix}/cells/${dbName}/${label}/${cellId}/heatmap`, { responseType: 'blob' });
                 const imageBlobUrl = URL.createObjectURL(response.data);
                 setImageUrl(imageBlobUrl);
             } catch (error) {
@@ -36,7 +36,7 @@ const HeatmapEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, deg
 
     const handleDownloadCsv = async () => {
         try {
-            const response = await axios.get(`${url_prefix}/cells/${dbName}/${label}/${cellId}/get_peak_path_csv?degree=${degree}`, { responseType: 'blob' });
+            const response = await axios.get(`${url_prefix}/cells/${dbName}/${label}/${cellId}/heatmap/csv`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
