@@ -137,7 +137,7 @@ class SyncChores:
         return volume, widths
 
     @staticmethod
-    def box_plot(values: list[float], target_val: float) -> io.BytesIO:
+    def box_plot(values: list[float], target_val: float, y_label: str) -> io.BytesIO:
         fig = plt.figure(figsize=(6, 6))
         closest_point = min(values, key=lambda x: abs(x - target_val))
         if abs(closest_point - target_val) <= 0.001:
@@ -162,6 +162,7 @@ class SyncChores:
 
         plt.boxplot(values, flierprops=dict(marker=""))
         plt.ylim(0, 1.05)
+        plt.ylabel(y_label)
         plt.legend()
         plt.gca().axes.get_xaxis().set_visible(False)
         buf = io.BytesIO()
@@ -806,11 +807,13 @@ class AsyncChores:
         return buf
 
     @staticmethod
-    async def box_plot(values: list[float], target_val: float) -> io.BytesIO:
+    async def box_plot(
+        values: list[float], target_val: float, y_label: str
+    ) -> io.BytesIO:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as pool:
             buf = await loop.run_in_executor(
-                pool, SyncChores.box_plot, values, target_val
+                pool, SyncChores.box_plot, values, target_val, y_label
             )
         return buf
 
@@ -1001,7 +1004,7 @@ class CellCrudBase:
         )
 
     async def get_all_mean_normalized_fluo_intensities(
-        self, cell_id: str, label: str | None = None
+        self, cell_id: str, y_label: str, label: str | None = None
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
@@ -1019,11 +1022,13 @@ class CellCrudBase:
                 for cell in cells
             )
         )
-        ret = await AsyncChores.box_plot(mean_intensities, target_val=target_val)
+        ret = await AsyncChores.box_plot(
+            mean_intensities, target_val=target_val, y_label=y_label
+        )
         return StreamingResponse(ret, media_type="image/png")
 
     async def get_all_median_normalized_fluo_intensities(
-        self, cell_id: str, label: str | None = None
+        self, cell_id: str, y_label: str, label: str | None = None
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
@@ -1043,5 +1048,7 @@ class CellCrudBase:
                 for cell in cells
             )
         )
-        buf = await AsyncChores.box_plot(median_intensities, target_val=target_val)
+        buf = await AsyncChores.box_plot(
+            median_intensities, target_val=target_val, y_label=y_label
+        )
         return StreamingResponse(buf, media_type="image/png")
