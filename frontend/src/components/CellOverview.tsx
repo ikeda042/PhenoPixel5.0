@@ -263,8 +263,8 @@ const CellImageGrid: React.FC = () => {
                     <Typography color="text.primary">{db_name}</Typography>
                 </Breadcrumbs>
             </Box>
-            <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ marginTop: 8 }}>
-                <Box sx={{ width: 520, height: 420, marginLeft: 2 }}>
+            <Stack direction="row" spacing={2} sx={{ marginTop: 8 }}>
+                <Box sx={{ width: 580, height: 420, marginLeft: 2 }}>
                     <FormControl fullWidth>
                         <InputLabel id="label-select-label">Label</InputLabel>
                         <Select
@@ -424,34 +424,6 @@ const CellImageGrid: React.FC = () => {
                     </Box>
                 </Box>
                 <Box sx={{ width: 350, height: 420, marginLeft: 2 }}>
-                    {/* <FormControl fullWidth>
-                        <InputLabel id="engine-mode-select-label">Morpho Engine</InputLabel>
-                        <Select
-                            labelId="engine-mode-select-label"
-                            value={engineMode}
-                            onChange={handleEngineModeChange}
-                        >
-                            <MenuItem value="Off">off</MenuItem>
-                            <MenuItem value="MorphoEngine2.0">Morpho Engine2.0</MenuItem>
-                        </Select>
-                    </FormControl>
-                    {engineMode === "Off" ? (
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                height: '100%'
-                            }}
-                        >
-                            <Typography variant="h5">Morpho engine is off.</Typography>
-                            <img src="/logo_tp.png" alt="Morpho Engine is off" style={{ maxWidth: '20%', maxHeight: '20%' }} />
-                        </Box>
-                    ) : (
-                        <Box mt={1}>
-                            <CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />
-                        </Box>
-                    )} */}
                     <FormControl fullWidth>
                         <InputLabel id="engine-select-label">MorphoEngine</InputLabel>
                         <Select
