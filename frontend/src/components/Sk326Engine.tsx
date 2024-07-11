@@ -11,7 +11,7 @@ interface ImageFetcherProps {
 }
 const url_prefix = settings.url_prefix;
 
-const SK326Engine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId }) => {
+const MedianEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId }) => {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
@@ -74,10 +74,8 @@ const SK326Engine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId }) => 
             >
                 Download CSV
             </Button>
-
-
         </Box>
     );
 };
 
-export default SK326Engine;
+export default MedianEngine;
