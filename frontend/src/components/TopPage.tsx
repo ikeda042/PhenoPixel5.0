@@ -76,6 +76,7 @@ const TopPage: React.FC = () => {
 
     const handleCloseDialog = () => {
         setDialogOpen(false);
+        window.location.reload();
     };
 
     const filteredDatabases = databases.filter(database => {
