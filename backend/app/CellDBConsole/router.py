@@ -137,6 +137,14 @@ async def get_mean_fluo_intensities_csv(db_name: str, label: str):
     ).get_all_mean_normalized_fluo_intensities_csv(label=label)
 
 
+@router_cell.get("/{db_name}/{label}/{cell_id}/heatmap")
+async def get_heatmap(db_name: str, label: str, cell_id: str):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).heatmap_path(
+        label=label, cell_id=cell_id
+    )
+
+
 @router_database.post("/upload")
 async def upload_database(file: UploadFile = UploadFile(...)):
     db_name = file.filename
