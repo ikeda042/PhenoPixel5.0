@@ -417,7 +417,7 @@ const CellImageGrid: React.FC = () => {
                             value={engineMode}
                             onChange={handleEngineModeChange}
                         >
-                            <MenuItem value="Off">Off</MenuItem>
+                            <MenuItem value="Off">off</MenuItem>
                             <MenuItem value="MorphoEngine2.0">Morpho Engine2.0</MenuItem>
                         </Select>
                     </FormControl>
