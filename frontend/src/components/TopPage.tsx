@@ -79,10 +79,14 @@ const TopPage: React.FC = () => {
     };
 
     const filteredDatabases = databases.filter(database => {
+        const searchMatch = database.toLowerCase().includes(searchQuery.toLowerCase());
         if (displayMode === 'User uploaded') {
-            return database.toLowerCase().includes(searchQuery.toLowerCase()) && database.endsWith('-uploaded.db');
+            return searchMatch && database.endsWith('-uploaded.db');
         }
-        return database.toLowerCase().includes(searchQuery.toLowerCase());
+        if (displayMode === 'Validated') {
+            return searchMatch && !database.endsWith('-uploaded.db');
+        }
+        return searchMatch;
     });
 
     return (
