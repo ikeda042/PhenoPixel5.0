@@ -148,13 +148,21 @@ class SyncChores:
         other_points = [val for val in values if val not in close_points]
 
         x_other = np.random.normal(1, 0.04, size=len(other_points))
-        plt.plot(x_other, other_points, "o", alpha=0.5)
+        plt.plot(x_other, other_points, "o", alpha=0.5, label="Other cells")
         if close_points:
             x_close = np.random.normal(1, 0.04, size=len(close_points))
-            plt.plot(x_close, close_points, "o", color="red", alpha=0.5)
+            plt.plot(
+                x_close,
+                close_points,
+                "o",
+                color="red",
+                alpha=0.5,
+                label="Selected cell",
+            )
 
         plt.boxplot(values, flierprops=dict(marker=""))
         plt.ylim(0, 1.05)
+        plt.legend()
         plt.gca().axes.get_xaxis().set_visible(False)
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=200)
