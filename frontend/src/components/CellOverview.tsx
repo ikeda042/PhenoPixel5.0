@@ -475,8 +475,8 @@ const CellImageGrid: React.FC = () => {
                                         {engine !== 'None' && <img src={logoPath} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />}
                                         {engine === 'None' && <span>None</span>}
                                         {engine === 'MorphoEngine 2.0' && engine}
-                                        {engine === 'MorphoEngine 3.0' && <span>sk326</span>}
-                                        {engine === 'MorphoEngine 4.0' && <span>sk328</span>}
+                                        {engine === 'MorphoEngine 3.0' && <span>sk326 Engine</span>}
+                                        {engine === 'MorphoEngine 4.0' && <span>sk328 Engine</span>}
                                     </Box>
                                 </MenuItem>
                             ))}
