@@ -10,6 +10,7 @@ import Spinner from './Spinner';
 import CellMorphologyTable from "./CellMorphoTable";
 import { settings } from "../settings";
 import { useSearchParams } from 'react-router-dom';
+import SK326Engine from "./Sk326Engine";
 
 import {
     Chart as ChartJS,
@@ -507,6 +508,7 @@ const CellImageGrid: React.FC = () => {
                         <Box mt={2}>
                             <CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />
                         </Box>)}
+                    {engineMode === "MorphoEngine 3.0" && (<SK326Engine dbName={db_name} label={label} cellId={cellIds[currentIndex]} />)}
                 </Box>
             </Stack>
         </>
