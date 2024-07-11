@@ -973,3 +973,20 @@ class CellCrudBase:
             )
         )
         return mean_intensities
+
+    async def get_all_median_normalized_fluo_intensities(
+        self, label: str | None = None
+    ) -> list[float]:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        median_intensities = await asyncio.gather(
+            *(
+                AsyncChores.calc_median_normalized_fluo_intensity_inside_cell(
+                    cell.img_fluo1, cell.contour
+                )
+                for cell in cells
+            )
+        )
+        return median_intensities
