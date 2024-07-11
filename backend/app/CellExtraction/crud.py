@@ -6,10 +6,9 @@ import nd2reader
 import os
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 import cv2
 import numpy as np
+import asyncio
 
 
 class SyncChores:
@@ -368,9 +367,6 @@ class SyncChores:
                         )
                         n += 1
         return num_tiff
-
-
-import asyncio
 
 
 class CellExtraction:
