@@ -142,9 +142,7 @@ async def get_mean_fluo_intensities_csv(db_name: str, label: str):
 )
 async def get_heatmap(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
-    return await CellCrudBase(db_name=db_name).heatmap_path(
-        label=label, cell_id=cell_id
-    )
+    return await CellCrudBase(db_name=db_name).heatmap_path(cell_id=cell_id, degree=4)
 
 
 @router_cell.get(
