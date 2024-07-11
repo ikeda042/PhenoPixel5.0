@@ -35,11 +35,11 @@ const MedianEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId }) =>
 
     const handleDownloadCsv = async () => {
         try {
-            const response = await axios.get(`${url_prefix}/cells/${dbName}/${label}/mean_fluo_intensities/csv`, { responseType: 'blob' });
+            const response = await axios.get(`${url_prefix}/cells/${dbName}/${label}/median_fluo_intensities/csv`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `${label}_mean_fluo_intensities.csv`);
+            link.setAttribute('download', `${dbName}_median_fluo_intensities.csv`);
             document.body.appendChild(link);
             link.click();
             link?.parentNode?.removeChild(link);
