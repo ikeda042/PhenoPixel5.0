@@ -8,8 +8,6 @@ from fastapi import UploadFile
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 router_database = APIRouter(prefix="/databases", tags=["databases"])
-# define a global var called db_name
-db_name = "test_database.db"
 
 
 @router_cell.get("/database/healtcheck")
