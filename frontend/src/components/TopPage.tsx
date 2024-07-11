@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, TextField, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
+import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, TextField, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -16,6 +16,7 @@ const url_prefix = settings.url_prefix;
 const TopPage: React.FC = () => {
     const [databases, setDatabases] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [displayMode, setDisplayMode] = useState('User uploaded');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMessage, setDialogMessage] = useState("");
@@ -40,6 +41,10 @@ const TopPage: React.FC = () => {
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(event.target.value);
+    };
+
+    const handleDisplayModeChange = (event: SelectChangeEvent<string>) => {
+        setDisplayMode(event.target.value);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,7 +84,7 @@ const TopPage: React.FC = () => {
         <Container>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="space-between">
                 <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={6}>
+                    <Grid item xs={4}>
                         <TextField
                             label="Search Database"
                             variant="outlined"
@@ -88,6 +93,17 @@ const TopPage: React.FC = () => {
                             onChange={handleSearchChange}
                             sx={{ height: '56px' }}
                         />
+                    </Grid>
+                    <Grid item xs={2}>
+                        <Select
+                            value={displayMode}
+                            onChange={handleDisplayModeChange}
+                            displayEmpty
+                            inputProps={{ 'aria-label': 'Without label' }}
+                        >
+                            <MenuItem value="Validated">Validated</MenuItem>
+                            <MenuItem value="User uploaded">Uploaded</MenuItem>
+                        </Select>
                     </Grid>
                     <Grid item xs={3}>
                         <input
