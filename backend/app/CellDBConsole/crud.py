@@ -509,10 +509,10 @@ class AsyncChores:
             width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
 
         return CellMorhology(
-            area=round(area, 2),
-            volume=round(volume, 2),
-            width=round(width, 2),
-            length=round(cell_length, 2),
+            area=round(area * 0.0625 * 0.0625, 2),
+            volume=round(volume * 0.0625 * 0.0625 * 0.0625, 2),
+            width=round(width * 0.0625, 2),
+            length=round(cell_length * 0.0625, 2),
             mean_fluo_intensity=round(np.mean(points_inside_cell_1), 2),
             mean_ph_intensity=round(np.mean(ph_points_inside_cell_1), 2),
             mean_fluo_intensity_normalized=round(
