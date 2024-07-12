@@ -199,7 +199,7 @@ const Nd2Files: React.FC = () => {
                                                 <NavigateNextIcon />
                                             </IconButton>
                                             <IconButton onClick={() => handleDelete(file)}>
-                                                <DeleteIcon />
+                                                <DeleteIcon color="error" />
                                             </IconButton>
                                         </TableCell>
                                     </TableRow>
