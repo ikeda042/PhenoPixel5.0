@@ -23,10 +23,11 @@ async def upload_nd2_file(file: UploadFile):
     return JSONResponse(content={"filename": file.filename})
 
 
+@router_cell_extraction.get("/{db_name}/{mode}")
 async def extract_cells(
-    file_path: str, mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual"
+    db_name: str, mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual"
 ):
-    file_path = os.path.join("databases", file_path).replace(".db", "-uploaded.db")
+    file_path = os.path.join("databases", db_name).replace(".db", "-uploaded.db")
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     try:
