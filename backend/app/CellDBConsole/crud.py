@@ -21,6 +21,7 @@ from fastapi import UploadFile
 import aiofiles
 import os
 import pandas as pd
+from sqlalchemy import update
 
 matplotlib.use("Agg")
 
@@ -1021,6 +1022,20 @@ class CellCrudBase:
             cells: list[Cell] = result.scalars().all()
         await session.close()
         return [CellId(cell_id=cell.cell_id) for cell in cells]
+
+    async def update_label(self, cell_id: str, label: str) -> None:
+        """
+        Update the label of a cell.
+
+        Parameters:
+        - cell_id: ID of the cell to update.
+        - label: New label for the cell.
+        """
+        stmt = update(Cell).where(Cell.cell_id == cell_id).values(manual_label=label)
+        async for session in get_session(dbname=self.db_name):
+            await session.execute(stmt)
+            await session.commit()
+        await session.close()
 
     async def read_cell_ids_count(self, label: str | None = None) -> int:
         """
