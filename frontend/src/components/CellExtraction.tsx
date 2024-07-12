@@ -1,12 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-    Box, Grid, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, CircularProgress
+    Box, Grid, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, CircularProgress, IconButton
 } from "@mui/material";
+import { styled } from '@mui/system';
 import axios from "axios";
 import { settings } from "../settings";
+import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 
 const url_prefix = settings.url_prefix;
+
+const CustomTextField = styled(TextField)({
+    '& .MuiOutlinedInput-root': {
+        '& fieldset': {
+            borderColor: 'black',
+        },
+        '&:hover fieldset': {
+            borderColor: 'black',
+        },
+        '&.Mui-focused fieldset': {
+            borderColor: 'black',
+        },
+    },
+});
 
 const Extraction: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -15,7 +32,8 @@ const Extraction: React.FC = () => {
     const [param1, setParam1] = useState(100);
     const [imageSize, setImageSize] = useState(200);
     const [isLoading, setIsLoading] = useState(false);
-    const [extractedImages, setExtractedImages] = useState<string[]>([]);
+    const [numImages, setNumImages] = useState(0);
+    const [currentImage, setCurrentImage] = useState(0);
 
     const handleExtractCells = async () => {
         setIsLoading(true);
@@ -26,7 +44,8 @@ const Extraction: React.FC = () => {
                     image_size: imageSize,
                 },
             });
-            setExtractedImages(response.data.images);
+            setNumImages(response.data.num_images);
+            setCurrentImage(0);
         } catch (error) {
             console.error("Failed to extract cells", error);
         } finally {
@@ -34,10 +53,18 @@ const Extraction: React.FC = () => {
         }
     };
 
+    const handlePreviousImage = () => {
+        setCurrentImage((prev) => (prev > 0 ? prev - 1 : prev));
+    };
+
+    const handleNextImage = () => {
+        setCurrentImage((prev) => (prev < numImages - 1 ? prev + 1 : prev));
+    };
+
     return (
         <Box>
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
+            <Grid container spacing={2} alignItems="center" justifyContent="center">
+                <Grid item xs={12} md={numImages > 0 ? 4 : 8}>
                     <FormControl fullWidth margin="normal">
                         <InputLabel>Mode</InputLabel>
                         <Select
@@ -49,7 +76,7 @@ const Extraction: React.FC = () => {
                             <MenuItem value="triple_layer">Triple Layer</MenuItem>
                         </Select>
                     </FormControl>
-                    <TextField
+                    <CustomTextField
                         label="Param1"
                         type="number"
                         fullWidth
@@ -57,7 +84,7 @@ const Extraction: React.FC = () => {
                         value={param1}
                         onChange={(e) => setParam1(Number(e.target.value))}
                     />
-                    <TextField
+                    <CustomTextField
                         label="Image Size"
                         type="number"
                         fullWidth
@@ -84,13 +111,22 @@ const Extraction: React.FC = () => {
                         {isLoading ? <CircularProgress size={24} /> : "Extract Cells"}
                     </Button>
                 </Grid>
-                <Grid item xs={12} md={8}>
-                    <Box display="flex" flexWrap="wrap" gap={2}>
-                        {extractedImages.map((image, index) => (
-                            <Box key={index} component="img" src={image} alt={`Extracted cell ${index}`} />
-                        ))}
-                    </Box>
-                </Grid>
+                {numImages > 0 && (
+                    <Grid item xs={12} md={8}>
+                        <Box display="flex" flexDirection="column" alignItems="center">
+                            <Box component="img" src={`${url_prefix}/cell_extraction/ph_contours/${currentImage}`} alt={`Extracted cell ${currentImage}`} />
+                            <Box display="flex" justifyContent="space-between" mt={2}>
+                                <IconButton onClick={handlePreviousImage} disabled={currentImage === 0}>
+                                    <ArrowBackIosIcon />
+                                </IconButton>
+                                <Typography variant="body1">{currentImage + 1} / {numImages}</Typography>
+                                <IconButton onClick={handleNextImage} disabled={currentImage === numImages - 1}>
+                                    <ArrowForwardIosIcon />
+                                </IconButton>
+                            </Box>
+                        </Box>
+                    </Grid>
+                )}
             </Grid>
         </Box>
     );
