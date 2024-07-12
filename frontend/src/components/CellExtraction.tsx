@@ -45,7 +45,10 @@ const Extraction: React.FC = () => {
                     image_size: imageSize,
                 },
             });
-            const numImages = response.data.num_images;
+
+            // Fetch the number of images
+            const countResponse = await axios.get(`${url_prefix}/cell_extraction/ph_contours/count`);
+            const numImages = countResponse.data.count;
             setNumImages(numImages);
             setCurrentImage(0);
 
@@ -89,7 +92,7 @@ const Extraction: React.FC = () => {
     return (
         <Box>
             <Grid container spacing={2} alignItems="center" justifyContent="center">
-                <Grid item xs={12} md={numImages > 0 ? 4 : 8}>
+                <Grid item xs={12} md={4}>
                     <FormControl fullWidth margin="normal">
                         <InputLabel>Mode</InputLabel>
                         <Select
@@ -139,8 +142,13 @@ const Extraction: React.FC = () => {
                 {currentImageUrl && (
                     <Grid item xs={12} md={8}>
                         <Box display="flex" flexDirection="column" alignItems="center">
-                            <Box component="img" src={currentImageUrl} alt={`Extracted cell ${currentImage}`} />
-                            <Box display="flex" justifyContent="space-between" mt={2}>
+                            <Box
+                                component="img"
+                                src={currentImageUrl}
+                                alt={`Extracted cell ${currentImage}`}
+                                sx={{ width: '400px', height: '400px', objectFit: 'contain' }}
+                            />
+                            <Box display="flex" justifyContent="space-between" mt={2} width="100%">
                                 <IconButton onClick={handlePreviousImage} disabled={currentImage === 0}>
                                     <ArrowBackIosIcon />
                                 </IconButton>
