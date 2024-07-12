@@ -283,6 +283,26 @@ const CellImageGrid: React.FC = () => {
         },
     };
 
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Enter') {
+                handleNext();
+            } else if (event.key >= '1' && event.key <= '9') {
+                setManualLabel(event.key);
+                handleCellLabelChange({ target: { value: event.key } } as SelectChangeEvent<string>);
+            } else if (event.key === 'n' || event.key === 'N') {
+                setManualLabel("1000");
+                handleCellLabelChange({ target: { value: "1000" } } as SelectChangeEvent<string>);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [cellIds, currentIndex]);
+
     return (
         <>
             <Box>
