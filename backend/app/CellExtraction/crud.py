@@ -308,8 +308,7 @@ class SyncChores:
             cv2.imwrite(f"ph_contours/{k}.png", image_ph_copy)
             n = 0
             if mode == "triple_layer":
-                for j, ph, fluo1, fluo2 in zip(
-                    [i for i in range(len(cropped_images_ph))],
+                for ph, fluo1, fluo2 in zip(
                     cropped_images_ph,
                     cropped_images_fluo_1,
                     cropped_images_fluo_2,
@@ -323,15 +322,12 @@ class SyncChores:
                             f"TempData/frames/tiff_{k}/Cells/fluo2/{n}.png", fluo2
                         )
             elif mode == "single_layer":
-                for j, ph in zip(
-                    [i for i in range(len(cropped_images_ph))], cropped_images_ph
-                ):
+                for ph in zip(cropped_images_ph):
                     if len(ph) == output_size[0] and len(ph[0]) == output_size[1]:
                         cv2.imwrite(f"TempData/frames/tiff_{k}/Cells/ph/{n}.png", ph)
                         n += 1
             elif mode == "dual_layer":
-                for j, ph, fluo1 in zip(
-                    [i for i in range(len(cropped_images_ph))],
+                for ph, fluo1 in zip(
                     cropped_images_ph,
                     cropped_images_fluo_1,
                 ):
