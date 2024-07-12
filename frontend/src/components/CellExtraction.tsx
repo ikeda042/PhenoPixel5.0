@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
     Box, Grid, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, CircularProgress, IconButton
@@ -34,6 +34,7 @@ const Extraction: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [numImages, setNumImages] = useState(0);
     const [currentImage, setCurrentImage] = useState(0);
+    const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
 
     const handleExtractCells = async () => {
         setIsLoading(true);
@@ -44,8 +45,12 @@ const Extraction: React.FC = () => {
                     image_size: imageSize,
                 },
             });
-            setNumImages(response.data.num_images);
+            const numImages = response.data.num_images;
+            setNumImages(numImages);
             setCurrentImage(0);
+
+            // Fetch the first image
+            fetchImage(0);
         } catch (error) {
             console.error("Failed to extract cells", error);
         } finally {
@@ -53,12 +58,32 @@ const Extraction: React.FC = () => {
         }
     };
 
+    const fetchImage = async (frameNum: number) => {
+        try {
+            const response = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${frameNum}`, {
+                responseType: 'blob',
+            });
+            const imageUrl = URL.createObjectURL(response.data);
+            setCurrentImageUrl(imageUrl);
+        } catch (error) {
+            console.error("Failed to fetch image", error);
+        }
+    };
+
     const handlePreviousImage = () => {
-        setCurrentImage((prev) => (prev > 0 ? prev - 1 : prev));
+        const newImage = currentImage - 1;
+        if (newImage >= 0) {
+            setCurrentImage(newImage);
+            fetchImage(newImage);
+        }
     };
 
     const handleNextImage = () => {
-        setCurrentImage((prev) => (prev < numImages - 1 ? prev + 1 : prev));
+        const newImage = currentImage + 1;
+        if (newImage < numImages) {
+            setCurrentImage(newImage);
+            fetchImage(newImage);
+        }
     };
 
     return (
@@ -111,10 +136,10 @@ const Extraction: React.FC = () => {
                         {isLoading ? <CircularProgress size={24} /> : "Extract Cells"}
                     </Button>
                 </Grid>
-                {numImages > 0 && (
+                {currentImageUrl && (
                     <Grid item xs={12} md={8}>
                         <Box display="flex" flexDirection="column" alignItems="center">
-                            <Box component="img" src={`${url_prefix}/cell_extraction/ph_contours/${currentImage}`} alt={`Extracted cell ${currentImage}`} />
+                            <Box component="img" src={currentImageUrl} alt={`Extracted cell ${currentImage}`} />
                             <Box display="flex" justifyContent="space-between" mt={2}>
                                 <IconButton onClick={handlePreviousImage} disabled={currentImage === 0}>
                                     <ArrowBackIosIcon />
