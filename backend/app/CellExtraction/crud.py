@@ -384,14 +384,20 @@ class SyncChores:
 
 
 class ExtractionCrudBase:
-    def __init__(self, nd2_path: str, mode: str = "dual_layer"):
+    def __init__(
+        self,
+        nd2_path: str,
+        mode: str = "dual_layer",
+        param1: int = 130,
+        image_size: int = 200,
+    ):
         if not os.path.exists(nd2_path):
             raise FileNotFoundError("File not found")
         self.nd2_path = nd2_path
         self.file_prefix = self.nd2_path.split("/")[-1].split(".")[0]
         self.mode = mode
-        self.param1 = 130
-        self.image_size = 200
+        self.param1 = param1
+        self.image_size = image_size
 
     async def load_image(self, path):
         async with aiofiles.open(path, mode="rb") as f:
