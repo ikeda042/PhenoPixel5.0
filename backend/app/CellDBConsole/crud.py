@@ -475,21 +475,20 @@ class AsyncChores:
 
     @staticmethod
     async def get_contour(contour: bytes) -> np.ndarray:
-        img_size = 200
         contour_unpickled = await AsyncChores.async_pickle_loads(contour)
         contour = np.array([[i, j] for i, j in [i[0] for i in contour_unpickled]])
-        X = np.array(
-            [
-                [i[1] for i in contour],
-                [i[0] for i in contour],
-            ]
-        )
+        # X = np.array(
+        #     [
+        #         [i[1] for i in contour],
+        #         [i[0] for i in contour],
+        #     ]
+        # )
 
-        # 基底変換関数を呼び出して必要な変数を取得
-        u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U = (
-            SyncChores.basis_conversion(contour, X, img_size / 2, img_size / 2, contour)
-        )
-        return {"raw": contour, "converted": contour_U}
+        # # 基底変換関数を呼び出して必要な変数を取得
+        # u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U = (
+        #     SyncChores.basis_conversion(contour, X, img_size / 2, img_size / 2, contour)
+        # )
+        return {"raw": contour, "converted": contour}
 
     @staticmethod
     async def save_fig_async(fig: Figure, filename: str) -> None:
