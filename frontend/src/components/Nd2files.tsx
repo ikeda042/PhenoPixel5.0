@@ -3,9 +3,9 @@ import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer
 import axios from "axios";
 import { settings } from "../settings";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
-import DatabaseIcon from '@mui/icons-material/Storage';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { useNavigate } from "react-router-dom";
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 
 interface ListDBResponse {
     databases: string[];
@@ -126,7 +126,7 @@ const Nd2Files: React.FC = () => {
                             <Button
                                 variant="contained"
                                 component="span"
-                                startIcon={<DatabaseIcon />}
+                                startIcon={<InsertDriveFileIcon />}
                                 sx={{
                                     backgroundColor: 'white',
                                     color: 'black',
@@ -137,7 +137,7 @@ const Nd2Files: React.FC = () => {
                                     }
                                 }}
                             >
-                                {selectedFile ? selectedFile.name : "Select Database"}
+                                {selectedFile ? selectedFile.name : "Select ND2 file"}
                             </Button>
                         </label>
                     </Grid>
