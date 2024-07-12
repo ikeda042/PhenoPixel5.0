@@ -35,7 +35,7 @@ async def delete_nd2_file(file_name: str):
     file_path = os.path.join("uploaded_files", file_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
-    await ExtractionCrudBase.delete_nd2_file(file_path)
+    await ExtractionCrudBase("").delete_nd2_file(file_path)
     return JSONResponse(content={"message": "File deleted"})
 
 
