@@ -40,7 +40,7 @@ const url_prefix = settings.url_prefix;
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string, replot?: string, path?: string } }>({});
-    const [selectedLabel, setSelectedLabel] = useState<string>("1");
+    const [selectedLabel, setSelectedLabel] = useState<string>("74");
     const [manualLabel, setManualLabel] = useState<string>("");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [drawContour, setDrawContour] = useState<boolean>(true);
@@ -305,7 +305,7 @@ const CellImageGrid: React.FC = () => {
                             value={selectedLabel}
                             onChange={handleLabelChange}
                         >
-                            <MenuItem value="74">None</MenuItem>
+                            <MenuItem value="74">All</MenuItem>
                             <MenuItem value="1000">N/A</MenuItem>
                             <MenuItem value="1">1</MenuItem>
                             <MenuItem value="2">2</MenuItem>
