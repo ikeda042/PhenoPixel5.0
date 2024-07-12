@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
     Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     IconButton, TextField, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText,
-    DialogTitle, Link, Breadcrumbs
+    DialogTitle, Link, Breadcrumbs, CircularProgress
 } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
@@ -24,6 +24,7 @@ const Nd2Files: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMessage, setDialogMessage] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -55,6 +56,7 @@ const Nd2Files: React.FC = () => {
 
     const handleUpload = async () => {
         if (selectedFile) {
+            setIsLoading(true);
             const formData = new FormData();
             formData.append("file", selectedFile);
             try {
@@ -72,6 +74,8 @@ const Nd2Files: React.FC = () => {
                 setDialogMessage("Failed to upload file.");
                 setDialogOpen(true);
                 console.error("Failed to upload file", error);
+            } finally {
+                setIsLoading(false);
             }
         }
     };
@@ -161,7 +165,7 @@ const Nd2Files: React.FC = () => {
                                 }
                             }}
                             startIcon={<FileUploadIcon />}
-                            disabled={!selectedFile}
+                            disabled={!selectedFile || isLoading}
                         >
                             Upload
                         </Button>
@@ -169,36 +173,42 @@ const Nd2Files: React.FC = () => {
                 </Grid>
             </Box>
 
-            <Box mt={3}>
-                <TableContainer component={Paper}>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>ND2 Files</TableCell>
-                                <TableCell align="right">Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {filteredFiles.map((file, index) => (
-                                <TableRow key={index}>
-                                    <TableCell component="th" scope="row">
-                                        {file}
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <IconButton onClick={() => handleNavigate(file)}>
-                                            <Typography>Extract cells </Typography>
-                                            <NavigateNextIcon />
-                                        </IconButton>
-                                        <IconButton onClick={() => handleDelete(file)}>
-                                            <DeleteIcon />
-                                        </IconButton>
-                                    </TableCell>
+            {isLoading ? (
+                <Box display="flex" justifyContent="center" alignItems="center" mt={3}>
+                    <CircularProgress />
+                </Box>
+            ) : (
+                <Box mt={3}>
+                    <TableContainer component={Paper}>
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>ND2 Files</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Box>
+                            </TableHead>
+                            <TableBody>
+                                {filteredFiles.map((file, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell component="th" scope="row">
+                                            {file}
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <IconButton onClick={() => handleNavigate(file)}>
+                                                <Typography>Extract cells </Typography>
+                                                <NavigateNextIcon />
+                                            </IconButton>
+                                            <IconButton onClick={() => handleDelete(file)}>
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Box>
+            )}
 
             <Dialog open={dialogOpen} onClose={handleCloseDialog}>
                 <DialogTitle>{"File Operation Status"}</DialogTitle>
