@@ -484,6 +484,7 @@ class ExtractionCrudBase:
     async def get_nd2_filenames(self) -> list[str]:
         return [i for i in os.listdir("uploaded_files") if i.endswith(".nd2")]
 
-    async def delete_nd2_file(self) -> bool:
-        await asyncio.to_thread(os.remove, f"uploaded_files/{self.file_prefix}.nd2")
+    async def delete_nd2_file(self, filename: str) -> bool:
+        filename = filename.split("/")[-1]
+        await asyncio.to_thread(os.remove, f"uploaded_files/{filename}")
         return True
