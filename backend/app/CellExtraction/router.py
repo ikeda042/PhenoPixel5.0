@@ -21,3 +21,15 @@ async def upload_nd2_file(file: UploadFile):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return JSONResponse(content={"filename": file.filename})
+
+
+@router_cell_extraction.get("/extract_cells")
+async def extract_cells(
+    file_path: str, mode: Literal["single", "dual", "triple"] = "dual"
+):
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    try:
+        extractor = ExtractionCrudBase(nd2_path=file_path, mode=mode)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
