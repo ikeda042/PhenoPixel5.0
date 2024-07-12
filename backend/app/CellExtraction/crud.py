@@ -322,23 +322,6 @@ class SyncChores:
                         cv2.imwrite(
                             f"TempData/frames/tiff_{k}/Cells/fluo2/{n}.png", fluo2
                         )
-                        brightness_factor_fluo1 = 255 / np.max(fluo1)
-                        image_fluo1_brightened = cv2.convertScaleAbs(
-                            fluo1, alpha=brightness_factor_fluo1, beta=0
-                        )
-                        cv2.imwrite(
-                            f"TempData/frames/tiff_{k}/Cells/fluo_adjusted/{n}.png",
-                            image_fluo1_brightened,
-                        )
-                        brightness_factor_fluo2 = 255 / np.max(fluo2)
-                        image_fluo2_brightened = cv2.convertScaleAbs(
-                            fluo2, alpha=brightness_factor_fluo2, beta=0
-                        )
-                        cv2.imwrite(
-                            f"TempData/frames/tiff_{k}/Cells/fluo_adjusted/{n}.png",
-                            image_fluo2_brightened,
-                        )
-                        n += 1
             elif mode == "single_layer":
                 for j, ph in zip(
                     [i for i in range(len(cropped_images_ph))], cropped_images_ph
@@ -357,15 +340,6 @@ class SyncChores:
                         cv2.imwrite(
                             f"TempData/frames/tiff_{k}/Cells/fluo1/{n}.png", fluo1
                         )
-                        brightness_factor_fluo1 = 255 / np.max(fluo1)
-                        image_fluo1_brightened = cv2.convertScaleAbs(
-                            fluo1, alpha=brightness_factor_fluo1, beta=0
-                        )
-                        cv2.imwrite(
-                            f"TempData/frames/tiff_{k}/Cells/fluo_adjusted/{n}.png",
-                            image_fluo1_brightened,
-                        )
-                        n += 1
         return num_tiff
 
 
