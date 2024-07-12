@@ -6,7 +6,7 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import DatabaseIcon from '@mui/icons-material/Storage';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { useNavigate } from "react-router-dom";
-import { useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 interface ListDBResponse {
     databases: string[];
@@ -15,9 +15,11 @@ interface ListDBResponse {
 const url_prefix = settings.url_prefix;
 
 const Databases: React.FC = () => {
-    const { default_search_word } = useParams();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const default_search_word = queryParams.get('default_search_word') ?? "";
     const [databases, setDatabases] = useState<string[]>([]);
-    const [searchQuery, setSearchQuery] = useState(default_search_word || "");
+    const [searchQuery, setSearchQuery] = useState(default_search_word);
     const [displayMode, setDisplayMode] = useState('User uploaded');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
