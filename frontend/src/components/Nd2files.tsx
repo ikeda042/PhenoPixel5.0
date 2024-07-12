@@ -103,7 +103,7 @@ const Nd2Files: React.FC = () => {
             </Box>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="space-between" mt={2}>
                 <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={4}>
+                    <Grid item xs={6}>
                         <TextField
                             label="Search Database"
                             variant="outlined"
@@ -112,19 +112,6 @@ const Nd2Files: React.FC = () => {
                             onChange={handleSearchChange}
                             sx={{ height: '56px' }}
                         />
-                    </Grid>
-                    <Grid item xs={2}>
-                        <Select
-                            value={displayMode}
-                            onChange={handleDisplayModeChange}
-                            displayEmpty
-                            inputProps={{ 'aria-label': 'Without label' }}
-                            fullWidth
-                            sx={{ height: '56px' }}
-                        >
-                            <MenuItem value="Validated">Validated</MenuItem>
-                            <MenuItem value="User uploaded">Uploaded</MenuItem>
-                        </Select>
                     </Grid>
                     <Grid item xs={3}>
                         <input
