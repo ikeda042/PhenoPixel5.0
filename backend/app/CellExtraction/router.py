@@ -25,7 +25,9 @@ async def upload_nd2_file(file: UploadFile):
 
 @router_cell_extraction.get("/nd2_files")
 async def get_nd2_files():
-    return JSONResponse(content={"files": await ExtractionCrudBase.get_nd2_filenames()})
+    return JSONResponse(
+        content={"files": await ExtractionCrudBase("").get_nd2_filenames()}
+    )
 
 
 @router_cell_extraction.delete("/nd2_files/{file_name}")
