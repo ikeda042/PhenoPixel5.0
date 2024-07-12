@@ -359,6 +359,8 @@ class ExtractionCrudBase:
         nd2_path: str,
         mode: str = "dual_layer",
     ):
+        if not os.path.exists(nd2_path):
+            raise FileNotFoundError("File not found")
         self.nd2_path = nd2_path
         self.file_prefix = self.nd2_path.split("/")[-1].split(".")[0]
         self.mode = mode
