@@ -422,7 +422,6 @@ class CellExtraction:
                         perimeter = cv2.arcLength(contour, True)
                         area = cv2.contourArea(contour)
                         center_x, center_y = SyncChores.get_contour_center(contour)
-
                         img_ph_data = cv2.imencode(".png", img_ph_gray)[1].tobytes()
                         img_fluo1_data = img_fluo2_data = None
                         if self.mode != "single_layer":
