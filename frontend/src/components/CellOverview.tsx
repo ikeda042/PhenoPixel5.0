@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
-    Stack, Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox, Breadcrumbs, Link
+    Stack, Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox, Breadcrumbs, Link,
+    Menu
 } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material/Select";
 import { Scatter } from 'react-chartjs-2';
@@ -111,6 +112,22 @@ const CellImageGrid: React.FC = () => {
             handleFetchImages(cellIds[currentIndex]);
         }
     }, [cellIds, currentIndex, db_name, drawContour, drawScaleBar, brightnessFactor]);
+
+    useEffect(() => {
+        const fetchInitialLabel = async () => {
+            if (cellIds.length > 0) {
+                const cellId = cellIds[currentIndex];
+                try {
+                    const response = await axios.get(`${url_prefix}/${db_name}/${cellId}/label`);
+                    setLabel(response.data);
+                } catch (error) {
+                    console.error("Error fetching initial label:", error);
+                }
+            }
+        };
+
+        fetchInitialLabel();
+    }, [cellIds, currentIndex, db_name]);
 
     const fetchContour = async (cellId: string) => {
         try {
@@ -285,10 +302,16 @@ const CellImageGrid: React.FC = () => {
                             value={label}
                             onChange={handleLabelChange}
                         >
-                            <MenuItem value="1000">N/A</MenuItem>
+                            <MenuItem value="N/A">N/A</MenuItem>
                             <MenuItem value="1">1</MenuItem>
                             <MenuItem value="2">2</MenuItem>
                             <MenuItem value="3">3</MenuItem>
+                            <MenuItem value="4">4</MenuItem>
+                            <MenuItem value="5">5</MenuItem>
+                            <MenuItem value="6">6</MenuItem>
+                            <MenuItem value="7">7</MenuItem>
+                            <MenuItem value="8">8</MenuItem>
+
                         </Select>
                     </FormControl>
                     <Box mt={2}>
