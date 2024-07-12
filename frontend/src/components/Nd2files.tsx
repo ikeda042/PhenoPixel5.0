@@ -105,7 +105,7 @@ const Nd2Files: React.FC = () => {
                 <Grid container spacing={2} alignItems="center">
                     <Grid item xs={6}>
                         <TextField
-                            label="Search Database"
+                            label="Search ND2 files"
                             variant="outlined"
                             fullWidth
                             value={searchQuery}
