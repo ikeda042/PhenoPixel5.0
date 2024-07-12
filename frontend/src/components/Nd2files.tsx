@@ -41,7 +41,7 @@ const Nd2Files: React.FC = () => {
     };
 
     const handleNavigate = (fileName: string) => {
-        navigate(`/nd2_files/?file_name=${fileName}`);
+        navigate(`/cellextraction/?file_name=${fileName}`);
     };
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
