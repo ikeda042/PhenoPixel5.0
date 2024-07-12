@@ -180,7 +180,7 @@ const Nd2Files: React.FC = () => {
                                     </TableCell>
                                     <TableCell align="right">
                                         <IconButton onClick={() => handleNavigate(database)}>
-                                            <Typography>Access database </Typography>
+                                            <Typography>Extract cells </Typography>
                                             <NavigateNextIcon />
                                         </IconButton>
                                     </TableCell>
