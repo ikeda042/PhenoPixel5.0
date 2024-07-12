@@ -361,8 +361,6 @@ class ExtractionCrudBase:
         param1: int = 130,
         image_size: int = 200,
     ):
-        if not os.path.exists(nd2_path):
-            raise FileNotFoundError("File not found")
         self.nd2_path = nd2_path
         self.file_prefix = self.nd2_path.split("/")[-1].split(".")[0]
         self.mode = mode
@@ -484,7 +482,7 @@ class ExtractionCrudBase:
         return dbname.split("/")[-1]
 
     async def get_nd2_filenames(self) -> list[str]:
-        return os.listdir("uploaded_files")
+        return [i for i in os.listdir("uploaded_files") if i.endswith(".nd2")]
 
     async def delete_nd2_file(self) -> bool:
         await asyncio.to_thread(os.remove, f"uploaded_files/{self.file_prefix}.nd2")
