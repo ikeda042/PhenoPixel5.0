@@ -176,6 +176,7 @@ const Nd2Files: React.FC = () => {
             {isLoading ? (
                 <Box display="flex" justifyContent="center" alignItems="center" mt={3}>
                     <CircularProgress />
+                    <Typography variant="h6" ml={2}>Uploading the selected ND2 file...</Typography>
                 </Box>
             ) : (
                 <Box mt={3}>
