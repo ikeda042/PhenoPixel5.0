@@ -25,12 +25,13 @@ async def upload_nd2_file(file: UploadFile):
 
 @router_cell_extraction.get("/extract_cells")
 async def extract_cells(
-    file_path: str, mode: Literal["single", "dual", "triple"] = "dual"
+    file_path: str, mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual"
 ):
     file_path = os.path.join("uploaded_files", file_path)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     try:
         extractor = ExtractionCrudBase(nd2_path=file_path, mode=mode)
+        await extractor.main()
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
