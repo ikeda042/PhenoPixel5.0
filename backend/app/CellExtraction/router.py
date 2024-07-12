@@ -10,7 +10,7 @@ from fastapi import HTTPException
 router_cell_extraction = APIRouter(prefix="/cell_extraction", tags=["cell_extraction"])
 
 
-@router_cell_extraction.post("/upload_nd2")
+@router_cell_extraction.post("/nd2_files")
 async def upload_nd2_file(file: UploadFile):
     file_path = file.filename
     file_path = os.path.join("uploaded_files", file_path)
@@ -21,6 +21,11 @@ async def upload_nd2_file(file: UploadFile):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return JSONResponse(content={"filename": file.filename})
+
+
+@router_cell_extraction.get("/nd2_files")
+async def get_nd2_files():
+    return JSONResponse(content={"files": await ExtractionCrudBase.get_ne2_filenames()})
 
 
 @router_cell_extraction.get("/{db_name}/{mode}")
