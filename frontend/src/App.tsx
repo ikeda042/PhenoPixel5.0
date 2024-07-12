@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import CellImageGrid from './components/CellOverview';
 import Databases from './components/Databases';
 import TopPage from './components/TopPage';
+import Nd2Files from './components/Nd2files';
 
 function App() {
   return (
@@ -38,11 +39,11 @@ function App() {
               </Grid >
             </>
           } />
-          <Route path="/databases" element={
+          <Route path="/nd2files" element={
             <>
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={1} margin={3} mt={-4}>
-                <CellImageGrid />
+                <Nd2Files />
               </Grid >
             </>
           } />
