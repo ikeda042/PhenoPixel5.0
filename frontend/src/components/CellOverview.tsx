@@ -180,6 +180,18 @@ const CellImageGrid: React.FC = () => {
         setLabel(event.target.value);
     };
 
+    const handleCellLabelChange = async (event: SelectChangeEvent<string>) => {
+        const newLabel = event.target.value;
+        const cellId = cellIds[currentIndex];
+
+        try {
+            await axios.patch(`${url_prefix}/${db_name}/${cellId}/${newLabel}`);
+            setLabel(newLabel); // Update the local state with the new label
+        } catch (error) {
+            console.error("Error updating cell label:", error);
+        }
+    };
+
     const handleContourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setDrawContour(e.target.checked);
     };
@@ -215,12 +227,10 @@ const CellImageGrid: React.FC = () => {
         'MorphoEngine 5.0': '/logo_heatmap.png',
     };
 
-
     const handleEngineModeChange = (event: SelectChangeEvent<string>) => {
         setEngineMode(event.target.value);
     };
 
-    // プロット用のデータを生成
     const contourPlotData = {
         datasets: [
             {
@@ -282,27 +292,50 @@ const CellImageGrid: React.FC = () => {
                         </Select>
                     </FormControl>
                     <Box mt={2}>
-                        <FormControlLabel
-                            control={<Checkbox checked={drawContour} onChange={handleContourChange} style={{ color: "black" }} />}
-                            label="Detect Contour"
-                            style={{ color: "black" }}
-                        />
-                        <FormControlLabel
-                            control={<Checkbox checked={drawScaleBar} onChange={handleScaleBarChange} style={{ color: "black" }} />}
-                            label="Draw Scale Bar"
-                            style={{ color: "black" }}
-                        />
-                        <TextField
-                            label="Brightness Factor"
-                            type="number"
-                            value={brightnessFactor}
-                            onChange={handleBrightnessChange}
-                            InputProps={{
-                                inputProps: { min: 0.1, step: 0.1 },
-                                onWheel: handleWheel,
-                                autoComplete: "off"
-                            }}
-                        />
+                        <Grid container spacing={2} alignItems="center">
+                            <Grid item xs={3}>
+                                <FormControlLabel
+                                    control={<Checkbox checked={drawContour} onChange={handleContourChange} style={{ color: "black" }} />}
+                                    label="Contour"
+                                    style={{ color: "black" }}
+                                />
+                            </Grid>
+                            <Grid item xs={3}>
+                                <FormControlLabel
+                                    control={<Checkbox checked={drawScaleBar} onChange={handleScaleBarChange} style={{ color: "black" }} />}
+                                    label="Scale Bar"
+                                    style={{ color: "black" }}
+                                />
+                            </Grid>
+                            <Grid item xs={3}>
+                                <TextField
+                                    label="Brightness Factor"
+                                    type="number"
+                                    value={brightnessFactor}
+                                    onChange={handleBrightnessChange}
+                                    InputProps={{
+                                        inputProps: { min: 0.1, step: 0.1 },
+                                        onWheel: handleWheel,
+                                        autoComplete: "off"
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={3}>
+                                <FormControl fullWidth>
+                                    <InputLabel id="cell-label-select-label">Manual Label</InputLabel>
+                                    <Select
+                                        labelId="cell-label-select-label"
+                                        value={label}
+                                        onChange={handleCellLabelChange}
+                                    >
+                                        <MenuItem value="1">1</MenuItem>
+                                        <MenuItem value="2">2</MenuItem>
+                                        <MenuItem value="3">3</MenuItem>
+                                        {/* Add more labels as needed */}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                        </Grid>
                     </Box>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
                         <Button variant="contained" color="primary" onClick={handlePrev} disabled={cellIds.length === 0} style={{ backgroundColor: "black", minWidth: "100px" }}>
