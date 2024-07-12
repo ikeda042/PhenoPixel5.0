@@ -1,50 +1,50 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, TextField, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Select, MenuItem, SelectChangeEvent, Link, Breadcrumbs } from "@mui/material";
+import {
+    Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+    IconButton, TextField, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText,
+    DialogTitle, Link, Breadcrumbs
+} from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { useNavigate } from "react-router-dom";
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import DeleteIcon from '@mui/icons-material/Delete';
 
-interface ListDBResponse {
-    databases: string[];
+interface ListND2FilesResponse {
+    files: string[];
 }
 
 const url_prefix = settings.url_prefix;
 
 const Nd2Files: React.FC = () => {
-    const [databases, setDatabases] = useState<string[]>([]);
+    const [nd2Files, setNd2Files] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
-    const [displayMode, setDisplayMode] = useState('User uploaded');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMessage, setDialogMessage] = useState("");
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchDatabases = async () => {
-            try {
-                const response = await axios.get<ListDBResponse>(`${url_prefix}/databases`);
-                setDatabases(response.data.databases);
-            } catch (error) {
-                console.error("Failed to fetch databases", error);
-            }
-        };
-
-        fetchDatabases();
+        fetchND2Files();
     }, []);
 
-    const handleNavigate = (dbName: string) => {
-        navigate(`/databases/?db_name=${dbName}`);
+    const fetchND2Files = async () => {
+        try {
+            const response = await axios.get<ListND2FilesResponse>(`${url_prefix}/cell_extraction/nd2_files`);
+            setNd2Files(response.data.files);
+        } catch (error) {
+            console.error("Failed to fetch ND2 files", error);
+        }
+    };
+
+    const handleNavigate = (fileName: string) => {
+        navigate(`/nd2_files/?file_name=${fileName}`);
     };
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(event.target.value);
-    };
-
-    const handleDisplayModeChange = (event: SelectChangeEvent<string>) => {
-        setDisplayMode(event.target.value);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,19 +58,35 @@ const Nd2Files: React.FC = () => {
             const formData = new FormData();
             formData.append("file", selectedFile);
             try {
-                const response = await axios.post(`${url_prefix}/databases/upload`, formData, {
+                const response = await axios.post(`${url_prefix}/cell_extraction/nd2_files`, formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data'
                     }
                 });
-                setDialogMessage("Database uploaded successfully!");
+                setDialogMessage("File uploaded successfully!");
                 setDialogOpen(true);
+                setSelectedFile(null);
+                fetchND2Files();
                 console.log(response.data);
             } catch (error) {
-                setDialogMessage("Failed to upload database.");
+                setDialogMessage("Failed to upload file.");
                 setDialogOpen(true);
-                console.error("Failed to upload database", error);
+                console.error("Failed to upload file", error);
             }
+        }
+    };
+
+    const handleDelete = async (fileName: string) => {
+        try {
+            const response = await axios.delete(`${url_prefix}/cell_extraction/nd2_files/${fileName}`);
+            setDialogMessage("File deleted successfully!");
+            setDialogOpen(true);
+            fetchND2Files();
+            console.log(response.data);
+        } catch (error) {
+            setDialogMessage("Failed to delete file.");
+            setDialogOpen(true);
+            console.error("Failed to delete file", error);
         }
     };
 
@@ -79,16 +95,7 @@ const Nd2Files: React.FC = () => {
         window.location.reload();
     };
 
-    const filteredDatabases = databases.filter(database => {
-        const searchMatch = database.toLowerCase().includes(searchQuery.toLowerCase());
-        if (displayMode === 'User uploaded') {
-            return searchMatch && database.endsWith('-uploaded.db');
-        }
-        if (displayMode === 'Validated') {
-            return searchMatch && !database.endsWith('-uploaded.db');
-        }
-        return searchMatch;
-    });
+    const filteredFiles = nd2Files.filter(file => file.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
         <Container>
@@ -97,8 +104,7 @@ const Nd2Files: React.FC = () => {
                     <Link underline="hover" color="inherit" href="/">
                         Top
                     </Link>
-                    <Typography color="text.primary">ND2 files
-                    </Typography>
+                    <Typography color="text.primary">ND2 files</Typography>
                 </Breadcrumbs>
             </Box>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="space-between" mt={2}>
@@ -115,7 +121,7 @@ const Nd2Files: React.FC = () => {
                     </Grid>
                     <Grid item xs={3}>
                         <input
-                            accept=".db"
+                            accept=".nd2"
                             style={{ display: 'none' }}
                             id="raised-button-file"
                             multiple
@@ -169,19 +175,22 @@ const Nd2Files: React.FC = () => {
                         <TableHead>
                             <TableRow>
                                 <TableCell>ND2 Files</TableCell>
-                                <TableCell align="right">Go</TableCell>
+                                <TableCell align="right">Actions</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {filteredDatabases.map((database, index) => (
+                            {filteredFiles.map((file, index) => (
                                 <TableRow key={index}>
                                     <TableCell component="th" scope="row">
-                                        {database}
+                                        {file}
                                     </TableCell>
                                     <TableCell align="right">
-                                        <IconButton onClick={() => handleNavigate(database)}>
+                                        <IconButton onClick={() => handleNavigate(file)}>
                                             <Typography>Extract cells </Typography>
                                             <NavigateNextIcon />
+                                        </IconButton>
+                                        <IconButton onClick={() => handleDelete(file)}>
+                                            <DeleteIcon />
                                         </IconButton>
                                     </TableCell>
                                 </TableRow>
@@ -192,7 +201,7 @@ const Nd2Files: React.FC = () => {
             </Box>
 
             <Dialog open={dialogOpen} onClose={handleCloseDialog}>
-                <DialogTitle>{"File Upload Status"}</DialogTitle>
+                <DialogTitle>{"File Operation Status"}</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
                         {dialogMessage}
