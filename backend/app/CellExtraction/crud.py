@@ -499,3 +499,4 @@ class ExtractionCrudBase:
             for j in range(len(os.listdir(f"TempData/frames/tiff_{i}/Cells/ph/"))):
                 tasks.append(self.process_cell(dbname, i, j))
         await asyncio.gather(*tasks)
+        return dbname.split("/")[-1]
