@@ -10,6 +10,13 @@ from fastapi import HTTPException
 router_cell_extraction = APIRouter(prefix="/cell_extraction", tags=["cell_extraction"])
 
 
+@router_cell_extraction.get(
+    "/ph_contours/{frame_num}", response_class=StreamingResponse
+)
+async def get_ph_contours(frame_num: int):
+    return await ExtractionCrudBase("").get_ph_contours(frame_num)
+
+
 @router_cell_extraction.post("/nd2_files")
 async def upload_nd2_file(file: UploadFile):
     file_path = file.filename
@@ -53,6 +60,6 @@ async def extract_cells(
         extractor = ExtractionCrudBase(
             nd2_path=file_path, mode=mode, param1=param1, image_size=image_size
         )
-        out_db = await extractor.main()
+        return await extractor.main()
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
