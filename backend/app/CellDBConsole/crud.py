@@ -1023,6 +1023,23 @@ class CellCrudBase:
         await session.close()
         return [CellId(cell_id=cell.cell_id) for cell in cells]
 
+    async def read_cell_label(self, cell_id: str) -> str:
+        """
+        Read the label of a cell.
+
+        Parameters:
+        - cell_id: ID of the cell to fetch the label for.
+
+        Returns:
+        - Label of the cell.
+        """
+        stmt = select(Cell).where(Cell.cell_id == cell_id)
+        async for session in get_session(dbname=self.db_name):
+            result = await session.execute(stmt)
+            cell: Cell = result.scalars().first()
+        await session.close()
+        return cell.manual_label
+
     async def update_label(self, cell_id: str, label: str) -> None:
         """
         Update the label of a cell.
