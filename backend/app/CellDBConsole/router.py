@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from typing import Literal
 import os
 from fastapi import UploadFile
+from fastapi import HTTPException
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 router_database = APIRouter(prefix="/databases", tags=["databases"])
@@ -27,6 +28,11 @@ async def read_cell_ids(db_name: str, label: str):
 
 @router_cell.patch("/{db_name}/{cell_id}/{label}")
 async def update_cell_label(db_name: str, cell_id: str, label: str):
+    if "-uploaded" not in db_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide the name of the uploaded database.",
+        )
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).update_label(
         cell_id=cell_id, label=label
