@@ -9,6 +9,7 @@ import CellImageGrid from './components/CellOverview';
 import Databases from './components/Databases';
 import TopPage from './components/TopPage';
 import Nd2Files from './components/Nd2files';
+import CellExtraction from './components/CellExtraction';
 
 function App() {
   return (
@@ -44,6 +45,14 @@ function App() {
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={1} margin={3} mt={-4}>
                 <Nd2Files />
+              </Grid >
+            </>
+          } />
+          <Route path="/cellextraction" element={
+            <>
+              <Nav title='PhenoPixel5.0' />
+              <Grid container spacing={1} margin={3} mt={-4}>
+                <CellExtraction />
               </Grid >
             </>
           } />
