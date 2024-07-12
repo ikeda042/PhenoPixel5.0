@@ -71,6 +71,15 @@ const Extraction: React.FC = () => {
                         fullWidth
                         onClick={handleExtractCells}
                         disabled={isLoading}
+                        sx={{
+                            backgroundColor: 'black',
+                            color: 'white',
+                            width: '100%',
+                            height: '56px',
+                            '&:hover': {
+                                backgroundColor: 'grey'
+                            }
+                        }}
                     >
                         {isLoading ? <CircularProgress size={24} /> : "Extract Cells"}
                     </Button>
