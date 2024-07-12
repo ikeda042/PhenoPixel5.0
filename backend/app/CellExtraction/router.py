@@ -10,6 +10,13 @@ from fastapi import HTTPException
 router_cell_extraction = APIRouter(prefix="/cell_extraction", tags=["cell_extraction"])
 
 
+@router_cell_extraction.get("/ph_contours/count")
+async def get_ph_contours_count():
+    return JSONResponse(
+        content={"count": await ExtractionCrudBase("").get_ph_contours_num()}
+    )
+
+
 @router_cell_extraction.get(
     "/ph_contours/{frame_num}", response_class=StreamingResponse
 )
