@@ -495,3 +495,6 @@ class ExtractionCrudBase:
         if not os.path.exists(filepath):
             raise HTTPException(status_code=404, detail="File not found")
         return StreamingResponse(open(filepath, "rb"), media_type="image/png")
+
+    async def get_ph_contours_num(self):
+        return len(os.listdir("ph_contours"))
