@@ -461,7 +461,7 @@ class ExtractionCrudBase:
                 cell = Cell(
                     cell_id=cell_id,
                     label_experiment="",
-                    manual_label=None,
+                    manual_label="N/A",
                     perimeter=perimeter,
                     area=area,
                     img_ph=img_ph_data,
@@ -481,14 +481,19 @@ class ExtractionCrudBase:
 
     async def main(self):
         chores = SyncChores()
+        dbname = f"databases/{self.file_prefix}-uploaded.db"
+        try:
+            await asyncio.to_thread(os.remove, f"{dbname}")
+        except:
+            pass
         num_tiff = chores.extract_nd2(self.nd2_path)
-        chores.init(f"{self.file_prefix}.nd2", num_tiff, 85, 200, self.mode)
+        chores.init(f"{self.file_prefix}.nd2", num_tiff, 130, 200, self.mode)
         iter_n = {
             "triple_layer": num_tiff // 3,
             "single_layer": num_tiff,
             "dual_layer": num_tiff // 2,
         }
-        dbname = f"{self.file_prefix}.db"
+
         await create_database(dbname)
         engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}")
         async with engine.begin() as conn:
@@ -500,5 +505,5 @@ class ExtractionCrudBase:
                 tasks.append(self.process_cell(dbname, i, j))
         await asyncio.gather(*tasks)
         await asyncio.to_thread(SyncChores.cleanup, "TempData")
-        await asyncio.to_thread(os.remove, f"uploaded_files/{self.file_prefix}.nd2")
+        # await asyncio.to_thread(os.remove, f"uploaded_files/{self.file_prefix}.nd2")
         return dbname.split("/")[-1]
