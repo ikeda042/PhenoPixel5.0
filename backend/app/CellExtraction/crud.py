@@ -353,22 +353,46 @@ class SyncChores:
         return num_tiff
 
 
+Base = declarative_base()
+
+
+class Cell(Base):
+    __tablename__ = "cells"
+    id = Column(Integer, primary_key=True)
+    cell_id = Column(String)
+    label_experiment = Column(String)
+    manual_label = Column(Integer)
+    perimeter = Column(FLOAT)
+    area = Column(FLOAT)
+    img_ph = Column(BLOB)
+    img_fluo1 = Column(BLOB, nullable=True)
+    img_fluo2 = Column(BLOB, nullable=True)
+    contour = Column(BLOB)
+    center_x = Column(FLOAT)
+    center_y = Column(FLOAT)
+
+
+async def get_session(dbname: str):
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=False)
+    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    async with async_session() as session:
+        yield session
+
+
+async def create_database(dbname: str):
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=True)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    return engine
+
+
 class ExtractionCrudBase:
-    def __init__(
-        self,
-        nd2_path: str,
-        mode: str = "dual_layer",
-    ):
+    def __init__(self, nd2_path: str, mode: str = "dual_layer"):
         if not os.path.exists(nd2_path):
             raise FileNotFoundError("File not found")
         self.nd2_path = nd2_path
         self.file_prefix = self.nd2_path.split("/")[-1].split(".")[0]
         self.mode = mode
-        self.executor = ProcessPoolExecutor()
-
-    async def run_in_thread(self, func, *args):
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(self.executor, func, *args)
 
     async def load_image(self, path):
         async with aiofiles.open(path, mode="rb") as f:
@@ -400,61 +424,65 @@ class ExtractionCrudBase:
 
         return contours, img_ph_gray, img_fluo1_gray, img_fluo2_gray
 
-    async def process_cell(self, session, i, j):
-        cell_id = f"F{i}C{j}"
-        img_ph = await self.load_image(f"TempData/frames/tiff_{i}/Cells/ph/{j}.png")
-        img_fluo1 = img_fluo2 = None
-        if self.mode != "single_layer":
-            img_fluo1 = await self.load_image(
-                f"TempData/frames/tiff_{i}/Cells/fluo1/{j}.png"
-            )
-
-        contours, img_ph_gray, img_fluo1_gray, img_fluo2_gray = (
-            await self.run_in_thread(self.process_image, img_ph, img_fluo1)
+    async def process_cell(self, dbname, i, j):
+        engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=False)
+        async_session = sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
         )
-
-        if contours:
-            contour = contours[0]
-            perimeter = cv2.arcLength(contour, True)
-            area = cv2.contourArea(contour)
-            center_x, center_y = SyncChores.get_contour_center(contour)
-            img_ph_data = cv2.imencode(".png", img_ph_gray)[1].tobytes()
-            img_fluo1_data = img_fluo2_data = None
+        async with async_session() as session:
+            cell_id = f"F{i}C{j}"
+            img_ph = await self.load_image(f"TempData/frames/tiff_{i}/Cells/ph/{j}.png")
+            img_fluo1 = img_fluo2 = None
             if self.mode != "single_layer":
-                img_fluo1_data = cv2.imencode(".png", img_fluo1_gray)[1].tobytes()
-            if self.mode == "triple_layer":
-                img_fluo2 = await self.load_image(
-                    f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
+                img_fluo1 = await self.load_image(
+                    f"TempData/frames/tiff_{i}/Cells/fluo1/{j}.png"
                 )
-                img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
-                img_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[1].tobytes()
-            contour_data = pickle.dumps(contour)
-            cell = Cell(
-                cell_id=cell_id,
-                label_experiment="",
-                manual_label=None,
-                perimeter=perimeter,
-                area=area,
-                img_ph=img_ph_data,
-                img_fluo1=img_fluo1_data,
-                img_fluo2=img_fluo2_data,
-                contour=contour_data,
-                center_x=center_x,
-                center_y=center_y,
+
+            contours, img_ph_gray, img_fluo1_gray, img_fluo2_gray = self.process_image(
+                img_ph, img_fluo1
             )
-            existing_cell = await session.execute(
-                select(Cell).filter_by(cell_id=cell_id)
-            )
-            if existing_cell.scalar() is None:
-                session.add(cell)
-                await session.commit()
+
+            if contours:
+                contour = contours[0]
+                perimeter = cv2.arcLength(contour, True)
+                area = cv2.contourArea(contour)
+                center_x, center_y = SyncChores.get_contour_center(contour)
+                img_ph_data = cv2.imencode(".png", img_ph_gray)[1].tobytes()
+                img_fluo1_data = img_fluo2_data = None
+                if self.mode != "single_layer":
+                    img_fluo1_data = cv2.imencode(".png", img_fluo1_gray)[1].tobytes()
+                if self.mode == "triple_layer":
+                    img_fluo2 = await self.load_image(
+                        f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
+                    )
+                    img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
+                    img_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[1].tobytes()
+                contour_data = pickle.dumps(contour)
+                cell = Cell(
+                    cell_id=cell_id,
+                    label_experiment="",
+                    manual_label=None,
+                    perimeter=perimeter,
+                    area=area,
+                    img_ph=img_ph_data,
+                    img_fluo1=img_fluo1_data,
+                    img_fluo2=img_fluo2_data,
+                    contour=contour_data,
+                    center_x=center_x,
+                    center_y=center_y,
+                )
+                existing_cell = await session.execute(
+                    select(Cell).filter_by(cell_id=cell_id)
+                )
+                existing_cell = existing_cell.scalar()
+                if existing_cell is None:
+                    session.add(cell)
+                    await session.commit()
 
     async def main(self):
         chores = SyncChores()
-        num_tiff = await self.run_in_thread(chores.extract_nd2, self.nd2_path)
-        await self.run_in_thread(
-            chores.init, f"{self.file_prefix}.nd2", num_tiff, 85, 200, self.mode
-        )
+        num_tiff = chores.extract_nd2(self.nd2_path)
+        chores.init(f"{self.file_prefix}.nd2", num_tiff, 85, 200, self.mode)
         iter_n = {
             "triple_layer": num_tiff // 3,
             "single_layer": num_tiff,
@@ -462,9 +490,12 @@ class ExtractionCrudBase:
         }
         dbname = f"{self.file_prefix}.db"
         await create_database(dbname)
-        async for session in get_session(dbname):
-            tasks = []
-            for i in range(iter_n[self.mode]):
-                for j in range(len(os.listdir(f"TempData/frames/tiff_{i}/Cells/ph/"))):
-                    tasks.append(self.process_cell(session, i, j))
-            await asyncio.gather(*tasks)
+        engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        tasks = []
+        for i in range(iter_n[self.mode]):
+            for j in range(len(os.listdir(f"TempData/frames/tiff_{i}/Cells/ph/"))):
+                tasks.append(self.process_cell(dbname, i, j))
+        await asyncio.gather(*tasks)
