@@ -352,7 +352,7 @@ class SyncChores:
         return num_tiff
 
 
-class CellExtraction:
+class ExtractionCrudBase:
     def __init__(
         self,
         nd2_path: str = "/Users/leeyunosuke/Documents/PhenoPixel5.0/sk326tri30min.nd2",
@@ -452,5 +452,5 @@ class CellExtraction:
                             await session.commit()
 
 
-if __name__ == "__main__":
-    asyncio.run(CellExtraction().main())
+# if __name__ == "__main__":
+#     asyncio.run(CellExtraction().main())
