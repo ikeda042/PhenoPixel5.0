@@ -97,7 +97,7 @@ const Nd2Files: React.FC = () => {
                     <Link underline="hover" color="inherit" href="/">
                         Top
                     </Link>
-                    <Typography color="text.primary">Database Console
+                    <Typography color="text.primary">ND2 files
                     </Typography>
                 </Breadcrumbs>
             </Box>
