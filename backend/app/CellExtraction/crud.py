@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import os
 import aiofiles
 from fastapi.responses import StreamingResponse
+from fastapi import HTTPException
 
 Base = declarative_base()
 
@@ -490,7 +491,7 @@ class ExtractionCrudBase:
         return True
 
     async def get_ph_contours(self, frame_num: int) -> StreamingResponse:
-        return StreamingResponse(
-            content=f"ph_contours/{frame_num}.png",
-            media_type="image/png",
-        )
+        filepath = f"ph_contours/{frame_num}.png"
+        if not os.path.exists(filepath):
+            raise HTTPException(status_code=404, detail="File not found")
+        return StreamingResponse(open(filepath, "rb"), media_type="image/png")
