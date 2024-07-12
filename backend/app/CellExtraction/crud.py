@@ -353,8 +353,12 @@ async def get_session(dbname: str):
         yield session
 
 
-async def create_database(dbname):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=True)
+async def create_database(dbname: str):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(base_dir, "databases", dbname)
+    if not os.path.exists(os.path.dirname(db_path)):
+        os.makedirs(os.path.dirname(db_path))
+    engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     return engine
@@ -385,8 +389,8 @@ class CellExtraction:
             "single_layer": num_tiff,
             "dual_layer": num_tiff // 2,
         }
-
         dbname = f"{self.file_prefix}.db"
+        await create_database(dbname)
         async for session in get_session(dbname):
             for i in range(iter_n[self.mode]):
                 for j in range(len(os.listdir(f"TempData/frames/tiff_{i}/Cells/ph/"))):
@@ -409,24 +413,16 @@ class CellExtraction:
                     contours = list(
                         filter(lambda x: cv2.contourArea(x) >= 300, contours_raw)
                     )
+
                     contours = list(
-                        filter(
-                            lambda x: abs(
-                                cv2.moments(x)["m10"] / cv2.moments(x)["m00"] - 200
-                            )
-                            < 10,
-                            contours,
-                        )
+                        i
+                        for i in contours
+                        if SyncChores.get_contour_center(i)[0] - img_ph.shape[1] // 2
+                        < 20
+                        and SyncChores.get_contour_center(i)[1] - img_ph.shape[0] // 2
+                        < 20
                     )
-                    contours = list(
-                        filter(
-                            lambda x: abs(
-                                cv2.moments(x)["m01"] / cv2.moments(x)["m00"] - 200
-                            )
-                            < 10,
-                            contours,
-                        )
-                    )
+                    print(contours)
 
                     if contours:
                         contour = contours[0]
@@ -469,6 +465,7 @@ class CellExtraction:
                         if existing_cell.scalar() is None:
                             session.add(cell)
                             await session.commit()
+                        print(cell)
 
 
 if __name__ == "__main__":
