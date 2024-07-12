@@ -25,6 +25,14 @@ async def read_cell_ids(db_name: str, label: str):
     return await CellCrudBase(db_name=db_name).read_cell_ids(label=label)
 
 
+@router_cell.patch("/{db_name}/{cell_id}/{label}")
+async def update_cell_label(db_name: str, cell_id: str, label: str):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).update_label(
+        cell_id=cell_id, label=label
+    )
+
+
 @router_cell.get("/{cell_id}/{db_name}/{draw_contour}/{draw_scale_bar}/ph_image")
 async def get_cell_ph(
     cell_id: str,
