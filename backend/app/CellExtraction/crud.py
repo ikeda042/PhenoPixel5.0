@@ -16,7 +16,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import os
-
+import aiofiles
+from concurrent.futures import ProcessPoolExecutor
 
 Base = declarative_base()
 
@@ -355,16 +356,96 @@ class SyncChores:
 class ExtractionCrudBase:
     def __init__(
         self,
-        nd2_path: str = "/Users/leeyunosuke/Documents/PhenoPixel5.0/sk326tri30min.nd2",
+        nd2_path: str,
         mode: str = "dual_layer",
     ):
         self.nd2_path = nd2_path
         self.file_prefix = self.nd2_path.split("/")[-1].split(".")[0]
         self.mode = mode
+        self.executor = ProcessPoolExecutor()
 
     async def run_in_thread(self, func, *args):
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, func, *args)
+        return await loop.run_in_executor(self.executor, func, *args)
+
+    async def load_image(self, path):
+        async with aiofiles.open(path, mode="rb") as f:
+            data = await f.read()
+        img_array = np.frombuffer(data, dtype=np.uint8)
+        return cv2.imdecode(img_array, cv2.IMREAD_UNCHANGED)
+
+    def process_image(self, img_ph, img_fluo1=None, img_fluo2=None):
+        img_ph_gray = cv2.cvtColor(img_ph, cv2.COLOR_BGR2GRAY)
+        img_fluo1_gray = img_fluo2_gray = None
+        if img_fluo1 is not None:
+            img_fluo1_gray = cv2.cvtColor(img_fluo1, cv2.COLOR_BGR2GRAY)
+        if img_fluo2 is not None:
+            img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
+
+        ret, thresh = cv2.threshold(img_ph_gray, 85, 255, cv2.THRESH_BINARY)
+        img_canny = cv2.Canny(thresh, 0, 130)
+        contours_raw, hierarchy = cv2.findContours(
+            img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        contours = list(filter(lambda x: cv2.contourArea(x) >= 300, contours_raw))
+
+        contours = list(
+            i
+            for i in contours
+            if SyncChores.get_contour_center(i)[0] - img_ph.shape[1] // 2 < 20
+            and SyncChores.get_contour_center(i)[1] - img_ph.shape[0] // 2 < 20
+        )
+
+        return contours, img_ph_gray, img_fluo1_gray, img_fluo2_gray
+
+    async def process_cell(self, session, i, j):
+        cell_id = f"F{i}C{j}"
+        img_ph = await self.load_image(f"TempData/frames/tiff_{i}/Cells/ph/{j}.png")
+        img_fluo1 = img_fluo2 = None
+        if self.mode != "single_layer":
+            img_fluo1 = await self.load_image(
+                f"TempData/frames/tiff_{i}/Cells/fluo1/{j}.png"
+            )
+
+        contours, img_ph_gray, img_fluo1_gray, img_fluo2_gray = (
+            await self.run_in_thread(self.process_image, img_ph, img_fluo1)
+        )
+
+        if contours:
+            contour = contours[0]
+            perimeter = cv2.arcLength(contour, True)
+            area = cv2.contourArea(contour)
+            center_x, center_y = SyncChores.get_contour_center(contour)
+            img_ph_data = cv2.imencode(".png", img_ph_gray)[1].tobytes()
+            img_fluo1_data = img_fluo2_data = None
+            if self.mode != "single_layer":
+                img_fluo1_data = cv2.imencode(".png", img_fluo1_gray)[1].tobytes()
+            if self.mode == "triple_layer":
+                img_fluo2 = await self.load_image(
+                    f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
+                )
+                img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
+                img_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[1].tobytes()
+            contour_data = pickle.dumps(contour)
+            cell = Cell(
+                cell_id=cell_id,
+                label_experiment="",
+                manual_label=None,
+                perimeter=perimeter,
+                area=area,
+                img_ph=img_ph_data,
+                img_fluo1=img_fluo1_data,
+                img_fluo2=img_fluo2_data,
+                contour=contour_data,
+                center_x=center_x,
+                center_y=center_y,
+            )
+            existing_cell = await session.execute(
+                select(Cell).filter_by(cell_id=cell_id)
+            )
+            if existing_cell.scalar() is None:
+                session.add(cell)
+                await session.commit()
 
     async def main(self):
         chores = SyncChores()
@@ -380,77 +461,8 @@ class ExtractionCrudBase:
         dbname = f"{self.file_prefix}.db"
         await create_database(dbname)
         async for session in get_session(dbname):
+            tasks = []
             for i in range(iter_n[self.mode]):
                 for j in range(len(os.listdir(f"TempData/frames/tiff_{i}/Cells/ph/"))):
-                    cell_id = f"F{i}C{j}"
-                    img_ph = cv2.imread(f"TempData/frames/tiff_{i}/Cells/ph/{j}.png")
-                    if self.mode != "single_layer":
-                        img_fluo1 = cv2.imread(
-                            f"TempData/frames/tiff_{i}/Cells/fluo1/{j}.png"
-                        )
-
-                    img_ph_gray = cv2.cvtColor(img_ph, cv2.COLOR_BGR2GRAY)
-                    if self.mode != "single_layer":
-                        img_fluo1_gray = cv2.cvtColor(img_fluo1, cv2.COLOR_BGR2GRAY)
-
-                    ret, thresh = cv2.threshold(img_ph_gray, 85, 255, cv2.THRESH_BINARY)
-                    img_canny = cv2.Canny(thresh, 0, 130)
-                    contours_raw, hierarchy = cv2.findContours(
-                        img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-                    )
-                    contours = list(
-                        filter(lambda x: cv2.contourArea(x) >= 300, contours_raw)
-                    )
-
-                    contours = list(
-                        i
-                        for i in contours
-                        if SyncChores.get_contour_center(i)[0] - img_ph.shape[1] // 2
-                        < 20
-                        and SyncChores.get_contour_center(i)[1] - img_ph.shape[0] // 2
-                        < 20
-                    )
-
-                    if contours:
-                        contour = contours[0]
-                        perimeter = cv2.arcLength(contour, True)
-                        area = cv2.contourArea(contour)
-                        center_x, center_y = SyncChores.get_contour_center(contour)
-                        img_ph_data = cv2.imencode(".png", img_ph_gray)[1].tobytes()
-                        img_fluo1_data = img_fluo2_data = None
-                        if self.mode != "single_layer":
-                            img_fluo1_data = cv2.imencode(".png", img_fluo1_gray)[
-                                1
-                            ].tobytes()
-                        if self.mode == "triple_layer":
-                            img_fluo2 = cv2.imread(
-                                f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
-                            )
-                            img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
-                            img_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[
-                                1
-                            ].tobytes()
-                        contour_data = pickle.dumps(contour)
-                        cell = Cell(
-                            cell_id=cell_id,
-                            label_experiment="",
-                            manual_label=None,
-                            perimeter=perimeter,
-                            area=area,
-                            img_ph=img_ph_data,
-                            img_fluo1=img_fluo1_data,
-                            img_fluo2=img_fluo2_data,
-                            contour=contour_data,
-                            center_x=center_x,
-                            center_y=center_y,
-                        )
-                        existing_cell = await session.execute(
-                            select(Cell).filter_by(cell_id=cell_id)
-                        )
-                        if existing_cell.scalar() is None:
-                            session.add(cell)
-                            await session.commit()
-
-
-# if __name__ == "__main__":
-#     asyncio.run(CellExtraction().main())
+                    tasks.append(self.process_cell(session, i, j))
+            await asyncio.gather(*tasks)
