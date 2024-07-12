@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import {
     Box, Grid, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, CircularProgress, IconButton
 } from "@mui/material";
@@ -23,10 +23,22 @@ const CustomTextField = styled(TextField)({
             borderColor: 'black',
         },
     },
+    '& input[type=number]': {
+        '-moz-appearance': 'textfield',
+    },
+    '& input[type=number]::-webkit-outer-spin-button': {
+        '-webkit-appearance': 'none',
+        margin: 0,
+    },
+    '& input[type=number]::-webkit-inner-spin-button': {
+        '-webkit-appearance': 'none',
+        margin: 0,
+    },
 });
 
 const Extraction: React.FC = () => {
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
     const fileName = searchParams.get("file_name") || "";
     const [mode, setMode] = useState("dual");
     const [param1, setParam1] = useState(100);
@@ -39,13 +51,12 @@ const Extraction: React.FC = () => {
     const handleExtractCells = async () => {
         setIsLoading(true);
         try {
-            const response = await axios.get(`${url_prefix}/cell_extraction/${fileName}/${mode}`, {
+            await axios.get(`${url_prefix}/cell_extraction/${fileName}/${mode}`, {
                 params: {
                     param1,
                     image_size: imageSize,
                 },
             });
-
             const countResponse = await axios.get(`${url_prefix}/cell_extraction/ph_contours/count`);
             const numImages = countResponse.data.count;
             setNumImages(numImages);
@@ -86,6 +97,10 @@ const Extraction: React.FC = () => {
         }
     };
 
+    const handleGoToDatabases = () => {
+        navigate(`/databases?default_search_word=${fileName.slice(0, -10)}`);
+    };
+
     return (
         <Box>
             <Grid container spacing={2} alignItems="center" justifyContent="center">
@@ -104,6 +119,7 @@ const Extraction: React.FC = () => {
                     <CustomTextField
                         label="Param1"
                         type="number"
+                        placeholder="1-255"
                         fullWidth
                         margin="normal"
                         value={param1}
@@ -112,6 +128,7 @@ const Extraction: React.FC = () => {
                     <CustomTextField
                         label="Image Size"
                         type="number"
+                        placeholder="1-255"
                         fullWidth
                         margin="normal"
                         value={imageSize}
@@ -135,6 +152,26 @@ const Extraction: React.FC = () => {
                     >
                         {isLoading ? <CircularProgress size={24} /> : "Extract Cells"}
                     </Button>
+                    {numImages > 0 && (
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            fullWidth
+                            onClick={handleGoToDatabases}
+                            sx={{
+                                marginTop: 2,
+                                backgroundColor: 'black',
+                                color: 'white',
+                                width: '100%',
+                                height: '56px',
+                                '&:hover': {
+                                    backgroundColor: 'grey'
+                                }
+                            }}
+                        >
+                            Go to Databases
+                        </Button>
+                    )}
                 </Grid>
                 {currentImageUrl && (
                     <Grid item xs={12} md={8}>
