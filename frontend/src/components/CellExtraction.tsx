@@ -98,7 +98,7 @@ const Extraction: React.FC = () => {
     };
 
     const handleGoToDatabases = () => {
-        navigate(`/databases?default_search_word=${fileName.slice(0, -10)}`);
+        navigate(`/dbconsole?default_search_word=${fileName.slice(0, -10)}`);
     };
 
     return (
