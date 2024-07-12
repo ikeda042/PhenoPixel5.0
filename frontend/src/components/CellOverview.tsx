@@ -40,7 +40,8 @@ const url_prefix = settings.url_prefix;
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string, replot?: string, path?: string } }>({});
-    const [label, setLabel] = useState<string>("1");
+    const [selectedLabel, setSelectedLabel] = useState<string>("1");
+    const [manualLabel, setManualLabel] = useState<string>("1");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [drawContour, setDrawContour] = useState<boolean>(false);
     const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
@@ -56,13 +57,13 @@ const CellImageGrid: React.FC = () => {
 
     useEffect(() => {
         const fetchCellIds = async () => {
-            const response = await axios.get(`${url_prefix}/cells/${db_name}/${label}`);
+            const response = await axios.get(`${url_prefix}/cells/${db_name}/${selectedLabel}`);
             const ids = response.data.map((cell: { cell_id: string }) => cell.cell_id);
             setCellIds(ids);
         };
 
         fetchCellIds();
-    }, [db_name, label]);
+    }, [db_name, selectedLabel]);
 
     useEffect(() => {
         const fetchImages = async (cellId: string) => {
@@ -119,7 +120,7 @@ const CellImageGrid: React.FC = () => {
                 const cellId = cellIds[currentIndex];
                 try {
                     const response = await axios.get(`${url_prefix}/${db_name}/${cellId}/label`);
-                    setLabel(response.data);
+                    setManualLabel(response.data);
                 } catch (error) {
                     console.error("Error fetching initial label:", error);
                 }
@@ -194,7 +195,7 @@ const CellImageGrid: React.FC = () => {
     };
 
     const handleLabelChange = (event: SelectChangeEvent<string>) => {
-        setLabel(event.target.value);
+        setSelectedLabel(event.target.value);
     };
 
     const handleCellLabelChange = async (event: SelectChangeEvent<string>) => {
@@ -202,8 +203,8 @@ const CellImageGrid: React.FC = () => {
         const cellId = cellIds[currentIndex];
 
         try {
-            await axios.patch(`${url_prefix}/${db_name}/${cellId}/${newLabel}`);
-            setLabel(newLabel); // Update the local state with the new label
+            await axios.patch(`${url_prefix}/cells/${db_name}/${cellId}/${newLabel}`);
+            setManualLabel(newLabel);
         } catch (error) {
             console.error("Error updating cell label:", error);
         }
@@ -299,9 +300,10 @@ const CellImageGrid: React.FC = () => {
                         <InputLabel id="label-select-label">Label</InputLabel>
                         <Select
                             labelId="label-select-label"
-                            value={label}
+                            value={selectedLabel}
                             onChange={handleLabelChange}
                         >
+                            <MenuItem value="74">None</MenuItem>
                             <MenuItem value="1000">N/A</MenuItem>
                             <MenuItem value="1">1</MenuItem>
                             <MenuItem value="2">2</MenuItem>
@@ -339,13 +341,12 @@ const CellImageGrid: React.FC = () => {
                             </Grid>
                             <Grid item xs={3}>
                                 <FormControl fullWidth>
-                                    <InputLabel id="cell-label-select-label">Manual Label</InputLabel>
+                                    <InputLabel id="manual-label-select-label">Manual Label</InputLabel>
                                     <Select
-                                        labelId="cell-label-select-label"
-                                        value={label}
+                                        labelId="manual-label-select-label"
+                                        value={manualLabel}
                                         onChange={handleCellLabelChange}
                                     >
-                                        <MenuItem value="74">None</MenuItem>
                                         <MenuItem value="1000">N/A</MenuItem>
                                         <MenuItem value="1">1</MenuItem>
                                         <MenuItem value="2">2</MenuItem>
@@ -540,15 +541,15 @@ const CellImageGrid: React.FC = () => {
                         </Box>)}
                     {engineMode === "MorphoEngine 3.0" && (
                         <Box mt={6}>
-                            <MedianEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} />
+                            <MedianEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} />
                         </Box>)}
                     {engineMode === "MorphoEngine 4.0" && (
                         <Box mt={6}>
-                            <MeanEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} />
+                            <MeanEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} />
                         </Box>)}
                     {engineMode === "MorphoEngine 5.0" && (
                         <Box mt={6}>
-                            <HeatmapEngine dbName={db_name} label={label} cellId={cellIds[currentIndex]} degree={fitDegree} />
+                            <HeatmapEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} degree={fitDegree} />
                         </Box>)}
                 </Box>
             </Stack>
