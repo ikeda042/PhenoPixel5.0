@@ -41,7 +41,7 @@ const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string, replot?: string, path?: string } }>({});
     const [selectedLabel, setSelectedLabel] = useState<string>("1");
-    const [manualLabel, setManualLabel] = useState<string>();
+    const [manualLabel, setManualLabel] = useState<string>("");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [drawContour, setDrawContour] = useState<boolean>(false);
     const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
@@ -120,7 +120,8 @@ const CellImageGrid: React.FC = () => {
                 const cellId = cellIds[currentIndex];
                 try {
                     const response = await axios.get(`${url_prefix}/cells/${db_name}/${cellId}/label`);
-                    const label = response.data === 1000 ? "N/A" : response.data.toString();
+                    const label = response.data.toString();
+                    console.log(`Initial label for cell ${cellId}: ${label}`);
                     setManualLabel(label);
                 } catch (error) {
                     console.error("Error fetching initial label:", error);
