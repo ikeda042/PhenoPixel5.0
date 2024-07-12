@@ -103,9 +103,9 @@ const Nd2Files: React.FC = () => {
             </Box>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="space-between" mt={2}>
                 <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={7}>
+                    <Grid item xs={4}>
                         <TextField
-                            label="Search ND2 files"
+                            label="Search Database"
                             variant="outlined"
                             fullWidth
                             value={searchQuery}
@@ -153,6 +153,25 @@ const Nd2Files: React.FC = () => {
                                 {selectedFile ? selectedFile.name : "Select Database"}
                             </Button>
                         </label>
+                    </Grid>
+                    <Grid item xs={3}>
+                        <Button
+                            onClick={handleUpload}
+                            variant="contained"
+                            sx={{
+                                backgroundColor: 'black',
+                                color: 'white',
+                                width: '100%',
+                                height: '56px',
+                                '&:hover': {
+                                    backgroundColor: 'grey'
+                                }
+                            }}
+                            startIcon={<FileUploadIcon />}
+                            disabled={!selectedFile}
+                        >
+                            Upload
+                        </Button>
                     </Grid>
                 </Grid>
             </Box>
