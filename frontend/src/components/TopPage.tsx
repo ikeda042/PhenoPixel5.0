@@ -35,7 +35,7 @@ const TopPage: React.FC = () => {
                     variant="contained"
                     component="span"
                     startIcon={<ScienceIcon />}
-                    onClick={() => handleNavigate('/phenopixel')}
+                    onClick={() => handleNavigate('/nd2files')}
                     sx={{
                         backgroundColor: 'white',
                         color: 'black',
