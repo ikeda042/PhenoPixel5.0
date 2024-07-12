@@ -502,5 +502,5 @@ class ExtractionCrudBase:
                 tasks.append(self.process_cell(dbname, i, j))
         await asyncio.gather(*tasks)
         await asyncio.to_thread(SyncChores.cleanup, "TempData")
-        # await asyncio.to_thread(os.remove, f"uploaded_files/{self.file_prefix}.nd2")
+        await asyncio.to_thread(os.remove, f"uploaded_files/{self.file_prefix}.nd2")
         return dbname.split("/")[-1]
