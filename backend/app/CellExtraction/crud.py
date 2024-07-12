@@ -52,36 +52,6 @@ async def create_database(dbname: str):
     return engine
 
 
-class Cell(Base):
-    __tablename__ = "cells"
-    id = Column(Integer, primary_key=True)
-    cell_id = Column(String)
-    label_experiment = Column(String)
-    manual_label = Column(Integer)
-    perimeter = Column(FLOAT)
-    area = Column(FLOAT)
-    img_ph = Column(BLOB)
-    img_fluo1 = Column(BLOB, nullable=True)
-    img_fluo2 = Column(BLOB, nullable=True)
-    contour = Column(BLOB)
-    center_x = Column(FLOAT)
-    center_y = Column(FLOAT)
-
-
-async def get_session(dbname: str):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=False)
-    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with async_session() as session:
-        yield session
-
-
-async def create_database(dbname: str):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=True)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    return engine
-
-
 class SyncChores:
     @staticmethod
     def process_image(array):
@@ -511,5 +481,5 @@ class ExtractionCrudBase:
                 tasks.append(self.process_cell(dbname, i, j))
         await asyncio.gather(*tasks)
         await asyncio.to_thread(SyncChores.cleanup, "TempData")
-        await asyncio.to_thread(os.remove, f"uploaded_files/{self.file_prefix}.nd2")
+        # await asyncio.to_thread(os.remove, f"uploaded_files/{self.file_prefix}.nd2")
         return dbname.split("/")[-1]
