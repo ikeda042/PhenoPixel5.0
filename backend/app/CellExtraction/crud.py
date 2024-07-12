@@ -13,40 +13,6 @@ import pickle
 from sqlalchemy.sql import select
 
 ######################
-from sqlalchemy import Column, Integer, String, BLOB, FLOAT
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-import os
-
-
-Base = declarative_base()
-
-
-class Cell(Base):
-    __tablename__ = "cells"
-    id = Column(Integer, primary_key=True)
-    cell_id = Column(String)
-    label_experiment = Column(String)
-    manual_label = Column(Integer)
-    perimeter = Column(FLOAT)
-    area = Column(FLOAT)
-    img_ph = Column(BLOB)
-    img_fluo1 = Column(BLOB, nullable=True)
-    img_fluo2 = Column(BLOB, nullable=True)
-    contour = Column(BLOB)
-    center_x = Column(FLOAT)
-    center_y = Column(FLOAT)
-
-
-async def get_session(dbname: str):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(base_dir, "databases", dbname)
-    engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=False)
-    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with async_session() as session:
-        yield session
-
 
 ###################
 
@@ -352,6 +318,48 @@ class SyncChores:
         return num_tiff
 
 
+from sqlalchemy import Column, Integer, String, BLOB, FLOAT
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+import os
+
+
+Base = declarative_base()
+
+
+class Cell(Base):
+    __tablename__ = "cells"
+    id = Column(Integer, primary_key=True)
+    cell_id = Column(String)
+    label_experiment = Column(String)
+    manual_label = Column(Integer)
+    perimeter = Column(FLOAT)
+    area = Column(FLOAT)
+    img_ph = Column(BLOB)
+    img_fluo1 = Column(BLOB, nullable=True)
+    img_fluo2 = Column(BLOB, nullable=True)
+    contour = Column(BLOB)
+    center_x = Column(FLOAT)
+    center_y = Column(FLOAT)
+
+
+async def get_session(dbname: str):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(base_dir, "databases", dbname)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=False)
+    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    async with async_session() as session:
+        yield session
+
+
+async def create_database(dbname):
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=True)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    return engine
+
+
 class CellExtraction:
     def __init__(
         self,
@@ -369,86 +377,8 @@ class CellExtraction:
     async def main(self):
         chores = SyncChores()
         num_tiff = await self.run_in_thread(chores.extract_nd2, self.nd2_path)
-
         await self.run_in_thread(
-            chores.init, f"{self.file_prefix}.nd2", 24, 85, 200, self.mode
-        )
-        iter_n = {
-            "triple_layer": num_tiff // 3,
-            "single_layer": num_tiff,
-            "dual_layer": num_tiff // 2,
-        }
-        for i in range(iter_n[self.mode]):
-            for j in range(len(os.listdir(f"TempData/frames/tiff_{i}/Cells/ph/"))):
-                cell_id: str = f"F{i}C{j}"
-                img_ph = cv2.imread(f"TempData/frames/tiff_{i}/Cells/ph/{j}.png")
-                if self.mode != "single_layer":
-                    img_fluo1 = cv2.imread(
-                        f"TempData/frames/tiff_{i}/Cells/fluo1/{j}.png"
-                    )
-
-                img_ph_gray = cv2.cvtColor(img_ph, cv2.COLOR_BGR2GRAY)
-                if self.mode != "single_layer":
-                    img_fluo1_gray = cv2.cvtColor(img_fluo1, cv2.COLOR_BGR2GRAY)
-
-                ret, thresh = cv2.threshold(img_ph_gray, 85, 255, cv2.THRESH_BINARY)
-                img_canny = cv2.Canny(thresh, 0, 130)
-                contours_raw, hierarchy = cv2.findContours(
-                    img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-                )
-                # Filter out contours with small area
-                contours = list(
-                    filter(lambda x: cv2.contourArea(x) >= 300, contours_raw)
-                )
-                # Check if the center of the contour is not too far from the center of the image
-                contours = list(
-                    filter(
-                        lambda x: abs(
-                            cv2.moments(x)["m10"] / cv2.moments(x)["m00"] - 200
-                        )
-                        < 10,
-                        contours,
-                    )
-                )
-                # do the same for y
-                contours = list(
-                    filter(
-                        lambda x: abs(
-                            cv2.moments(x)["m01"] / cv2.moments(x)["m00"] - 200
-                        )
-                        < 10,
-                        contours,
-                    )
-                )
-
-                if self.mode != "single_layer":
-                    cv2.drawContours(img_fluo1, contours, -1, (0, 255, 0), 1)
-                    cv2.imwrite(
-                        f"TempData/frames/tiff_{i}/Cells/fluo1_contour/{j}.png",
-                        img_fluo1,
-                    )
-                cv2.drawContours(img_ph, contours, -1, (0, 255, 0), 1)
-
-                cv2.imwrite(
-                    f"TempData/frames/tiff_{i}/Cells/ph_contour/{j}.png", img_ph
-                )
-
-                if self.mode == "triple_layer":
-                    img_fluo2 = cv2.imread(
-                        f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
-                    )
-                    img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
-                    cv2.drawContours(img_fluo2_gray, contours, -1, (0, 255, 0), 1)
-                    cv2.imwrite(
-                        f"TempData/frames/tiff_{i}/Cells/fluo2_contour/{j}.png",
-                        img_fluo2,
-                    )
-
-    async def main2(self):
-        chores = SyncChores()
-        num_tiff = await self.run_in_thread(chores.extract_nd2, self.nd2_path)
-        await self.run_in_thread(
-            chores.init, f"{self.file_prefix}.nd2", 24, 85, 200, self.mode
+            chores.init, f"{self.file_prefix}.nd2", num_tiff, 85, 200, self.mode
         )
         iter_n = {
             "triple_layer": num_tiff // 3,
@@ -456,7 +386,7 @@ class CellExtraction:
             "dual_layer": num_tiff // 2,
         }
 
-        dbname = f"{os.path.splitext(self.nd2_path)[0]}.db"
+        dbname = f"{self.file_prefix}.db"
         async for session in get_session(dbname):
             for i in range(iter_n[self.mode]):
                 for j in range(len(os.listdir(f"TempData/frames/tiff_{i}/Cells/ph/"))):
@@ -542,4 +472,4 @@ class CellExtraction:
 
 
 if __name__ == "__main__":
-    asyncio.run(CellExtraction().main2())
+    asyncio.run(CellExtraction().main())
