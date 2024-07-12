@@ -296,7 +296,7 @@ class SyncChores:
             ret, thresh = cv2.threshold(img_gray, param1, 255, cv2.THRESH_BINARY)
             img_canny = cv2.Canny(thresh, 0, 130)
             contours, hierarchy = cv2.findContours(
-                img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+                img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
             )
             # 細胞の面積で絞り込み
             contours = list(filter(lambda x: cv2.contourArea(x) >= 300, contours))
@@ -393,6 +393,7 @@ class ExtractionCrudBase:
         self.nd2_path = nd2_path
         self.file_prefix = self.nd2_path.split("/")[-1].split(".")[0]
         self.mode = mode
+        self.param1 = 130
 
     async def load_image(self, path):
         async with aiofiles.open(path, mode="rb") as f:
@@ -408,10 +409,10 @@ class ExtractionCrudBase:
         if img_fluo2 is not None:
             img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
 
-        ret, thresh = cv2.threshold(img_ph_gray, 85, 255, cv2.THRESH_BINARY)
-        img_canny = cv2.Canny(thresh, 0, 130)
+        ret, thresh = cv2.threshold(img_ph_gray, self.param1, 255, cv2.THRESH_BINARY)
+        img_canny = cv2.Canny(thresh, 0, 150)
         contours_raw, hierarchy = cv2.findContours(
-            img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
         )
         contours = list(filter(lambda x: cv2.contourArea(x) >= 300, contours_raw))
 
@@ -421,8 +422,8 @@ class ExtractionCrudBase:
             if SyncChores.get_contour_center(i)[0] - img_ph.shape[1] // 2 < 20
             and SyncChores.get_contour_center(i)[1] - img_ph.shape[0] // 2 < 20
         )
-
-        return contours, img_ph_gray, img_fluo1_gray, img_fluo2_gray
+        contour = contours[0] if contours else None
+        return contour, img_ph_gray, img_fluo1_gray, img_fluo2_gray
 
     async def process_cell(self, dbname, i, j):
         engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=False)
@@ -438,12 +439,11 @@ class ExtractionCrudBase:
                     f"TempData/frames/tiff_{i}/Cells/fluo1/{j}.png"
                 )
 
-            contours, img_ph_gray, img_fluo1_gray, img_fluo2_gray = self.process_image(
+            contour, img_ph_gray, img_fluo1_gray, img_fluo2_gray = self.process_image(
                 img_ph, img_fluo1
             )
 
-            if contours:
-                contour = contours[0]
+            if contour is not None:
                 perimeter = cv2.arcLength(contour, True)
                 area = cv2.contourArea(contour)
                 center_x, center_y = SyncChores.get_contour_center(contour)
@@ -457,7 +457,7 @@ class ExtractionCrudBase:
                     )
                     img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
                     img_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[1].tobytes()
-                contour_data = pickle.dumps(contour)
+                cv2.drawContours(img_ph, [contour], -1, (0, 255, 0), 1, cv2.LINE_AA)
                 cell = Cell(
                     cell_id=cell_id,
                     label_experiment="",
@@ -467,7 +467,7 @@ class ExtractionCrudBase:
                     img_ph=img_ph_data,
                     img_fluo1=img_fluo1_data,
                     img_fluo2=img_fluo2_data,
-                    contour=contour_data,
+                    contour=pickle.dumps(contour),
                     center_x=center_x,
                     center_y=center_y,
                 )
