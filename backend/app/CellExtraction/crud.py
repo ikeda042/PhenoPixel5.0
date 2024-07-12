@@ -484,5 +484,5 @@ class ExtractionCrudBase:
         # await asyncio.to_thread(os.remove, f"uploaded_files/{self.file_prefix}.nd2")
         return dbname.split("/")[-1]
 
-    async def get_ne2_filenames(self) -> list[str]:
+    async def get_nd2_filenames(self) -> list[str]:
         return os.listdir("uploaded_files")
