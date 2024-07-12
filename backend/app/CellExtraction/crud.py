@@ -12,10 +12,6 @@ import asyncio
 import pickle
 from sqlalchemy.sql import select
 
-######################
-
-###################
-
 
 class SyncChores:
     @staticmethod
