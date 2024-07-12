@@ -345,20 +345,14 @@ class Cell(Base):
 
 
 async def get_session(dbname: str):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(base_dir, "databases", dbname)
-    engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=False)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=False)
     async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
         yield session
 
 
 async def create_database(dbname: str):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(base_dir, "databases", dbname)
-    if not os.path.exists(os.path.dirname(db_path)):
-        os.makedirs(os.path.dirname(db_path))
-    engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=True)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     return engine
@@ -422,7 +416,6 @@ class CellExtraction:
                         and SyncChores.get_contour_center(i)[1] - img_ph.shape[0] // 2
                         < 20
                     )
-                    print(contours)
 
                     if contours:
                         contour = contours[0]
@@ -444,7 +437,6 @@ class CellExtraction:
                             img_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[
                                 1
                             ].tobytes()
-
                         contour_data = pickle.dumps(contour)
                         cell = Cell(
                             cell_id=cell_id,
@@ -465,7 +457,6 @@ class CellExtraction:
                         if existing_cell.scalar() is None:
                             session.add(cell)
                             await session.commit()
-                        print(cell)
 
 
 if __name__ == "__main__":
