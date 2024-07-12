@@ -169,7 +169,7 @@ class SyncChores:
     def init(
         input_filename: str,
         num_tiff: int,
-        param1: int = 85,
+        param1: int = 130,
         image_size: int = 200,
         mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual_layer",
     ) -> int:
@@ -215,27 +215,7 @@ class SyncChores:
             except Exception as e:
                 print(e)
             try:
-                os.mkdir(f"TempData/frames/tiff_{i}/Cells/ph_raw")
-            except Exception as e:
-                print(e)
-            try:
                 os.mkdir(f"TempData/frames/tiff_{i}/Cells/fluo1")
-            except Exception as e:
-                print(e)
-            try:
-                os.mkdir(f"TempData/frames/tiff_{i}/Cells/fluo1_adjusted")
-            except Exception as e:
-                print(e)
-            try:
-                os.mkdir(f"TempData/frames/tiff_{i}/Cells/ph_contour")
-            except Exception as e:
-                print(e)
-            try:
-                os.mkdir(f"TempData/frames/tiff_{i}/Cells/fluo1_contour")
-            except Exception as e:
-                print(e)
-            try:
-                os.mkdir(f"TempData/frames/tiff_{i}/Cells/unified_images")
             except Exception as e:
                 print(e)
             try:
@@ -308,34 +288,20 @@ class SyncChores:
             cv2.imwrite(f"ph_contours/{k}.png", image_ph_copy)
             n = 0
             if mode == "triple_layer":
-                for ph, fluo1, fluo2 in zip(
-                    cropped_images_ph,
-                    cropped_images_fluo_1,
-                    cropped_images_fluo_2,
-                ):
-                    if len(ph) == output_size[0] and len(ph[0]) == output_size[1]:
-                        cv2.imwrite(f"TempData/frames/tiff_{k}/Cells/ph/{n}.png", ph)
-                        cv2.imwrite(
-                            f"TempData/frames/tiff_{k}/Cells/fluo1/{n}.png", fluo1
-                        )
-                        cv2.imwrite(
-                            f"TempData/frames/tiff_{k}/Cells/fluo2/{n}.png", fluo2
-                        )
+                pass
             elif mode == "single_layer":
                 for ph in zip(cropped_images_ph):
                     if len(ph) == output_size[0] and len(ph[0]) == output_size[1]:
                         cv2.imwrite(f"TempData/frames/tiff_{k}/Cells/ph/{n}.png", ph)
                         n += 1
             elif mode == "dual_layer":
-                for ph, fluo1 in zip(
-                    cropped_images_ph,
-                    cropped_images_fluo_1,
-                ):
+                for ph, fluo1 in zip(cropped_images_ph, cropped_images_fluo_1):
                     if len(ph) == output_size[0] and len(ph[0]) == output_size[1]:
                         cv2.imwrite(f"TempData/frames/tiff_{k}/Cells/ph/{n}.png", ph)
                         cv2.imwrite(
                             f"TempData/frames/tiff_{k}/Cells/fluo1/{n}.png", fluo1
                         )
+                        n += 1
         return num_tiff
 
 
