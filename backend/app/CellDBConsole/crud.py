@@ -1038,7 +1038,7 @@ class CellCrudBase:
             result = await session.execute(stmt)
             cell: Cell = result.scalars().first()
         await session.close()
-        return cell.manual_label
+        return cell.manual_label if not cell.manual_label == "N/A" else "1000"
 
     async def update_label(self, cell_id: str, label: str) -> None:
         """
