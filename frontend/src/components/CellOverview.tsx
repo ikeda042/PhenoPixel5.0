@@ -43,7 +43,7 @@ const CellImageGrid: React.FC = () => {
     const [selectedLabel, setSelectedLabel] = useState<string>("1");
     const [manualLabel, setManualLabel] = useState<string>("");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
-    const [drawContour, setDrawContour] = useState<boolean>(false);
+    const [drawContour, setDrawContour] = useState<boolean>(true);
     const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
     const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
     const [contourData, setContourData] = useState<number[][]>([]);
@@ -206,7 +206,7 @@ const CellImageGrid: React.FC = () => {
 
         try {
             await axios.patch(`${url_prefix}/cells/${db_name}/${cellId}/${newLabel}`);
-            setManualLabel(newLabel === "1000" ? "N/A" : newLabel);
+            setManualLabel(newLabel);
         } catch (error) {
             console.error("Error updating cell label:", error);
         }
