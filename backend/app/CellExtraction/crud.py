@@ -380,6 +380,7 @@ async def get_session(dbname: str):
 
 
 async def create_database(dbname: str):
+    db_path = os.path.join("uploaded_files", dbname)
     engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
