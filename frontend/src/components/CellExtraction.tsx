@@ -46,13 +46,10 @@ const Extraction: React.FC = () => {
                 },
             });
 
-            // Fetch the number of images
             const countResponse = await axios.get(`${url_prefix}/cell_extraction/ph_contours/count`);
             const numImages = countResponse.data.count;
             setNumImages(numImages);
             setCurrentImage(0);
-
-            // Fetch the first image
             fetchImage(0);
         } catch (error) {
             console.error("Failed to extract cells", error);
