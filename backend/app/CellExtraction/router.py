@@ -27,7 +27,7 @@ async def upload_nd2_file(file: UploadFile):
 async def extract_cells(
     db_name: str, mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual"
 ):
-    file_path = os.path.join("databases", db_name).replace(".db", "-uploaded.db")
+    file_path = os.path.join("uploaded_files", db_name).replace(".db", "-uploaded.db")
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     try:
