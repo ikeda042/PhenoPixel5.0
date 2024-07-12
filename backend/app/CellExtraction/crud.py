@@ -391,6 +391,7 @@ class ExtractionCrudBase:
         self.file_prefix = self.nd2_path.split("/")[-1].split(".")[0]
         self.mode = mode
         self.param1 = 130
+        self.image_size = 200
 
     async def load_image(self, path):
         async with aiofiles.open(path, mode="rb") as f:
@@ -484,7 +485,9 @@ class ExtractionCrudBase:
         except:
             pass
         num_tiff = chores.extract_nd2(self.nd2_path)
-        chores.init(f"{self.file_prefix}.nd2", num_tiff, 130, 200, self.mode)
+        chores.init(
+            f"{self.file_prefix}.nd2", num_tiff, self.param1, self.image_size, self.mode
+        )
         iter_n = {
             "triple_layer": num_tiff // 3,
             "single_layer": num_tiff,
