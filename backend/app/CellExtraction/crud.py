@@ -17,7 +17,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import os
 import aiofiles
-from concurrent.futures import ProcessPoolExecutor
+from fastapi.responses import StreamingResponse
 
 Base = declarative_base()
 
@@ -479,7 +479,7 @@ class ExtractionCrudBase:
                 tasks.append(self.process_cell(dbname, i, j))
         await asyncio.gather(*tasks)
         await asyncio.to_thread(SyncChores.cleanup, "TempData")
-        return dbname.split("/")[-1]
+        return num_tiff
 
     async def get_nd2_filenames(self) -> list[str]:
         return [i for i in os.listdir("uploaded_files") if i.endswith(".nd2")]
@@ -488,3 +488,9 @@ class ExtractionCrudBase:
         filename = filename.split("/")[-1]
         await asyncio.to_thread(os.remove, f"uploaded_files/{filename}")
         return True
+
+    async def get_ph_contours(self, frame_num: int) -> StreamingResponse:
+        return StreamingResponse(
+            content=f"ph_contours/{frame_num}.png",
+            media_type="image/png",
+        )
