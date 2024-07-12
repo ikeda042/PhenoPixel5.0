@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
-    Stack, Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox, Breadcrumbs, Link
+    Stack, Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox, Breadcrumbs, Link,
+    Menu
 } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material/Select";
 import { Scatter } from 'react-chartjs-2';
@@ -344,6 +345,7 @@ const CellImageGrid: React.FC = () => {
                                         value={label}
                                         onChange={handleCellLabelChange}
                                     >
+                                        <MenuItem value="74">None</MenuItem>
                                         <MenuItem value="1000">N/A</MenuItem>
                                         <MenuItem value="1">1</MenuItem>
                                         <MenuItem value="2">2</MenuItem>
