@@ -23,6 +23,8 @@ async def read_cell_ids(db_name: str, label: str):
     await AsyncChores().validate_database_name(db_name)
     if label == "1000":
         label = "N/A"
+    if label == "74":
+        label = None
     return await CellCrudBase(db_name=db_name).read_cell_ids(label=label)
 
 
