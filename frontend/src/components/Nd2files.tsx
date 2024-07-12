@@ -181,7 +181,7 @@ const Nd2Files: React.FC = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell>Database Name</TableCell>
+                                <TableCell>ND2 Files</TableCell>
                                 <TableCell align="right">Go</TableCell>
                             </TableRow>
                         </TableHead>
