@@ -455,7 +455,7 @@ class CellExtraction:
                         f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
                     )
                     img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
-                    cv2.drawContours(img_fluo2, contours, -1, (0, 255, 0), 1)
+                    cv2.drawContours(img_fluo2_gray, contours, -1, (0, 255, 0), 1)
                     cv2.imwrite(
                         f"TempData/frames/tiff_{i}/Cells/fluo2_contour/{j}.png",
                         img_fluo2,
