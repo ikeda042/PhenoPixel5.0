@@ -28,6 +28,15 @@ async def get_nd2_files():
     return JSONResponse(content={"files": await ExtractionCrudBase.get_nd2_filenames()})
 
 
+@router_cell_extraction.delete("/nd2_files/{file_name}")
+async def delete_nd2_file(file_name: str):
+    file_path = os.path.join("uploaded_files", file_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    await ExtractionCrudBase.delete_nd2_file(file_name)
+    return JSONResponse(content={"message": "File deleted"})
+
+
 @router_cell_extraction.get("/{db_name}/{mode}")
 async def extract_cells(
     db_name: str,
