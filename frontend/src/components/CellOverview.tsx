@@ -237,14 +237,14 @@ const CellImageGrid: React.FC = () => {
         setFitDegree(parseInt(e.target.value));
     };
 
-    type EngineName = 'None' | 'MorphoEngine 2.0' | 'MorphoEngine 3.0' | 'MorphoEngine 4.0' | 'MorphoEngine 5.0';
+    type EngineName = 'None' | 'MorphoEngine 2.0' | 'MorphoEngine 3.0' | 'MorphoEngine 4.0' | 'HeatmapEngine';
 
     const engineLogos: Record<EngineName, string> = {
         None: 'path_to_none_logo.png',
         'MorphoEngine 2.0': '/logo_tp.png',
         'MorphoEngine 3.0': '/logo_dots.png',
         'MorphoEngine 4.0': '/logo_circular.png',
-        'MorphoEngine 5.0': '/logo_heatmap.png',
+        'HeatmapEngine': '/logo_heatmap.png',
     };
 
     const handleEngineModeChange = (event: SelectChangeEvent<string>) => {
@@ -518,7 +518,7 @@ const CellImageGrid: React.FC = () => {
                                         {engine === 'MorphoEngine 2.0' && <span>{engine}</span>}
                                         {engine === 'MorphoEngine 3.0' && <span>MedianEngine</span>}
                                         {engine === 'MorphoEngine 4.0' && <span>MeanEngine</span>}
-                                        {engine === 'MorphoEngine 5.0' && <span>HeatmapEngine</span>}
+                                        {engine === 'HeatmapEngine' && <span>HeatmapEngine</span>}
                                     </Box>
                                 </MenuItem>
                             ))}
@@ -549,7 +549,7 @@ const CellImageGrid: React.FC = () => {
                         <Box mt={6}>
                             <MeanEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} />
                         </Box>)}
-                    {engineMode === "MorphoEngine 5.0" && (
+                    {engineMode === "HeatmapEngine" && (
                         <Box mt={6}>
                             <HeatmapEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} degree={fitDegree} />
                         </Box>)}
