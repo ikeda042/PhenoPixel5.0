@@ -30,7 +30,15 @@ function App() {
               </Grid >
             </>
           } />
-          <Route path="/databases/" element={
+          <Route path="/databases" element={
+            <>
+              <Nav title='PhenoPixel5.0' />
+              <Grid container spacing={1} margin={3} mt={-4}>
+                <CellImageGrid />
+              </Grid >
+            </>
+          } />
+          <Route path="/databases" element={
             <>
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={1} margin={3} mt={-4}>
