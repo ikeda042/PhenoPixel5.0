@@ -9,6 +9,46 @@ import numpy as np
 import cv2
 import numpy as np
 import asyncio
+import pickle
+from sqlalchemy.sql import select
+
+######################
+from sqlalchemy import Column, Integer, String, BLOB, FLOAT
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+import os
+
+
+Base = declarative_base()
+
+
+class Cell(Base):
+    __tablename__ = "cells"
+    id = Column(Integer, primary_key=True)
+    cell_id = Column(String)
+    label_experiment = Column(String)
+    manual_label = Column(Integer)
+    perimeter = Column(FLOAT)
+    area = Column(FLOAT)
+    img_ph = Column(BLOB)
+    img_fluo1 = Column(BLOB, nullable=True)
+    img_fluo2 = Column(BLOB, nullable=True)
+    contour = Column(BLOB)
+    center_x = Column(FLOAT)
+    center_y = Column(FLOAT)
+
+
+async def get_session(dbname: str):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(base_dir, "databases", dbname)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=False)
+    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    async with async_session() as session:
+        yield session
+
+
+###################
 
 
 class SyncChores:
@@ -43,6 +83,13 @@ class SyncChores:
             save_all=True,
             append_images=all_images[1:],
         )
+
+    @staticmethod
+    def get_contour_center(contour):
+        M = cv2.moments(contour)
+        center_x = M["m10"] / M["m00"]
+        center_y = M["m01"] / M["m00"]
+        return center_x, center_y
 
     @staticmethod
     def extract_nd2(file_name: str):
@@ -397,250 +444,102 @@ class CellExtraction:
                         img_fluo2,
                     )
 
+    async def main2(self):
+        chores = SyncChores()
+        num_tiff = await self.run_in_thread(chores.extract_nd2, self.nd2_path)
+        await self.run_in_thread(
+            chores.init, f"{self.file_prefix}.nd2", 24, 85, 200, self.mode
+        )
+        iter_n = {
+            "triple_layer": num_tiff // 3,
+            "single_layer": num_tiff,
+            "dual_layer": num_tiff // 2,
+        }
+
+        dbname = f"{os.path.splitext(self.nd2_path)[0]}.db"
+        async for session in get_session(dbname):
+            for i in range(iter_n[self.mode]):
+                for j in range(len(os.listdir(f"TempData/frames/tiff_{i}/Cells/ph/"))):
+                    cell_id = f"F{i}C{j}"
+                    img_ph = cv2.imread(f"TempData/frames/tiff_{i}/Cells/ph/{j}.png")
+                    if self.mode != "single_layer":
+                        img_fluo1 = cv2.imread(
+                            f"TempData/frames/tiff_{i}/Cells/fluo1/{j}.png"
+                        )
+
+                    img_ph_gray = cv2.cvtColor(img_ph, cv2.COLOR_BGR2GRAY)
+                    if self.mode != "single_layer":
+                        img_fluo1_gray = cv2.cvtColor(img_fluo1, cv2.COLOR_BGR2GRAY)
+
+                    ret, thresh = cv2.threshold(img_ph_gray, 85, 255, cv2.THRESH_BINARY)
+                    img_canny = cv2.Canny(thresh, 0, 130)
+                    contours_raw, hierarchy = cv2.findContours(
+                        img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+                    )
+                    contours = list(
+                        filter(lambda x: cv2.contourArea(x) >= 300, contours_raw)
+                    )
+                    contours = list(
+                        filter(
+                            lambda x: abs(
+                                cv2.moments(x)["m10"] / cv2.moments(x)["m00"] - 200
+                            )
+                            < 10,
+                            contours,
+                        )
+                    )
+                    contours = list(
+                        filter(
+                            lambda x: abs(
+                                cv2.moments(x)["m01"] / cv2.moments(x)["m00"] - 200
+                            )
+                            < 10,
+                            contours,
+                        )
+                    )
+
+                    if contours:
+                        contour = contours[0]
+                        perimeter = cv2.arcLength(contour, True)
+                        area = cv2.contourArea(contour)
+                        center_x, center_y = SyncChores.get_contour_center(contour)
+
+                        img_ph_data = cv2.imencode(".png", img_ph_gray)[1].tobytes()
+                        img_fluo1_data = img_fluo2_data = None
+                        if self.mode != "single_layer":
+                            img_fluo1_data = cv2.imencode(".png", img_fluo1_gray)[
+                                1
+                            ].tobytes()
+                        if self.mode == "triple_layer":
+                            img_fluo2 = cv2.imread(
+                                f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
+                            )
+                            img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
+                            img_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[
+                                1
+                            ].tobytes()
+
+                        contour_data = pickle.dumps(contour)
+                        cell = Cell(
+                            cell_id=cell_id,
+                            label_experiment="",
+                            manual_label=None,
+                            perimeter=perimeter,
+                            area=area,
+                            img_ph=img_ph_data,
+                            img_fluo1=img_fluo1_data,
+                            img_fluo2=img_fluo2_data,
+                            contour=contour_data,
+                            center_x=center_x,
+                            center_y=center_y,
+                        )
+                        existing_cell = await session.execute(
+                            select(Cell).filter_by(cell_id=cell_id)
+                        )
+                        if existing_cell.scalar() is None:
+                            session.add(cell)
+                            await session.commit()
+
 
 if __name__ == "__main__":
-    asyncio.run(CellExtraction().main())
-
-
-# from .initialize import init
-# from .unify_images import unify_images_ndarray2, unify_images_ndarray
-# from .database import Cell, Base
-# from .calc_center import get_contour_center
-# import os
-# import cv2
-# from tqdm import tqdm
-# import pickle
-# from sqlalchemy import create_engine
-# from sqlalchemy.orm import sessionmaker
-# from typing import Literal
-# from database import get_session, Cell
-
-
-# def image_process(
-#     input_filename: str,
-#     param1: int = 80,
-#     image_size: int = 100,
-#     mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual_layer",
-# ) -> None:
-#     engine = create_engine(f'sqlite:///{input_filename.split(".")[0]}.db', echo=False)
-#     Base.metadata.create_all(engine)
-#     Session = sessionmaker(bind=engine)
-#     num_tif = init(
-#         input_filename=input_filename,
-#         param1=param1,
-#         param2=param2,
-#         image_size=image_size,
-#         fluo_dual_layer_mode=fluo_dual_layer_mode,
-#         single_layer_mode=single_layer_mode,
-#     )
-#     print(num_tif)
-#     print(
-#         "Processing images...\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n+\n"
-#     )
-#     iter_n = num_tif // 3 if not single_layer_mode else num_tif
-#     for k in tqdm(range(0, iter_n)):
-#         for j in range(len(os.listdir(f"TempData/frames/tiff_{k}/Cells/ph/"))):
-#             cell_id: str = f"F{k}C{j}"
-#             img_ph = cv2.imread(f"TempData/frames/tiff_{k}/Cells/ph/{j}.png")
-#             if not single_layer_mode:
-#                 img_fluo1 = cv2.imread(f"TempData/frames/tiff_{k}/Cells/fluo1/{j}.png")
-
-#             img_ph_gray = cv2.cvtColor(img_ph, cv2.COLOR_BGR2GRAY)
-#             if not single_layer_mode:
-#                 img_fluo1_gray = cv2.cvtColor(img_fluo1, cv2.COLOR_BGR2GRAY)
-
-#             ret, thresh = cv2.threshold(img_ph_gray, param1, param2, cv2.THRESH_BINARY)
-#             img_canny = cv2.Canny(thresh, 0, 150)
-#             contours_raw, hierarchy = cv2.findContours(
-#                 img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
-#             )
-#             # Filter out contours with small area
-#             contours = list(filter(lambda x: cv2.contourArea(x) >= 300, contours_raw))
-#             # Check if the center of the contour is not too far from the center of the image
-#             contours = list(
-#                 filter(
-#                     lambda x: abs(
-#                         cv2.moments(x)["m10"] / cv2.moments(x)["m00"] - image_size / 2
-#                     )
-#                     < 10,
-#                     contours,
-#                 )
-#             )
-#             # do the same for y
-#             contours = list(
-#                 filter(
-#                     lambda x: abs(
-#                         cv2.moments(x)["m01"] / cv2.moments(x)["m00"] - image_size / 2
-#                     )
-#                     < 10,
-#                     contours,
-#                 )
-#             )
-
-#             if not single_layer_mode:
-#                 cv2.drawContours(img_fluo1, contours, -1, (0, 255, 0), 1)
-#                 cv2.imwrite(
-#                     f"TempData/frames/tiff_{k}/Cells/fluo1_contour/{j}.png", img_fluo1
-#                 )
-#             cv2.drawContours(img_ph, contours, -1, (0, 255, 0), 1)
-#             cv2.imwrite(f"TempData/frames/tiff_{k}/Cells/ph_contour/{j}.png", img_ph)
-
-#             if fluo_dual_layer_mode:
-#                 img_fluo2 = cv2.imread(f"TempData/frames/tiff_{k}/Cells/fluo2/{j}.png")
-#                 print(f"empData/frames/tiff_{k}/Cells/fluo2/{j}.png")
-#                 img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
-#                 cv2.drawContours(img_fluo2, contours, -1, (0, 255, 0), 1)
-#                 cv2.imwrite(
-#                     f"TempData/frames/tiff_{k}/Cells/fluo2_contour/{j}.png", img_fluo2
-#                 )
-
-#             if contours != []:
-#                 if draw_scale_bar:
-#                     image_ph_copy = img_ph.copy()
-#                     if not single_layer_mode:
-#                         image_fluo1_copy = img_fluo1.copy()
-
-#                     pixel_per_micro_meter = 0.0625
-#                     # want to draw a scale bar of 20% of the image width at the bottom right corner. (put some mergins so that the scale bar is not too close to the edge)
-#                     # scale bar length in pixels
-#                     scale_bar_length = int(image_size * 0.2)
-#                     scale_bar_size = scale_bar_length * pixel_per_micro_meter
-#                     # scale bar thickness in pixels
-#                     scale_bar_thickness = int(2 * (image_size / 100))
-#                     # scale bar mergins from the edge of the image
-#                     scale_bar_mergins = int(10 * (image_size / 100))
-#                     # scale bar color
-#                     scale_bar_color = (255, 255, 255)
-#                     # scale bar text color
-#                     scale_bar_text_color = (255, 255, 255)
-#                     # draw scale bar for the both image_ph and image_fluo and the scale bar should be Rectangle
-#                     # scale bar for image_ph
-#                     cv2.rectangle(
-#                         image_ph_copy,
-#                         (
-#                             image_size - scale_bar_mergins - scale_bar_length,
-#                             image_size - scale_bar_mergins,
-#                         ),
-#                         (
-#                             image_size - scale_bar_mergins,
-#                             image_size - scale_bar_mergins - scale_bar_thickness,
-#                         ),
-#                         scale_bar_color,
-#                         -1,
-#                     )
-#                     # cv2.putText(image_ph_copy,f"{round(scale_bar_size,2)} µm",(image_size-scale_bar_mergins-scale_bar_length,image_size-scale_bar_mergins-2*scale_bar_thickness),cv2.FONT_HERSHEY_SIMPLEX,0.2,scale_bar_text_color,1,cv2.LINE_AA)
-#                     # scale bar for image_fluo
-#                     if not single_layer_mode:
-#                         cv2.rectangle(
-#                             image_fluo1_copy,
-#                             (
-#                                 image_size - scale_bar_mergins - scale_bar_length,
-#                                 image_size - scale_bar_mergins,
-#                             ),
-#                             (
-#                                 image_size - scale_bar_mergins,
-#                                 image_size - scale_bar_mergins - scale_bar_thickness,
-#                             ),
-#                             scale_bar_color,
-#                             -1,
-#                         )
-#                     # cv2.putText(image_fluo_copy,f"{round(scale_bar_size,2)} µm",(image_size-scale_bar_mergins-scale_bar_length,image_size-scale_bar_mergins-2*scale_bar_thickness),cv2.FONT_HERSHEY_SIMPLEX,0.2,scale_bar_text_color,1,cv2.LINE_AA)
-#                     if fluo_dual_layer_mode:
-#                         image_fluo2_copy = img_fluo2.copy()
-#                         cv2.rectangle(
-#                             image_fluo2_copy,
-#                             (
-#                                 image_size - scale_bar_mergins - scale_bar_length,
-#                                 image_size - scale_bar_mergins,
-#                             ),
-#                             (
-#                                 image_size - scale_bar_mergins,
-#                                 image_size - scale_bar_mergins - scale_bar_thickness,
-#                             ),
-#                             scale_bar_color,
-#                             -1,
-#                         )
-#                         unify_images_ndarray2(
-#                             image1=image_ph_copy,
-#                             image2=image_fluo1_copy,
-#                             image3=image_fluo2_copy,
-#                             output_name=f"TempData/frames/tiff_{k}/Cells/unified_images/{j}",
-#                         )
-#                         unify_images_ndarray2(
-#                             image1=image_ph_copy,
-#                             image2=image_fluo1_copy,
-#                             image3=image_fluo2_copy,
-#                             output_name=f"TempData/app_data/{cell_id}",
-#                         )
-#                     elif single_layer_mode:
-#                         cv2.imwrite(
-#                             f"TempData/frames/tiff_{k}/Cells/unified_images/{j}.png",
-#                             image_ph_copy,
-#                         )
-#                         cv2.imwrite(f"TempData/app_data/{cell_id}.png", image_ph_copy)
-#                     else:
-#                         unify_images_ndarray(
-#                             image1=image_ph_copy,
-#                             image2=image_fluo1_copy,
-#                             output_name=f"TempData/frames/tiff_{k}/Cells/unified_images/{j}",
-#                         )
-#                         unify_images_ndarray(
-#                             image1=image_ph_copy,
-#                             image2=image_fluo1_copy,
-#                             output_name=f"TempData/app_data/{cell_id}",
-#                         )
-
-#                 with Session() as session:
-#                     perimeter = cv2.arcLength(contours[0], closed=True)
-#                     area = cv2.contourArea(contour=contours[0])
-#                     image_ph_data = cv2.imencode(".png", img_ph_gray)[1].tobytes()
-#                     if not single_layer_mode:
-#                         image_fluo1_data = cv2.imencode(".png", img_fluo1_gray)[
-#                             1
-#                         ].tobytes()
-#                     if fluo_dual_layer_mode:
-#                         image_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[
-#                             1
-#                         ].tobytes()
-#                     contour = pickle.dumps(contours[0])
-#                     center_x, center_y = get_contour_center(contours[0])
-#                     print(center_x, center_y)
-#                     if fluo_dual_layer_mode:
-#                         cell = Cell(
-#                             cell_id=cell_id,
-#                             label_experiment="",
-#                             perimeter=perimeter,
-#                             area=area,
-#                             img_ph=image_ph_data,
-#                             img_fluo1=image_fluo1_data,
-#                             img_fluo2=image_fluo2_data,
-#                             contour=contour,
-#                             center_x=center_x,
-#                             center_y=center_y,
-#                         )
-#                     elif single_layer_mode:
-#                         cell = Cell(
-#                             cell_id=cell_id,
-#                             label_experiment="",
-#                             perimeter=perimeter,
-#                             area=area,
-#                             img_ph=image_ph_data,
-#                             contour=contour,
-#                             center_x=center_x,
-#                             center_y=center_y,
-#                         )
-#                     else:
-#                         cell = Cell(
-#                             cell_id=cell_id,
-#                             label_experiment="",
-#                             perimeter=perimeter,
-#                             area=area,
-#                             img_ph=image_ph_data,
-#                             img_fluo1=image_fluo1_data,
-#                             contour=contour,
-#                             center_x=center_x,
-#                             center_y=center_y,
-#                         )
-#                     if session.query(Cell).filter_by(cell_id=cell_id).first() is None:
-#                         session.add(cell)
-#                         session.commit()
+    asyncio.run(CellExtraction().main2())
