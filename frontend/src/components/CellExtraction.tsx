@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
-    Box, Grid, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, CircularProgress, IconButton, Breadcrumbs, Link
+    Box, Grid, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, Backdrop, CircularProgress, Breadcrumbs, Link
 } from "@mui/material";
 import { styled } from '@mui/system';
 import axios from "axios";
@@ -103,7 +103,10 @@ const Extraction: React.FC = () => {
 
     return (
         <Box>
-            <Box>
+            <Backdrop open={isLoading} style={{ zIndex: 1201 }}>
+                <CircularProgress color="inherit" />
+            </Backdrop>
+            <Box mb={2}>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="/">
                         Top
@@ -111,7 +114,7 @@ const Extraction: React.FC = () => {
                     <Typography color="text.primary">Cell extraction</Typography>
                 </Breadcrumbs>
             </Box>
-            <Grid container spacing={2} alignItems="center" justifyContent="center">
+            <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
                     <FormControl fullWidth margin="normal">
                         <InputLabel>Mode</InputLabel>
@@ -158,7 +161,7 @@ const Extraction: React.FC = () => {
                             }
                         }}
                     >
-                        {isLoading ? <CircularProgress size={24} /> : "Extract Cells"}
+                        Extract Cells
                     </Button>
                     {numImages > 0 && (
                         <Button
@@ -183,28 +186,33 @@ const Extraction: React.FC = () => {
                 </Grid>
                 {currentImageUrl && (
                     <Grid item xs={12} md={8}>
-                        <Grid container justifyContent="center">
-                            <Grid item xs={6}>
-
-                                <Box
-                                    component="img"
-                                    src={currentImageUrl}
-                                    alt={`Extracted cell ${currentImage}`}
-                                    sx={{ width: '400px', height: '400px', objectFit: 'contain', marginTop: 5 }}
-                                />
-                            </Grid>
-                            <Grid item xs={6}>
-                                <Box display="flex" justifyContent="space-between" mt={2} width="100%">
-                                    <IconButton onClick={handlePreviousImage} disabled={currentImage === 0}>
-                                        <ArrowBackIosIcon />
-                                    </IconButton>
-                                    <Typography variant="body1">{currentImage + 1} / {numImages}</Typography>
-                                    <IconButton onClick={handleNextImage} disabled={currentImage === numImages - 1}>
-                                        <ArrowForwardIosIcon />
-                                    </IconButton>
-                                </Box>
-                            </Grid>
-                        </Grid>
+                        <Box display="flex" justifyContent="center" mt={5}>
+                            <Box
+                                component="img"
+                                src={currentImageUrl}
+                                alt={`Extracted cell ${currentImage}`}
+                                sx={{ width: '400px', height: '400px', objectFit: 'contain' }}
+                            />
+                        </Box>
+                        <Box display="flex" justifyContent="space-between" mt={2}>
+                            <Button
+                                variant="contained"
+                                onClick={handlePreviousImage}
+                                disabled={currentImage === 0}
+                                startIcon={<ArrowBackIosIcon />}
+                            >
+                                Previous
+                            </Button>
+                            <Typography variant="body1">{currentImage + 1} / {numImages}</Typography>
+                            <Button
+                                variant="contained"
+                                onClick={handleNextImage}
+                                disabled={currentImage === numImages - 1}
+                                endIcon={<ArrowForwardIosIcon />}
+                            >
+                                Next
+                            </Button>
+                        </Box>
                     </Grid>
                 )}
             </Grid>
