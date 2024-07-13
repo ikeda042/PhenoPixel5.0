@@ -101,6 +101,11 @@ const Extraction: React.FC = () => {
         navigate(`/dbconsole?default_search_word=${fileName.slice(0, -10)}`);
     };
 
+    const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+        event.currentTarget.blur();
+        event.preventDefault();
+    };
+
     return (
         <Box>
             <Backdrop open={isLoading} style={{ zIndex: 1201 }}>
@@ -115,74 +120,76 @@ const Extraction: React.FC = () => {
                 </Breadcrumbs>
             </Box>
             <Grid container spacing={2} justifyContent="center" alignItems="center">
-                <Grid item xs={12} md={4}>
-                    <FormControl fullWidth margin="normal">
-                        <InputLabel>Mode</InputLabel>
-                        <Select
-                            value={mode}
-                            onChange={(e) => setMode(e.target.value)}
-                        >
-                            <MenuItem value="single_layer">Single Layer</MenuItem>
-                            <MenuItem value="dual_layer">Dual Layer</MenuItem>
-                            <MenuItem value="triple_layer">Triple Layer</MenuItem>
-                        </Select>
-                    </FormControl>
-                    <CustomTextField
-                        label="Param1"
-                        type="number"
-                        placeholder="1-255"
-                        fullWidth
-                        margin="normal"
-                        value={param1}
-                        onChange={(e) => setParam1(Number(e.target.value))}
-                    />
-                    <CustomTextField
-                        label="Image Size"
-                        type="number"
-                        placeholder="1-255"
-                        fullWidth
-                        margin="normal"
-                        value={imageSize}
-                        onChange={(e) => setImageSize(Number(e.target.value))}
-                    />
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        fullWidth
-                        onClick={handleExtractCells}
-                        disabled={isLoading}
-                        sx={{
-                            backgroundColor: 'black',
-                            color: 'white',
-                            width: '100%',
-                            height: '56px',
-                            '&:hover': {
-                                backgroundColor: 'grey'
-                            }
-                        }}
-                    >
-                        Extract Cells
-                    </Button>
-                    {numImages > 0 && (
+                <Grid item xs={12} md={4} style={{ display: 'flex', justifyContent: 'center' }}>
+                    <Box width="100%" maxWidth="400px">
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel>Mode</InputLabel>
+                            <Select
+                                value={mode}
+                                onChange={(e) => setMode(e.target.value)}
+                            >
+                                <MenuItem value="single_layer">Single Layer</MenuItem>
+                                <MenuItem value="dual_layer">Dual Layer</MenuItem>
+                                <MenuItem value="triple_layer">Triple Layer</MenuItem>
+                            </Select>
+                        </FormControl>
+                        <TextField
+                            label="Param1"
+                            type="number"
+                            placeholder="1-255"
+                            value={param1}
+                            onChange={(e) => setParam1(Number(e.target.value))}
+                            InputProps={{
+                                inputProps: { min: 0.1, step: 0.1 },
+                                onWheel: handleWheel,
+                                autoComplete: "off"
+                            }}
+                        />
+                        <CustomTextField
+                            label="Image Size"
+                            type="number"
+                            fullWidth
+                            margin="normal"
+                            value={imageSize}
+                            onChange={(e) => setImageSize(Number(e.target.value))}
+                        />
                         <Button
                             variant="contained"
-                            color="secondary"
+                            color="primary"
                             fullWidth
-                            onClick={handleGoToDatabases}
+                            onClick={handleExtractCells}
+                            disabled={isLoading}
                             sx={{
-                                marginTop: 2,
                                 backgroundColor: 'black',
                                 color: 'white',
-                                width: '100%',
                                 height: '56px',
                                 '&:hover': {
                                     backgroundColor: 'grey'
                                 }
                             }}
                         >
-                            Go to Databases
+                            Extract Cells
                         </Button>
-                    )}
+                        {numImages > 0 && (
+                            <Button
+                                variant="contained"
+                                color="secondary"
+                                fullWidth
+                                onClick={handleGoToDatabases}
+                                sx={{
+                                    marginTop: 2,
+                                    backgroundColor: 'black',
+                                    color: 'white',
+                                    height: '56px',
+                                    '&:hover': {
+                                        backgroundColor: 'grey'
+                                    }
+                                }}
+                            >
+                                Go to Databases
+                            </Button>
+                        )}
+                    </Box>
                 </Grid>
                 {currentImageUrl && (
                     <Grid item xs={12} md={8}>
@@ -193,7 +200,7 @@ const Extraction: React.FC = () => {
                                 alt={`Extracted cell ${currentImage}`}
                                 sx={{ width: '400px', height: '400px', objectFit: 'contain' }}
                             />
-                            <Box display="flex" justifyContent="space-between" width="100%" mt={2}>
+                            <Box display="flex" justifyContent="space-between" width="400px" mt={2}>
                                 <Button
                                     variant="contained"
                                     onClick={handlePreviousImage}
