@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
     Box, Grid, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, Backdrop, CircularProgress, Breadcrumbs, Link
@@ -114,7 +114,7 @@ const Extraction: React.FC = () => {
                     <Typography color="text.primary">Cell extraction</Typography>
                 </Breadcrumbs>
             </Box>
-            <Grid container spacing={2}>
+            <Grid container spacing={2} justifyContent="center" alignItems="center">
                 <Grid item xs={12} md={4}>
                     <FormControl fullWidth margin="normal">
                         <InputLabel>Mode</InputLabel>
@@ -186,32 +186,46 @@ const Extraction: React.FC = () => {
                 </Grid>
                 {currentImageUrl && (
                     <Grid item xs={12} md={8}>
-                        <Box display="flex" justifyContent="center" mt={5}>
+                        <Box display="flex" flexDirection="column" alignItems="center" mt={5}>
                             <Box
                                 component="img"
                                 src={currentImageUrl}
                                 alt={`Extracted cell ${currentImage}`}
                                 sx={{ width: '400px', height: '400px', objectFit: 'contain' }}
                             />
-                        </Box>
-                        <Box display="flex" justifyContent="space-between" mt={2}>
-                            <Button
-                                variant="contained"
-                                onClick={handlePreviousImage}
-                                disabled={currentImage === 0}
-                                startIcon={<ArrowBackIosIcon />}
-                            >
-                                Previous
-                            </Button>
-                            <Typography variant="body1">{currentImage + 1} / {numImages}</Typography>
-                            <Button
-                                variant="contained"
-                                onClick={handleNextImage}
-                                disabled={currentImage === numImages - 1}
-                                endIcon={<ArrowForwardIosIcon />}
-                            >
-                                Next
-                            </Button>
+                            <Box display="flex" justifyContent="space-between" width="100%" mt={2}>
+                                <Button
+                                    variant="contained"
+                                    onClick={handlePreviousImage}
+                                    disabled={currentImage === 0}
+                                    startIcon={<ArrowBackIosIcon />}
+                                    sx={{
+                                        backgroundColor: 'black',
+                                        color: 'white',
+                                        '&:hover': {
+                                            backgroundColor: 'grey'
+                                        }
+                                    }}
+                                >
+                                    Previous
+                                </Button>
+                                <Typography variant="body1">{currentImage + 1} / {numImages}</Typography>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleNextImage}
+                                    disabled={currentImage === numImages - 1}
+                                    endIcon={<ArrowForwardIosIcon />}
+                                    sx={{
+                                        backgroundColor: 'black',
+                                        color: 'white',
+                                        '&:hover': {
+                                            backgroundColor: 'grey'
+                                        }
+                                    }}
+                                >
+                                    Next
+                                </Button>
+                            </Box>
                         </Box>
                     </Grid>
                 )}
