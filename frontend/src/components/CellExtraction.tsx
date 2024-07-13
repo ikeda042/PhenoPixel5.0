@@ -40,7 +40,7 @@ const Extraction: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const fileName = searchParams.get("file_name") || "";
-    const [mode, setMode] = useState("dual");
+    const [mode, setMode] = useState("dual_layer");
     const [param1, setParam1] = useState(100);
     const [imageSize, setImageSize] = useState(200);
     const [isLoading, setIsLoading] = useState(false);
