@@ -25,3 +25,13 @@ python main.py
 
 # Algorithms for morphological analyses 
 
+## Cell Elongation Direction Determination Algorithm
+
+### Objective:
+To implement an algorithm for determinating the direction of cell elongation.
+
+### Methodologies: 
+
+In this section, we consider the elongation direction determination algorithm with regard to the cell with contour shown in Fig.1 below. 
+
+Scale bar is 20% of image size (200x200 pixel, 0.0625 µm/pixel)
