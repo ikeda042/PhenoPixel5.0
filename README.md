@@ -22,3 +22,6 @@ npm start
 cd backend/app
 python main.py
 ```
+
+# Algorithms for morphological analyses 
+
