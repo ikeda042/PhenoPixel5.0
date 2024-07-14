@@ -16,3 +16,9 @@ cd frontend
 npm start
 ```
 
+## start up back-end
+
+```bash
+cd backend/app
+python main.py
+```
