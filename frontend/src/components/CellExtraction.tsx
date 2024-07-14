@@ -168,7 +168,8 @@ const Extraction: React.FC = () => {
                                 }
                             }}
                         >
-                            Extract Cells
+                            {numImages > 0 && ("Re-extract Cells")}
+                            {numImages === 0 && ("Extract Cells")}
                         </Button>
                         {numImages > 0 && (
                             <Button
