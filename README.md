@@ -77,6 +77,14 @@ After obtaining the cell database with selected labels for each cell, in other w
 1. When you press the `Access database` button, you will get to the similar section as the cell labeling console. (Actually the same but without the labeling function.)
    ![](docs_images/14.png)
 
+2. The next action you will take is to select the cells with a specific label in the list. 
+    ![](docs_images/15.png)
+
+   In this example, we will be using cells labeled with `1` as shown below.
+   ![](docs_images/16.png)
+
+
+
 
 
 
