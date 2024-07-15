@@ -401,6 +401,7 @@ Figure 6 shows the center axis of the cell in the new basis (4-th polynominal).
 <div align="center">
 
 ![Start-up window](docs_images/fig6.png)  
+
 </div>
 <p align="center">
 Fig.6 The center axis of the contour in the new basis (PH Left, contour in the new basis with the center axis Right).
@@ -433,6 +434,7 @@ Figure 6-2 demonstrates fit curves (the center axis) for K-values ranging from 5
 <div align="center">
 
 ![Alt text](docs_images/result_kth10.png)
+
 </div>
 <p align="center">
 Fig.6-2: Fit curves for the center axis with varying K-values (5 to 10).
