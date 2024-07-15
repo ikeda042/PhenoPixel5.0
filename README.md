@@ -103,6 +103,9 @@ The draw modes consist of these three modes
 
 ![](docs_images/21.png)
 
+If you choose `Replot`, it shows the replotted(後述) figure of the cell. 
+
+![](docs_images/22.png)
 
 
 
