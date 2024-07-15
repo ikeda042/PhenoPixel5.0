@@ -445,3 +445,142 @@ As shown in Fig. 6-2, K = 8 appears to be the optimal value.
 However, it's important to note that the differences in calculated arc lengths across various K-values fall within the subpixel range.
 
 Consequently, choosing K = 4 might remain a viable compromise in any case.
+
+
+## Quantification of Localization of Fluorescence
+### Objective:
+
+To quantify the localization of fluorescence within cells.
+
+
+### Methodologies:
+
+Quantifying the localization of fluorescence is straightforward in cells with a "straight" morphology(fig. 7-1). 
+
+
+<div align="center">
+
+![Start-up window](docs_images/fig_straight_cell.png)  
+
+</div>
+
+
+<p align="center">
+Fig.7-1: An image of an <i>E.coli</i> cell with a straight morphology.
+</p>
+
+However, challenges arise with "curved" cells(fig. 7-2).
+
+To address this, we capitalize on our pre-established equation representing the cellular curve (specifically, a quadratic function). 
+
+This equation allows for the precise calculation of the distance between the curve and individual pixels, which is crucial for our quantification approach.
+
+The process begins by calculating the distance between the cellular curve and each pixel. 
+
+This is achieved using the following formula:
+
+An arbitrary point on the curve is described as:
+$$(u_1,\theta^\mathrm{T}\mathbf{U}) $$
+The minimal distance between this curve and each pixel, denoted as 
+$(p_i,q_i)$, is calculated using the distance formula:
+
+$$D_i(u_1) = \sqrt{(u_1-p_i)^2+(f\hat{(u_1)} - q_i)^2}$$
+
+Minimizing $D_i$ with respect to $u_1$ ensures orthogonality between the curve and the line segment joining $(u_1,\theta^\mathrm{T}\mathbf{U})$ and $(p_i,q_i)$ 
+
+This orthogonality condition is satisfied when the derivative of $D_i$ with respect to $u_1$ is zero.
+
+The optimal value of $u_1$, denoted as $u_{1_i}^\star$, is obtained by solving 
+
+$$\frac{d}{du_1}D_i = 0\:\forall i$$
+
+for each pixel  $(p_i,q_i)$. 
+
+Define the set of solution vectors as 
+$$\mathbf{U}^\star = \lbrace (u_{1_i}^\star,f\hat{(u_{1_i}^\star)})^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
+
+, where $f\hat{(u_{1_i}^\star)}$ denotes the correspoinding function value.
+
+
+It should be noted that the vectors in $\mathbf{U}^\star$ can be interpreted as the projections of the pixels $(p_i,q_i)$ onto the curve.
+
+Define the set of projected vectors $\mathbf{P}^\star$ such that each vector in this set consists of the optimal parameter value $u_{1_i}^\star$ and the corresponding fluorescence intensity, denoted by $G(p_i,q_i)$, at the pixel $(p_i,q_i)$. 
+
+$$\mathbf{P}^\star = \lbrace (u_{1_i}^\star,G(p_i,q_i))^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
+
+
+
+**Peak Path Finder Algorithm**
+
+Upon deriving the set $\mathbf{P}^\star$, our next objective is to delineate a trajectory that traverses the 'peak' regions of this set. This trajectory is aimed at encapsulating the essential characteristics of each vector in $\mathbf{P}^\star$ while reducing the data complexity. 
+
+To achieve this, we propose an algorithm that identifies critical points along the 'peak' trajectory. 
+
+Initially, we establish a procedure to partition the curve into several segments. Consider the length of each segment to be $\Delta L_i$. The total number of segments, denoted as $n$, is determined by the condition that the sum of the lengths of all segments equals the arc length of the curve between two points $u_{1_1}$ and $u_{1_2}$. 
+
+$$\sum_{i=0}^n \Delta L_i = \int_{u_{1_1}}^{u_{1_2}} \sqrt{1 + (\frac{d}{du_1}\theta^\mathrm{T}\mathbf{U})^2} du_1$$
+
+Utilizing the determined number of segments $n$, we develop an algorithm designed to identify, within each segment $\Delta L_i$, a vector from the set $\mathbf{P}^\star$ that exhibits the maximum value of the function $G(p_i,q_i)$. 
+
+The algorithm proceeds as follows:
+        
+> $f\to void$<br>
+> for $i$ $\in$ $n$:<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;Define segment boundaries: $L_i$, $L_{i+1}$<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;Initialize: <br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maxValue 
+> $\leftarrow -\infty$<br>
+>  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maxVector $\leftarrow \phi$ <br>
+> &nbsp;&nbsp;&nbsp;&nbsp;for $\mathbf{v} \in \mathbf{P}^\star$ within $(L_i, L_{i+1})$:<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if $G(p_i, q_i)$ of $\mathbf{v}$ > maxValue:<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maxValue $\leftarrow G(p_i, q_i)$ of $\mathbf{v}$<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maxVector $\leftarrow \mathbf{v}$<br>
+> if maxVector $\neq \phi$ :<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;Add maxVector to the result set
+
+### Result:
+We applied the aforementioned algorithm for the cell shown in figure 7-2.
+
+
+<div align="center">
+
+![Start-up window](docs_images/curved_cell_18.png)  
+
+</div>
+
+
+<p align="center">
+Fig.7-2: An image of a "curved" <i>E.coli</i> cell.
+</p>
+
+Figure 7-3 shows all the projected points on the center curve.
+
+<div align="center">
+
+![Start-up window](docs_images/projected_points.png)  
+</div>
+<p align="center">
+Fig.7-3: All the points(red) projected onto the center curve(blue).
+</p>
+
+Figure 7-4 depicts the result of projection onto the curve.
+
+<div align="center">
+
+![Start-up window](docs_images/projected_points_18.png)  
+</div>
+<p align="center">
+Fig.7-4: Projected points (red) onto the center curve.
+</p>
+
+
+
+Figure 7-5 describes the result of the peak-path finder algorithm.
+
+<div align="center">
+
+![Start-up window](docs_images/peak_path_18.png)
+</div>
+<p align="center">
+Fig.7-5: The estimated peak path by the algorithm.
+</p>
