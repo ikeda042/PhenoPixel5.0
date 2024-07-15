@@ -89,6 +89,7 @@ If you uncheck both `Contour` and `Scale bar` checkbox, you will see the raw ima
    ![](docs_images/17.png)
 
 If you check both `Contour` and `Scale bar` checkbox, you will see the cell images with it's contour and a scale bar. 
+   ![](docs_images/18.png)
 
 
 
