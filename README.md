@@ -99,6 +99,14 @@ The `Manual Label` section just shows you the label of the cell, and never updat
 There is a graph section in the midle column, which is set to `Light` as a default value, shows the contour of the cell with it's center at the center of the figure. 
    ![](docs_images/20.png)
 
+The draw modes consist of these three modes
+
+![](docs_images/21.png)
+
+
+
+
+
 
 
 
