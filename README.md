@@ -20,8 +20,10 @@ npm start
 
 ```bash
 cd backend/app
+pip install -r requiremetns.txt
 python main.py
 ```
+
 
 # Algorithms for morphological analyses 
 
