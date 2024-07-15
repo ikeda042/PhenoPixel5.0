@@ -34,8 +34,9 @@ const Databases: React.FC = () => {
         const fetchDatabases = async () => {
             try {
                 const response = await axios.get<ListDBResponse>(`${url_prefix}/databases`);
+                setDatabases(response.data.databases);
+
                 const uploadedDatabases = response.data.databases.filter(db => db.endsWith('-uploaded.db'));
-                setDatabases(uploadedDatabases);
 
                 const markableStatus = await Promise.all(
                     uploadedDatabases.map(async (db) => {
@@ -134,6 +135,9 @@ const Databases: React.FC = () => {
         }
         if (displayMode === 'Completed') {
             return searchMatch && database.endsWith('-completed.db');
+        }
+        if (displayMode === 'Validated') {
+            return searchMatch && !database.endsWith('-uploaded.db') && !database.endsWith('-completed.db');
         }
         return searchMatch;
     });
