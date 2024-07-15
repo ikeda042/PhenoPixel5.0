@@ -27,13 +27,29 @@ const Databases: React.FC = () => {
     const [dialogMessage, setDialogMessage] = useState("");
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
     const [databaseToComplete, setDatabaseToComplete] = useState<string | null>(null);
+    const [markableDatabases, setMarkableDatabases] = useState<{ [key: string]: boolean }>({});
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchDatabases = async () => {
             try {
                 const response = await axios.get<ListDBResponse>(`${url_prefix}/databases`);
-                setDatabases(response.data.databases);
+                const uploadedDatabases = response.data.databases.filter(db => db.endsWith('-uploaded.db'));
+                setDatabases(uploadedDatabases);
+
+                const markableStatus = await Promise.all(
+                    uploadedDatabases.map(async (db) => {
+                        const checkResponse = await axios.get(`${url_prefix}/databases/${db}`);
+                        return { db, markable: checkResponse.data };
+                    })
+                );
+
+                const markableStatusMap = markableStatus.reduce((acc, { db, markable }) => {
+                    acc[db] = markable;
+                    return acc;
+                }, {} as { [key: string]: boolean });
+
+                setMarkableDatabases(markableStatusMap);
             } catch (error) {
                 console.error("Failed to fetch databases", error);
             }
@@ -229,14 +245,15 @@ const Databases: React.FC = () => {
                                             <Button
                                                 variant="contained"
                                                 sx={{
-                                                    backgroundColor: 'green',
+                                                    backgroundColor: markableDatabases[database] ? 'green' : 'grey',
                                                     color: 'white',
                                                     '&:hover': {
-                                                        backgroundColor: 'darkgreen'
+                                                        backgroundColor: markableDatabases[database] ? 'darkgreen' : 'grey'
                                                     }
                                                 }}
                                                 onClick={() => handleOpenConfirmDialog(database)}
                                                 startIcon={<TaskIcon />}
+                                                disabled={!markableDatabases[database]}
                                             >
                                                 Mark as Complete
                                             </Button>
