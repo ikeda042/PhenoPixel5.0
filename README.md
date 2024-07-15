@@ -94,6 +94,12 @@ If you increase/decrease the `Brightness Factor`, you can adjust the brightness 
 
 The `Manual Label` section just shows you the label of the cell, and never updates it in this section because the labeling process is already done beforehand.
 
+## Graph section
+
+There is a graph section in the midle column, which is set to `Light` as a default value, shows the contour of the cell with it's center at the center of the figure. 
+   ![](docs_images/20.png)
+
+
 
 
 
