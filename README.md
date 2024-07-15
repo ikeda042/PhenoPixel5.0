@@ -103,11 +103,11 @@ The draw modes consist of these three modes:
 
 ![](docs_images/21.png)
 
-If you choose `Replot`, it shows the replotted (後述) figure of the cell. 
+If you choose `Replot`, it shows the replotted figure of the cell. 
 
 ![](docs_images/22.png)
 
-If you choose `Peak-path`, it shows the peak-path (後述) figure of the cell. 
+If you choose `Peak-path`, it shows the peak-path figure of the cell. 
 
 ![](docs_images/23.png)
 
