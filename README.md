@@ -119,10 +119,16 @@ There are four Mophoengines that conduct morphological analyses of the cells.
 
 ![](docs_images/24.png)
 
-When you choose `Morphoengine 2.0`, it shows you the morphological parameters for each cell. 
+If you choose `Morphoengine 2.0`, it shows you the morphological parameters for each cell. 
 (The volume calculation algorithms are WIP.)
 
 ![](docs_images/25.png)
+
+
+If you choose `MedianEngine`, it shows you the normalized median of the pixels inside the cell highlighted in a red dot, and the other blue dots are those who have `1` as a label in this case. 
+
+![](docs_images/26.png)
+
 
 
 
