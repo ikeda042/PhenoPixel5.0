@@ -52,7 +52,11 @@ first you need to upload an nd2 file from your computer with the `SELECT ND2 FIL
 
 4. After getting into the cell extraction section, you will see the parameter input fields. 
     ![](docs_images/7.png)
+
+    <!-- parameter の説明 を追加する。, -->
     
+
+
 
 
 
