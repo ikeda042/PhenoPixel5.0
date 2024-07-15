@@ -1311,12 +1311,13 @@ class CellCrudBase:
         return StreamingResponse(buf, media_type="text/csv")
 
     async def rename_database_to_completed(self):
+        print(self.db_name)
         if "-uploaded" not in self.db_name:
             return False
         dbname_cleaned = self.db_name.split("/")[-1]
         dbname_cleaned = "".join(dbname_cleaned.split(".")[:-1]) + ".db"
         os.rename(
             f"databases/{dbname_cleaned}",
-            f"databases/{dbname_cleaned}-completed.db",
+            f"databases/{dbname_cleaned.replace("-uploaded.db")}-completed.db",
         )
         return True
