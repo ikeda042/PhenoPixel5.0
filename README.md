@@ -74,6 +74,10 @@ This section allows you to extract cells from arbitrary ND2 files that consist o
 After obtaining the cell database with selected labels for each cell, in other words, after pressing `mark as completed`, it will show up in the `completed` section of the console.  (Note that `Validated` tag is only for admin useage (i.e., uncontrollable from the frontend))
    ![](docs_images/13.png)
 
+1. When you press the `Access database` button, you will get to the similar section as the cell labeling console. (Actually the same but without the labeling function.)
+   ![](docs_images/14.png)
+
+
 
 
 
