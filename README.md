@@ -47,6 +47,10 @@ first you need to upload an nd2 file from your computer with the `SELECT ND2 FIL
 
     ![](docs_images/5.png)
 
+3. The next action you would take is to press `extract cells` button. 
+    ![](docs_images/6.png)
+
+
 
 
 
