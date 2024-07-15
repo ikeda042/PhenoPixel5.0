@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import {
     Stack, Select, MenuItem, FormControl, InputLabel, Grid, Box, Button, Typography, TextField, FormControlLabel, Checkbox, Breadcrumbs, Link,
-    Menu
 } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material/Select";
 import { Scatter } from 'react-chartjs-2';
@@ -54,6 +53,18 @@ const CellImageGrid: React.FC = () => {
     const [engineMode, setEngineMode] = useState<string>("None");
     const [searchParams] = useSearchParams();
     const db_name = searchParams.get('db_name') ?? "test_database.db";
+
+    const lastCallTimeRef = useRef<number | null>(null);
+
+    const debounce = (func: () => void, wait: number) => {
+        return () => {
+            const now = new Date().getTime();
+            if (lastCallTimeRef.current === null || (now - lastCallTimeRef.current) > wait) {
+                lastCallTimeRef.current = now;
+                func();
+            }
+        };
+    };
 
     useEffect(() => {
         const fetchCellIds = async () => {
@@ -188,9 +199,9 @@ const CellImageGrid: React.FC = () => {
         }
     }, [drawMode, cellIds, currentIndex, fitDegree]);
 
-    const handleNext = () => {
+    const handleNext = debounce(() => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % cellIds.length);
-    };
+    }, 500);
 
     const handlePrev = () => {
         setCurrentIndex((prevIndex) => (prevIndex - 1 + cellIds.length) % cellIds.length);
