@@ -92,7 +92,7 @@ If you check both `Contour` and `Scale bar` checkbox, you will see the cell imag
    ![](docs_images/18.png)
 
 
-
+If you increase/decrease the `Brightness Factor`, you can adjust the brightness of each pixel to see the localiation of the fluorescence etc. 
 
 
 
