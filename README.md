@@ -115,30 +115,26 @@ If you choose `Peak-path`, it shows the peak-path figure of the cell.
 
 ## Morphoengines 
 
-There are four Mophoengines that conduct morphological analyses of the cells. 
+There are four Morphoengines that conduct morphological analyses of the cells.
 
 ![](docs_images/24.png)
 
 If you choose `Morphoengine 2.0`, it shows you the morphological parameters for each cell. 
-(The volume calculation algorithms are WIP.)
+(The volume calculation algorithms are a work in progress.)
 
 ![](docs_images/25.png)
 
-
-If you choose `MedianEngine`, it shows you the normalized median of the pixels inside the cell highlighted in a red dot, and the other blue dots are those who have `1` as a label in this case. 
+If you choose `MedianEngine`, it shows you the normalized median of the pixels inside the cell, highlighted with a red dot, and the other blue dots are those cells labeled as `1` in this case.
 
 ![](docs_images/26.png)
 
-
-`MeanEngine` also does the similar things, but for the normalized mean of the pixels inside the cells. 
+`MeanEngine` performs a similar function but for the normalized mean of the pixels inside the cells.
 
 ![](docs_images/27.png)
 
-`HeatmapEngine` visualizes the localization of the fluorescense at relative positions from the edge of the cell. 
+`HeatmapEngine` qualitatively visualizes the localization of the fluorescence at relative positions from the edge of the cell.
 
 ![](docs_images/28.png)
-
-
 
 
 
