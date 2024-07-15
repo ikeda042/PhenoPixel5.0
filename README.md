@@ -130,7 +130,9 @@ If you choose `MedianEngine`, it shows you the normalized median of the pixels i
 ![](docs_images/26.png)
 
 
+`MeanEngine` also does the similar things, but for the normalized mean of the pixels inside the cells. 
 
+![](docs_images/27.png)
 
 
 
