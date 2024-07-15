@@ -57,7 +57,7 @@ first you need to upload an nd2 file from your computer with the `SELECT ND2 FIL
 
     <!-- parameter の説明 を追加する。, -->
 
-5. When all the processes finised, detected cell contours show up on the PH image with n frames extracted from the input nd2 file. This is where you can check if the contour detection went successfully or not, and if not, you can adjust the parameters and then press `RE-EXTRACT CEllS` button. 
+5. When all the processes finised, detected cell contours show up on the PH image with n frames extracted from the input nd2 file. This is where you can check if the contour detection went successfully or not, and if not, you can adjust the parameters and then press `RE-EXTRACT CEllS` button. If everything looks fine, then press `GO TO DATABASE` button to proceed to the next step, which is labeling each cell. 
     ![](docs_images/8.png)
 
 
