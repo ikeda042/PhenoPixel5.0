@@ -31,43 +31,38 @@ The startup screen shows up after activating the front end.
    
 ![](docs_images/1.png)
 
-## Cell extraction 
+## Cell Extraction
 
-This section lets you extract cells from arbitrary nd2 files that consist of up to three layers (e.g., PH, GFP and YFP).
+This section allows you to extract cells from arbitrary ND2 files that consist of up to three layers (e.g., PH, GFP, and YFP).
 
-1. The first thing you will see in this section is the nd2 table shown below. 
+1. The first thing you will see in this section is the ND2 table shown below.
    ![](docs_images/2.png)
-first you need to upload an nd2 file from your computer with the `SELECT ND2 FILE` button. 
-    ![](docs_images/3.png)
+   First, you need to upload an ND2 file from your computer using the `SELECT ND2 FILE` button.
+   ![](docs_images/3.png)
 
-2. After selecting an nd2 file to upload, press `UPLOAD` button to actually submit the file to the backend. This process takes approximately 30 seconds or so. 
-   
-    ![](docs_images/4.png)
-    If the file is successfully submitted, a pop up alert shows up like this, and the filename is added to the list as well.
+2. After selecting an ND2 file to upload, press the `UPLOAD` button to actually submit the file to the backend. This process takes approximately 30 seconds.
+   ![](docs_images/4.png)
+   If the file is successfully submitted, a pop-up alert will appear like this, and the filename will be added to the list as well.
+   ![](docs_images/5.png)
 
-    ![](docs_images/5.png)
+3. The next step is to press the `EXTRACT CELLS` button.
+   ![](docs_images/6.png)
 
-3. The next action you would take is to press `extract cells` button. 
-    ![](docs_images/6.png)
+4. After entering the cell extraction section, you will see the parameter input fields.
+   ![](docs_images/7.png)
+   Press the `EXTRACT CELLS` button when you have finished inputting all the parameters, and the cell extraction process will begin on the backend. This will take approximately 1 minute.
 
-4. After getting into the cell extraction section, you will see the parameter input fields. 
-    ![](docs_images/7.png)
+   <!-- Add parameter descriptions here. -->
 
-    Press `EXTRACT CELLS` button when finised inputting all the params, and then the cell extraction process immediately begins on the backend. This will take 1 min or so. 
+5. When all processes are finished, detected cell contours will appear on the PH image with frames extracted from the input ND2 file. This is where you can check if the contour detection was successful. If not, you can adjust the parameters and press the `RE-EXTRACT CELLS` button. If everything looks fine, press the `GO TO DATABASE` button to proceed to the next step, which is labeling each cell.
+   ![](docs_images/8.png)
 
-    <!-- parameter の説明 を追加する。, -->
+6. After moving on to the section below the cell extraction section, you can access the database with the same prefix as the input ND2 file. The automatically generated database contains all the cell information and is renamed with the postfix `-uploaded` as a tag.
+   ![](docs_images/9.png)
 
-5. When all the processes finised, detected cell contours show up on the PH image with n frames extracted from the input nd2 file. This is where you can check if the contour detection went successfully or not, and if not, you can adjust the parameters and then press `RE-EXTRACT CEllS` button. If everything looks fine, then press `GO TO DATABASE` button to proceed to the next step, which is labeling each cell. 
-    ![](docs_images/8.png)
-
-6. After moving on to the section below from the cell extraction section, you can access the database with the same prefix as the input nd2 file. The automatically generated database contains all the cell information, and renamed with the postfix `-uploaded` as a tag.
-    ![](docs_images/9.png)
-
-7. When you press  `Access database` button, you will see the cell labeling section as shown. 
-    ![](docs_images/10.png)
-    In this section, you can label all the cells extracted from the previous section with labels ["N/A", "1", "2","3"], that can also input from the keyboard  ["n", "1", "2","3"] and "Enter" corresponds to "Next" UI buton.
-
-
+7. When you press the `ACCESS DATABASE` button, you will see the cell labeling section as shown below.
+   ![](docs_images/10.png)
+   In this section, you can label all the cells extracted from the previous section with labels ["N/A", "1", "2", "3"]. You can also input these labels from the keyboard using ["n", "1", "2", "3"], and "Enter" corresponds to the "Next" UI button.
 
 
 
