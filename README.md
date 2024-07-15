@@ -27,6 +27,18 @@ npm start
 
 # User Interface
 
+The startup screen shows up after activating the front end. 
+   
+![](docs_images/1.png)
+
+## Cell extraction 
+
+This section lets you extract cells from arbitrary nd2 files that consist of up to three layers (e.g., PH, GFP and YFP).
+
+1. The first thing you will see in this section is the nd2 table shown below. 
+   ![](docs_images/2.png)
+first you need to upload an nd2 file from your computer with the `SELECT ND2 FILE` button. 
+
 
 
 # Algorithms for morphological analyses 
