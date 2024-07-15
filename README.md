@@ -161,3 +161,72 @@ To implement an algorithm for determinating the direction of cell elongation.
 In this section, we consider the elongation direction determination algorithm with regard to the cell with contour shown in Fig.1 below. 
 
 Scale bar is 20% of image size (200x200 pixel, 0.0625 µm/pixel)
+
+
+<div align="center">
+
+![Start-up window](docs_images/algo1.png)  
+
+</div>
+
+<p align="center">
+Fig.1  <i>E.coli</i> cell with its contour (PH Left, Fluo-GFP Center, Fluo-mCherry Right)
+</p>
+
+Consider each contour coordinate as a set of vectors in a two-dimensional space:
+
+$$\mathbf{X} = 
+\left(\begin{matrix}
+x_1&\cdots&x_n \\
+y_1&\cdots&y_n 
+\end{matrix}\right)^\mathrm{T}\in \mathbb{R}^{n\times 2}$$
+
+The covariance matrix for $\mathbf{X}$ is:
+
+$$\Sigma =
+ \begin{pmatrix} V[\mathbf{X_1}]&Cov[\mathbf{X_1},\mathbf{X_2}]
+ \\ 
+ Cov[\mathbf{X_1},\mathbf{X_2}]& V[\mathbf{X_2}] \end{pmatrix}$$
+
+where $\mathbf{X_1} = (x_1\:\cdots x_n)$, $\mathbf{X_2} = (y_1\:\cdots y_n)$.
+
+Let's define a projection matrix for linear transformation $\mathbb{R}^2 \to \mathbb{R}$  as:
+
+$$\mathbf{w} = \begin{pmatrix}w_1&w_2\end{pmatrix}^\mathrm{T}$$
+
+Now the variance of the projected points to $\mathbb{R}$ is written as:
+$$s^2 = \mathbf{w}^\mathrm{T}\Sigma \mathbf{w}$$
+
+Assume that maximizing this variance corresponds to the cell's major axis, i.e., the direction of elongation, we consider the maximization problem of the above equation.
+
+To prevent divergence of variance, the norm of the projection matrix is fixed at 1. Thus, solve the following constrained maximization problem to find the projection axis:
+
+$$arg \max (\mathbf{w}^\mathrm{T}\Sigma \mathbf{w}), \|\mathbf{w}\| = 1$$
+
+To solve this maximization problem under the given constraints, we employ the method of Lagrange multipliers. This technique introduces an auxiliary function, known as the Lagrange function, to find the extrema of a function subject to constraints. Below is the formulation of the Lagrange multipliers method as applied to the problem:
+
+$$\cal{L}(\mathbf{w},\lambda) = \mathbf{w}^\mathrm{T}\Sigma \mathbf{w} - \lambda(\mathbf{w}^\mathrm{T}\mathbf{w}-1)$$
+
+At maximum variance:
+$$\frac{\partial\cal{L}}{\partial{\mathbf{w}}} = 2\Sigma\mathbf{w}-2\lambda\mathbf{w} = 0$$
+
+Hence, 
+
+$$ \Sigma\mathbf{w}=\lambda\mathbf{w} $$
+
+Select the eigenvector corresponding to the eigenvalue where λ1 > λ2 as the direction of cell elongation. (Longer axis)
+
+### Result:
+
+Figure 2 shows the raw image of an <i>E.coli </i> cell and the long axis calculated with the algorithm.
+
+
+<div align="center">
+
+![Start-up window](docs_images/algo1_result.png)  
+
+</div>
+
+<p align="center">
+Fig.2  <i>E.coli</i> cell with its contour (PH Left, Replotted contour with the long axis Right)
+</p>
