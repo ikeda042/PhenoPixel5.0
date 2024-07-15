@@ -285,3 +285,161 @@ $$\begin{pmatrix}
 <p align="center">
 Fig.3  Each coordinate of contour in the new basis (Right). 
 </p>
+
+
+
+## Cell length calculation Algorithm
+
+### Objective:
+
+To implement an algorithm for calculating the cell length with respect to the center axis of the cell.
+
+### Methodologies:
+
+<i>E.coli</i> expresses filamentous phenotype when exposed to certain chemicals. (e.g. Ciprofloxacin)
+
+Figure 4 shows an example of a filamentous cell with Ciprofloxacin exposure. 
+
+<div align="center">
+
+![Start-up window](docs_images/fig4.png)  
+
+</div>
+
+
+<p align="center">
+Fig.4 A filamentous <i>E.coli</i> cell (PH Left, Fluo-GFP Center, Fluo-mCherry Right).
+</p>
+
+
+Thus, the center axis of the cell, not necessarily straight, is required to calculate the cell length. 
+
+Using the aforementioned basis conversion algorithm, first we converted the basis of the cell contour to its Cov matrix's eigenvectors' basis.
+
+Figure 5 shows the coordinates of the contour in the eigenspace's bases. 
+
+
+<div align="center">
+
+![Start-up window](docs_images/fig5.png)  
+</div>
+
+<p align="center">
+Fig.5 The coordinates of the contour in the new basis (PH Left, contour in the new basis Right).
+</p>
+
+We then applied least aquare method to the coordinates of the contour in the new basis.
+
+Let the contour in the new basis
+
+$$\mathbf{C} = \begin{pmatrix}
+    u_{1_1} &\cdots&\ u_{1_n} \\ 
+    u_{2_1} &\cdots&\ u_{2_n} 
+\end{pmatrix} \in \mathbb{R}^{2\times n}$$
+
+then regression with arbitrary k-th degree polynomial (i.e. the center axis of the cell) can be expressed as:
+$$f\hat{(u_1)} = \theta^\mathrm{T} \mathbf{U}$$
+
+where 
+
+$$\theta = \begin{pmatrix}
+    \theta_k&\cdots&\theta_0
+\end{pmatrix}^\mathrm{T}\in \mathbb{R}^{k+1}$$
+
+$$\mathbf{U} = \begin{pmatrix}
+    u_1^k&\cdots u_1^0
+\end{pmatrix}^\mathrm{T}$$
+
+the parameters in theta can be determined by normal equation:
+
+$$\theta = (\mathbf{W}^\mathrm{T}\mathbf{W})^{-1}\mathbf{W}^\mathrm{T}\mathbf{f}$$
+
+where
+
+$$\mathbf{W} = \begin{pmatrix}
+    u_{1_1}^k&\cdots&1 \\
+     \vdots&\vdots&\vdots \\
+     u_{1_n}^k&\cdots&1 
+\end{pmatrix} \in \mathbb{R}^{n\times k +1}$$
+
+$$\mathbf{f} = \begin{pmatrix}
+    u_{2_1}&\cdots&u_{2_n}
+\end{pmatrix}^\mathrm{T}$$
+
+Hence, we have obtained the parameters in theta for the center axis of the cell in the new basis. (fig. 6)
+
+Now using the axis, the arc length can be calculated as:
+
+$$\mathbf{L} = \int_{u_{1_1}}^{u_{1_2}} \sqrt{1 + (\frac{d}{du_1}\theta^\mathrm{T}\mathbf{U})^2} du_1 $$
+
+**The length is preserved in both bases.**
+
+We rewrite the basis conversion process as:
+
+$$\mathbf{U} = \mathbf{Q}^\mathbf{T} \mathbf{X}$$
+
+The inner product of any vectors in the new basis $\in \mathbb{R}^2$ is 
+
+$$ \|\mathbf{U}\|^2 = \mathbf{U}^\mathrm{T}\mathbf{U} = (\mathbf{Q}^\mathrm{T}\mathbf{X})^\mathrm{T}\mathbf{Q}^\mathbf{T}\mathbf{X} = \mathbf{X}^\mathrm{T}\mathbf{Q}\mathbf{Q}^\mathrm{T}\mathbf{X} \in \mathbb{R}$$
+
+Since $\mathbf{Q}$ is an orthogonal matrix, 
+
+$$\mathbf{Q}^\mathrm{T}\mathbf{Q} = \mathbf{Q}\mathbf{Q}^\mathrm{T} = \mathbf{I}$$
+
+Thus, 
+
+$$\|\mathbf{U}\|^2 = \|\mathbf{X}\|^2$$
+
+Hence <u>the length is preserved in both bases.</u> 
+
+
+### Result:
+
+Figure 6 shows the center axis of the cell in the new basis (4-th polynominal).
+
+
+<div align="center">
+
+![Start-up window](docs_images/fig6.png)  
+</div>
+<p align="center">
+Fig.6 The center axis of the contour in the new basis (PH Left, contour in the new basis with the center axis Right).
+</p>
+
+### Choosing the Appropriate K-Value for Polynomial Regression
+
+
+By default, the K-value is set to 4 in the polynomial regression. However, this may not be sufficient for accurately modeling "wriggling" cells.
+
+For example, Figure 6-1 depicts a cell exhibiting extreme filamentous changes after exposure to Ciprofloxacin. The center axis as modeled does not adequately represent the cell's structure.
+
+<div align="center">
+
+![Start-up window](docs_images/choosing_k_1.png)  
+
+</div>
+
+<p align="center">
+Fig.6-1  An extremely filamentous cell. (PH Left, contour in the new basis with the center axis Right).
+</p>
+
+
+The center axis (in red) with K = 4 does not fit as well as expected, indicating a need to explore higher K-values (i.e., K > 4) for better modeling.
+
+Figure 6-2 demonstrates fit curves (the center axis) for K-values ranging from 5 to 10.
+
+
+
+<div align="center">
+
+![Alt text](docs_images/result_kth10.png)
+</div>
+<p align="center">
+Fig.6-2: Fit curves for the center axis with varying K-values (5 to 10).
+</p>
+
+As shown in Fig. 6-2, K = 8 appears to be the optimal value. 
+
+However, it's important to note that the differences in calculated arc lengths across various K-values fall within the subpixel range.
+
+Consequently, choosing K = 4 might remain a viable compromise in any case.
