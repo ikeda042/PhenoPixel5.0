@@ -134,6 +134,11 @@ If you choose `MedianEngine`, it shows you the normalized median of the pixels i
 
 ![](docs_images/27.png)
 
+`HeatmapEngine` visualizes the localization of the fluorescense at relative positions from the edge of the cell. 
+
+![](docs_images/28.png)
+
+
 
 
 
