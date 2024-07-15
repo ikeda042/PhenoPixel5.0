@@ -74,14 +74,24 @@ This section allows you to extract cells from arbitrary ND2 files that consist o
 After obtaining the cell database with selected labels for each cell, in other words, after pressing `mark as completed`, it will show up in the `completed` section of the console.  (Note that `Validated` tag is only for admin useage (i.e., uncontrollable from the frontend))
    ![](docs_images/13.png)
 
-1. When you press the `Access database` button, you will get to the similar section as the cell labeling console. (Actually the same but without the labeling function.)
+When you press the `Access database` button, you will get to the similar section as the cell labeling console. (Actually the same but without the labeling function.)
    ![](docs_images/14.png)
 
-2. The next action you will take is to select the cells with a specific label in the list. 
+The next action you will take is to select the cells with a specific label in the list. 
     ![](docs_images/15.png)
 
    In this example, we will be using cells labeled with `1` as shown below.
    ![](docs_images/16.png)
+
+## Parameters 
+
+If you uncheck both `Contour` and `Scale bar` checkbox, you will see the raw images of the cell. 
+   ![](docs_images/17.png)
+
+If you check both `Contour` and `Scale bar` checkbox, you will see the cell images with it's contour and a scale bar. 
+
+
+
 
 
 
