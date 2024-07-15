@@ -51,6 +51,9 @@ first you need to upload an nd2 file from your computer with the `SELECT ND2 FIL
     ![](docs_images/6.png)
 
 4. After getting into the cell extraction section, you will see the parameter input fields. 
+    ![](docs_images/7.png)
+    
+
 
 
 
