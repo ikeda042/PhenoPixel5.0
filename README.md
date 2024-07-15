@@ -41,6 +41,7 @@ first you need to upload an nd2 file from your computer with the `SELECT ND2 FIL
     ![](docs_images/3.png)
 
 2. After selecting an nd2 file to upload, press `UPLOAD` button to actually submit the file to the backend. This process takes approximately 30 seconds or so. 
+   
     ![](docs_images/4.png)
     If the file is successfully submitted, a pop up alert shows up like this, and the filename is added to the list as well.
 
