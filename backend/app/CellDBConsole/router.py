@@ -191,3 +191,12 @@ async def upload_database(file: UploadFile = UploadFile(...)):
 @router_database.get("/")
 async def get_databases():
     return await AsyncChores().get_database_names()
+
+
+@router_database.patch("/{db_name}")
+async def update_database_to_label_completed(db_name: str):
+    file_path = os.path.join("databases", db_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    await CellCrudBase(db_name).rename_database()
+    return JSONResponse(content={"message": "Database updated"})
