@@ -120,7 +120,7 @@ There are four Mophoengines that conduct morphological analyses of the cells.
 ![](docs_images/24.png)
 
 When you choose `Morphoengine 2.0`, it shows you the morphological parameters for each cell. 
-
+(The volume calculation algorithms are WIP.)
 
 ![](docs_images/25.png)
 
