@@ -1318,6 +1318,12 @@ class CellCrudBase:
         dbname_cleaned = "".join(dbname_cleaned.split(".")[:-1]) + ".db"
         os.rename(
             f"databases/{dbname_cleaned}",
-            f"databases/{dbname_cleaned.replace("-uploaded.db")}-completed.db",
+            f"databases/{dbname_cleaned.replace('-uploaded.db')}-completed.db",
         )
         return True
+
+    async def check_if_database_updated(self):
+        # self.db_name のデータベース中のmanual_labelが全てN/Aであるかどうかを確認
+        length_all = len(await self.read_cell_ids())
+        length_na = len(await self.read_cell_ids("N/A"))
+        return length_all == length_na
