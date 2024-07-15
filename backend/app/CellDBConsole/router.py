@@ -200,3 +200,8 @@ async def update_database_to_label_completed(db_name: str):
         raise HTTPException(status_code=404, detail="File not found")
     await CellCrudBase(db_name).rename_database_to_completed()
     return JSONResponse(content={"message": "Database updated"})
+
+
+@router_database.get("/{db_name}")
+async def check_if_database_updated_once(db_name: str):
+    return await CellCrudBase(db_name).check_if_database_updated()
