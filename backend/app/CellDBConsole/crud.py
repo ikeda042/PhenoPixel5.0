@@ -1326,4 +1326,4 @@ class CellCrudBase:
         # self.db_name のデータベース中のmanual_labelが全てN/Aであるかどうかを確認
         length_all = len(await self.read_cell_ids())
         length_na = len(await self.read_cell_ids("N/A"))
-        return length_all == length_na
+        return length_all != length_na
