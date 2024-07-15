@@ -1309,3 +1309,12 @@ class CellCrudBase:
         df.to_csv(buf, index=False)
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
+
+    async def rename_database(self):
+        if "-" not in self.db_name:
+            return False
+        os.rename(
+            f"databases/{self.db_name}",
+            f"databases/{self.db_name.split('-')[0]}.db",
+        )
+        return True
