@@ -9,12 +9,6 @@ This version 5.0 inherits the deprecated version [PhenoPixel 4.0](https://github
 
 This program presupposes that Node.js and Python 3.10 are installed on the user's computer
 
-## start up front-end
-
-```bash
-cd frontend
-npm start
-```
 
 ## start up back-end
 
@@ -23,6 +17,15 @@ cd backend/app
 pip install -r requiremetns.txt
 python main.py
 ```
+
+## start up front-end
+
+```bash
+cd frontend
+npm start
+```
+
+# User interface
 
 
 # Algorithms for morphological analyses 
