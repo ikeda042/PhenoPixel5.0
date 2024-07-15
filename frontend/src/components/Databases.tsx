@@ -7,6 +7,7 @@ import DatabaseIcon from '@mui/icons-material/Storage';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
+import TaskIcon from '@mui/icons-material/Task';
 
 interface ListDBResponse {
     databases: string[];
@@ -24,6 +25,8 @@ const Databases: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMessage, setDialogMessage] = useState("");
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+    const [databaseToComplete, setDatabaseToComplete] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -83,13 +86,38 @@ const Databases: React.FC = () => {
         window.location.reload();
     };
 
+    const handleOpenConfirmDialog = (database: string) => {
+        setDatabaseToComplete(database);
+        setConfirmDialogOpen(true);
+    };
+
+    const handleCloseConfirmDialog = () => {
+        setConfirmDialogOpen(false);
+        setDatabaseToComplete(null);
+    };
+
+    const handleMarkAsComplete = async () => {
+        if (databaseToComplete) {
+            try {
+                const response = await axios.patch(`${url_prefix}/databases/${databaseToComplete}`);
+                setDialogMessage(response.data.message);
+                setDialogOpen(true);
+                handleCloseConfirmDialog();
+            } catch (error) {
+                setDialogMessage("Failed to mark database as complete.");
+                setDialogOpen(true);
+                console.error("Failed to mark database as complete", error);
+            }
+        }
+    };
+
     const filteredDatabases = databases.filter(database => {
         const searchMatch = database.toLowerCase().includes(searchQuery.toLowerCase());
         if (displayMode === 'User uploaded') {
             return searchMatch && database.endsWith('-uploaded.db');
         }
-        if (displayMode === 'Validated') {
-            return searchMatch && !database.endsWith('-uploaded.db');
+        if (displayMode === 'Completed') {
+            return searchMatch && database.endsWith('-completed.db');
         }
         return searchMatch;
     });
@@ -101,8 +129,7 @@ const Databases: React.FC = () => {
                     <Link underline="hover" color="inherit" href="/">
                         Top
                     </Link>
-                    <Typography color="text.primary">Database Console
-                    </Typography>
+                    <Typography color="text.primary">Database Console</Typography>
                 </Breadcrumbs>
             </Box>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="space-between" mt={2}>
@@ -128,6 +155,7 @@ const Databases: React.FC = () => {
                         >
                             <MenuItem value="Validated">Validated</MenuItem>
                             <MenuItem value="User uploaded">Uploaded</MenuItem>
+                            <MenuItem value="Completed">Completed</MenuItem>
                         </Select>
                     </Grid>
                     <Grid item xs={3}>
@@ -186,7 +214,8 @@ const Databases: React.FC = () => {
                         <TableHead>
                             <TableRow>
                                 <TableCell>Database Name</TableCell>
-                                <TableCell align="right">Go</TableCell>
+                                {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
+                                <TableCell align="center">Go</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -195,6 +224,24 @@ const Databases: React.FC = () => {
                                     <TableCell component="th" scope="row">
                                         {database}
                                     </TableCell>
+                                    {displayMode === 'User uploaded' && (
+                                        <TableCell align="center">
+                                            <Button
+                                                variant="contained"
+                                                sx={{
+                                                    backgroundColor: 'green',
+                                                    color: 'white',
+                                                    '&:hover': {
+                                                        backgroundColor: 'darkgreen'
+                                                    }
+                                                }}
+                                                onClick={() => handleOpenConfirmDialog(database)}
+                                                startIcon={<TaskIcon />}
+                                            >
+                                                Mark as Complete
+                                            </Button>
+                                        </TableCell>
+                                    )}
                                     <TableCell align="right">
                                         <IconButton onClick={() => handleNavigate(database)}>
                                             <Typography>Access database </Typography>
@@ -218,6 +265,23 @@ const Databases: React.FC = () => {
                 <DialogActions>
                     <Button onClick={handleCloseDialog} color="primary">
                         Close
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={confirmDialogOpen} onClose={handleCloseConfirmDialog}>
+                <DialogTitle>{"Confirm Mark as Complete"}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Are you sure you want to mark this database as complete?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseConfirmDialog} color="primary">
+                        Cancel
+                    </Button>
+                    <Button onClick={handleMarkAsComplete} color="primary">
+                        Confirm
                     </Button>
                 </DialogActions>
             </Dialog>
