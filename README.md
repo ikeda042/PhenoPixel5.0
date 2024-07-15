@@ -65,6 +65,7 @@ first you need to upload an nd2 file from your computer with the `SELECT ND2 FIL
 
 7. When you press  `Access database` button, you will see the cell labeling section as shown. 
     ![](docs_images/10.png)
+    In this section, you can label all the cells extracted from the previous section with labels ["N/A", "1", "2","3"]
 
 
 
