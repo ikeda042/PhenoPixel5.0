@@ -230,3 +230,58 @@ Figure 2 shows the raw image of an <i>E.coli </i> cell and the long axis calcula
 <p align="center">
 Fig.2  <i>E.coli</i> cell with its contour (PH Left, Replotted contour with the long axis Right)
 </p>
+
+
+
+## Basis conversion Algorithm
+
+### Objective:
+
+To implement an algorithm for replacing the basis of 2-dimentional space of the cell with the basis of the eigenspace(2-dimentional).
+
+### Methodologies:
+
+
+Let 
+
+$$ \mathbf{Q}  = \begin{pmatrix}
+    v_1&v_2
+\end{pmatrix}\in \mathbb{R}^{2\times 2}$$
+
+$$\mathbf{\Lambda} = \begin{pmatrix}
+    \lambda_1& 0 \\
+    0&\lambda_2
+\end{pmatrix}
+(\lambda_1 > \lambda_2)$$
+
+, then the spectral factorization of Cov matrix of the contour coordinates can be writtern as:
+
+$$\Sigma =
+ \begin{pmatrix} V[\mathbf{X_1}]&Cov[\mathbf{X_1},\mathbf{X_2}]
+ \\ 
+ Cov[\mathbf{X_1},\mathbf{X_2}]& V[\mathbf{X_2}] \end{pmatrix} = \mathbf{Q}\mathbf{\Lambda}\mathbf{Q}^\mathrm{T}$$
+
+Hence, arbitrary coordinates in the new basis of the eigenbectors can be written as:
+
+$$\begin{pmatrix}
+    u_1&u_2
+\end{pmatrix}^\mathrm{T} = \mathbf{Q}\begin{pmatrix}
+    x_1&y_1
+\end{pmatrix}^\mathrm{T}$$
+
+### Result:
+
+Figure 3 shows contour in the new basis 
+
+$$\begin{pmatrix}
+    u_1&u_2
+\end{pmatrix}$$ 
+
+<div align="center">
+
+![Start-up window](docs_images/base_conv.png)  
+
+</div>
+<p align="center">
+Fig.3  Each coordinate of contour in the new basis (Right). 
+</p>
