@@ -38,6 +38,11 @@ This section lets you extract cells from arbitrary nd2 files that consist of up 
 1. The first thing you will see in this section is the nd2 table shown below. 
    ![](docs_images/2.png)
 first you need to upload an nd2 file from your computer with the `SELECT ND2 FILE` button. 
+    ![](docs_images/3.png)
+
+2. After selecting an nd2 file to upload, press `UPLOAD` button to actually submit the file to the backend. 
+    ![](docs_images/4.png)
+    
 
 
 
