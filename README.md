@@ -208,6 +208,7 @@ To solve this maximization problem under the given constraints, we employ the me
 $$\cal{L}(\mathbf{w},\lambda) = \mathbf{w}^\mathrm{T}\Sigma \mathbf{w} - \lambda(\mathbf{w}^\mathrm{T}\mathbf{w}-1)$$
 
 At maximum variance:
+
 $$\frac{\partial\cal{L}}{\partial{\mathbf{w}}} = 2\Sigma\mathbf{w}-2\lambda\mathbf{w} = 0$$
 
 Hence, 
