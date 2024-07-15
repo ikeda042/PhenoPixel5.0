@@ -93,6 +93,9 @@ If you check both `Contour` and `Scale bar` checkbox, you will see the cell imag
 
 
 If you increase/decrease the `Brightness Factor`, you can adjust the brightness of each pixel to see the localiation of the fluorescence etc. 
+   ![](docs_images/19.png)
+
+The `Manual Label` section just shows you the label of the cell, and neve updates it in this section because the labeling process is already done beforehand.
 
 
 
