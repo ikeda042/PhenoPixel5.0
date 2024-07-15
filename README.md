@@ -115,8 +115,14 @@ If you choose `Peak-path`, it shows the peak-path figure of the cell.
 
 ## Morphoengines 
 
+There are four Mophoengines that conduct morphological analyses of the cells. 
+
+![](docs_images/24.png)
+
+When you choose `Morphoengine 2.0`, it shows you the morphological parameters for each cell. 
 
 
+![](docs_images/25.png)
 
 
 
