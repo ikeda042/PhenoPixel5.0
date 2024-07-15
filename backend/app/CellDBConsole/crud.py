@@ -1318,7 +1318,7 @@ class CellCrudBase:
         dbname_cleaned = "".join(dbname_cleaned.split(".")[:-1]) + ".db"
         os.rename(
             f"databases/{dbname_cleaned}",
-            f"databases/{dbname_cleaned.replace('-uploaded.db')}-completed.db",
+            f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed.db",
         )
         return True
 
