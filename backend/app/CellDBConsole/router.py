@@ -198,5 +198,5 @@ async def update_database_to_label_completed(db_name: str):
     file_path = os.path.join("databases", db_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
-    await CellCrudBase(db_name).rename_database()
+    await CellCrudBase(db_name).rename_database_to_completed()
     return JSONResponse(content={"message": "Database updated"})
