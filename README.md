@@ -80,7 +80,7 @@ The next action you will take is to select the cells with a specific label in th
 
    In this example, we will be using cells labeled with `1` as shown below.
    ![](docs_images/16.png)
-
+   
 ## Parameters 
 
 If you uncheck both the `Contour` and `Scale bar` checkboxes, you will see the raw images of the cells. 
@@ -89,29 +89,29 @@ If you uncheck both the `Contour` and `Scale bar` checkboxes, you will see the r
 If you check both the `Contour` and `Scale bar` checkboxes, you will see the cell images with their contours and a scale bar. 
    ![](docs_images/18.png)
 
-If you increase/decrease the `Brightness Factor`, you can adjust the brightness of each pixel to see the localization of the fluorescence, etc. 
+If you increase or decrease the `Brightness Factor`, you can adjust the brightness of each pixel to see the localization of the fluorescence, etc. 
    ![](docs_images/19.png)
 
-The `Manual Label` section just shows you the label of the cell, and never updates it in this section because the labeling process is already done beforehand.
+The `Manual Label` section just shows you the label of the cell and never updates it in this section because the labeling process is already done beforehand.
 
-## Graph section
+## Graph Section
 
-There is a graph section in the midle column, which is set to `Light` as a default value, shows the contour of the cell with it's center at the center of the figure. 
+There is a graph section in the middle column, which is set to `Light` as the default value. It shows the contour of the cell with its center at the center of the figure.
    ![](docs_images/20.png)
 
-The draw modes consist of these three modes
+The draw modes consist of these three modes:
 
 ![](docs_images/21.png)
 
-If you choose `Replot`, it shows the replotted(後述) figure of the cell. 
+If you choose `Replot`, it shows the replotted (後述) figure of the cell. 
 
 ![](docs_images/22.png)
 
-If you choose `Peak-path`, it shows the peak-path(後述) figure of the cell. 
+If you choose `Peak-path`, it shows the peak-path (後述) figure of the cell. 
 
 ![](docs_images/23.png)
 
-
+`Polyfit degree` is a meta-parameter for the polynomial fitting of the cell center curve, but it is generally good practice to leave it at four.
 
 
 
