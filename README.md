@@ -113,7 +113,7 @@ If you choose `Peak-path`, it shows the peak-path figure of the cell.
 
 `Polyfit degree` is a meta-parameter for the polynomial fitting of the cell center curve, but it is generally good practice to leave it at four.
 
-## Morphoengines 
+# Morphoengines 
 
 There are four Morphoengines that conduct morphological analyses of the cells.
 
