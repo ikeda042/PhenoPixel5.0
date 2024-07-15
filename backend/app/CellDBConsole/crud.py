@@ -1310,11 +1310,13 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
 
-    async def rename_database(self):
-        if "-" not in self.db_name:
+    async def rename_database_to_completed(self):
+        if "-uploaded" not in self.db_name:
             return False
+        dbname_cleaned = self.db_name.split("/")[-1]
+        dbname_cleaned = "".join(dbname_cleaned.split(".")[:-1]) + ".db"
         os.rename(
-            f"databases/{self.db_name}",
-            f"databases/{self.db_name.split('-')[0]}.db",
+            f"databases/{dbname_cleaned}",
+            f"databases/{dbname_cleaned}-completed.db",
         )
         return True
