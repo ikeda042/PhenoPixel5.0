@@ -34,11 +34,17 @@ ChartJS.register(
     Legend
 );
 
+type ImageState = {
+    ph: string;
+    fluo?: string | null;
+    replot?: string;
+    path?: string;
+};
 const url_prefix = settings.url_prefix;
 
 const CellImageGrid: React.FC = () => {
     const [cellIds, setCellIds] = useState<string[]>([]);
-    const [images, setImages] = useState<{ [key: string]: { ph: string, fluo: string, replot?: string, path?: string } }>({});
+    const [images, setImages] = useState<{ [key: string]: ImageState }>({});
     const [selectedLabel, setSelectedLabel] = useState<string>("74");
     const [manualLabel, setManualLabel] = useState<string>("");
     const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -100,7 +106,10 @@ const CellImageGrid: React.FC = () => {
                 };
 
                 const phImage = await fetchImage('ph_image');
-                const fluoImage = await fetchImage('fluo_image', brightnessFactor);
+                let fluoImage: string | null = null;
+                if (!db_name.includes("single_layer")) {
+                    fluoImage = await fetchImage('fluo_image', brightnessFactor);
+                }
 
                 return { ph: phImage, fluo: fluoImage };
             } catch (error) {
@@ -124,6 +133,8 @@ const CellImageGrid: React.FC = () => {
             handleFetchImages(cellIds[currentIndex]);
         }
     }, [cellIds, currentIndex, db_name, drawContour, drawScaleBar, brightnessFactor]);
+
+
 
     useEffect(() => {
         const fetchInitialLabel = async () => {
@@ -409,8 +420,8 @@ const CellImageGrid: React.FC = () => {
                             )}
                         </Grid>
                         <Grid item xs={6}>
-                            {images[cellIds[currentIndex]] ? (
-                                <img src={images[cellIds[currentIndex]].fluo} alt={`Cell ${cellIds[currentIndex]} Fluo`} style={{ width: "100%" }} />
+                            {images[cellIds[currentIndex]] && images[cellIds[currentIndex]].fluo ? (
+                                <img src={images[cellIds[currentIndex]].fluo as string} alt={`Cell ${cellIds[currentIndex]} Fluo`} style={{ width: "100%" }} />
                             ) : (
                                 <div>Loading Fluo...</div>
                             )}
