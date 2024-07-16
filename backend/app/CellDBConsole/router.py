@@ -69,6 +69,11 @@ async def get_cell_fluo(
     draw_scale_bar: bool = False,
     brightness_factor: float = 1.0,
 ):
+    if "-single_layer" in db_name:
+        raise HTTPException(
+            status_code=404,
+            detail="Fluo does not exist in single layer databases. Please use the ph endpoint.",
+        )
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).get_cell_fluo(
         cell_id=cell_id,
