@@ -83,5 +83,10 @@
 
     ![](docs_images/22.png)
 
-    `Peak-path`を選択すると、
+    `Peak-path`を選択すると、3次元輝度情報を長軸ベースに圧縮した上で算出したpeak-pathが得られる。
+
+    ![](docs_images/23.png)
+
+
+
 
