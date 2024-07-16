@@ -6,7 +6,7 @@ from exceptions import CellNotFoundError
 import cv2
 import numpy as np
 from numpy.linalg import eig, inv
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 import io
 import pickle
 import asyncio
@@ -1322,11 +1322,8 @@ class CellCrudBase:
         )
         return True
 
-    async def download_completed_database(self) -> StreamingResponse:
-        return StreamingResponse(
-            open(f"databases/{self.db_name.split('/')[-1]}", "rb"),
-            media_type="application/octet-stream",
-        )
+    async def download_completed_database(self) -> FileResponse:
+        return FileResponse(f"databases/{self.db_name.split('/')[-1]}")
 
     async def check_if_database_updated(self):
         # self.db_name のデータベース中のmanual_labelが全てN/Aであるかどうかを確認
