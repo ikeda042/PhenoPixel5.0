@@ -1322,8 +1322,6 @@ class CellCrudBase:
         )
         return True
 
-    async def download_completed_database(self) -> FileResponse:
-        return FileResponse(f"databases/{self.db_name.split('/')[-1]}")
 
     async def check_if_database_updated(self):
         # self.db_name のデータベース中のmanual_labelが全てN/Aであるかどうかを確認
