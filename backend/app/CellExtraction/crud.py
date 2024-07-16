@@ -384,6 +384,7 @@ class ExtractionCrudBase:
         image_size: int = 200,
     ):
         self.nd2_path = nd2_path
+        self.nd2_path = self.nd2_path.replace("\\", "/")
         self.file_prefix = self.nd2_path.split("/")[-1].split(".")[0]
         self.mode = mode
         self.param1 = param1
