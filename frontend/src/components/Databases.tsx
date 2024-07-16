@@ -101,7 +101,7 @@ const Databases: React.FC = () => {
 
     const handleCloseDialog = () => {
         setDialogOpen(false);
-        window.location.reload();
+        // Removed the page reload
     };
 
     const handleOpenConfirmDialog = (database: string) => {
