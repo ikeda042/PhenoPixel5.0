@@ -123,9 +123,9 @@ const Extraction: React.FC = () => {
                     <Typography color="text.primary">Cell extraction</Typography>
                 </Breadcrumbs>
             </Box>
-            <Grid container spacing={2} justifyContent="center" alignItems="center">
+            <Grid container spacing={2} >
                 <Grid item xs={12} md={4} style={{ display: 'flex', justifyContent: 'center' }}>
-                    <Box width="100%" maxWidth="400px">
+                    <Box width="100%" >
                         <FormControl fullWidth margin="normal">
                             <InputLabel>Mode</InputLabel>
                             <Select
