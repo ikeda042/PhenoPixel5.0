@@ -131,14 +131,17 @@ const Databases: React.FC = () => {
 
     const handleDownload = async (database: string) => {
         try {
-            const response = await axios.get(`${url_prefix}/databases/${database}/download-completed`, {
+            const response = await axios.get(`${url_prefix}/databases/download-completed/${database}`, {
                 responseType: 'blob'
             });
+
+            const contentDisposition = response.headers['content-disposition'];
+            const fileName = contentDisposition ? contentDisposition.split('filename=')[1] : database;
 
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', database);
+            link.setAttribute('download', fileName);
             document.body.appendChild(link);
             link.click();
             link.remove();
