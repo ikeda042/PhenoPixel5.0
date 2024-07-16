@@ -59,9 +59,16 @@
     本項では下記のようにラベル`1`の細胞集団を取得する。
     ![](docs_images/16.png)
 
-4. 操作パネル(画面左側)について、`Contour（輪郭）`,`Scale bar`, `Brightness factor(先述)`があり、
+4. 操作パネル(画面左側)について、`Contour（輪郭）`,`Scale bar`があり、
     ![](docs_images/17.png)
 
     両方にチェックを入れると、下記のように画像に自動的に描画される。
+
     ![](docs_images/18.png)
+
+    また、 `Brightness factor(先述)`をあげると蛍光画像の輝度が単純にN倍になる。
+
+    ![](docs_images/19.png)
+
+    
 
