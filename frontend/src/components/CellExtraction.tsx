@@ -116,6 +116,10 @@ const Extraction: React.FC = () => {
                     <Link underline="hover" color="inherit" href="/">
                         Top
                     </Link>
+                    <Link underline="hover" color="inherit" href="/nd2files">
+                        ND2 files
+                    </Link>
+
                     <Typography color="text.primary">Cell extraction</Typography>
                 </Breadcrumbs>
             </Box>
