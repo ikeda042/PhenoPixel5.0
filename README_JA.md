@@ -87,6 +87,8 @@
 
     ![](docs_images/23.png)
 
+    `polyfid degree`は細胞長軸の多項式回帰に使用するkの値であるが、4のままで問題ない。
+
 
 
 
