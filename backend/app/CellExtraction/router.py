@@ -62,8 +62,11 @@ async def extract_cells(
     image_size: int = 200,
 ):
     ph_contours_dir = "ph_contours"
-    if os.path.exists(ph_contours_dir):
+    try:
         shutil.rmtree(ph_contours_dir)
+    except:
+        pass
+
     file_path = os.path.join("uploaded_files", db_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
