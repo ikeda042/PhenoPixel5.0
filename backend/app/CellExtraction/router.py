@@ -6,6 +6,7 @@ import os
 from fastapi import UploadFile
 import aiofiles
 from fastapi import HTTPException
+import shutil
 
 router_cell_extraction = APIRouter(prefix="/cell_extraction", tags=["cell_extraction"])
 
@@ -60,6 +61,9 @@ async def extract_cells(
     param1: int = 100,
     image_size: int = 200,
 ):
+    ph_contours_dir = "ph_contours"
+    if os.path.exists(ph_contours_dir):
+        shutil.rmtree(ph_contours_dir)
     file_path = os.path.join("uploaded_files", db_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
