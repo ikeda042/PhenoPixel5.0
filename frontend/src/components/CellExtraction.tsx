@@ -126,6 +126,9 @@ const Extraction: React.FC = () => {
             <Grid container spacing={2} >
                 <Grid item xs={12} md={4} style={{ display: 'flex', justifyContent: 'center' }}>
                     <Box width="100%" >
+                        <Typography variant="body1">
+                            nd2 filename :  {fileName}
+                        </Typography>
                         <FormControl fullWidth margin="normal">
                             <InputLabel>Mode</InputLabel>
                             <Select
