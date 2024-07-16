@@ -423,7 +423,17 @@ const CellImageGrid: React.FC = () => {
                             {images[cellIds[currentIndex]] && images[cellIds[currentIndex]].fluo ? (
                                 <img src={images[cellIds[currentIndex]].fluo as string} alt={`Cell ${cellIds[currentIndex]} Fluo`} style={{ width: "100%" }} />
                             ) : (
-                                <div>Loading Fluo...</div>
+                                db_name.includes("single_layer") ? <Box
+                                    sx={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        height: '100%'
+                                    }}
+                                >
+                                    <Typography variant="h5">Single layer mode.</Typography>
+                                    <img src="/logo_dots.png" alt="Morpho Engine is off" style={{ maxWidth: '15%', maxHeight: '15%' }} />
+                                </Box> : <div>Not available</div>
                             )}
                         </Grid>
                     </Grid>
