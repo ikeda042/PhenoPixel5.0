@@ -39,3 +39,8 @@
 
 11. ラベリング終了後、`Database console`に戻ると、`Mark as comlete`ボタンが押せるようになっている。このボタンを押すことで、今後データベースの書き換えが不可能となる。
      ![](docs_images/12.png)
+
+12. `Mark as comlete`を押した後は、下記のように、`completed`タグがついたデータベースに追加される。この時点で、ラベル付き細胞が格納されたデータベースを`EXPORT DATABASE`からダウンロードして退避させ保管しておくことも可能である。
+    ![](docs_images/db.png)
+    
+   
