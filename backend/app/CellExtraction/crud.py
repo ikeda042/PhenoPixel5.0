@@ -94,7 +94,7 @@ class SyncChores:
         return center_x, center_y
 
     @staticmethod
-    def extract_nd2(file_name: str):
+    def extract_nd2(file_name: str, mode: str):
         """
         nd2ファイルをMultipageTIFFに変換する。
         """
@@ -128,7 +128,7 @@ class SyncChores:
             SyncChores.save_images(images, file_name, num_channels)
         SyncChores.cleanup("nd2totiff")
         num_tiff = SyncChores.extract_tiff(
-            f"./{file_name.split('/')[-1].split('.')[0]}.tif"
+            tiff_path=f"./{file_name.split('/')[-1].split('.')[0]}.tif", mode=mode
         )
         os.remove(f"./{file_name.split('/')[-1].split('.')[0]}.tif")
         return num_tiff
@@ -285,10 +285,12 @@ class SyncChores:
                     os.mkdir(f"TempData/frames/tiff_{i}/Cells/fluo2_contour")
                 except Exception as e:
                     print(e)
-
-        for k in range(num_tiff // set_num):
+        loop_num = num_tiff // set_num if mode != "single_layer" else num_tiff
+        for k in range(loop_num):
             image_ph = cv2.imread(f"TempData/PH/{k}.tif")
-            image_fluo_1 = cv2.imread(f"TempData/Fluo1/{k}.tif")
+            print(num_tiff)
+            if mode == "dual_layer" or mode == "triple_layer":
+                image_fluo_1 = cv2.imread(f"TempData/Fluo1/{k}.tif")
             if mode == "triple_layer":
                 image_fluo_2 = cv2.imread(f"TempData/Fluo2/{k}.tif")
             img_gray = cv2.cvtColor(image_ph, cv2.COLOR_BGR2GRAY)
@@ -461,7 +463,7 @@ class ExtractionCrudBase:
         except FileNotFoundError:
             pass
 
-        num_tiff = await asyncio.to_thread(chores.extract_nd2, self.nd2_path)
+        num_tiff = await asyncio.to_thread(chores.extract_nd2, self.nd2_path, self.mode)
 
         await asyncio.to_thread(
             chores.init,
