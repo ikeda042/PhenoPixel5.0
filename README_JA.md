@@ -70,5 +70,8 @@
 
     ![](docs_images/19.png)
 
+    `Manual label`については、データベースのステータスが`completed`になっているため、変更できない。
     
+
+
 
