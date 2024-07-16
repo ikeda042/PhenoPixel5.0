@@ -1322,9 +1322,7 @@ class CellCrudBase:
         )
         return True
 
-    async def download_database(self):
-        if "-completed" not in self.db_name:
-            return False
+    async def download_completed_database(self) -> StreamingResponse:
         return StreamingResponse(
             open(f"databases/{self.db_name.split('/')[-1]}", "rb"),
             media_type="application/octet-stream",
