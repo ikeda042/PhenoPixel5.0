@@ -1322,6 +1322,14 @@ class CellCrudBase:
         )
         return True
 
+    async def download_database(self):
+        if "-completed" not in self.db_name:
+            return False
+        return StreamingResponse(
+            open(f"databases/{self.db_name.split('/')[-1]}", "rb"),
+            media_type="application/octet-stream",
+        )
+
     async def check_if_database_updated(self):
         # self.db_name のデータベース中のmanual_labelが全てN/Aであるかどうかを確認
         length_all = len(await self.read_cell_ids())
