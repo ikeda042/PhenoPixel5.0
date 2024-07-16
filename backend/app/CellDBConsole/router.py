@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from CellDBConsole.crud import CellCrudBase, AsyncChores
 from CellDBConsole.schemas import CellMorhology
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from typing import Literal
 import os
 from fastapi import UploadFile
@@ -193,19 +193,6 @@ async def get_databases():
     return await AsyncChores().get_database_names()
 
 
-@router_database.get("/{db_name}/download-completed")
-async def download_completed_database(db_name: str):
-    file_path = os.path.join("databases", db_name)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-    if "-completed" not in db_name:
-        raise HTTPException(
-            status_code=400,
-            detail="Please provide the name of the completed database.",
-        )
-    return await CellCrudBase(db_name).download_completed_database()
-
-
 @router_database.patch("/{db_name}")
 async def update_database_to_label_completed(db_name: str):
     file_path = os.path.join("databases", db_name)
@@ -218,3 +205,24 @@ async def update_database_to_label_completed(db_name: str):
 @router_database.get("/{db_name}")
 async def check_if_database_updated_once(db_name: str):
     return await CellCrudBase(db_name).check_if_database_updated()
+
+
+@router_database.get("/download-completed/{db_name}")
+async def download_db(db_name: str):
+    print(db_name)
+    file_path = os.path.join("databases", db_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    if "-completed" not in db_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide the name of the completed database.",
+        )
+    print(f"Downloading {db_name}")
+    return StreamingResponse(
+        open(
+            f"databases/{db_name.split('/')[-1]}",
+            "rb",
+        ),
+        media_type="application/octet-stream",
+    )
