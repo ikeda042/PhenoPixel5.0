@@ -456,7 +456,11 @@ class ExtractionCrudBase:
 
     async def main(self):
         chores = SyncChores()
-        dbname = f"databases/{self.file_prefix}-uploaded.db"
+        dbname = (
+            f"databases/{self.file_prefix}-uploaded.db"
+            if self.mode != "single_layer"
+            else f"databases/{self.file_prefix}-single_layer-uploaded.db"
+        )
 
         try:
             await asyncio.to_thread(os.remove, dbname)
