@@ -13,5 +13,8 @@
      ![](docs_images/4.png)
 
     アップロードが成功すると下記のようなダイアログが出る。
-    
+
     ![](docs_images/5.png)
+
+5. アップロードしたnd2ファイルが下記のようにテーブルに追加されるため、任意のnd2ファイルの`Extract cells`を選択する。
+     ![](docs_images/6.png)
