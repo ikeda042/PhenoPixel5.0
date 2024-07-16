@@ -65,7 +65,9 @@ This section allows you to extract cells from arbitrary ND2 files that consist o
 
 8. After labeling all the cells with arbitrary labels, you can go back to the `Database console` to find that the `Mark as Complete` button is enabled. 
    ![](docs_images/12.png)
-   When you mark the database as complete, the database name is renamed to a new one with `-completed` as a postfix.
+   When you mark the database as complete, the database name is renamed to a new one with `-completed` as a postfix, and the labeled databases are downloadable(i.e., press the `EXPORT DATABASE` button to download the file.)
+   ![](docs_images/db.png)
+   
 
 # Data Analyses
 
