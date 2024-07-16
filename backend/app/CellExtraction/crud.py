@@ -455,14 +455,23 @@ class ExtractionCrudBase:
     async def main(self):
         chores = SyncChores()
         dbname = f"databases/{self.file_prefix}-uploaded.db"
+
         try:
-            await asyncio.to_thread(os.remove, f"{dbname}")
-        except:
+            await asyncio.to_thread(os.remove, dbname)
+        except FileNotFoundError:
             pass
-        num_tiff = chores.extract_nd2(self.nd2_path)
-        chores.init(
-            f"{self.file_prefix}.nd2", num_tiff, self.param1, self.image_size, self.mode
+
+        num_tiff = await asyncio.to_thread(chores.extract_nd2, self.nd2_path)
+
+        await asyncio.to_thread(
+            chores.init,
+            f"{self.file_prefix}.nd2",
+            num_tiff,
+            self.param1,
+            self.image_size,
+            self.mode,
         )
+
         iter_n = {
             "triple_layer": num_tiff // 3,
             "single_layer": num_tiff,
@@ -471,13 +480,17 @@ class ExtractionCrudBase:
 
         await create_database(dbname)
         engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}")
+
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
         tasks = []
         for i in range(iter_n[self.mode]):
-            for j in range(len(os.listdir(f"TempData/frames/tiff_{i}/Cells/ph/"))):
+            cell_path = f"TempData/frames/tiff_{i}/Cells/ph/"
+            cell_files = await asyncio.to_thread(os.listdir, cell_path)
+            for j in range(len(cell_files)):
                 tasks.append(self.process_cell(dbname, i, j))
+
         await asyncio.gather(*tasks)
         await asyncio.to_thread(SyncChores.cleanup, "TempData")
         return num_tiff
