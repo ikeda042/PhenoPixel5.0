@@ -209,7 +209,6 @@ async def check_if_database_updated_once(db_name: str):
 
 @router_database.get("/download-completed/{db_name}")
 async def download_db(db_name: str):
-    print(db_name)
     file_path = os.path.join("databases", db_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -218,11 +217,6 @@ async def download_db(db_name: str):
             status_code=400,
             detail="Please provide the name of the completed database.",
         )
-    print(f"Downloading {db_name}")
-    return StreamingResponse(
-        open(
-            f"databases/{db_name.split('/')[-1]}",
-            "rb",
-        ),
-        media_type="application/octet-stream",
+    return FileResponse(
+        f"databases/{db_name.split('/')[-1]}",
     )
