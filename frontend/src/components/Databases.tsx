@@ -8,6 +8,7 @@ import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import TaskIcon from '@mui/icons-material/Task';
+import DownloadIcon from '@mui/icons-material/Download';
 
 interface ListDBResponse {
     databases: string[];
@@ -128,6 +129,26 @@ const Databases: React.FC = () => {
         }
     };
 
+    const handleDownload = async (database: string) => {
+        try {
+            const response = await axios.get(`${url_prefix}/databases/${database}/download-completed`, {
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', database);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            setDialogMessage("Failed to download database.");
+            setDialogOpen(true);
+            console.error("Failed to download database", error);
+        }
+    };
+
     const filteredDatabases = databases.filter(database => {
         const searchMatch = database.toLowerCase().includes(searchQuery.toLowerCase());
         if (displayMode === 'User uploaded') {
@@ -235,6 +256,7 @@ const Databases: React.FC = () => {
                             <TableRow>
                                 <TableCell>Database Name</TableCell>
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
+                                {displayMode === 'Completed' && <TableCell align="center">Export Database</TableCell>}
                                 <TableCell align="center">Go</TableCell>
                             </TableRow>
                         </TableHead>
@@ -260,6 +282,24 @@ const Databases: React.FC = () => {
                                                 disabled={!markableDatabases[database]}
                                             >
                                                 Mark as Complete
+                                            </Button>
+                                        </TableCell>
+                                    )}
+                                    {displayMode === 'Completed' && (
+                                        <TableCell align="center">
+                                            <Button
+                                                variant="contained"
+                                                sx={{
+                                                    backgroundColor: 'black',
+                                                    color: 'white',
+                                                    '&:hover': {
+                                                        backgroundColor: 'gray'
+                                                    }
+                                                }}
+                                                onClick={() => handleDownload(database)}
+                                                startIcon={<DownloadIcon />}
+                                            >
+                                                Export Database
                                             </Button>
                                         </TableCell>
                                     )}
