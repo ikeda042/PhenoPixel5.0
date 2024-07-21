@@ -1362,15 +1362,13 @@ class CellCrudBase:
                 for cell in cells
             )
         )
-        normalized_paths = [
-            [
-                (i - min(path)) / (max(path) - min(path))
-                for i in range(len(path))
-                if max(path) != min(path)
-            ]
-            for path in paths
+        paths_G = [list(map(lambda x: x[1], path)) for path in paths]
+        normalized_paths_G = [
+            [round(i / max(path), 3) for i in path]
+            for path in paths_G
+            if max(path) != 0
         ]
-        buf = await AsyncChores.plot_paths(normalized_paths)
+        buf = await AsyncChores.plot_paths(normalized_paths_G)
         return StreamingResponse(buf, media_type="image/png")
 
     async def rename_database_to_completed(self):
