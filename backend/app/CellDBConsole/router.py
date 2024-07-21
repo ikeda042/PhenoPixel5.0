@@ -189,6 +189,14 @@ async def get_heatmap_bulk_csv(db_name: str, label: str = 1):
     return await CellCrudBase(db_name=db_name).get_peak_paths_csv(label=label)
 
 
+@router_cell.get(
+    "/{db_name}/{label}/{cell_id}/paths_plot", response_class=StreamingResponse
+)
+async def get_paths_plot(db_name: str, label: str = 1):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).plot_peak_paths(label=label)
+
+
 @router_database.post("/upload")
 async def upload_database(file: UploadFile = UploadFile(...)):
     db_name = file.filename
