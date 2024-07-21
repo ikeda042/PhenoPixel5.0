@@ -1322,7 +1322,12 @@ class CellCrudBase:
             )
         )
         paths_G = [list(map(lambda x: x[1], path)) for path in paths]
-        df = pd.DataFrame(paths_G).T
+        normalized_paths_G = [
+            [round(i / max(path), 3) for i in path]
+            for path in paths_G
+            if max(path) != 0
+        ]
+        df = pd.DataFrame(normalized_paths_G)
         buf = io.BytesIO()
         df.to_csv(buf, index=False)
         buf.seek(0)
