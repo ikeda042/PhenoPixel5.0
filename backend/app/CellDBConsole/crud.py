@@ -1351,6 +1351,28 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
 
+    async def plot_peak_paths(
+        self, degree: int = 3, label: str = 1
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label=label)
+        cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
+        paths = await asyncio.gather(
+            *(
+                AsyncChores.find_path_return_list(cell.img_fluo1, cell.contour, degree)
+                for cell in cells
+            )
+        )
+        normalized_paths = [
+            [
+                (i - min(path)) / (max(path) - min(path))
+                for i in range(len(path))
+                if max(path) != min(path)
+            ]
+            for path in paths
+        ]
+        buf = await AsyncChores.plot_paths(normalized_paths)
+        return StreamingResponse(buf, media_type="image/png")
+
     async def rename_database_to_completed(self):
         print(self.db_name)
         if "-uploaded" not in self.db_name:
