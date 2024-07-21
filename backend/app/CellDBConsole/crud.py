@@ -1310,7 +1310,9 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
 
-    async def get_peak_paths_csv(self, degree: int = 3) -> StreamingResponse:
+    async def get_peak_paths_csv(
+        self, degree: int = 3, label: str = 1
+    ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids()
         cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
         paths = await asyncio.gather(
