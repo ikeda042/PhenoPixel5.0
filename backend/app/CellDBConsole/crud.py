@@ -1325,7 +1325,6 @@ class CellCrudBase:
         df.to_csv(buf, index=False)
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
-    
 
     async def rename_database_to_completed(self):
         print(self.db_name)
