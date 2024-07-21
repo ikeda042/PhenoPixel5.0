@@ -981,6 +981,13 @@ class AsyncChores:
             buf = await loop.run_in_executor(pool, SyncChores.heatmap_path, path)
         return buf
 
+    @staticmethod
+    async def plot_paths(paths: list[float]) -> io.BytesIO:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as pool:
+            buf = await loop.run_in_executor(pool, SyncChores.plot_paths, paths)
+        return buf
+
 
 class CellCrudBase:
     def __init__(self, db_name: str) -> None:
