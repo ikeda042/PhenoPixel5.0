@@ -1310,6 +1310,23 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
 
+    async def get_peak_paths_csv(self, degree: int = 3) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids()
+        cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
+        paths = await asyncio.gather(
+            *(
+                AsyncChores.find_path_return_list(cell.img_fluo1, cell.contour, degree)
+                for cell in cells
+            )
+        )
+        paths_G = [list(map(lambda x: x[1], path)) for path in paths]
+        df = pd.DataFrame(paths_G).T
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
+    
+
     async def rename_database_to_completed(self):
         print(self.db_name)
         if "-uploaded" not in self.db_name:
