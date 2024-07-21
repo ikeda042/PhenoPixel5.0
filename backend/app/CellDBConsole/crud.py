@@ -176,6 +176,17 @@ class SyncChores:
         return buf
 
     @staticmethod
+    def plot_paths(paths: list[float]) -> io.BytesIO:
+        fig = plt.figure(figsize=(8, 6))
+        plt.plot(paths)
+        plt.ylabel("Relative position")
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=100)
+        buf.seek(0)
+        plt.close(fig)
+        return buf
+
+    @staticmethod
     def heatmap_path(paths: list[list[float]]) -> io.BytesIO:
 
         paths = [i[1] for i in paths]
