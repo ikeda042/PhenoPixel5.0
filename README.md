@@ -17,6 +17,11 @@ This program presupposes that Node.js and Python 3.10 are installed on the user'
 ```bash
 cd backend/app
 pip install -r requiremetns.txt
+```
+
+start up command 
+
+```bash
 python main.py
 ```
 
