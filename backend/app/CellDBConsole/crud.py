@@ -178,8 +178,10 @@ class SyncChores:
     @staticmethod
     def plot_paths(paths: list[float]) -> io.BytesIO:
         fig = plt.figure(figsize=(8, 6))
-        plt.plot(paths)
-        plt.ylabel("Relative position")
+        relative_positions = range(len(paths))
+        plt.plot(relative_positions, paths, label="Path")
+        plt.xlabel("Relative position")
+        plt.ylabel("Normalized Fluorescence Intensity")
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=100)
         buf.seek(0)
