@@ -251,7 +251,7 @@ class SyncChores:
             for i in range(len(u1) - 1):
                 ax.plot([offset, offset], u1[i : i + 2], color=colors[i], lw=10)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=1))
-        sm.set_array([])  # 必要なダミー配列
+        sm.set_array([])
         cbar = fig.colorbar(sm, ax=ax)
         cbar.set_label("Normalized G Value")
         ax.set_ylim([u1_min, u1_max])
