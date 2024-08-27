@@ -1335,7 +1335,7 @@ class CellCrudBase:
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label="1")
         cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
-        
+        print(cell_ids)
         combined_paths = []
         
         for cell in cells:
