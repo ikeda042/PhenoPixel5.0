@@ -238,6 +238,18 @@ class SyncChores:
             )
             for vec in heatmap_vectors
         ]
+        u1_min = min(map(min, [vec.u1 for vec in heatmap_vectors]))
+        u1_max = max(map(max, [vec.u1 for vec in heatmap_vectors]))
+        cmap = plt.cm.inferno
+        fig, ax = plt.subplots(figsize=(14, 9))
+        for idx, vec in enumerate(heatmap_vectors):
+            u1 = vec.u1
+            G_normalized = (np.array(vec.G) - min(vec.G)) / (max(vec.G) - min(vec.G))
+            colors = cmap(G_normalized)
+
+            offset = len(heatmap_vectors) - idx - 1
+            for i in range(len(u1) - 1):
+                ax.plot([offset, offset], u1[i : i + 2], color=colors[i], lw=10)
 
 
 class AsyncChores:
