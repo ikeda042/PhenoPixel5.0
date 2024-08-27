@@ -1055,9 +1055,7 @@ class AsyncChores:
 
     @staticmethod
     async def heatmap_all_abs(u1s: list[float], Gs: list[float]) -> io.BytesIO:
-        loop = asyncio.get_running_loop()
-        with ThreadPoolExecutor() as pool:
-            buf = await loop.run_in_executor(pool, SyncChores.heatmap_all_abs, u1s, Gs)
+        buf = await SyncChores.heatmap_all_abs(u1s, Gs)
         return buf
 
 
