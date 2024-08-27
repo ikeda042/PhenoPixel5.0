@@ -1334,16 +1334,19 @@ class CellCrudBase:
         self, degree: int = 4, label: str = "1"
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label="1")
-        print(cell_ids)
         cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
-        paths = [await AsyncChores.find_path_return_list(cell.img_fluo1, cell.contour, degree) for cell in cells]
-        paths_G = [list(map(lambda x: x[1], path)) for path in paths]
-        normalized_paths_G = [
-            [round(i / max(path), 3) for i in path]
-            for path in paths_G
-            if max(path) != 0
-        ]
-        df = pd.DataFrame(normalized_paths_G)
+        
+        combined_paths = []
+        
+        for cell in cells:
+            path = await AsyncChores.find_path_return_list(cell.img_fluo1, cell.contour, degree)
+            u1_values = [p[0] for p in path]
+            G_values = [p[1] for p in path]
+            combined_paths.append(u1_values)
+            combined_paths.append(G_values)
+    
+        df = pd.DataFrame(combined_paths).transpose()
+        
         buf = io.BytesIO()
         df.to_csv(buf, index=False)
         buf.seek(0)
