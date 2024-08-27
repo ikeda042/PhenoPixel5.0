@@ -250,6 +250,20 @@ class SyncChores:
             offset = len(heatmap_vectors) - idx - 1
             for i in range(len(u1) - 1):
                 ax.plot([offset, offset], u1[i : i + 2], color=colors[i], lw=10)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=1))
+        sm.set_array([])  # 必要なダミー配列
+        cbar = fig.colorbar(sm, ax=ax)
+        cbar.set_label("Normalized G Value")
+        ax.set_ylim([u1_min, u1_max])
+        ax.set_xlim([-0.5, len(heatmap_vectors) - 0.5])
+        ax.set_ylabel("cell length (px)")
+        ax.set_xlabel("cell number")
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=200)
+        buf.seek(0)
+        plt.close(fig)
+        return buf
 
 
 class AsyncChores:
