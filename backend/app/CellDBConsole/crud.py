@@ -211,6 +211,7 @@ class SyncChores:
     async def heatmap_all_abs(
         u1s: list[list[float]], Gs: list[list[float]], label: str = "1"
     ) -> io.BytesIO:
+
         @dataclass
         class HeatMapVector:
             index: int
