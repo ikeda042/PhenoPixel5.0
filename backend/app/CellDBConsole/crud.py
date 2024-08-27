@@ -1330,12 +1330,14 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
 
+        
     async def get_peak_paths_csv(
         self, degree: int = 4, label: str = "1"
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label="1")
         cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
-        print(cell_ids)
+        
+        # 各細胞のu1とGを交互に格納するリスト
         combined_paths = []
         
         for cell in cells:
@@ -1345,10 +1347,10 @@ class CellCrudBase:
             combined_paths.append(u1_values)
             combined_paths.append(G_values)
     
-        df = pd.DataFrame(combined_paths).transpose()
+        df = pd.DataFrame(combined_paths)
         
         buf = io.BytesIO()
-        df.to_csv(buf, index=False)
+        df.to_csv(buf, index=False, header=False)
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
 
