@@ -1049,14 +1049,11 @@ class AsyncChores:
         return buf
 
     @staticmethod
-    async def heatmap_all_abs(
-        u1s: list[float],Gs: list[float]
-    ) -> io.BytesIO:
+    async def heatmap_all_abs(u1s: list[float], Gs: list[float]) -> io.BytesIO:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as pool:
             buf = await loop.run_in_executor(pool, SyncChores.heatmap_all_abs, u1s, Gs)
         return buf
-            
 
 
 class CellCrudBase:
@@ -1376,6 +1373,22 @@ class CellCrudBase:
         df.to_csv(buf, index=False)
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
+
+    async def heatmap_all_abs(self, label: str | None = None) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        u1s = []
+        Gs = []
+        for cell in cells:
+            u1, G = await AsyncChores.find_path_return_list(
+                cell.img_fluo1, cell.contour, 4
+            )
+            u1s.extend(u1)
+            Gs.extend(G)
+        buf = await AsyncChores.heatmap_all_abs(u1s, Gs)
+        return StreamingResponse(buf, media_type="image/png")
 
     async def heatmap_path(self, cell_id: str, degree: int) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
