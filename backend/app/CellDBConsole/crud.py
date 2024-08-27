@@ -207,6 +207,29 @@ class SyncChores:
         plt.close(fig)
         return buf
 
+    @staticmethod
+    def heatmap_all_abs(u1s: list[list[float]], Gs: list[list[float]]) -> io.BytesIO:
+        @dataclass
+        class HeatMapVector:
+            index: int
+            u1: list[float]
+            G: list[float]
+            length: float
+
+            def __repr__(self) -> str:
+                return f"u1: {self.u1}\nG: {self.G}"
+
+            def __gt__(self, other):
+                return sum(self.G) > sum(other.G)
+
+        heatmap_vectors = sorted(
+            [
+                HeatMapVector(index=i, u1=u1, G=G, length=max(u1) - min(u1))
+                for i, (u1, G) in enumerate(zip(u1s, Gs))
+            ],
+        )
+        max_length = max(heatmap_vectors).length
+
 
 class AsyncChores:
     @staticmethod
@@ -1330,25 +1353,26 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
 
-        
     async def get_peak_paths_csv(
         self, degree: int = 4, label: str = "1"
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label="1")
         cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
-        
+
         # 各細胞のu1とGを交互に格納するリスト
         combined_paths = []
-        
+
         for cell in cells:
-            path = await AsyncChores.find_path_return_list(cell.img_fluo1, cell.contour, degree)
+            path = await AsyncChores.find_path_return_list(
+                cell.img_fluo1, cell.contour, degree
+            )
             u1_values = [p[0] for p in path]
             G_values = [p[1] for p in path]
             combined_paths.append(u1_values)
             combined_paths.append(G_values)
-    
+
         df = pd.DataFrame(combined_paths)
-        
+
         buf = io.BytesIO()
         df.to_csv(buf, index=False, header=False)
         buf.seek(0)
