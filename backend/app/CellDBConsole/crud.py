@@ -1336,12 +1336,7 @@ class CellCrudBase:
         cell_ids = await self.read_cell_ids(label=label)
         print(cell_ids)
         cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
-        paths = await asyncio.gather(
-            *(
-                AsyncChores.find_path_return_list(cell.img_fluo1, cell.contour, degree)
-                for cell in cells
-            )
-        )
+        paths = [await AsyncChores.find_path_return_list(cell.img_fluo1, cell.contour, degree) for cell in cells]
         paths_G = [list(map(lambda x: x[1], path)) for path in paths]
         normalized_paths_G = [
             [round(i / max(path), 3) for i in path]
