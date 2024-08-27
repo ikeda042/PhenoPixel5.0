@@ -1334,6 +1334,7 @@ class CellCrudBase:
         self, degree: int = 4, label: str = 1
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label=label)
+        print(cell_ids)
         cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
         paths = await asyncio.gather(
             *(
