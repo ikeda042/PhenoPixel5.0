@@ -208,7 +208,9 @@ class SyncChores:
         return buf
 
     @staticmethod
-    def heatmap_all_abs(u1s: list[list[float]], Gs: list[list[float]]) -> io.BytesIO:
+    async def heatmap_all_abs(
+        u1s: list[list[float]], Gs: list[list[float]], label: str = "1"
+    ) -> io.BytesIO:
         @dataclass
         class HeatMapVector:
             index: int
@@ -221,6 +223,8 @@ class SyncChores:
 
             def __gt__(self, other):
                 return sum(self.G) > sum(other.G)
+
+        u1, G, *_ = await AsyncChores.find_path_return_list(label)
 
         heatmap_vectors = sorted(
             [
