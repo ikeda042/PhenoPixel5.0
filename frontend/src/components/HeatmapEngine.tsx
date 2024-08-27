@@ -16,6 +16,7 @@ const HeatmapEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, deg
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [bulkLoading, setBulkLoading] = useState<boolean>(false);
+    const [imageLoading, setImageLoading] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchImageData = async () => {
@@ -68,6 +69,24 @@ const HeatmapEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, deg
         }
     };
 
+    const handleDownloadHeatmapImage = async () => {
+        setImageLoading(true);
+        try {
+            const response = await axios.get(`${url_prefix}/cells/${dbName}/${label}/${cellId}/heatmap_all_abs`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${dbName}_heatmap_all_abs.png`);
+            document.body.appendChild(link);
+            link.click();
+            link?.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error('Failed to download heatmap image:', error);
+        } finally {
+            setImageLoading(false);
+        }
+    };
+
     if (loading) {
         return <Box display="flex" justifyContent="center"><CircularProgress /></Box>;
     }
@@ -109,6 +128,22 @@ const HeatmapEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, deg
                 disabled={bulkLoading}
             >
                 {bulkLoading ? <CircularProgress size={24} /> : 'Download CSV (bulk)'}
+            </Button>
+            <Button
+                variant="contained"
+                onClick={handleDownloadHeatmapImage}
+                sx={{
+                    color: 'black',
+                    backgroundColor: '#ffffff',
+                    '&:hover': {
+                        backgroundColor: '#e0e0e0',
+                    },
+                    marginTop: 1,
+                }}
+                startIcon={<DownloadIcon />}
+                disabled={imageLoading}
+            >
+                {imageLoading ? <CircularProgress size={24} /> : 'Download Heatmap Image'}
             </Button>
         </Box>
     );
