@@ -229,6 +229,15 @@ class SyncChores:
             ],
         )
         max_length = max(heatmap_vectors).length
+        heatmap_vectors = [
+            HeatMapVector(
+                index=vec.index,
+                u1=[d + (max_length - vec.length) / 2 - max_length / 2 for d in vec.u1],
+                G=vec.G,
+                length=vec.length,
+            )
+            for vec in heatmap_vectors
+        ]
 
 
 class AsyncChores:
