@@ -184,7 +184,7 @@ async def get_heatmap_csv(db_name: str, label: str, cell_id: str):
 @router_cell.get(
     "/{db_name}/{label}/{cell_id}/heatmap/bulk/csv", response_class=StreamingResponse
 )
-async def get_heatmap_bulk_csv(db_name: str, label: str = 1):
+async def get_heatmap_bulk_csv(db_name: str, label: str = "1"):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).get_peak_paths_csv(degree = 4,label=label)
 
