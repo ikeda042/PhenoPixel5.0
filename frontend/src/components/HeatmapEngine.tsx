@@ -15,6 +15,7 @@ const url_prefix = settings.url_prefix;
 const HeatmapEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, degree = 3 }) => {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
+    const [bulkLoading, setBulkLoading] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchImageData = async () => {
@@ -49,6 +50,24 @@ const HeatmapEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, deg
         }
     };
 
+    const handleBulkDownloadCsv = async () => {
+        setBulkLoading(true);
+        try {
+            const response = await axios.get(`${url_prefix}/cells/${dbName}/${label}/${cellId}/heatmap/bulk/csv`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${dbName}_bulk_peak_paths.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link?.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error('Failed to download bulk CSV:', error);
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
     if (loading) {
         return <Box display="flex" justifyContent="center"><CircularProgress /></Box>;
     }
@@ -74,6 +93,22 @@ const HeatmapEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, deg
                 startIcon={<DownloadIcon />}
             >
                 Download CSV
+            </Button>
+            <Button
+                variant="contained"
+                onClick={handleBulkDownloadCsv}
+                sx={{
+                    color: 'black',
+                    backgroundColor: '#ffffff',
+                    '&:hover': {
+                        backgroundColor: '#e0e0e0',
+                    },
+                    marginTop: 1,
+                }}
+                startIcon={<DownloadIcon />}
+                disabled={bulkLoading}
+            >
+                {bulkLoading ? <CircularProgress size={24} /> : 'Download CSV (bulk)'}
             </Button>
         </Box>
     );
