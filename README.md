@@ -594,3 +594,14 @@ Figure 7-5 describes the result of the peak-path finder algorithm.
 <p align="center">
 Fig.7-5: The estimated peak path by the algorithm.
 </p>
+
+
+# Fluorescence localization visualizer 
+
+You find the "download bulk" button when you set the morphoengine to heatmapengine. After downloading the csv file, you can run the following scripts to visualize fluorescence localization of each cell in a single figure.  
+
+
+<div align="center">
+
+![Start-up window](docs_images/heatmap_bulk.png)
+</div>
