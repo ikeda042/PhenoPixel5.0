@@ -613,7 +613,6 @@ You can find the “Download Bulk” button after switching the morphoengine to 
 
 
 ```Python
-
 import matplotlib.pyplot as plt
 import numpy as np
 from dataclasses import dataclass
@@ -694,7 +693,6 @@ plt.savefig("stacked_heatmap_rel.png", dpi=800)
 Note that cell lengths are normalized to relative positions so you can focus on localization. However, if you also need to consider the absolute lengths of the cells, you can run the following.
 
 ```Python
-
 import matplotlib.pyplot as plt
 import numpy as np
 from dataclasses import dataclass
