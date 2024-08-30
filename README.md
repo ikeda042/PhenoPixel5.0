@@ -692,6 +692,11 @@ plt.savefig("stacked_heatmap_rel.png", dpi=800)
 
 Note that cell lengths are normalized to relative positions so you can focus on localization. However, if you also need to consider the absolute lengths of the cells, you can run the following.
 
+<div align="center">
+
+![Start-up window](docs_images/stacked_heatmap_abs.png)
+</div>
+
 ```Python
 import matplotlib.pyplot as plt
 import numpy as np
