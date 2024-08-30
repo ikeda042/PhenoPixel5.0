@@ -717,7 +717,7 @@ class HeatMapVector:
         return self.length > other.length
 
 
-with open("test-data.csv") as f:
+with open("demo_dataset/heatmapdata-bulk.csv") as f:
     data = [
         [float(j.replace("\n", "").replace(" ", "")) for j in i.split(",") if j.strip()]
         for i in f.readlines()
