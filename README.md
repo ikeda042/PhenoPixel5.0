@@ -598,10 +598,11 @@ Fig.7-5: The estimated peak path by the algorithm.
 
 # Fluorescence localization visualizer 
 
-You find the "download bulk" button when you set the morphoengine to heatmapengine. After downloading the csv file, you can run the following scripts to visualize fluorescence localization of each cell in a single figure.  
-
-
 <div align="center">
 
 ![Start-up window](docs_images/heatmap_bulk.png)
 </div>
+
+You can find the “Download Bulk” button after switching the morphoengine to the heatmapengine. Once you’ve downloaded the CSV file, you can run the following scripts to visualize the fluorescence localization of each cell in a single figure.
+
+
