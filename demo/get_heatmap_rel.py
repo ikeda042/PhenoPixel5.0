@@ -72,4 +72,4 @@ ax.set_xlim([-0.5, len(heatmap_vectors) - 0.5])
 ax.set_ylabel("Relative position(-)")
 ax.set_xlabel("Cell number")
 
-plt.savefig("docs_images/stacked_heatmap_rel.png", dpi=800)
+plt.savefig("docs_images/stacked_heatmap_rel.png", dpi=500)
