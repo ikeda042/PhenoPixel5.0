@@ -606,6 +606,8 @@ Fig.7-5: The estimated peak path by the algorithm.
 
 You can find the “Download Bulk” button after switching the morphoengine to the heatmapengine. Once you’ve downloaded the CSV file, you can run the following scripts to visualize the fluorescence localization of each cell in a single figure.
 
+[Scripts for heatmap_rel](https://github.com/ikeda042/PhenoPixel5.0/blob/main/demo/get_heatmap_rel.py)
+
 <div align="center">
 
 ![Start-up window](docs_images/stacked_heatmap_rel.png)
@@ -613,6 +615,8 @@ You can find the “Download Bulk” button after switching the morphoengine to 
 
 
 Note that cell lengths are normalized to relative positions so you can focus on localization. However, if you also need to consider the absolute lengths of the cells, you can run the following.
+
+[Scripts for heatmap_abs](https://github.com/ikeda042/PhenoPixel5.0/blob/main/demo/get_heatmap_abs.py)
 
 <div align="center">
 
