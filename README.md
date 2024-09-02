@@ -624,7 +624,7 @@ Note that cell lengths are normalized to relative positions so you can focus on 
 </div>
 
 
-[Scripts for heatmap_abs_centered](https://github.com/ikeda042/PhenoPixel5.0/blob/main/demo/get_heatmap_abs_centered.py)
+[Scripts for heatmap(centered)](https://github.com/ikeda042/PhenoPixel5.0/blob/main/demo/get_heatmap_centered.py)
 
 <div align="center">
 
