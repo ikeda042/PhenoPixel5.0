@@ -623,3 +623,10 @@ Note that cell lengths are normalized to relative positions so you can focus on 
 ![Start-up window](docs_images/stacked_heatmap_abs.png)
 </div>
 
+
+[Scripts for heatmap_abs_centered](https://github.com/ikeda042/PhenoPixel5.0/blob/main/demo/get_heatmap_abs_centered.py)
+
+<div align="center">
+
+![Start-up window](docs_images/stacked_heatmap_abs_centered.png)
+</div>
