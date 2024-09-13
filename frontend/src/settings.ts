@@ -1,4 +1,4 @@
-const host_name = "http://10.32.17.35"
+const host_name = "localhost"
 const url_prefix = host_name + ":8000/api"
 
 export const settings = {
