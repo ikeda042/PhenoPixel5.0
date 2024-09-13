@@ -42,6 +42,9 @@ docker build -t phenopixel5 .
 docker run -d -p 8000:8000 phenopixel5
 ```
 
+```Bash
+cd frontend 
+```
 [Access SwaggerUI](http://localhost:8000/api/docs)
 
 # User Interface
