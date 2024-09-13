@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend-container
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
+    depends_on:
+      - frontend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-container
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
