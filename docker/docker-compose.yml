@@ -9,7 +9,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/app:/app
+      - ../backend/app:/app
     networks:
       - app-network
     depends_on:
@@ -23,7 +23,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./frontend:/app
+      - ../frontend:/app
     networks:
       - app-network
 
