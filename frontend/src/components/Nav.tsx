@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom'; // Link コンポーネントをインポート
+import { Link } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -13,6 +13,9 @@ import ListItemText from '@mui/material/ListItemText';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import TerminalIcon from '@mui/icons-material/Terminal';
+import { settings } from '../settings';
 
 interface Props {
     window?: () => Window;
@@ -81,6 +84,24 @@ export default function Nav(props: Props) {
                             {props.title}
                         </Typography>
                     </Link>
+                    <Box sx={{ flexGrow: 1 }} />
+                    <IconButton
+                        color="inherit"
+                        component={Link}
+                        to={`${settings.url_prefix}/docs`}
+                        sx={{ color: '#000' }}
+                    >
+                        <TerminalIcon />
+                    </IconButton>
+
+                    <IconButton
+                        color="inherit"
+                        component={Link}
+                        to={"https://github.com/ikeda042/PhenoPixel5.0"}
+                        sx={{ color: '#000' }}
+                    >
+                        <GitHubIcon />
+                    </IconButton>
                 </Toolbar>
             </AppBar>
             <Drawer
