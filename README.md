@@ -32,6 +32,18 @@ cd frontend
 npm start
 ```
 
+## Start up with docker
+
+If you have Docker installed on your computer, you can run the following docker commands 
+
+```Bash
+cd backend
+docker build -t phenopixel5 . 
+docker run -d -p 8000:8000 phenopixel5
+```
+
+[Access SwaggerUI](http://localhost:8000/api/docs)
+
 # User Interface
 
 The startup screen shows up after activating the front end. 
