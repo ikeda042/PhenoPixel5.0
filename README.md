@@ -38,8 +38,8 @@ If you have Docker installed on your computer, you can run the following docker 
 
 ```Bash
 cd backend
-docker build -t phenopixel5 . 
-docker run -d -p 8000:8000 phenopixel5
+docker build -t backend . 
+docker run -d -p 8000:8000 backend
 ```
 
 ```Bash
