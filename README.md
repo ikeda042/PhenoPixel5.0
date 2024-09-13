@@ -44,6 +44,7 @@ docker run -d -p 8000:8000 backend
 
 ```Bash
 cd frontend 
+docker build -t frontend .
 ```
 [Access SwaggerUI](http://localhost:8000/api/docs)
 
