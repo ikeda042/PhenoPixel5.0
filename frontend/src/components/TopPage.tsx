@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Box, Button, Container, Typography } from "@mui/material";
 import DatabaseIcon from '@mui/icons-material/Storage';
 import ScienceIcon from '@mui/icons-material/Science';
-import DescriptionIcon from '@mui/icons-material/Description';
+import TerminalIcon from '@mui/icons-material/Terminal';
 import { useNavigate } from "react-router-dom";
 import { settings } from "../settings";
+import GitHubIcon from '@mui/icons-material/GitHub';
 
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
@@ -77,7 +78,7 @@ const TopPage: React.FC = () => {
                 <Button
                     variant="contained"
                     component="span"
-                    startIcon={<DescriptionIcon />}
+                    startIcon={<TerminalIcon />}
                     onClick={() => window.open(`${settings.url_prefix}/docs`, '_blank')}
                     sx={{
                         backgroundColor: 'white',
@@ -90,6 +91,23 @@ const TopPage: React.FC = () => {
                     }}
                 >
                     Swagger UI
+                </Button>
+                <Button
+                    variant="contained"
+                    component="span"
+                    startIcon={<GitHubIcon />}
+                    onClick={() => window.open(`${settings.url_prefix}/docs`, '_blank')}
+                    sx={{
+                        backgroundColor: 'white',
+                        color: 'black',
+                        width: '100%',
+                        height: '56px',
+                        '&:hover': {
+                            backgroundColor: 'lightgrey'
+                        }
+                    }}
+                >
+                    Github
                 </Button>
             </Box>
         </Container>
