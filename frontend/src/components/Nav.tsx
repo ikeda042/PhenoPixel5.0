@@ -87,17 +87,21 @@ export default function Nav(props: Props) {
                     <Box sx={{ flexGrow: 1 }} />
                     <IconButton
                         color="inherit"
-                        component={Link}
-                        to={`${settings.url_prefix}/docs`}
+                        component="a"
                         sx={{ color: '#000' }}
+                        href={`${settings.url_prefix}/docs`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                     >
                         <TerminalIcon />
                     </IconButton>
 
                     <IconButton
                         color="inherit"
-                        component={Link}
-                        to={"https://github.com/ikeda042/PhenoPixel5.0"}
+                        component="a"
+                        href="https://github.com/ikeda042/PhenoPixel5.0"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         sx={{ color: '#000' }}
                     >
                         <GitHubIcon />
