@@ -26,6 +26,10 @@ services:
       - ../frontend:/app
     networks:
       - app-network
+    env_file:
+      - .env
+    environment:
+      - HOST_NAME=${HOST_NAME}
 
 networks:
   app-network:
