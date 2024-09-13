@@ -93,9 +93,13 @@ export default function Nav(props: Props) {
                         target="_blank"
                         rel="noopener noreferrer"
                     >
-                        <TerminalIcon />
+                        <Box
+                            component="img"
+                            src="logo-fastapi.png"
+                            alt="FastAPI Logo"
+                            sx={{ height: 40 }}
+                        />
                     </IconButton>
-
                     <IconButton
                         color="inherit"
                         component="a"
