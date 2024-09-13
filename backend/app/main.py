@@ -33,7 +33,7 @@ app.include_router(router_cell_extraction, prefix=api_prefix)
 app.include_router(router_dev, prefix=api_prefix)
 
 
-if __name__ == "__main__":
-    import uvicorn
+# if __name__ == "__main__":
+#     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+#     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
