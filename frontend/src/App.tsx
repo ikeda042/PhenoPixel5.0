@@ -18,7 +18,7 @@ function App() {
         <Routes>
           <Route path="/" element={
             <>
-              <Nav title='PhenoPixel5.0' />
+              <Nav title={`PhenoPixel5.0`} />
               <Grid container spacing={4} margin={5} mt={-4}>
                 <TopPage />
               </Grid >
