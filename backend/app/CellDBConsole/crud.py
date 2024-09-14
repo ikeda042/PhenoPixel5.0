@@ -1477,14 +1477,59 @@ class CellCrudBase:
         length_na = len(await self.read_cell_ids("N/A"))
         return length_all != length_na
 
-    async def write_cell_images_ph(self, label: str = "1"):
+    import os
+    import cv2
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from math import ceil
+
+    async def get_cell_images_ph_combined(
+        self,
+        label: str = "1",
+        total_rows: int = 5,
+        total_cols: int = 5,
+        image_size: int = 128,
+    ):
+        async def combine_images_from_folder(
+            folder_path, total_rows, total_cols, image_size
+        ):
+            image_files = [f for f in os.listdir(folder_path) if f.endswith(".png")]
+            num_images = len(image_files)
+            result_image = np.zeros(
+                (total_rows * image_size, total_cols * image_size, 3), dtype=np.uint8
+            )
+
+            for i in range(total_rows):
+                for j in range(total_cols):
+                    image_index = i * total_cols + j
+                    if image_index < num_images:
+                        image_path = os.path.join(folder_path, image_files[image_index])
+                        img = cv2.imread(image_path)
+                        img = cv2.resize(img, (image_size, image_size))
+                        result_image[
+                            i * image_size : (i + 1) * image_size,
+                            j * image_size : (j + 1) * image_size,
+                        ] = img
+
+            _, buffer = cv2.imencode(".png", result_image)
+            buf = io.BytesIO(buffer)
+            return buf
+
         try:
             os.mkdir("TempPhImages")
-        except:
+        except FileExistsError:
             pass
+
         cell_ids = await self.read_cell_ids(label)
         cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
+
         for cell in cells:
-            with open(f"TempPhImages/{cell.cell_id}.png", "wb") as f:
-                f.write(cell.img_ph)
-        return True
+            async with aiofiles.open(f"TempPhImages/{cell.cell_id}-ph.png", "wb") as f:
+                await f.write(cell.img_ph)
+
+        return StreamingResponse(
+            await combine_images_from_folder(
+                "TempPhImages", total_rows, total_cols, image_size
+            ),
+            media_type="image/png",
+        )
