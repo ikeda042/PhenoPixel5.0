@@ -251,7 +251,11 @@ async def download_db(db_name: str):
     )
 
 
-@router_database.get("write_all_cells_in_ph/{db_name}")
-async def write_all_cells_in_ph(db_name: str):
+@router_database.get("/{db_name}/combined_images")
+async def get_cell_images_combined(
+    db_name: str, label: str, mode: Literal["fluo", "ph"] = "fluo"
+):
     await AsyncChores().validate_database_name(db_name)
-    return await CellCrudBase(db_name=db_name).get_cell_images_ph_combined()
+    return await CellCrudBase(db_name=db_name).get_cell_images_combined(
+        label=label, mode=mode
+    )
