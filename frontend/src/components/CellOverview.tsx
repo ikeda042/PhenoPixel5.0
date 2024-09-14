@@ -50,6 +50,7 @@ const CellImageGrid: React.FC = () => {
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [drawContour, setDrawContour] = useState<boolean>(true);
     const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
+    const [autoPlay, setAutoPlay] = useState<boolean>(false);  // Auto チェックボックス用の状態
     const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
     const [contourData, setContourData] = useState<number[][]>([]);
     const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
@@ -242,6 +243,10 @@ const CellImageGrid: React.FC = () => {
         setDrawScaleBar(e.target.checked);
     };
 
+    const handleAutoPlayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setAutoPlay(e.target.checked);
+    };
+
     const handleBrightnessChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setBrightnessFactor(parseFloat(e.target.value));
     };
@@ -272,6 +277,18 @@ const CellImageGrid: React.FC = () => {
     const handleEngineModeChange = (event: SelectChangeEvent<string>) => {
         setEngineMode(event.target.value);
     };
+
+    useEffect(() => {
+        let autoNextInterval: NodeJS.Timeout | undefined;
+
+        if (autoPlay) {
+            autoNextInterval = setInterval(handleNext, 3000);  // 3秒ごとにNextボタンを自動で押す
+        }
+
+        return () => {
+            if (autoNextInterval) clearInterval(autoNextInterval);
+        };
+    }, [autoPlay]);  // autoPlayが変わるたびにエフェクトを再実行
 
     const contourPlotData = {
         datasets: [
@@ -304,27 +321,6 @@ const CellImageGrid: React.FC = () => {
             }
         },
     };
-
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Enter') {
-                handleNext();
-            } else if (event.key >= '1' && event.key <= '9') {
-                setManualLabel(event.key);
-                handleCellLabelChange({ target: { value: event.key } } as SelectChangeEvent<string>);
-            } else if (event.key === 'n' || event.key === 'N') {
-                setManualLabel("1000");
-                handleCellLabelChange({ target: { value: "1000" } } as SelectChangeEvent<string>);
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [cellIds, currentIndex]);
-
     return (
         <>
             <Box>
@@ -356,17 +352,24 @@ const CellImageGrid: React.FC = () => {
                     </FormControl>
                     <Box mt={2}>
                         <Grid container spacing={2} alignItems="center">
-                            <Grid item xs={3}>
+                            <Grid item xs={2}>
                                 <FormControlLabel
                                     control={<Checkbox checked={drawContour} onChange={handleContourChange} style={{ color: "black" }} />}
                                     label="Contour"
                                     style={{ color: "black" }}
                                 />
                             </Grid>
-                            <Grid item xs={3}>
+                            <Grid item xs={2}>
                                 <FormControlLabel
                                     control={<Checkbox checked={drawScaleBar} onChange={handleScaleBarChange} style={{ color: "black" }} />}
-                                    label="Scale Bar"
+                                    label="Scale"
+                                    style={{ color: "black" }}
+                                />
+                            </Grid>
+                            <Grid item xs={2}>
+                                <FormControlLabel
+                                    control={<Checkbox checked={autoPlay} onChange={handleAutoPlayChange} style={{ color: "black" }} />}
+                                    label="Auto"
                                     style={{ color: "black" }}
                                 />
                             </Grid>
