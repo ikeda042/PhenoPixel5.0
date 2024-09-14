@@ -414,8 +414,8 @@ class ExtractionCrudBase:
         contours = list(
             i
             for i in contours
-            if SyncChores.get_contour_center(i)[0] - img_ph.shape[1] // 2 < 20
-            and SyncChores.get_contour_center(i)[1] - img_ph.shape[0] // 2 < 20
+            if SyncChores.get_contour_center(i)[0] - img_ph.shape[1] // 2 < 3
+            and SyncChores.get_contour_center(i)[1] - img_ph.shape[0] // 2 < 3
         )
         contour = contours[0] if contours else None
         return contour, img_ph_gray, img_fluo1_gray, img_fluo2_gray
@@ -444,37 +444,45 @@ class ExtractionCrudBase:
                 perimeter = cv2.arcLength(contour, True)
                 area = cv2.contourArea(contour)
                 center_x, center_y = SyncChores.get_contour_center(contour)
-                img_ph_data = cv2.imencode(".png", img_ph_gray)[1].tobytes()
-                img_fluo1_data = img_fluo2_data = None
-                if self.mode != "single_layer":
-                    img_fluo1_data = cv2.imencode(".png", img_fluo1_gray)[1].tobytes()
-                if self.mode == "triple_layer":
-                    img_fluo2 = await self.load_image(
-                        f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
+                if (
+                    abs(center_x - img_ph.shape[1] // 2) < 3
+                    and abs(center_y - img_ph.shape[0] // 2) < 3
+                ):
+                    img_ph_data = cv2.imencode(".png", img_ph_gray)[1].tobytes()
+                    img_fluo1_data = img_fluo2_data = None
+                    if self.mode != "single_layer":
+                        img_fluo1_data = cv2.imencode(".png", img_fluo1_gray)[
+                            1
+                        ].tobytes()
+                    if self.mode == "triple_layer":
+                        img_fluo2 = await self.load_image(
+                            f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
+                        )
+                        img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
+                        img_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[
+                            1
+                        ].tobytes()
+                    cv2.drawContours(img_ph, [contour], -1, (0, 255, 0), 1, cv2.LINE_AA)
+                    cell = Cell(
+                        cell_id=cell_id,
+                        label_experiment="",
+                        manual_label="N/A",
+                        perimeter=perimeter,
+                        area=area,
+                        img_ph=img_ph_data,
+                        img_fluo1=img_fluo1_data,
+                        img_fluo2=img_fluo2_data,
+                        contour=pickle.dumps(contour),
+                        center_x=center_x,
+                        center_y=center_y,
                     )
-                    img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
-                    img_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[1].tobytes()
-                cv2.drawContours(img_ph, [contour], -1, (0, 255, 0), 1, cv2.LINE_AA)
-                cell = Cell(
-                    cell_id=cell_id,
-                    label_experiment="",
-                    manual_label="N/A",
-                    perimeter=perimeter,
-                    area=area,
-                    img_ph=img_ph_data,
-                    img_fluo1=img_fluo1_data,
-                    img_fluo2=img_fluo2_data,
-                    contour=pickle.dumps(contour),
-                    center_x=center_x,
-                    center_y=center_y,
-                )
-                existing_cell = await session.execute(
-                    select(Cell).filter_by(cell_id=cell_id)
-                )
-                existing_cell = existing_cell.scalar()
-                if existing_cell is None:
-                    session.add(cell)
-                    await session.commit()
+                    existing_cell = await session.execute(
+                        select(Cell).filter_by(cell_id=cell_id)
+                    )
+                    existing_cell = existing_cell.scalar()
+                    if existing_cell is None:
+                        session.add(cell)
+                        await session.commit()
 
     async def main(self):
         chores = SyncChores()
