@@ -1568,7 +1568,7 @@ class CellCrudBase:
                         await f.write(cell.img_ph)
                     elif mode == "ph_contour":
                         img = await CellCrudBase.parse_image_to_bytes(
-                            cell.img_ph, cell.contour, scale_bar=True
+                            cell.img_ph, cell.contour, scale_bar=False
                         )
                         await f.write(img)
 
