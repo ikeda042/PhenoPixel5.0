@@ -1,4 +1,4 @@
-const host_name = process.env.HOST_NAME || "http://localhost";
+const host_name = `http://${window.location.hostname}`;
 const url_prefix = `${host_name}:8000/api`;
 
 export const settings = {
