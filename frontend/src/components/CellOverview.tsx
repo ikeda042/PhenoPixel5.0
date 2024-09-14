@@ -50,7 +50,7 @@ const CellImageGrid: React.FC = () => {
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [drawContour, setDrawContour] = useState<boolean>(true);
     const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
-    const [autoPlay, setAutoPlay] = useState<boolean>(false);  // Auto チェックボックス用の状態
+    const [autoPlay, setAutoPlay] = useState<boolean>(false);
     const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
     const [contourData, setContourData] = useState<number[][]>([]);
     const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
