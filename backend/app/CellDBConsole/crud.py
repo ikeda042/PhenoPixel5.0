@@ -1482,7 +1482,7 @@ class CellCrudBase:
         self,
         label: str = "1",
         image_size: int = 128,
-        mode: Literal["fluo", "ph"] = "fluo",
+        mode: Literal["fluo", "ph", "ph_conotour"] = "fluo",
     ):
         async def combine_images_from_folder(
             folder_path, total_rows, total_cols, image_size
@@ -1527,8 +1527,17 @@ class CellCrudBase:
                 async with aiofiles.open(f"{tmp_folder}/{cell.cell_id}.png", "wb") as f:
                     if mode == "fluo":
                         await f.write(cell.img_fluo1)
-                    else:
+                    elif mode == "ph":
                         await f.write(cell.img_ph)
+                    elif mode == "ph_conotour":
+                        img = cv2.imdecode(
+                            np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR
+                        )
+                        contour = await AsyncChores.async_pickle_loads(cell.contour)
+                        img = await AsyncChores.draw_contour(img, contour)
+                        _, buffer = await AsyncChores.async_cv2_imencode(img)
+                        await f.write(buffer)
+
             buf = await combine_images_from_folder(
                 tmp_folder, total_rows, total_cols, image_size
             )
