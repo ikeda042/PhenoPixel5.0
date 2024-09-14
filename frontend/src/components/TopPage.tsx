@@ -6,6 +6,7 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 import { useNavigate } from "react-router-dom";
 import { settings } from "../settings";
 import GitHubIcon from '@mui/icons-material/GitHub';
+import BarChartIcon from '@mui/icons-material/BarChart';
 
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
