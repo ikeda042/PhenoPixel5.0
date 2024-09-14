@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from CellDBConsole.router import router_cell, router_database
 from CellExtraction.router import router_cell_extraction
+from GraphEngine.router import router_graphengine
 from Dev.router import router_dev
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -31,6 +32,7 @@ app.include_router(router_cell, prefix=api_prefix)
 app.include_router(router_database, prefix=api_prefix)
 app.include_router(router_cell_extraction, prefix=api_prefix)
 app.include_router(router_dev, prefix=api_prefix)
+app.include_router(router_graphengine, prefix=api_prefix)
 
 
 if __name__ == "__main__":
