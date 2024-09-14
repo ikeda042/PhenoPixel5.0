@@ -1520,9 +1520,7 @@ class CellCrudBase:
             cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
 
             for cell in cells:
-                async with aiofiles.open(
-                    f"{tmp_folder}/{cell.cell_id}-ph.png", "wb"
-                ) as f:
+                async with aiofiles.open(f"{tmp_folder}/{cell.cell_id}.png", "wb") as f:
                     await f.write(cell.img_ph)
             buf = await combine_images_from_folder(
                 tmp_folder, total_rows, total_cols, image_size
