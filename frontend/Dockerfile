@@ -10,6 +10,8 @@ COPY package*.json ./
 # Install dependencies using legacy peer deps flag to ignore conflicts
 RUN npm install --legacy-peer-deps
 
+RUN npm install react-scripts@4.0.3 -g
+
 # Copy the rest of the application code to the container
 COPY . .
 
