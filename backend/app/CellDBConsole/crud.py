@@ -1476,3 +1476,15 @@ class CellCrudBase:
         length_all = len(await self.read_cell_ids())
         length_na = len(await self.read_cell_ids("N/A"))
         return length_all != length_na
+
+    async def write_cell_images_ph(self, label: str = "1"):
+        try:
+            os.mkdir("TempPhImages")
+        except:
+            pass
+        cell_ids = await self.read_cell_ids(label)
+        cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
+        for cell in cells:
+            with open(f"TempPhImages/{cell.cell_id}.png", "wb") as f:
+                f.write(cell.img_ph)
+        return True
