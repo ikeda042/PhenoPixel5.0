@@ -23,6 +23,7 @@ import os
 import pandas as pd
 from sqlalchemy import update
 
+
 matplotlib.use("Agg")
 
 
@@ -1476,12 +1477,6 @@ class CellCrudBase:
         length_all = len(await self.read_cell_ids())
         length_na = len(await self.read_cell_ids("N/A"))
         return length_all != length_na
-
-    import os
-    import cv2
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from math import ceil
 
     async def get_cell_images_ph_combined(
         self,
