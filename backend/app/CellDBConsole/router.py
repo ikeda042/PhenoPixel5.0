@@ -249,3 +249,9 @@ async def download_db(db_name: str):
     return FileResponse(
         f"databases/{db_name.split('/')[-1]}",
     )
+
+
+@router_database.get("write_all_cells_in_ph/{db_name}")
+async def write_all_cells_in_ph(db_name: str):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).write_cell_images_ph()
