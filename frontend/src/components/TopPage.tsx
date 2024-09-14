@@ -96,7 +96,7 @@ const TopPage: React.FC = () => {
                     variant="contained"
                     component="span"
                     startIcon={<GitHubIcon />}
-                    onClick={() => window.open(`${settings.url_prefix}/docs`, '_blank')}
+                    onClick={() => window.open(`https://github.com/ikeda042/PhenoPixel5.0`, '_blank')}
                     sx={{
                         backgroundColor: 'white',
                         color: 'black',
