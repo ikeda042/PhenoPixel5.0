@@ -255,7 +255,7 @@ async def download_db(db_name: str):
 async def get_cell_images_combined(
     db_name: str,
     label: Literal["N/A", "1", "2", "3"] = "1",
-    mode: Literal["fluo", "ph"] = "fluo",
+    mode: Literal["fluo", "ph", "ph_contour"] = "fluo",
 ):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).get_cell_images_combined(
