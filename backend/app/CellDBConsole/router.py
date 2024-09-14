@@ -253,7 +253,9 @@ async def download_db(db_name: str):
 
 @router_database.get("/{db_name}/combined_images")
 async def get_cell_images_combined(
-    db_name: str, label: str, mode: Literal["fluo", "ph"] = "fluo"
+    db_name: str,
+    label: Literal["N/A", "1", "2", "3"],
+    mode: Literal["fluo", "ph"] = "fluo",
 ):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).get_cell_images_combined(
