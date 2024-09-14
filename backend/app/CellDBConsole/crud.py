@@ -22,7 +22,7 @@ import aiofiles
 import os
 import pandas as pd
 from sqlalchemy import update
-
+import shutil
 
 matplotlib.use("Agg")
 
@@ -1509,21 +1509,26 @@ class CellCrudBase:
             buf = io.BytesIO(buffer)
             return buf
 
+        tmp_folder = "TempPhImages"
         try:
-            os.mkdir("TempPhImages")
+            os.mkdir(tmp_folder)
         except FileExistsError:
             pass
 
-        cell_ids = await self.read_cell_ids(label)
-        cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
+        try:
+            cell_ids = await self.read_cell_ids(label)
+            cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
 
-        for cell in cells:
-            async with aiofiles.open(f"TempPhImages/{cell.cell_id}-ph.png", "wb") as f:
-                await f.write(cell.img_ph)
+            for cell in cells:
+                async with aiofiles.open(
+                    f"{tmp_folder}/{cell.cell_id}-ph.png", "wb"
+                ) as f:
+                    await f.write(cell.img_ph)
+            buf = await combine_images_from_folder(
+                tmp_folder, total_rows, total_cols, image_size
+            )
+            return StreamingResponse(buf, media_type="image/png")
 
-        return StreamingResponse(
-            await combine_images_from_folder(
-                "TempPhImages", total_rows, total_cols, image_size
-            ),
-            media_type="image/png",
-        )
+        finally:
+            if os.path.exists(tmp_folder):
+                shutil.rmtree(tmp_folder)
