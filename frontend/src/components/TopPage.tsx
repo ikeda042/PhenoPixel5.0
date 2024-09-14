@@ -79,6 +79,23 @@ const TopPage: React.FC = () => {
                 <Button
                     variant="contained"
                     component="span"
+                    startIcon={<BarChartIcon />}
+                    onClick={() => handleNavigate('/graphengine')}
+                    sx={{
+                        backgroundColor: 'white',
+                        color: 'black',
+                        width: '100%',
+                        height: '56px',
+                        '&:hover': {
+                            backgroundColor: 'lightgrey'
+                        }
+                    }}
+                >
+                    Graphengine
+                </Button>
+                <Button
+                    variant="contained"
+                    component="span"
                     startIcon={<TerminalIcon />}
                     onClick={() => window.open(`${settings.url_prefix}/docs`, '_blank')}
                     sx={{
