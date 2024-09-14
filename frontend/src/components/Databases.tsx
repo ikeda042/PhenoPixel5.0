@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import TaskIcon from '@mui/icons-material/Task';
 import DownloadIcon from '@mui/icons-material/Download';
+import PreviewIcon from '@mui/icons-material/Preview';
 
 interface ListDBResponse {
     databases: string[];
@@ -29,6 +30,10 @@ const Databases: React.FC = () => {
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
     const [databaseToComplete, setDatabaseToComplete] = useState<string | null>(null);
     const [markableDatabases, setMarkableDatabases] = useState<{ [key: string]: boolean }>({});
+    const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [selectedMode, setSelectedMode] = useState("fluo");
+    const [selectedLabel, setSelectedLabel] = useState("1");
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -102,7 +107,6 @@ const Databases: React.FC = () => {
     const handleCloseDialog = () => {
         setDialogOpen(false);
         window.location.reload();
-
     };
 
     const handleOpenConfirmDialog = (database: string) => {
@@ -151,6 +155,31 @@ const Databases: React.FC = () => {
             setDialogOpen(true);
             console.error("Failed to download database", error);
         }
+    };
+
+    const handlePreview = async (database: string) => {
+        try {
+            const response = await axios.get(`${url_prefix}/databases/${database}/combined_images`, {
+                params: {
+                    label: selectedLabel,
+                    mode: selectedMode
+                },
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            setPreviewImage(url);
+            setPreviewDialogOpen(true);
+        } catch (error) {
+            setDialogMessage("Failed to fetch preview image.");
+            setDialogOpen(true);
+            console.error("Failed to fetch preview image", error);
+        }
+    };
+
+    const handleClosePreviewDialog = () => {
+        setPreviewDialogOpen(false);
+        setPreviewImage(null);
     };
 
     const filteredDatabases = databases.filter(database => {
@@ -261,6 +290,7 @@ const Databases: React.FC = () => {
                                 <TableCell>Database Name</TableCell>
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
                                 {displayMode === 'Completed' && <TableCell align="center">Export Database</TableCell>}
+                                <TableCell align="center">Preview</TableCell>
                                 <TableCell align="center"></TableCell>
                             </TableRow>
                         </TableHead>
@@ -307,6 +337,43 @@ const Databases: React.FC = () => {
                                             </Button>
                                         </TableCell>
                                     )}
+                                    <TableCell align="center">
+                                        <Select
+                                            value={selectedMode}
+                                            onChange={(e) => setSelectedMode(e.target.value)}
+                                            displayEmpty
+                                            inputProps={{ 'aria-label': 'Without label' }}
+                                            sx={{ marginRight: 1, height: '25px' }}
+                                        >
+                                            <MenuItem value="fluo">Fluo</MenuItem>
+                                            <MenuItem value="ph">Ph</MenuItem>
+                                        </Select>
+                                        <Select
+                                            value={selectedLabel}
+                                            onChange={(e) => setSelectedLabel(e.target.value)}
+                                            displayEmpty
+                                            inputProps={{ 'aria-label': 'Without label' }}
+                                            sx={{ marginRight: 1, height: '25px' }}
+                                        >
+                                            <MenuItem value="N/A">N/A</MenuItem>
+                                            <MenuItem value="1">1</MenuItem>
+                                            <MenuItem value="2">2</MenuItem>
+                                            <MenuItem value="3">3</MenuItem>
+                                        </Select>
+                                        <Button
+                                            variant="contained"
+                                            sx={{
+                                                backgroundColor: 'black',
+                                                color: 'white',
+                                                '&:hover': {
+                                                    backgroundColor: 'gray'
+                                                }
+                                            }}
+                                            onClick={() => handlePreview(database)}
+                                        >
+                                            Overview
+                                        </Button>
+                                    </TableCell>
                                     <TableCell align="right">
                                         <IconButton onClick={() => handleNavigate(database)}>
                                             <Typography>Access database </Typography>
@@ -347,6 +414,18 @@ const Databases: React.FC = () => {
                     </Button>
                     <Button onClick={handleMarkAsComplete} color="primary">
                         Confirm
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={previewDialogOpen} onClose={handleClosePreviewDialog}>
+                <DialogTitle>{"Preview Image"}</DialogTitle>
+                <DialogContent>
+                    {previewImage && <img src={previewImage} alt="Preview" style={{ width: '100%' }} />}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleClosePreviewDialog} color="primary">
+                        Close
                     </Button>
                 </DialogActions>
             </Dialog>
