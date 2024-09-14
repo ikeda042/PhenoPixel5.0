@@ -23,6 +23,7 @@ import os
 import pandas as pd
 from sqlalchemy import update
 import shutil
+from typing import Literal
 
 matplotlib.use("Agg")
 
@@ -1477,12 +1478,13 @@ class CellCrudBase:
         length_na = len(await self.read_cell_ids("N/A"))
         return length_all != length_na
 
-    async def get_cell_images_ph_combined(
+    async def get_cell_images_combined(
         self,
         label: str = "1",
         total_rows: int = 5,
         total_cols: int = 5,
         image_size: int = 128,
+        mode: Literal["fluo", "ph"] = "fluo",
     ):
         async def combine_images_from_folder(
             folder_path, total_rows, total_cols, image_size
@@ -1509,7 +1511,7 @@ class CellCrudBase:
             buf = io.BytesIO(buffer)
             return buf
 
-        tmp_folder = "TempPhImages"
+        tmp_folder = "TempImages"
         try:
             os.mkdir(tmp_folder)
         except FileExistsError:
@@ -1521,7 +1523,10 @@ class CellCrudBase:
 
             for cell in cells:
                 async with aiofiles.open(f"{tmp_folder}/{cell.cell_id}.png", "wb") as f:
-                    await f.write(cell.img_ph)
+                    if mode == "fluo":
+                        await f.write(cell.img_fluo1)
+                    else:
+                        await f.write(cell.img_ph)
             buf = await combine_images_from_folder(
                 tmp_folder, total_rows, total_cols, image_size
             )
