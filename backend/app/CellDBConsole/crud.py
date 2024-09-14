@@ -1473,7 +1473,6 @@ class CellCrudBase:
         return True
 
     async def check_if_database_updated(self):
-        # self.db_name のデータベース中のmanual_labelが全てN/Aであるかどうかを確認
         length_all = len(await self.read_cell_ids())
         length_na = len(await self.read_cell_ids("N/A"))
         return length_all != length_na
