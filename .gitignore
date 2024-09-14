@@ -2,7 +2,7 @@ venv/
 frontend/node_modules/
 nd2totiff/
 TempData/
-TempPhImages/
+TempImages/
 *.tif
 *.nd2
 ph_contours/
