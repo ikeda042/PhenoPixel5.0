@@ -1094,6 +1094,43 @@ class CellCrudBase:
         buffer_io = io.BytesIO(buffer)
         return StreamingResponse(buffer_io, media_type="image/png")
 
+    async def parse_image_to_bytes(
+        data: bytes,
+        contour: bytes | None = None,
+        scale_bar: bool = False,
+        brightness_factor: float = 1.0,
+    ) -> bytes:
+        """
+        Parse the image data and return the image as bytes.
+
+        Parameters:
+        - data: Image data in bytes.
+        - contour: Contour data in bytes (optional).
+        - scale_bar: Whether to draw a scale bar on the image.
+        - brightness_factor: Factor by which to adjust the brightness of the image.
+
+        Returns:
+        - Image data as bytes.
+        """
+
+        img = await AsyncChores.async_imdecode(data)
+
+        if contour:
+            img = await AsyncChores.draw_contour(img, contour)
+
+        if brightness_factor != 1.0:
+            img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
+
+        if scale_bar:
+            img = await AsyncChores.draw_scale_bar_with_centered_text(img)
+
+        success, buffer = await AsyncChores.async_cv2_imencode(img)
+
+        if success:
+            return buffer.tobytes()
+        else:
+            raise ValueError("Failed to encode image")
+
     async def read_cell_ids(self, label: str | None = None) -> list[CellId]:
         """
         Read all cell IDs from the database.
@@ -1529,14 +1566,11 @@ class CellCrudBase:
                         await f.write(cell.img_fluo1)
                     elif mode == "ph":
                         await f.write(cell.img_ph)
-                    elif mode == "ph_conotour":
-                        img = cv2.imdecode(
-                            np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR
+                    elif mode == "ph_contour":
+                        img = await CellCrudBase.parse_image_to_bytes(
+                            cell.img_ph, cell.contour, scale_bar=True
                         )
-                        contour = await AsyncChores.async_pickle_loads(cell.contour)
-                        img = await AsyncChores.draw_contour(img, contour)
-                        _, buffer = await AsyncChores.async_cv2_imencode(img)
-                        await f.write(buffer)
+                        await f.write(img)
 
             buf = await combine_images_from_folder(
                 tmp_folder, total_rows, total_cols, image_size
