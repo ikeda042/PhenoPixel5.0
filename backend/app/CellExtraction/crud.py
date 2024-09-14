@@ -40,14 +40,14 @@ class Cell(Base):
 
 
 async def get_session(dbname: str):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=False)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False)
     async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
         yield session
 
 
 async def create_database(dbname: str):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=True)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     return engine
@@ -421,7 +421,9 @@ class ExtractionCrudBase:
         return contour, img_ph_gray, img_fluo1_gray, img_fluo2_gray
 
     async def process_cell(self, dbname, i, j):
-        engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}", echo=False)
+        engine = create_async_engine(
+            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+        )
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
         )
@@ -505,7 +507,7 @@ class ExtractionCrudBase:
         }
 
         await create_database(dbname)
-        engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}")
+        engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30")
 
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
