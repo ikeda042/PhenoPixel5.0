@@ -295,31 +295,37 @@ const Databases: React.FC = () => {
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
                                 {displayMode === 'Completed' && <TableCell align="center">Export Database</TableCell>}
                                 <TableCell align="center">
+
                                     <Box display="flex" justifyContent="center" alignItems="center">
-                                        <Select
-                                            value={selectedMode}
-                                            onChange={(e) => setSelectedMode(e.target.value)}
-                                            displayEmpty
-                                            inputProps={{ 'aria-label': 'Without label' }}
-                                            sx={{ marginRight: 1, height: '25px' }}
-                                        >
-                                            <MenuItem value="fluo">Fluo</MenuItem>
-                                            <MenuItem value="ph">Ph</MenuItem>
-                                            <MenuItem value="ph_contour">Ph + contour</MenuItem>
-                                            <MenuItem value="fluo_contour">Fluo + contour</MenuItem>
-                                        </Select>
-                                        <Select
-                                            value={selectedLabel}
-                                            onChange={(e) => setSelectedLabel(e.target.value)}
-                                            displayEmpty
-                                            inputProps={{ 'aria-label': 'Without label' }}
-                                            sx={{ marginRight: 1, height: '25px' }}
-                                        >
-                                            <MenuItem value="N/A">N/A</MenuItem>
-                                            <MenuItem value="1">1</MenuItem>
-                                            <MenuItem value="2">2</MenuItem>
-                                            <MenuItem value="3">3</MenuItem>
-                                        </Select>
+                                        <Box>
+                                            <Typography>Preview mode</Typography>
+                                        </Box>
+                                        <Box ml={1}>
+                                            <Select
+                                                value={selectedMode}
+                                                onChange={(e) => setSelectedMode(e.target.value)}
+                                                displayEmpty
+                                                inputProps={{ 'aria-label': 'Without label' }}
+                                                sx={{ marginRight: 1, height: '25px' }}
+                                            >
+                                                <MenuItem value="fluo">Fluo</MenuItem>
+                                                <MenuItem value="ph">Ph</MenuItem>
+                                                <MenuItem value="ph_contour">Ph + contour</MenuItem>
+                                                <MenuItem value="fluo_contour">Fluo + contour</MenuItem>
+                                            </Select>
+                                            <Select
+                                                value={selectedLabel}
+                                                onChange={(e) => setSelectedLabel(e.target.value)}
+                                                displayEmpty
+                                                inputProps={{ 'aria-label': 'Without label' }}
+                                                sx={{ marginRight: 1, height: '25px' }}
+                                            >
+                                                <MenuItem value="N/A">N/A</MenuItem>
+                                                <MenuItem value="1">1</MenuItem>
+                                                <MenuItem value="2">2</MenuItem>
+                                                <MenuItem value="3">3</MenuItem>
+                                            </Select>
+                                        </Box>
                                     </Box>
                                 </TableCell>
                                 <TableCell align="center"></TableCell>
@@ -380,7 +386,7 @@ const Databases: React.FC = () => {
                                             }}
                                             onClick={() => handlePreview(database)}
                                         >
-                                            Preview
+                                            Export Preview
                                         </Button>
                                     </TableCell>
                                     <TableCell align="right">
