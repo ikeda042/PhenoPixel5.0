@@ -371,7 +371,7 @@ const Databases: React.FC = () => {
                                             }}
                                             onClick={() => handlePreview(database)}
                                         >
-                                            Overview
+                                            Preview
                                         </Button>
                                     </TableCell>
                                     <TableCell align="right">
