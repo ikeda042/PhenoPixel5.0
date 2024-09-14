@@ -10,11 +10,14 @@ COPY package*.json ./
 # Install dependencies using legacy peer deps flag to ignore conflicts
 RUN npm install --legacy-peer-deps
 
-RUN npm install react-scripts@4.0.3 -g
-RUN npm install typescript --force --legacy-peer-deps
+# Globally install react-scripts and typescript
+RUN npm install react-scripts@4.0.3 typescript -g
 
 # Copy the rest of the application code to the container
 COPY . .
+
+# Ensure TypeScript is installed (redundant but explicit)
+RUN npm install typescript --force --legacy-peer-deps
 
 # Build the React app for production
 RUN npm run build
