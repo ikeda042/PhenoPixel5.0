@@ -1481,8 +1481,6 @@ class CellCrudBase:
     async def get_cell_images_combined(
         self,
         label: str = "1",
-        total_rows: int = 5,
-        total_cols: int = 5,
         image_size: int = 128,
         mode: Literal["fluo", "ph"] = "fluo",
     ):
@@ -1517,6 +1515,8 @@ class CellCrudBase:
         except FileExistsError:
             pass
 
+        total_rows = int(np.sqrt(n)) + 1
+        total_cols = await self.read_cell_ids_count(label) // total_rows + 1
         try:
             cell_ids = await self.read_cell_ids(label)
             cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
