@@ -264,6 +264,28 @@ const CellImageGrid: React.FC = () => {
         setFitDegree(parseInt(e.target.value));
     };
 
+    // キーボードイベントの設定
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Enter') {
+                handleNext();  // EnterキーでNextを押す
+            } else if (['1', '2', '3', 'n'].includes(event.key)) {
+                let newLabel = event.key;
+                if (newLabel === 'n') {
+                    newLabel = "1000";  // 'n' は "1000" に対応
+                }
+                setManualLabel(newLabel);
+                handleCellLabelChange({ target: { value: newLabel } } as SelectChangeEvent<string>);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [cellIds, currentIndex]);  // cellIds と currentIndex を依存に追加
+
     type EngineName = 'None' | 'MorphoEngine 2.0' | 'MorphoEngine 3.0' | 'MorphoEngine 4.0' | 'HeatmapEngine';
 
     const engineLogos: Record<EngineName, string> = {
