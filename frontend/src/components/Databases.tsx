@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, TextField, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Select, MenuItem, SelectChangeEvent, Link, Breadcrumbs } from "@mui/material";
+import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, TextField, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Select, MenuItem, SelectChangeEvent, Link, Breadcrumbs, CircularProgress } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -34,6 +34,7 @@ const Databases: React.FC = () => {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [selectedMode, setSelectedMode] = useState("fluo");
     const [selectedLabel, setSelectedLabel] = useState("1");
+    const [loadingPreview, setLoadingPreview] = useState(false); // New state for loading spinner
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -158,6 +159,7 @@ const Databases: React.FC = () => {
     };
 
     const handlePreview = async (database: string) => {
+        setLoadingPreview(true); // Start the spinner
         try {
             const response = await axios.get(`${url_prefix}/databases/${database}/combined_images`, {
                 params: {
@@ -174,6 +176,8 @@ const Databases: React.FC = () => {
             setDialogMessage("Failed to fetch preview image.");
             setDialogOpen(true);
             console.error("Failed to fetch preview image", error);
+        } finally {
+            setLoadingPreview(false); // Stop the spinner
         }
     };
 
@@ -421,7 +425,13 @@ const Databases: React.FC = () => {
             <Dialog open={previewDialogOpen} onClose={handleClosePreviewDialog}>
                 <DialogTitle>{"Preview Image"}</DialogTitle>
                 <DialogContent>
-                    {previewImage && <img src={previewImage} alt="Preview" style={{ width: '100%' }} />}
+                    {loadingPreview ? (
+                        <Box display="flex" justifyContent="center">
+                            <CircularProgress />
+                        </Box>
+                    ) : (
+                        previewImage && <img src={previewImage} alt="Preview" style={{ width: '100%' }} />
+                    )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClosePreviewDialog} color="primary">
