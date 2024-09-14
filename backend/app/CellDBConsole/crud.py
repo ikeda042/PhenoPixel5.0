@@ -1154,7 +1154,7 @@ class CellCrudBase:
         Returns:
         - Number of cell IDs with respect to the label.
         """
-        return len(await self.read_cell_ids(self.db_name, label))
+        return len(await self.read_cell_ids(label))
 
     async def read_cell(self, cell_id: str) -> Cell:
         """
@@ -1515,8 +1515,10 @@ class CellCrudBase:
         except FileExistsError:
             pass
 
+        n = await self.read_cell_ids_count(label)
         total_rows = int(np.sqrt(n)) + 1
-        total_cols = await self.read_cell_ids_count(label) // total_rows + 1
+        total_cols = n // total_rows + 1
+
         try:
             cell_ids = await self.read_cell_ids(label)
             cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
