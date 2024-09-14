@@ -34,7 +34,7 @@ const Databases: React.FC = () => {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [selectedMode, setSelectedMode] = useState("fluo");
     const [selectedLabel, setSelectedLabel] = useState("1");
-    const [loadingPreview, setLoadingPreview] = useState(false); // New state for loading spinner
+    const [loadingPreview, setLoadingPreview] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -159,7 +159,7 @@ const Databases: React.FC = () => {
     };
 
     const handlePreview = async (database: string) => {
-        setLoadingPreview(true); // Start the spinner
+        setLoadingPreview(true);
         try {
             const response = await axios.get(`${url_prefix}/databases/${database}/combined_images`, {
                 params: {
@@ -177,7 +177,7 @@ const Databases: React.FC = () => {
             setDialogOpen(true);
             console.error("Failed to fetch preview image", error);
         } finally {
-            setLoadingPreview(false); // Stop the spinner
+            setLoadingPreview(false);
         }
     };
 
@@ -294,7 +294,34 @@ const Databases: React.FC = () => {
                                 <TableCell>Database Name</TableCell>
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
                                 {displayMode === 'Completed' && <TableCell align="center">Export Database</TableCell>}
-                                <TableCell align="center">Preview</TableCell>
+                                <TableCell align="center">
+                                    <Box display="flex" justifyContent="center" alignItems="center">
+                                        <Select
+                                            value={selectedMode}
+                                            onChange={(e) => setSelectedMode(e.target.value)}
+                                            displayEmpty
+                                            inputProps={{ 'aria-label': 'Without label' }}
+                                            sx={{ marginRight: 1, height: '25px' }}
+                                        >
+                                            <MenuItem value="fluo">Fluo</MenuItem>
+                                            <MenuItem value="ph">Ph</MenuItem>
+                                            <MenuItem value="ph_contour">Ph + contour</MenuItem>
+                                            <MenuItem value="fluo_contour">Fluo + contour</MenuItem>
+                                        </Select>
+                                        <Select
+                                            value={selectedLabel}
+                                            onChange={(e) => setSelectedLabel(e.target.value)}
+                                            displayEmpty
+                                            inputProps={{ 'aria-label': 'Without label' }}
+                                            sx={{ marginRight: 1, height: '25px' }}
+                                        >
+                                            <MenuItem value="N/A">N/A</MenuItem>
+                                            <MenuItem value="1">1</MenuItem>
+                                            <MenuItem value="2">2</MenuItem>
+                                            <MenuItem value="3">3</MenuItem>
+                                        </Select>
+                                    </Box>
+                                </TableCell>
                                 <TableCell align="center"></TableCell>
                             </TableRow>
                         </TableHead>
@@ -342,28 +369,6 @@ const Databases: React.FC = () => {
                                         </TableCell>
                                     )}
                                     <TableCell align="center">
-                                        <Select
-                                            value={selectedMode}
-                                            onChange={(e) => setSelectedMode(e.target.value)}
-                                            displayEmpty
-                                            inputProps={{ 'aria-label': 'Without label' }}
-                                            sx={{ marginRight: 1, height: '25px' }}
-                                        >
-                                            <MenuItem value="fluo">Fluo</MenuItem>
-                                            <MenuItem value="ph">Ph</MenuItem>
-                                        </Select>
-                                        <Select
-                                            value={selectedLabel}
-                                            onChange={(e) => setSelectedLabel(e.target.value)}
-                                            displayEmpty
-                                            inputProps={{ 'aria-label': 'Without label' }}
-                                            sx={{ marginRight: 1, height: '25px' }}
-                                        >
-                                            <MenuItem value="N/A">N/A</MenuItem>
-                                            <MenuItem value="1">1</MenuItem>
-                                            <MenuItem value="2">2</MenuItem>
-                                            <MenuItem value="3">3</MenuItem>
-                                        </Select>
                                         <Button
                                             variant="contained"
                                             sx={{
