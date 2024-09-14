@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
 RUN npm install react-scripts@4.0.3 -g
-RUN npm install typescript
+RUN npm install typescript --legacy-peer-deps
 
 # Copy the rest of the application code to the container
 COPY . .
