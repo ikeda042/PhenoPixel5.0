@@ -1,0 +1,33 @@
+{
+  "name": "PhenoPixel5.0 Dev Container",
+  "dockerComposeFile": "../docker/docker-compose.yml",
+  "service": "backend",  
+  "workspaceFolder": "/app",  
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",   
+        "ms-vscode.vscode-typescript-tslint-plugin", 
+        "esbenp.prettier-vscode", 
+        "dbaeumer.vscode-eslint"   
+      ]
+    }
+  },
+  "postCreateCommand": "pip install -r /app/requirements.txt",  
+  "forwardPorts": [
+    3000,  
+    8000  
+  ],
+  "remoteEnv": {
+    "HOST_NAME": "localhost"
+  },
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend"
+    },
+    "8000": {
+      "label": "Backend"
+    }
+  }
+}
