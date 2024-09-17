@@ -1553,8 +1553,8 @@ class CellCrudBase:
             pass
 
         n = await self.read_cell_ids_count(label)
-        total_rows = int(np.sqrt(n)) + 1
-        total_cols = n // total_rows + 1
+        total_rows: int = int(np.sqrt(n)) + 1
+        total_cols: int = n // total_rows + 1
 
         try:
             cell_ids = await self.read_cell_ids(label)
@@ -1567,20 +1567,24 @@ class CellCrudBase:
                     elif mode == "ph":
                         await f.write(cell.img_ph)
                     elif mode == "ph_contour":
-                        img = await CellCrudBase.parse_image_to_bytes(
-                            cell.img_ph, cell.contour, scale_bar=False
+                        await f.write(
+                            await CellCrudBase.parse_image_to_bytes(
+                                cell.img_ph, cell.contour, scale_bar=False
+                            )
                         )
-                        await f.write(img)
                     elif mode == "fluo_contour":
-                        img = await CellCrudBase.parse_image_to_bytes(
-                            cell.img_fluo1, cell.contour, scale_bar=False
+                        await f.write(
+                            await CellCrudBase.parse_image_to_bytes(
+                                cell.img_fluo1, cell.contour, scale_bar=False
+                            )
                         )
-                        await f.write(img)
 
-            buf = await combine_images_from_folder(
-                tmp_folder, total_rows, total_cols, image_size
+            return StreamingResponse(
+                await combine_images_from_folder(
+                    tmp_folder, total_rows, total_cols, image_size
+                ),
+                media_type="image/png",
             )
-            return StreamingResponse(buf, media_type="image/png")
 
         finally:
             if os.path.exists(tmp_folder):
