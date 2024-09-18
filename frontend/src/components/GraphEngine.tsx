@@ -53,7 +53,7 @@ const GraphEngine: React.FC = () => {
 
     return (
         <Container>
-            <Box mb={2}>
+            <Box mb={3}>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="/">
                         Top
@@ -61,9 +61,6 @@ const GraphEngine: React.FC = () => {
                     <Typography color="text.primary">Graph engine</Typography>
                 </Breadcrumbs>
             </Box>
-            {/* <Typography variant="h4" gutterBottom>
-                Graph Engine
-            </Typography> */}
             <FormControl fullWidth>
                 <InputLabel id="select-label">Graph Mode</InputLabel>
                 <Select
