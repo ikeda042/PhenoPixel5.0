@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Box, Button, Container, Typography, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, CircularProgress } from "@mui/material";
 import { settings } from "../settings";
+import { Breadcrumbs, Link } from "@mui/material";
 
 const url_prefix = settings.url_prefix;
 const GraphEngine: React.FC = () => {
@@ -52,9 +53,17 @@ const GraphEngine: React.FC = () => {
 
     return (
         <Container>
-            <Typography variant="h4" gutterBottom>
+            <Box mb={2}>
+                <Breadcrumbs aria-label="breadcrumb">
+                    <Link underline="hover" color="inherit" href="/">
+                        Top
+                    </Link>
+                    <Typography color="text.primary">Graph engine</Typography>
+                </Breadcrumbs>
+            </Box>
+            {/* <Typography variant="h4" gutterBottom>
                 Graph Engine
-            </Typography>
+            </Typography> */}
             <FormControl fullWidth>
                 <InputLabel id="select-label">Graph Mode</InputLabel>
                 <Select
