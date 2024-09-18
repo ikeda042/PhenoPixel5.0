@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Button, Container, Typography, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, CircularProgress, Modal } from "@mui/material";
+import { Box, Button, Container, Typography, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, CircularProgress } from "@mui/material";
 import { settings } from "../settings";
 import { Breadcrumbs, Link } from "@mui/material";
 
@@ -51,12 +51,6 @@ const GraphEngine: React.FC = () => {
         }
     };
 
-    const modalStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    };
-
     return (
         <Container>
             <Box mb={3}>
@@ -87,21 +81,10 @@ const GraphEngine: React.FC = () => {
                 color="success"
                 onClick={handleGenerateGraph}
                 disabled={isLoading}
-                style={{ backgroundColor: isLoading ? "black" : undefined }}
+                style={{ opacity: isLoading ? 0.6 : 1 }}
             >
-                {isLoading ? <CircularProgress size={24} color="inherit" /> : "Generate Graph"}
+                {isLoading ? <CircularProgress size={24} sx={{ color: '#000000' }} /> : "Generate Graph"}  {/* スピナーの色を黒に */}
             </Button>
-
-            <Modal
-                open={isLoading}
-                aria-labelledby="loading-modal"
-                aria-describedby="loading-graph-generation"
-                style={modalStyle}
-            >
-                <Box>
-                    <CircularProgress color="primary" />
-                </Box>
-            </Modal>
 
             {imageSrc && (
                 <Box mt={4}>
