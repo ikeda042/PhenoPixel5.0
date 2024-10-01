@@ -14,3 +14,4 @@ ph_contours/
 .env
 backend/letsencrypt/
 backend/letsencrypt/*
+!experimental/U-net_Contour/test_contour_label_data.db
