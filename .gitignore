@@ -15,3 +15,6 @@ ph_contours/
 backend/letsencrypt/
 backend/letsencrypt/*
 !experimental/U-net_Contour/test_contour_label_data.db
+experimental/U-net_Contour/images/fluo/*.png
+experimental/U-net_Contour/images/ph/*.png
+experimental/U-net_Contour/images/predicted/*.png
