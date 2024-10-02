@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { settings } from "../settings";
 import GitHubIcon from '@mui/icons-material/GitHub';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import DisplaySettingsIcon from '@mui/icons-material/DisplaySettings';
 
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
@@ -75,6 +76,23 @@ const TopPage: React.FC = () => {
                     }}
                 >
                     Cell extraction
+                </Button>
+                <Button
+                    variant="contained"
+                    component="span"
+                    startIcon={<DisplaySettingsIcon />}
+                    onClick={() => handleNavigate('/timelapseengine')}
+                    sx={{
+                        backgroundColor: 'white',
+                        color: 'black',
+                        width: '100%',
+                        height: '56px',
+                        '&:hover': {
+                            backgroundColor: 'lightgrey'
+                        }
+                    }}
+                >
+                    timelapse engine
                 </Button>
                 <Button
                     variant="contained"
