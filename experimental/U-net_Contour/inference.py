@@ -73,7 +73,6 @@ def predict_contour(model, img_ph):
 
     # 予測結果を元のサイズにリサイズ
     prediction_resized = cv2.resize(prediction[0], (original_size[1], original_size[0]))
-
     return prediction_resized
 # 推論
 for cell in cells_with_label_1:
