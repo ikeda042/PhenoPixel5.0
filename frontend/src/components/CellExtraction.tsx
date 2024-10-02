@@ -170,6 +170,7 @@ const Extraction: React.FC = () => {
                                 backgroundColor: 'black',
                                 color: 'white',
                                 height: '56px',
+                                textTransform: 'none',
                                 '&:hover': {
                                     backgroundColor: 'grey'
                                 }
@@ -187,6 +188,7 @@ const Extraction: React.FC = () => {
                                 sx={{
                                     marginTop: 2,
                                     backgroundColor: 'black',
+                                    textTransform: 'none',
                                     color: 'white',
                                     height: '56px',
                                     '&:hover': {
@@ -217,6 +219,7 @@ const Extraction: React.FC = () => {
                                     sx={{
                                         backgroundColor: 'black',
                                         color: 'white',
+                                        textTransform: 'none',
                                         '&:hover': {
                                             backgroundColor: 'grey'
                                         }
@@ -233,6 +236,7 @@ const Extraction: React.FC = () => {
                                     sx={{
                                         backgroundColor: 'black',
                                         color: 'white',
+                                        textTransform: 'none',
                                         '&:hover': {
                                             backgroundColor: 'grey'
                                         }

@@ -255,6 +255,7 @@ const Databases: React.FC = () => {
                                     color: 'black',
                                     width: '100%',
                                     height: '56px',
+                                    textTransform: 'none',
                                     '&:hover': {
                                         backgroundColor: 'lightgrey'
                                     }
@@ -380,6 +381,7 @@ const Databases: React.FC = () => {
                                             sx={{
                                                 backgroundColor: 'black',
                                                 color: 'white',
+                                                textTransform: 'none',
                                                 '&:hover': {
                                                     backgroundColor: 'gray'
                                                 }
