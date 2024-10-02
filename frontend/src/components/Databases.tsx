@@ -9,7 +9,6 @@ import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import TaskIcon from '@mui/icons-material/Task';
 import DownloadIcon from '@mui/icons-material/Download';
-import PreviewIcon from '@mui/icons-material/Preview';
 
 interface ListDBResponse {
     databases: string[];
