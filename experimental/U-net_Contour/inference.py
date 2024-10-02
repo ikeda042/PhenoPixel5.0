@@ -48,7 +48,7 @@ cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
 
 
 # モデルを保存したファイルから読み込む
-model = tf.keras.models.load_model("experimental/U-net_Contour/model.h5")
+model = tf.keras.models.load_model("./model.h5")
 
 # 画像のリサイズ用関数（推論前にリサイズする）
 def resize_image(img, size=(256, 256)):
