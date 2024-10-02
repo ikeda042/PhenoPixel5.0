@@ -53,12 +53,13 @@ const TopPage: React.FC = () => {
                         color: 'black',
                         width: '100%',
                         height: '56px',
+                        textTransform: 'none',
                         '&:hover': {
                             backgroundColor: 'lightgrey'
                         }
                     }}
                 >
-                    Data analyses
+                    Data Analyses
                 </Button>
                 <Button
                     variant="contained"
@@ -70,12 +71,13 @@ const TopPage: React.FC = () => {
                         color: 'black',
                         width: '100%',
                         height: '56px',
+                        textTransform: 'none',
                         '&:hover': {
                             backgroundColor: 'lightgrey'
                         }
                     }}
                 >
-                    Cell extraction
+                    Cell Extraction
                 </Button>
                 <Button
                     variant="contained"
@@ -87,12 +89,13 @@ const TopPage: React.FC = () => {
                         color: 'black',
                         width: '100%',
                         height: '56px',
+                        textTransform: 'none',
                         '&:hover': {
                             backgroundColor: 'lightgrey'
                         }
                     }}
                 >
-                    timelapse engine
+                    TLengine1.0
                 </Button>
                 <Button
                     variant="contained"
@@ -104,12 +107,13 @@ const TopPage: React.FC = () => {
                         color: 'black',
                         width: '100%',
                         height: '56px',
+                        textTransform: 'none',
                         '&:hover': {
                             backgroundColor: 'lightgrey'
                         }
                     }}
                 >
-                    Graphengine
+                    GraphEngine
                 </Button>
                 <Button
                     variant="contained"
@@ -121,6 +125,7 @@ const TopPage: React.FC = () => {
                         color: 'black',
                         width: '100%',
                         height: '56px',
+                        textTransform: 'none',
                         '&:hover': {
                             backgroundColor: 'lightgrey'
                         }
@@ -138,6 +143,7 @@ const TopPage: React.FC = () => {
                         color: 'black',
                         width: '100%',
                         height: '56px',
+                        textTransform: 'none',
                         '&:hover': {
                             backgroundColor: 'lightgrey'
                         }
