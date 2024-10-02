@@ -142,6 +142,7 @@ const Nd2Files: React.FC = () => {
                                     color: 'black',
                                     width: '100%',
                                     height: '56px',
+                                    textTransform: 'none',
                                     '&:hover': {
                                         backgroundColor: 'lightgrey'
                                     }
