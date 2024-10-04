@@ -101,3 +101,11 @@ class SyncChores:
                             img = Image.fromarray(image_data)
                             img.save(tiff_filename)
                             print(f"Saved: {tiff_filename}")
+
+
+class TimelapseEngineCrudBase:
+    def __init__(self, nd2_path: str):
+        self.nd2_path = nd2_path
+
+    async def get_nd2_filenames(self) -> list[str]:
+        return [i for i in os.listdir("uploaded_files") if i.endswith("_timelapse.nd2")]
