@@ -501,7 +501,9 @@ class ExtractionCrudBase:
         except FileNotFoundError:
             pass
 
-        num_tiff = await asyncio.to_thread(chores.extract_nd2, self.nd2_path, self.mode)
+        num_tiff = await asyncio.to_thread(
+            chores.extract_nd2, self.nd2_path, self.mode, self.reverse_layers
+        )
 
         await asyncio.to_thread(
             chores.init,
