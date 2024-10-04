@@ -152,3 +152,8 @@ class TimelapseEngineCrudBase:
 
     async def get_nd2_filenames(self) -> list[str]:
         return [i for i in os.listdir("uploaded_files") if i.endswith("_timelapse.nd2")]
+
+    async def delete_nd2_file(self, file_path: str):
+        filename = filename.split("/")[-1]
+        await asyncio.to_thread(os.remove, f"uploaded_files/{filename}")
+        return True
