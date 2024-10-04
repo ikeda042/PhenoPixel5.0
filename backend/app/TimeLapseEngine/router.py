@@ -31,3 +31,8 @@ async def get_nd2_files():
     return JSONResponse(
         content={"files": await TimelapseEngineCrudBase("").get_nd2_filenames()}
     )
+
+
+@router_tl_engine.get("/nd2_files/{file_name}")
+async def parse_timelapse_nd2(file_name: str):
+    return await TimelapseEngineCrudBase(file_name).main()
