@@ -21,4 +21,4 @@ async def upload_nd2_file(file: UploadFile):
                 await out_file.write(content)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    return JSONResponse(content={"filename": file.filename})
+    return JSONResponse(content={"filename": file.filename + "_timelapse"})
