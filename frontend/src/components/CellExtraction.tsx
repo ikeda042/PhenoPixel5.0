@@ -50,11 +50,14 @@ const Extraction: React.FC = () => {
 
     const handleExtractCells = async () => {
         setIsLoading(true);
+        const reverseLayers = mode === "dual_layer_reversed";
+
         try {
             await axios.get(`${url_prefix}/cell_extraction/${fileName}/${mode}`, {
                 params: {
                     param1,
                     image_size: imageSize,
+                    reverse_layers: reverseLayers,
                 },
             });
             const countResponse = await axios.get(`${url_prefix}/cell_extraction/ph_contours/count`);
@@ -137,6 +140,7 @@ const Extraction: React.FC = () => {
                             >
                                 <MenuItem value="single_layer">Single Layer</MenuItem>
                                 <MenuItem value="dual_layer">Dual Layer</MenuItem>
+                                <MenuItem value="dual_layer_reversed">Dual Layer (Reversed)</MenuItem>
                                 <MenuItem value="triple_layer">Triple Layer</MenuItem>
                             </Select>
                         </FormControl>
@@ -223,7 +227,8 @@ const Extraction: React.FC = () => {
                                         '&:hover': {
                                             backgroundColor: 'grey'
                                         }
-                                    }}
+                                    }
+                                    }
                                 >
                                     Previous
                                 </Button>
@@ -240,7 +245,8 @@ const Extraction: React.FC = () => {
                                         '&:hover': {
                                             backgroundColor: 'grey'
                                         }
-                                    }}
+                                    }
+                                    }
                                 >
                                     Next
                                 </Button>
