@@ -12,6 +12,7 @@ import Nd2Files from './components/Nd2files';
 import CellExtraction from './components/CellExtraction';
 import GraphEngine from './components/GraphEngine';
 import TimelapseNd2List from './components/TimelapseNd2List';
+import TimelapseParser from './components/TimelapseParser';
 
 function App() {
   return (
@@ -71,6 +72,14 @@ function App() {
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={1} margin={3} mt={-4}>
                 <TimelapseNd2List />
+              </Grid >
+            </>
+          } />
+          <Route path="/tlparser" element={
+            <>
+              <Nav title='PhenoPixel5.0' />
+              <Grid container spacing={1} margin={3} mt={-4}>
+                <TimelapseParser />
               </Grid >
             </>
           } />
