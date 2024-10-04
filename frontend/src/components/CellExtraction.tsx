@@ -50,15 +50,15 @@ const Extraction: React.FC = () => {
 
     const handleExtractCells = async () => {
         setIsLoading(true);
-        const reverseLayers = mode === "dual_layer_reversed"; // Set reverse_layers to true if dual_layer_reversed is selected
-        const actualMode = mode === "dual_layer_reversed" ? "dual_layer" : mode; // Keep the mode as one of the original modes
+        const reverseLayers = mode === "dual_layer_reversed";
+        const actualMode = mode === "dual_layer_reversed" ? "dual_layer" : mode;
 
         try {
             await axios.get(`${url_prefix}/cell_extraction/${fileName}/${actualMode}`, {
                 params: {
                     param1,
                     image_size: imageSize,
-                    reverse_layers: reverseLayers, // Pass reverse_layers as a query parameter
+                    reverse_layers: reverseLayers,
                 },
             });
             const countResponse = await axios.get(`${url_prefix}/cell_extraction/ph_contours/count`);
