@@ -41,7 +41,7 @@ const TimelapseNd2List: React.FC = () => {
     };
 
     const handleNavigate = (fileName: string) => {
-        navigate(`/cellextraction/?file_name=${fileName}`);
+        navigate(`/tlparser/?file_name=${fileName}`);
     };
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,7 +197,7 @@ const TimelapseNd2List: React.FC = () => {
                                         </TableCell>
                                         <TableCell align="right">
                                             <IconButton onClick={() => handleNavigate(file)}>
-                                                <Typography>Extract cells </Typography>
+                                                <Typography>Parse TLND2 </Typography>
                                                 <NavigateNextIcon />
                                             </IconButton>
                                             <IconButton onClick={() => handleDelete(file)}>
