@@ -6,6 +6,7 @@ import cv2
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from fastapi.responses import JSONResponse
 
 
 class SyncChores:
@@ -157,3 +158,7 @@ class TimelapseEngineCrudBase:
         filename = filename.split("/")[-1]
         await asyncio.to_thread(os.remove, f"uploaded_files/{filename}")
         return True
+
+    async def main(self):
+        await AsyncChores().extract_timelapse_nd2(self.nd2_path)
+        return JSONResponse(content={"message": "Timelapse extracted"})
