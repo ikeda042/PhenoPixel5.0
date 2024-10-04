@@ -1,261 +1,231 @@
-import React, { useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import {
-    Box, Grid, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, Backdrop, CircularProgress, Breadcrumbs, Link
+    Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+    IconButton, TextField, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText,
+    DialogTitle, Link, Breadcrumbs, CircularProgress
 } from "@mui/material";
-import { styled } from '@mui/system';
 import axios from "axios";
 import { settings } from "../settings";
-import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
+import { useNavigate } from "react-router-dom";
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import DeleteIcon from '@mui/icons-material/Delete';
+
+interface ListND2FilesResponse {
+    files: string[];
+}
 
 const url_prefix = settings.url_prefix;
 
-const CustomTextField = styled(TextField)({
-    '& .MuiOutlinedInput-root': {
-        '& fieldset': {
-            borderColor: 'black',
-        },
-        '&:hover fieldset': {
-            borderColor: 'black',
-        },
-        '&.Mui-focused fieldset': {
-            borderColor: 'black',
-        },
-    },
-    '& input[type=number]': {
-        '-moz-appearance': 'textfield',
-    },
-    '& input[type=number]::-webkit-outer-spin-button': {
-        '-webkit-appearance': 'none',
-        margin: 0,
-    },
-    '& input[type=number]::-webkit-inner-spin-button': {
-        '-webkit-appearance': 'none',
-        margin: 0,
-    },
-});
-
 const TimelapseNd2List: React.FC = () => {
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const fileName = searchParams.get("file_name") || "";
-    const [mode, setMode] = useState("dual_layer");
-    const [param1, setParam1] = useState(100);
-    const [imageSize, setImageSize] = useState(200);
+    const [nd2Files, setNd2Files] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogMessage, setDialogMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [numImages, setNumImages] = useState(0);
-    const [currentImage, setCurrentImage] = useState(0);
-    const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+    const navigate = useNavigate();
 
-    const handleExtractCells = async () => {
-        setIsLoading(true);
-        const reverseLayers = mode === "dual_layer_reversed";
-        const actualMode = mode === "dual_layer_reversed" ? "dual_layer" : mode;
+    useEffect(() => {
+        fetchND2Files();
+    }, []);
 
+    const fetchND2Files = async () => {
         try {
-            await axios.get(`${url_prefix}/cell_extraction/${fileName}/${actualMode}`, {
-                params: {
-                    param1,
-                    image_size: imageSize,
-                    reverse_layers: reverseLayers,
-                },
-            });
-            const countResponse = await axios.get(`${url_prefix}/cell_extraction/ph_contours/count`);
-            const numImages = countResponse.data.count;
-            setNumImages(numImages);
-            setCurrentImage(0);
-            fetchImage(0);
+            const response = await axios.get<ListND2FilesResponse>(`${url_prefix}/cell_extraction/nd2_files`);
+            setNd2Files(response.data.files);
         } catch (error) {
-            console.error("Failed to extract cells", error);
-        } finally {
-            setIsLoading(false);
+            console.error("Failed to fetch ND2 files", error);
         }
     };
 
-    const fetchImage = async (frameNum: number) => {
+    const handleNavigate = (fileName: string) => {
+        navigate(`/cellextraction/?file_name=${fileName}`);
+    };
+
+    const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(event.target.value);
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files) {
+            setSelectedFile(event.target.files[0]);
+        }
+    };
+
+    const handleUpload = async () => {
+        if (selectedFile) {
+            setIsLoading(true);
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+            try {
+                const response = await axios.post(`${url_prefix}/cell_extraction/nd2_files`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                setDialogMessage("File uploaded successfully!");
+                setDialogOpen(true);
+                setSelectedFile(null);
+                fetchND2Files();
+                console.log(response.data);
+            } catch (error) {
+                setDialogMessage("Failed to upload file.");
+                setDialogOpen(true);
+                console.error("Failed to upload file", error);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+    };
+
+    const handleDelete = async (fileName: string) => {
         try {
-            const response = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${frameNum}`, {
-                responseType: 'blob',
-            });
-            const imageUrl = URL.createObjectURL(response.data);
-            setCurrentImageUrl(imageUrl);
+            const response = await axios.delete(`${url_prefix}/cell_extraction/nd2_files/${fileName}`);
+            setDialogMessage("File deleted successfully!");
+            setDialogOpen(true);
+            fetchND2Files();
+            console.log(response.data);
         } catch (error) {
-            console.error("Failed to fetch image", error);
+            setDialogMessage("Failed to delete file.");
+            setDialogOpen(true);
+            console.error("Failed to delete file", error);
         }
     };
 
-    const handlePreviousImage = () => {
-        const newImage = currentImage - 1;
-        if (newImage >= 0) {
-            setCurrentImage(newImage);
-            fetchImage(newImage);
-        }
+    const handleCloseDialog = () => {
+        setDialogOpen(false);
+        window.location.reload();
     };
 
-    const handleNextImage = () => {
-        const newImage = currentImage + 1;
-        if (newImage < numImages) {
-            setCurrentImage(newImage);
-            fetchImage(newImage);
-        }
-    };
-
-    const handleGoToDatabases = () => {
-        navigate(`/dbconsole?default_search_word=${fileName.slice(0, -10)}`);
-    };
-
-    const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-        event.currentTarget.blur();
-        event.preventDefault();
-    };
+    const filteredFiles = nd2Files.filter(file => file.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
-        <Box>
-            <Backdrop open={isLoading} style={{ zIndex: 1201 }}>
-                <CircularProgress color="inherit" />
-            </Backdrop>
-            <Box mb={2}>
+        <Container>
+            <Box>
                 <Breadcrumbs aria-label="breadcrumb">
                     <Link underline="hover" color="inherit" href="/">
                         Top
                     </Link>
-                    <Link underline="hover" color="inherit" href="/nd2files">
-                        ND2 files
-                    </Link>
-
-                    <Typography color="text.primary">Cell extraction</Typography>
+                    <Typography color="text.primary">ND2 files</Typography>
                 </Breadcrumbs>
             </Box>
-            <Grid container spacing={2} >
-                <Grid item xs={12} md={4} style={{ display: 'flex', justifyContent: 'center' }}>
-                    <Box width="100%" >
-                        <Typography variant="body1">
-                            nd2 filename :  {fileName}
-                        </Typography>
-                        <FormControl fullWidth margin="normal">
-                            <InputLabel>Mode</InputLabel>
-                            <Select
-                                value={mode}
-                                onChange={(e) => setMode(e.target.value)}
-                            >
-                                <MenuItem value="single_layer">Single Layer</MenuItem>
-                                <MenuItem value="dual_layer">Dual Layer</MenuItem>
-                                <MenuItem value="dual_layer_reversed">Dual Layer (Reversed)</MenuItem> {/* Use reverse_layers for this */}
-                                <MenuItem value="triple_layer">Triple Layer</MenuItem>
-                            </Select>
-                        </FormControl>
+            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="space-between" mt={2}>
+                <Grid container spacing={2} alignItems="center">
+                    <Grid item xs={6}>
                         <TextField
-                            label="Param1"
-                            type="number"
-                            placeholder="1-255"
-                            value={param1}
-                            onChange={(e) => setParam1(Number(e.target.value))}
-                            InputProps={{
-                                inputProps: { min: 0.1, step: 0.1 },
-                                onWheel: handleWheel,
-                                autoComplete: "off"
-                            }}
-                        />
-                        <CustomTextField
-                            label="Image Size"
-                            type="number"
+                            label="Search ND2 files"
+                            variant="outlined"
                             fullWidth
-                            margin="normal"
-                            value={imageSize}
-                            onChange={(e) => setImageSize(Number(e.target.value))}
+                            value={searchQuery}
+                            onChange={handleSearchChange}
+                            sx={{ height: '56px' }}
                         />
+                    </Grid>
+                    <Grid item xs={3}>
+                        <input
+                            accept=".nd2"
+                            style={{ display: 'none' }}
+                            id="raised-button-file"
+                            multiple
+                            type="file"
+                            onChange={handleFileChange}
+                        />
+                        <label htmlFor="raised-button-file">
+                            <Button
+                                variant="contained"
+                                component="span"
+                                startIcon={<InsertDriveFileIcon />}
+                                sx={{
+                                    backgroundColor: 'white',
+                                    color: 'black',
+                                    width: '100%',
+                                    height: '56px',
+                                    textTransform: 'none',
+                                    '&:hover': {
+                                        backgroundColor: 'lightgrey'
+                                    }
+                                }}
+                            >
+                                {selectedFile ? selectedFile.name : "Select ND2 file"}
+                            </Button>
+                        </label>
+                    </Grid>
+                    <Grid item xs={3}>
                         <Button
+                            onClick={handleUpload}
                             variant="contained"
-                            color="primary"
-                            fullWidth
-                            onClick={handleExtractCells}
-                            disabled={isLoading}
                             sx={{
                                 backgroundColor: 'black',
                                 color: 'white',
+                                width: '100%',
                                 height: '56px',
-                                textTransform: 'none',
                                 '&:hover': {
                                     backgroundColor: 'grey'
                                 }
                             }}
+                            startIcon={<FileUploadIcon />}
+                            disabled={!selectedFile || isLoading}
                         >
-                            {numImages > 0 && ("Re-extract Cells")}
-                            {numImages === 0 && ("Extract Cells")}
+                            Upload
                         </Button>
-                        {numImages > 0 && (
-                            <Button
-                                variant="contained"
-                                color="secondary"
-                                fullWidth
-                                onClick={handleGoToDatabases}
-                                sx={{
-                                    marginTop: 2,
-                                    backgroundColor: 'black',
-                                    textTransform: 'none',
-                                    color: 'white',
-                                    height: '56px',
-                                    '&:hover': {
-                                        backgroundColor: 'grey'
-                                    }
-                                }}
-                            >
-                                Go to Databases
-                            </Button>
-                        )}
-                    </Box>
-                </Grid>
-                {currentImageUrl && (
-                    <Grid item xs={12} md={8}>
-                        <Box display="flex" flexDirection="column" alignItems="center" mt={5}>
-                            <Box
-                                component="img"
-                                src={currentImageUrl}
-                                alt={`Extracted cell ${currentImage}`}
-                                sx={{ width: '400px', height: '400px', objectFit: 'contain' }}
-                            />
-                            <Box display="flex" justifyContent="space-between" width="400px" mt={2}>
-                                <Button
-                                    variant="contained"
-                                    onClick={handlePreviousImage}
-                                    disabled={currentImage === 0}
-                                    startIcon={<ArrowBackIosIcon />}
-                                    sx={{
-                                        backgroundColor: 'black',
-                                        color: 'white',
-                                        textTransform: 'none',
-                                        '&:hover': {
-                                            backgroundColor: 'grey'
-                                        }
-                                    }}
-                                >
-                                    Previous
-                                </Button>
-                                <Typography variant="body1">{currentImage + 1} / {numImages}</Typography>
-                                <Button
-                                    variant="contained"
-                                    onClick={handleNextImage}
-                                    disabled={currentImage === numImages - 1}
-                                    endIcon={<ArrowForwardIosIcon />}
-                                    sx={{
-                                        backgroundColor: 'black',
-                                        color: 'white',
-                                        textTransform: 'none',
-                                        '&:hover': {
-                                            backgroundColor: 'grey'
-                                        }
-                                    }
-                                    }
-                                >
-                                    Next
-                                </Button>
-                            </Box>
-                        </Box>
                     </Grid>
-                )}
-            </Grid>
-        </Box>
+                </Grid>
+            </Box>
+
+            {isLoading ? (
+                <Box display="flex" justifyContent="center" alignItems="center" mt={3}>
+                    <CircularProgress />
+                    <Typography variant="h6" ml={2}>Uploading the selected ND2 file...</Typography>
+                </Box>
+            ) : (
+                <Box mt={3}>
+                    <TableContainer component={Paper}>
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>ND2 Files</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {filteredFiles.map((file, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell component="th" scope="row">
+                                            {file}
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <IconButton onClick={() => handleNavigate(file)}>
+                                                <Typography>Extract cells </Typography>
+                                                <NavigateNextIcon />
+                                            </IconButton>
+                                            <IconButton onClick={() => handleDelete(file)}>
+                                                <DeleteIcon color="error" />
+                                            </IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Box>
+            )}
+
+            <Dialog open={dialogOpen} onClose={handleCloseDialog}>
+                <DialogTitle>{"File Operation Status"}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        {dialogMessage}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseDialog} color="primary">
+                        Close
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Container>
     );
 };
 
