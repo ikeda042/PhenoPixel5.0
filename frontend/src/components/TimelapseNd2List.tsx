@@ -33,7 +33,7 @@ const TimelapseNd2List: React.FC = () => {
 
     const fetchND2Files = async () => {
         try {
-            const response = await axios.get<ListND2FilesResponse>(`${url_prefix}/cell_extraction/nd2_files`);
+            const response = await axios.get<ListND2FilesResponse>(`${url_prefix}/tl-engine_x100/nd2_files`);
             setNd2Files(response.data.files);
         } catch (error) {
             console.error("Failed to fetch ND2 files", error);
@@ -60,7 +60,7 @@ const TimelapseNd2List: React.FC = () => {
             const formData = new FormData();
             formData.append("file", selectedFile);
             try {
-                const response = await axios.post(`${url_prefix}/cell_extraction/nd2_files`, formData, {
+                const response = await axios.post(`${url_prefix}/tl-engine_x100/nd2_files`, formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data'
                     }
@@ -82,7 +82,7 @@ const TimelapseNd2List: React.FC = () => {
 
     const handleDelete = async (fileName: string) => {
         try {
-            const response = await axios.delete(`${url_prefix}/cell_extraction/nd2_files/${fileName}`);
+            const response = await axios.delete(`${url_prefix}/tl-engine_x100/nd2_files/${fileName}`);
             setDialogMessage("File deleted successfully!");
             setDialogOpen(true);
             fetchND2Files();
