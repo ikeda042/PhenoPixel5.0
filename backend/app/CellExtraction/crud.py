@@ -384,6 +384,7 @@ class ExtractionCrudBase:
         mode: str = "dual_layer",
         param1: int = 130,
         image_size: int = 200,
+        reverse_layers: bool = False,
     ):
         self.nd2_path = nd2_path
         self.nd2_path = self.nd2_path.replace("\\", "/")
@@ -391,6 +392,7 @@ class ExtractionCrudBase:
         self.mode = mode
         self.param1 = param1
         self.image_size = image_size
+        self.reverse_layers = reverse_layers
 
     async def load_image(self, path):
         async with aiofiles.open(path, mode="rb") as f:
