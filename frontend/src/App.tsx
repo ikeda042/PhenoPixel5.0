@@ -66,7 +66,7 @@ function App() {
               </Grid >
             </>
           } />
-          <Route path="/timelapseengine" element={
+          <Route path="/tl-engine" element={
             <>
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={1} margin={3} mt={-4}>
