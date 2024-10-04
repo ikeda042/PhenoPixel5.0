@@ -89,7 +89,7 @@ class SyncChores:
         return center_x, center_y
 
     @staticmethod
-    def extract_nd2(file_name: str, mode: str):
+    def extract_nd2(file_name: str, mode: str) -> int:
         """
         nd2ファイルをMultipageTIFFに変換する。
         """
@@ -132,6 +132,7 @@ class SyncChores:
     def extract_tiff(
         tiff_path: str,
         mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual_layer",
+        reverse: bool = False,
     ) -> int:
         os.makedirs("TempData", exist_ok=True)
         folders = [
@@ -156,7 +157,11 @@ class SyncChores:
             layer_map = {
                 "triple_layer": [(0, "PH"), (1, "Fluo1"), (2, "Fluo2")],
                 "single_layer": [(0, "PH")],
-                "dual_layer": [(0, "PH"), (1, "Fluo1")],
+                "dual_layer": (
+                    [(0, "PH"), (1, "Fluo1")]
+                    if not reverse
+                    else [(1, "PH"), (0, "Fluo1")]
+                ),
             }
 
             for i in range(num_pages):
