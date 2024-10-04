@@ -113,6 +113,8 @@ class SyncChores:
                         array = np.array(img[channel])
                         array = SyncChores.process_image(array)
                         image = Image.fromarray(array)
+                        if reverse:
+                            channel = num_channels - channel - 1
                         image.save(f"nd2totiff/image_{n}_channel_{channel}.tif")
                 else:
                     array = np.array(img)
