@@ -89,7 +89,7 @@ class SyncChores:
         return center_x, center_y
 
     @staticmethod
-    def extract_nd2(file_name: str, mode: str) -> int:
+    def extract_nd2(file_name: str, mode: str, reverse: bool = False) -> int:
         """
         nd2ファイルをMultipageTIFFに変換する。
         """
@@ -123,7 +123,9 @@ class SyncChores:
             SyncChores.save_images(images, file_name, num_channels)
         SyncChores.cleanup("nd2totiff")
         num_tiff = SyncChores.extract_tiff(
-            tiff_path=f"./{file_name.split('/')[-1].split('.')[0]}.tif", mode=mode
+            tiff_path=f"./{file_name.split('/')[-1].split('.')[0]}.tif",
+            mode=mode,
+            reverse=reverse,
         )
         os.remove(f"./{file_name.split('/')[-1].split('.')[0]}.tif")
         return num_tiff
