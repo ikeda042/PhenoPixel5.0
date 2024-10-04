@@ -6,7 +6,7 @@ from exceptions import CellNotFoundError
 import cv2
 import numpy as np
 from numpy.linalg import eig, inv
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse
 import io
 import pickle
 import asyncio
