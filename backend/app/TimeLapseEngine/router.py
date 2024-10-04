@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from CellExtraction.crud import ExtractionCrudBase
+from TimeLapseEngine.crud import TimelapseEngineCrudBase
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from typing import Literal
 import os
@@ -11,7 +11,7 @@ import shutil
 router_tl_engine = APIRouter(prefix="/tl-engine_x100", tags=["tl_engine_x100"])
 
 
-@router_tl_engine.post("/timelapse-nd2_files")
+@router_tl_engine.post("/nd2_files")
 async def upload_nd2_file(file: UploadFile):
     file_path = file.filename + "_timelapse"
     file_path = os.path.join("uploaded_files", file_path)
@@ -22,3 +22,10 @@ async def upload_nd2_file(file: UploadFile):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return JSONResponse(content={"filename": file.filename + "_timelapse"})
+
+
+@router_tl_engine.get("/nd2_files")
+async def get_nd2_files():
+    return JSONResponse(
+        content={"files": await TimelapseEngineCrudBase("").get_nd2_filenames()}
+    )
