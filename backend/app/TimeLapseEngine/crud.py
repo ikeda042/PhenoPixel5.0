@@ -3,6 +3,9 @@ import os
 import nd2reader
 from PIL import Image
 import cv2
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 
 class SyncChores:
@@ -101,6 +104,46 @@ class SyncChores:
                             img = Image.fromarray(image_data)
                             img.save(tiff_filename)
                             print(f"Saved: {tiff_filename}")
+
+
+class AsyncChores:
+    def __init__(self):
+        self.executor = ThreadPoolExecutor()
+
+    async def correct_drift(self, reference_image, target_image):
+        """
+        correct_driftを非同期で実行。
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self.executor,
+            partial(SyncChores.correct_drift, reference_image, target_image),
+        )
+
+    async def process_image(self, array):
+        """
+        process_imageを非同期で実行。
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self.executor, partial(SyncChores.process_image, array)
+        )
+
+    async def extract_timelapse_nd2(self, file_name: str):
+        """
+        extract_timelapse_nd2を非同期で実行。
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self.executor, partial(SyncChores.extract_timelapse_nd2, file_name)
+        )
+
+    async def shutdown(self):
+        """
+        スレッドプールのシャットダウンを非同期で行う。
+        """
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self.executor.shutdown)
 
 
 class TimelapseEngineCrudBase:
