@@ -60,6 +60,7 @@ async def extract_cells(
     mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual",
     param1: int = 100,
     image_size: int = 200,
+    reverse_layers: bool = False,
 ):
     ph_contours_dir = "ph_contours"
     try:
@@ -72,7 +73,11 @@ async def extract_cells(
         raise HTTPException(status_code=404, detail="File not found")
     try:
         extractor = ExtractionCrudBase(
-            nd2_path=file_path, mode=mode, param1=param1, image_size=image_size
+            nd2_path=file_path,
+            mode=mode,
+            param1=param1,
+            image_size=image_size,
+            reverse_layers=reverse_layers,
         )
         return await extractor.main()
     except FileNotFoundError as e:
