@@ -108,7 +108,7 @@ const TimelapseNd2List: React.FC = () => {
                     <Link underline="hover" color="inherit" href="/">
                         Top
                     </Link>
-                    <Typography color="text.primary">ND2 files</Typography>
+                    <Typography color="text.primary">Timelapse ND2 files</Typography>
                 </Breadcrumbs>
             </Box>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="space-between" mt={2}>
@@ -185,8 +185,8 @@ const TimelapseNd2List: React.FC = () => {
                         <Table>
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>ND2 Files</TableCell>
-                                    <TableCell align="right">Actions</TableCell>
+                                    <TableCell><b>Timelapse ND2 Files</b></TableCell>
+                                    <TableCell align="right"></TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
