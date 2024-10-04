@@ -50,14 +50,15 @@ const Extraction: React.FC = () => {
 
     const handleExtractCells = async () => {
         setIsLoading(true);
-        const reverseLayers = mode === "dual_layer_reversed";
+        const reverseLayers = mode === "dual_layer_reversed"; // Set reverse_layers to true if dual_layer_reversed is selected
+        const actualMode = mode === "dual_layer_reversed" ? "dual_layer" : mode; // Keep the mode as one of the original modes
 
         try {
-            await axios.get(`${url_prefix}/cell_extraction/${fileName}/${mode}`, {
+            await axios.get(`${url_prefix}/cell_extraction/${fileName}/${actualMode}`, {
                 params: {
                     param1,
                     image_size: imageSize,
-                    reverse_layers: reverseLayers,
+                    reverse_layers: reverseLayers, // Pass reverse_layers as a query parameter
                 },
             });
             const countResponse = await axios.get(`${url_prefix}/cell_extraction/ph_contours/count`);
@@ -140,7 +141,7 @@ const Extraction: React.FC = () => {
                             >
                                 <MenuItem value="single_layer">Single Layer</MenuItem>
                                 <MenuItem value="dual_layer">Dual Layer</MenuItem>
-                                <MenuItem value="dual_layer_reversed">Dual Layer (Reversed)</MenuItem>
+                                <MenuItem value="dual_layer_reversed">Dual Layer (Reversed)</MenuItem> {/* Use reverse_layers for this */}
                                 <MenuItem value="triple_layer">Triple Layer</MenuItem>
                             </Select>
                         </FormControl>
@@ -227,8 +228,7 @@ const Extraction: React.FC = () => {
                                         '&:hover': {
                                             backgroundColor: 'grey'
                                         }
-                                    }
-                                    }
+                                    }}
                                 >
                                     Previous
                                 </Button>
