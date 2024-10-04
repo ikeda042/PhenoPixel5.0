@@ -11,6 +11,7 @@ import TopPage from './components/TopPage';
 import Nd2Files from './components/Nd2files';
 import CellExtraction from './components/CellExtraction';
 import GraphEngine from './components/GraphEngine';
+import TimelapseNd2List from './components/TimelapseNd2List';
 
 function App() {
   return (
@@ -62,6 +63,14 @@ function App() {
               <Nav title='PhenoPixel5.0' />
               <Grid container spacing={1} margin={3} mt={-4}>
                 <GraphEngine />
+              </Grid >
+            </>
+          } />
+          <Route path="/timelapseengine" element={
+            <>
+              <Nav title='PhenoPixel5.0' />
+              <Grid container spacing={1} margin={3} mt={-4}>
+                <TimelapseNd2List />
               </Grid >
             </>
           } />
