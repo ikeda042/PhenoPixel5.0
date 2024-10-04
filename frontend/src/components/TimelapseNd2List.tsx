@@ -148,7 +148,7 @@ const TimelapseNd2List: React.FC = () => {
                                     }
                                 }}
                             >
-                                {selectedFile ? selectedFile.name : "Select ND2 file"}
+                                {selectedFile ? selectedFile.name : "Select Timelapse ND2 file"}
                             </Button>
                         </label>
                     </Grid>
