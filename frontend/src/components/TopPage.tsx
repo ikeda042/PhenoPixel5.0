@@ -83,7 +83,7 @@ const TopPage: React.FC = () => {
                     variant="contained"
                     component="span"
                     startIcon={<DisplaySettingsIcon />}
-                    onClick={() => handleNavigate('/timelapseengine')}
+                    onClick={() => handleNavigate('/tl-engine')}
                     sx={{
                         backgroundColor: 'white',
                         color: 'black',
