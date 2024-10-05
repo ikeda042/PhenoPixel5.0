@@ -51,10 +51,8 @@ const TimelapseParser: React.FC = () => {
     const handleExtractCells = async () => {
         setIsLoading(true);
         const reverseLayers = mode === "dual_layer_reversed";
-        const actualMode = mode === "dual_layer_reversed" ? "dual_layer" : mode;
-
         try {
-            await axios.get(`${url_prefix}/cell_extraction/${fileName}/${actualMode}`, {
+            await axios.get(`${url_prefix}/tl-engine_x100/nd2_files/${fileName}`, {
                 params: {
                     param1,
                     image_size: imageSize,
