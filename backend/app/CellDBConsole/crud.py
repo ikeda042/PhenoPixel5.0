@@ -282,7 +282,7 @@ class AsyncChores:
         Parameters:
         - data: File data to upload.
         """
-        chunk_size = 1024 * 1024  # 1MB
+        chunk_size = 1024 * 1024 * 100  # 100MB
         save_name = (
             f"databases/{data.filename.split('/')[-1].split('.')[0]}-uploaded.db"
         )
