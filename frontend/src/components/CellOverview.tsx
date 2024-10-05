@@ -45,7 +45,7 @@ const url_prefix = settings.url_prefix;
 const CellImageGrid: React.FC = () => {
     const [searchParams] = useSearchParams();
     const db_name = searchParams.get('db_name') ?? "test_database.db";
-    const cell_number = searchParams.get('cell') ?? "10";
+    const cell_number = searchParams.get('cell') ?? "1";
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: ImageState }>({});
     const [selectedLabel, setSelectedLabel] = useState<string>("74");
