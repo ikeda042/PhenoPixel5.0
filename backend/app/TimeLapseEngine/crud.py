@@ -200,6 +200,15 @@ class AsyncChores:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.executor.shutdown)
 
+    async def create_combined_gif(self, field_folder: str) -> io.BytesIO:
+        """
+        create_combined_gifを非同期で実行。
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self.executor, partial(SyncChores.create_combined_gif, field_folder)
+        )
+
 
 class TimelapseEngineCrudBase:
     def __init__(self, nd2_path: str):
@@ -216,3 +225,6 @@ class TimelapseEngineCrudBase:
     async def main(self):
         await AsyncChores().extract_timelapse_nd2(self.nd2_path)
         return JSONResponse(content={"message": "Timelapse extracted"})
+
+    async def create_combined_gif(self, field_folder: str):
+        return await AsyncChores().create_combined_gif(field_folder)
