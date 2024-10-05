@@ -46,6 +46,7 @@ const CellImageGrid: React.FC = () => {
     const [searchParams] = useSearchParams();
     const db_name = searchParams.get('db_name') ?? "test_database.db";
     const cell_number = searchParams.get('cell') ?? "1";
+    const init_draw_mode = searchParams.get('init_draw_mode') ?? "light";
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: ImageState }>({});
     const [selectedLabel, setSelectedLabel] = useState<string>("74");
@@ -57,7 +58,7 @@ const CellImageGrid: React.FC = () => {
     const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
     const [contourData, setContourData] = useState<number[][]>([]);
     const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
-    const [drawMode, setDrawMode] = useState<string>("light");
+    const [drawMode, setDrawMode] = useState<string>(init_draw_mode);
     const [fitDegree, setFitDegree] = useState<number>(4);
     const [isLoading, setIsLoading] = useState(false);
     const [engineMode, setEngineMode] = useState<string>("None");
