@@ -43,11 +43,14 @@ type ImageState = {
 const url_prefix = settings.url_prefix;
 
 const CellImageGrid: React.FC = () => {
+    const [searchParams] = useSearchParams();
+    const db_name = searchParams.get('db_name') ?? "test_database.db";
+    const cell_number = searchParams.get('cell') ?? "10";
     const [cellIds, setCellIds] = useState<string[]>([]);
     const [images, setImages] = useState<{ [key: string]: ImageState }>({});
     const [selectedLabel, setSelectedLabel] = useState<string>("74");
     const [manualLabel, setManualLabel] = useState<string>("");
-    const [currentIndex, setCurrentIndex] = useState<number>(0);
+    const [currentIndex, setCurrentIndex] = useState<number>(parseInt(cell_number) - 1);
     const [drawContour, setDrawContour] = useState<boolean>(true);
     const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
     const [autoPlay, setAutoPlay] = useState<boolean>(false);
@@ -58,8 +61,7 @@ const CellImageGrid: React.FC = () => {
     const [fitDegree, setFitDegree] = useState<number>(4);
     const [isLoading, setIsLoading] = useState(false);
     const [engineMode, setEngineMode] = useState<string>("None");
-    const [searchParams] = useSearchParams();
-    const db_name = searchParams.get('db_name') ?? "test_database.db";
+
 
     const lastCallTimeRef = useRef<number | null>(null);
 
