@@ -53,11 +53,9 @@ class SyncChores:
         """
         タイムラプスnd2ファイルをフレームごとにTIFF形式で保存する。(チャンネル0がFluo画像、チャンネル1がPH画像)
         """
-        base_output_dir = "timelapsen2dtotiff"
-
-        os.makedirs(base_output_dir, exist_ok=True)
-
-        with nd2reader.ND2Reader(file_name) as images:
+        base_output_dir = "uploaded_files/"
+        os.makedirs("TimelapseParserTemp", exist_ok=True)
+        with nd2reader.ND2Reader(base_output_dir + file_name) as images:
             print(f"Available axes: {images.axes}")
             print(f"Sizes: {images.sizes}")
 
@@ -67,9 +65,10 @@ class SyncChores:
             num_fields = images.sizes.get("v", 1)
             num_channels = images.sizes.get("c", 1)
             num_timepoints = images.sizes.get("t", 1)
-
             for field_idx in range(num_fields):
-                field_folder = os.path.join(base_output_dir, f"Field_{field_idx + 1}")
+                field_folder = os.path.join(
+                    "TimelapseParserTemp/" f"Field_{field_idx + 1}"
+                )
                 os.makedirs(field_folder, exist_ok=True)
                 base_output_subdir_ph = field_folder + "/ph"
                 base_output_subdir_fluo = field_folder + "/fluo"
