@@ -7,6 +7,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from fastapi.responses import JSONResponse
+import io
 
 
 class SyncChores:
@@ -104,6 +105,60 @@ class SyncChores:
                             img = Image.fromarray(image_data)
                             img.save(tiff_filename)
                             print(f"Saved: {tiff_filename}")
+
+    @staticmethod
+    def create_combined_gif(field_folder: str) -> io.BytesIO:
+        """
+        Field1のphとfluo画像を左右に並べて時系列順にGIFを作成し、バイトバッファとして返す。
+        """
+        ph_folder = os.path.join(field_folder, "ph")
+        fluo_folder = os.path.join(field_folder, "fluo")
+
+        ph_image_files = sorted(
+            [
+                os.path.join(ph_folder, f)
+                for f in os.listdir(ph_folder)
+                if f.endswith(".tif")
+            ]
+        )
+        fluo_image_files = sorted(
+            [
+                os.path.join(fluo_folder, f)
+                for f in os.listdir(fluo_folder)
+                if f.endswith(".tif")
+            ]
+        )
+
+        # 画像を読み込む
+        ph_images = [Image.open(img_file) for img_file in ph_image_files]
+        fluo_images = [Image.open(img_file) for img_file in fluo_image_files]
+
+        # 画像を左右に並べる
+        combined_images = []
+        print("####################GIF####################")
+        for ph_img, fluo_img in zip(ph_images, fluo_images):
+            combined_width = ph_img.width + fluo_img.width
+            combined_height = max(ph_img.height, fluo_img.height)
+            combined_img = Image.new("RGB", (combined_width, combined_height))
+            combined_img.paste(ph_img, (0, 0))
+            combined_img.paste(fluo_img, (ph_img.width, 0))
+            combined_images.append(combined_img)
+
+        # バイトバッファにGIFを保存
+        gif_buffer = io.BytesIO()
+        combined_images[0].save(
+            gif_buffer,
+            format="GIF",
+            save_all=True,
+            append_images=combined_images[1:],
+            duration=100,  # 各フレームの表示時間（ミリ秒）
+            loop=0,  # 無限ループ
+        )
+
+        # バッファの位置を先頭に戻す
+        gif_buffer.seek(0)
+
+        return gif_buffer
 
 
 class AsyncChores:
