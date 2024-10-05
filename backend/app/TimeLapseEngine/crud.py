@@ -66,15 +66,19 @@ class SyncChores:
             num_fields = images.sizes.get("v", 1)
             num_channels = images.sizes.get("c", 1)
             num_timepoints = images.sizes.get("t", 1)
+
             for field_idx in range(num_fields):
                 field_folder = os.path.join(
-                    "TimelapseParserTemp/" f"Field_{field_idx + 1}"
+                    "TimelapseParserTemp/", f"Field_{field_idx + 1}"
                 )
                 os.makedirs(field_folder, exist_ok=True)
                 base_output_subdir_ph = field_folder + "/ph"
                 base_output_subdir_fluo = field_folder + "/fluo"
                 os.makedirs(base_output_subdir_ph, exist_ok=True)
                 os.makedirs(base_output_subdir_fluo, exist_ok=True)
+
+                reference_image_ph = None
+                reference_image_fluo = None
 
                 for channel_idx in range(num_channels):
                     for time_idx in range(num_timepoints):
@@ -86,19 +90,56 @@ class SyncChores:
                         if len(image_data.shape) == 3:
                             for i in range(image_data.shape[0]):
                                 channel_image = SyncChores.process_image(image_data[i])
-                                tiff_filename = os.path.join(
-                                    (
-                                        base_output_subdir_ph
-                                        if i == 1
-                                        else base_output_subdir_fluo
-                                    ),
-                                    f"time_{time_idx + 1}_channel_{i}.tif",
-                                )
+
+                                if i == 1:  # 位相差画像 (ph)
+                                    if time_idx == 0:
+                                        reference_image_ph = (
+                                            channel_image  # 基準フレーム設定
+                                        )
+                                    if reference_image_ph is not None and time_idx > 0:
+                                        channel_image = SyncChores.correct_drift(
+                                            reference_image_ph, channel_image
+                                        )  # ドリフト補正
+
+                                    tiff_filename = os.path.join(
+                                        base_output_subdir_ph,
+                                        f"time_{time_idx + 1}_channel_{i}.tif",
+                                    )
+
+                                else:  # 蛍光画像 (fluo)
+                                    if time_idx == 0:
+                                        reference_image_fluo = (
+                                            channel_image  # 基準フレーム設定
+                                        )
+                                    if (
+                                        reference_image_fluo is not None
+                                        and time_idx > 0
+                                    ):
+                                        channel_image = SyncChores.correct_drift(
+                                            reference_image_fluo, channel_image
+                                        )  # ドリフト補正
+
+                                    tiff_filename = os.path.join(
+                                        base_output_subdir_fluo,
+                                        f"time_{time_idx + 1}_channel_{i}.tif",
+                                    )
+
                                 img = Image.fromarray(channel_image)
                                 img.save(tiff_filename)
                                 print(f"Saved: {tiff_filename}")
                         else:
                             image_data = SyncChores.process_image(image_data)
+
+                            if time_idx == 0:
+                                reference_image_ph = (
+                                    image_data  # 最初のフレームを基準に設定
+                                )
+
+                            if reference_image_ph is not None and time_idx > 0:
+                                image_data = SyncChores.correct_drift(
+                                    reference_image_ph, image_data
+                                )  # ドリフト補正
+
                             tiff_filename = os.path.join(
                                 field_folder, f"time_{time_idx + 1}.tif"
                             )
@@ -107,9 +148,16 @@ class SyncChores:
                             print(f"Saved: {tiff_filename}")
 
     @staticmethod
-    def create_combined_gif(field_folder: str) -> io.BytesIO:
+    def create_combined_gif(
+        field_folder: str, resize_factor: float = 0.5
+    ) -> io.BytesIO:
         """
         Field1のphとfluo画像を左右に並べて時系列順にGIFを作成し、バイトバッファとして返す。
+        画像は指定されたリサイズ比率で縮小される。
+
+        :param field_folder: 画像が含まれているフォルダのパス
+        :param resize_factor: 画像のリサイズ比率（デフォルトは50%）
+        :return: GIFのバイトバッファ
         """
         ph_folder = os.path.join(field_folder, "ph")
         fluo_folder = os.path.join(field_folder, "fluo")
@@ -133,15 +181,27 @@ class SyncChores:
         ph_images = [Image.open(img_file) for img_file in ph_image_files]
         fluo_images = [Image.open(img_file) for img_file in fluo_image_files]
 
-        # 画像を左右に並べる
+        # 画像をリサイズして左右に並べる
         combined_images = []
         print("####################GIF####################")
         for ph_img, fluo_img in zip(ph_images, fluo_images):
-            combined_width = ph_img.width + fluo_img.width
-            combined_height = max(ph_img.height, fluo_img.height)
+            # 画像をリサイズ
+            ph_img_resized = ph_img.resize(
+                (int(ph_img.width * resize_factor), int(ph_img.height * resize_factor))
+            )
+            fluo_img_resized = fluo_img.resize(
+                (
+                    int(fluo_img.width * resize_factor),
+                    int(fluo_img.height * resize_factor),
+                )
+            )
+
+            # リサイズ後の画像を結合
+            combined_width = ph_img_resized.width + fluo_img_resized.width
+            combined_height = max(ph_img_resized.height, fluo_img_resized.height)
             combined_img = Image.new("RGB", (combined_width, combined_height))
-            combined_img.paste(ph_img, (0, 0))
-            combined_img.paste(fluo_img, (ph_img.width, 0))
+            combined_img.paste(ph_img_resized, (0, 0))
+            combined_img.paste(fluo_img_resized, (ph_img_resized.width, 0))
             combined_images.append(combined_img)
 
         # バイトバッファにGIFを保存
