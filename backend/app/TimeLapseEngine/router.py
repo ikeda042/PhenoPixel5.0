@@ -36,3 +36,13 @@ async def get_nd2_files():
 @router_tl_engine.get("/nd2_files/{file_name}")
 async def parse_timelapse_nd2(file_name: str):
     return await TimelapseEngineCrudBase(file_name).main()
+
+
+@router_tl_engine.get("/nd2_files/{file_name}/gif/{Field}")
+async def download_combined_gif(file_name: str, Field: str):
+    gif_buffer = await TimelapseEngineCrudBase(file_name).create_combined_gif(Field)
+    return StreamingResponse(
+        gif_buffer,
+        media_type="image/gif",
+        headers={"Content-Disposition": "attachment; filename=combined.gif"},
+    )

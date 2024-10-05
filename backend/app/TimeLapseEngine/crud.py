@@ -226,5 +226,5 @@ class TimelapseEngineCrudBase:
         await AsyncChores().extract_timelapse_nd2(self.nd2_path)
         return JSONResponse(content={"message": "Timelapse extracted"})
 
-    async def create_combined_gif(self, field_folder: str):
-        return await AsyncChores().create_combined_gif(field_folder)
+    async def create_combined_gif(self, field: str):
+        return await AsyncChores().create_combined_gif("TimelapseParserTemp/" + field)
