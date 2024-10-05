@@ -13,30 +13,44 @@ import io
 class SyncChores:
     @staticmethod
     def correct_drift(reference_image, target_image):
-        """
-        基準フレームと比較して、対象フレームのドリフトを補正する。
-        """
-        # ORB（特徴量検出）を用いて、フレーム間の特徴点をマッチング
         orb = cv2.ORB_create()
         kp1, des1 = orb.detectAndCompute(reference_image, None)
         kp2, des2 = orb.detectAndCompute(target_image, None)
 
-        # BFMatcherで特徴点をマッチング
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         matches = bf.match(des1, des2)
 
-        # マッチング点を基に、フレーム間の変換行列を計算
+        if len(matches) < 10:  # マッチングが少なすぎる場合、補正を行わない
+            print("Insufficient matches, skipping drift correction.")
+            return target_image
+
+        # 特徴点の座標を取得し、x軸とy軸を反転させる
         src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
 
-        matrix, mask = cv2.estimateAffinePartial2D(src_pts, dst_pts)
+        # 画像の高さと幅を基準に座標を反転
+        height = reference_image.shape[0]
+        width = reference_image.shape[1]
 
-        # 対象フレームを基準フレームに合わせて変換（位置補正）
-        aligned_image = cv2.warpAffine(
-            target_image, matrix, (target_image.shape[1], target_image.shape[0])
+        # x座標とy座標をそれぞれ反転
+        src_pts[:, :, 0] = width - src_pts[:, :, 0]  # x座標を反転
+        src_pts[:, :, 1] = height - src_pts[:, :, 1]  # y座標を反転
+        dst_pts[:, :, 0] = width - dst_pts[:, :, 0]  # x座標を反転
+        dst_pts[:, :, 1] = height - dst_pts[:, :, 1]  # y座標を反転
+
+        # アフィン変換行列をRANSACで推定
+        matrix, mask = cv2.estimateAffinePartial2D(
+            src_pts, dst_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0
         )
 
-        return aligned_image
+        if matrix is not None:
+            aligned_image = cv2.warpAffine(
+                target_image, matrix, (target_image.shape[1], target_image.shape[0])
+            )
+            return aligned_image
+        else:
+            print("Matrix estimation failed, skipping drift correction.")
+            return target_image
 
     @staticmethod
     def process_image(array):
