@@ -16,7 +16,7 @@ class HeatMapVector:
     def __repr__(self) -> str:
         return f"u1: {self.u1}\nG: {self.G}"
 
-    def __gt__(self, other):
+    def __gt__(self, other: HeatMapVector) -> bool:
         return self.length > other.length
 
 
