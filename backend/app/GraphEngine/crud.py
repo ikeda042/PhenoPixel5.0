@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import io
-from GraphEngine.schemas import HeatMapVector
+from GraphEngine.schemas import HeatMapVectorAbs, HeatMapVectorRel
 import asyncio
 
 
@@ -9,7 +9,7 @@ class SyncChores:
     def process_heatmap_abs(data):
         heatmap_vectors = sorted(
             [
-                HeatMapVector(
+                HeatMapVectorAbs(
                     index=i,
                     length=max(data[2 * i]) - min(data[2 * i]),
                     u1=[d - min(data[2 * i]) for d in data[2 * i]],
@@ -21,7 +21,7 @@ class SyncChores:
 
         max_length = max(heatmap_vectors).length
         heatmap_vectors = [
-            HeatMapVector(
+            HeatMapVectorAbs(
                 index=vec.index,
                 u1=[d + (max_length - vec.length) / 2 - max_length / 2 for d in vec.u1],
                 G=vec.G,
@@ -64,7 +64,7 @@ class SyncChores:
     def process_heatmap_rel(data):
         heatmap_vectors = sorted(
             [
-                HeatMapVector(
+                HeatMapVectorRel(
                     index=i,
                     length=len(data[2 * i]),
                     u1=[i for i in range(len(data[2 * i]))],
@@ -76,7 +76,7 @@ class SyncChores:
 
         max_length = max(heatmap_vectors).length
         heatmap_vectors = [
-            HeatMapVector(
+            HeatMapVectorRel(
                 index=vec.index,
                 u1=[d + (max_length - vec.length) / 2 - max_length / 2 for d in vec.u1],
                 G=vec.G,
