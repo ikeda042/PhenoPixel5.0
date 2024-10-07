@@ -26,7 +26,6 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    # resutn as many information as possible
     return {
         "title": api_title,
         "api_prefix": api_prefix,
