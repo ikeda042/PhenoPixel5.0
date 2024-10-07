@@ -18,3 +18,14 @@ async def create_heatmap_abs(file: UploadFile):
     return StreamingResponse(
         await GraphEngineCrudBase.process_heatmap_abs(data), media_type="image/png"
     )
+
+
+@router_graphengine.post("/heatmap_rel")
+async def create_heatmap_rel(file: UploadFile):
+    content = await file.read()
+    data = pd.read_csv(
+        io.StringIO(content.decode("utf-8")), header=None
+    ).values.tolist()
+    return StreamingResponse(
+        await GraphEngineCrudBase.process_heatmap_rel(data), media_type="image/png"
+    )
