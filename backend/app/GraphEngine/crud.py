@@ -3,7 +3,6 @@ import numpy as np
 import io
 from GraphEngine.schemas import HeatMapVector
 import asyncio
-from dataclasses import dataclass
 
 
 class SyncChores:
