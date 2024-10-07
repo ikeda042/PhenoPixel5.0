@@ -24,6 +24,19 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+async def root():
+    # resutn as many information as possible
+    return {
+        "title": api_title,
+        "api_prefix": api_prefix,
+        "docs_url": f"{api_prefix}/docs",
+        "openapi_url": f"{api_prefix}/openapi.json",
+        "status": "ok",
+        "code": 200,
+    }
+
+
 @app.get(f"{api_prefix}/healthcheck")
 async def healthcheck():
     return {"status": "ok"}
