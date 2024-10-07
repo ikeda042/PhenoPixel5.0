@@ -4,7 +4,6 @@ import Nav from './components/Nav';
 import { Box } from '@mui/system';
 import Grid from '@mui/material/Unstable_Grid2';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import React, { useEffect, useState } from 'react';
 import CellImageGrid from './components/CellOverview';
 import Databases from './components/Databases';
 import TopPage from './components/TopPage';
