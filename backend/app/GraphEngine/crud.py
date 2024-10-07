@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import io
 from GraphEngine.schemas import HeatMapVector
+import asyncio
 
 
-class GraphEngineCrudBase:
-    async def process_heatmap(data):
+class SyncChores:
+    def process_heatmap_abs(data):
         heatmap_vectors = sorted(
             [
                 HeatMapVector(
@@ -58,3 +59,14 @@ class GraphEngineCrudBase:
         buf.seek(0)
 
         return buf
+
+
+class AsyncChores:
+    async def process_heatmap_abs(self, data):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, SyncChores.process_heatmap_abs, data)
+
+
+class GraphEngineCrudBase:
+    async def process_heatmap_abs(data):
+        return await AsyncChores().process_heatmap_abs(data)
