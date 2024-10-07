@@ -24,7 +24,7 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get("/api")
 async def root():
     return {
         "title": api_title,
