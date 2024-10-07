@@ -3,6 +3,21 @@ import numpy as np
 import io
 from GraphEngine.schemas import HeatMapVector
 import asyncio
+from dataclasses import dataclass
+
+
+@dataclass
+class HeatMapVector:
+    index: int
+    u1: list[float]
+    G: list[float]
+    length: float
+
+    def __repr__(self) -> str:
+        return f"u1: {self.u1}\nG: {self.G}"
+
+    def __gt__(self, other):
+        return sum(self.G) > sum(other.G)
 
 
 class SyncChores:
@@ -66,10 +81,7 @@ class SyncChores:
                 HeatMapVector(
                     index=i,
                     length=len(data[2 * i]),
-                    u1=[
-                        i / (len(data[2 * i]) - 1) if len(data[2 * i]) > 1 else 0
-                        for i in range(len(data[2 * i]))
-                    ],
+                    u1=[i for i in range(len(data[2 * i]))],
                     G=data[2 * i + 1],
                 )
                 for i in range(len(data) // 2)
@@ -80,10 +92,7 @@ class SyncChores:
         heatmap_vectors = [
             HeatMapVector(
                 index=vec.index,
-                u1=[
-                    (d + (max_length - vec.length) / 2 - max_length / 2) * 0.065
-                    for d in vec.u1
-                ],
+                u1=[d + (max_length - vec.length) / 2 - max_length / 2 for d in vec.u1],
                 G=vec.G,
                 length=vec.length,
             )
@@ -112,7 +121,7 @@ class SyncChores:
 
         ax.set_ylim([u1_min, u1_max])
         ax.set_xlim([-0.5, len(heatmap_vectors) - 0.5])
-        ax.set_ylabel("Relative Cell length (px)")
+        ax.set_ylabel("Relative position(-)")
         ax.set_xlabel("Cell number")
 
         buf = io.BytesIO()
