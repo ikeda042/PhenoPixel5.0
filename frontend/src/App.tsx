@@ -16,7 +16,7 @@ import TimelapseParser from './components/TimelapseParser';
 
 function App() {
   return (
-    <Box sx={{ bgcolor: "#f7f6f5", color: 'black', minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: "000", color: 'black', minHeight: '100vh' }}>
       <Router>
         <Routes>
           <Route path="/" element={
