@@ -540,7 +540,11 @@ class ExtractionCrudBase:
         return num_tiff
 
     async def get_nd2_filenames(self) -> list[str]:
-        return [i for i in os.listdir("uploaded_files") if i.endswith(".nd2")]
+        return [
+            i
+            for i in os.listdir("uploaded_files")
+            if i.endswith(".nd2") and not i.endswith("timelapse.nd2")
+        ]
 
     async def delete_nd2_file(self, filename: str) -> bool:
         filename = filename.split("/")[-1]
