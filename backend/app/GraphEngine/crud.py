@@ -17,7 +17,7 @@ class HeatMapVector:
         return f"u1: {self.u1}\nG: {self.G}"
 
     def __gt__(self, other):
-        return sum(self.G) > sum(other.G)
+        return self.length > other.length
 
 
 class SyncChores:
@@ -72,6 +72,7 @@ class SyncChores:
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=500)
         buf.seek(0)
+        plt.clf()
 
         return buf
 
@@ -127,6 +128,7 @@ class SyncChores:
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=500)
         buf.seek(0)
+        plt.clf()
 
         return buf
 
