@@ -62,3 +62,26 @@ class AsyncChores:
                 executor, lambda: cv2.imencode(".png", img)
             )
         return success, buffer
+
+
+class CellAiCrudBase:
+    def __init__(self, model: str):
+        self.model = model
+
+    async def predict_contour(
+        self,
+        data: bytes,
+    ) -> StreamingResponse:
+        """
+        Predict the contour of a cell.
+
+        Parameters:
+        - data: Image data in bytes.
+
+        Returns:
+        - Predicted contour image.
+        """
+        img = await AsyncChores.async_imdecode(data)
+        _, buffer = await AsyncChores.async_cv2_imencode(img)
+        buffer_io = io.BytesIO(buffer)
+        return StreamingResponse(buffer_io, media_type="image/png")
