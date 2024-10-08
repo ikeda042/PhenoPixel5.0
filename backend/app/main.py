@@ -4,6 +4,7 @@ from CellExtraction.router import router_cell_extraction
 from GraphEngine.router import router_graphengine
 from Dev.router import router_dev
 from TimeLapseEngine.router import router_tl_engine
+from CellAI.router import router_cell_ai
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
@@ -47,6 +48,7 @@ app.include_router(router_cell_extraction, prefix=api_prefix)
 app.include_router(router_dev, prefix=api_prefix)
 app.include_router(router_graphengine, prefix=api_prefix)
 app.include_router(router_tl_engine, prefix=api_prefix)
+app.include_router(router_cell_ai, prefix=api_prefix)
 
 if __name__ == "__main__":
     import uvicorn
