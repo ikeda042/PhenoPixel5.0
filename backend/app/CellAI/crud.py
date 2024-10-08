@@ -164,7 +164,7 @@ class CellAiCrudBase:
 
     async def predict_contour(
         self,
-        data: bytes,
+        cell_id: str,
     ) -> StreamingResponse:
         """
         Predict the contour of a cell.
@@ -175,7 +175,11 @@ class CellAiCrudBase:
         Returns:
         - Predicted contour image as a StreamingResponse.
         """
-        img = await AsyncChores.async_imdecode(data)
+        cell = await CellCrudBase(
+            self.db_name,
+        ).read_cell(cell_id)
+
+        img = await AsyncChores.async_imdecode(cell.img_ph)
 
         img_resized = cv2.resize(img, (256, 256)) / 255.0
         img_tensor = (
