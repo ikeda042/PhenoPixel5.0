@@ -36,7 +36,6 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 
-# Define U-Net model
 class UNet(nn.Module):
     def __init__(self):
         super(UNet, self).__init__()
