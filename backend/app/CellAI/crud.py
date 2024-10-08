@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import cv2
+from CellDBConsole.crud import CellCrudBase
 
 
 class UNet(nn.Module):
@@ -151,7 +152,8 @@ class AsyncChores:
 
 
 class CellAiCrudBase:
-    def __init__(self, model_path: str):
+    def __init__(self, db_name: str, model_path: str):
+        self.db_name = db_name
         self.model = UNet()
         self.device = torch.device(
             "mps" if torch.backends.mps.is_available() else "cpu"
