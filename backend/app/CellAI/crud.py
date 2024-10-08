@@ -24,6 +24,13 @@ import pandas as pd
 from sqlalchemy import update
 import shutil
 from typing import Literal
+import torch
+import cv2
+import io
+import numpy as np
+from fastapi.responses import StreamingResponse
+from typing import Any
+from PIL import Image
 
 
 class AsyncChores:
@@ -65,8 +72,14 @@ class AsyncChores:
 
 
 class CellAiCrudBase:
-    def __init__(self, model: str):
-        self.model = model
+    def __init__(self, model_path: str):
+        self.model = UNet()
+        self.device = torch.device(
+            "mps" if torch.backends.mps.is_available() else "cpu"
+        )
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.model.to(self.device)
+        self.model.eval()
 
     async def predict_contour(
         self,
@@ -79,9 +92,29 @@ class CellAiCrudBase:
         - data: Image data in bytes.
 
         Returns:
-        - Predicted contour image.
+        - Predicted contour image as a StreamingResponse.
         """
+        # Step 1: Decode the image from bytes
         img = await AsyncChores.async_imdecode(data)
-        _, buffer = await AsyncChores.async_cv2_imencode(img)
-        buffer_io = io.BytesIO(buffer)
-        return StreamingResponse(buffer_io, media_type="image/png")
+
+        # Step 2: Preprocess the image
+        img_resized = cv2.resize(img, (256, 256)) / 255.0  # Resize and normalize
+        img_tensor = (
+            torch.tensor(img_resized.transpose(2, 0, 1), dtype=torch.float32)
+            .unsqueeze(0)
+            .to(self.device)
+        )
+
+        # Step 3: Make a prediction
+        with torch.no_grad():
+            prediction = self.model(img_tensor)
+        prediction = (prediction > 0.5).cpu().numpy().astype(np.uint8) * 255
+
+        # Step 4: Encode the predicted mask as an image
+        prediction_image = Image.fromarray(prediction[0][0])  # Convert to a PIL image
+        buffer = io.BytesIO()
+        prediction_image.save(buffer, format="PNG")  # Save the image to a buffer
+        buffer.seek(0)
+
+        # Step 5: Return the image as a StreamingResponse
+        return StreamingResponse(buffer, media_type="image/png")
