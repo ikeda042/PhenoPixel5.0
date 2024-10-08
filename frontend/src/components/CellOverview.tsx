@@ -39,6 +39,7 @@ type ImageState = {
     fluo?: string | null;
     replot?: string;
     path?: string;
+    prediction?: string;
 };
 const url_prefix = settings.url_prefix;
 
@@ -327,6 +328,28 @@ const CellImageGrid: React.FC = () => {
         ]
     };
 
+    const fetchPredictionImage = async (cellId: string, dbName: string) => {
+        try {
+            const response = await axios.get(`${url_prefix}/cell_ai/${dbName}/${cellId}`, { responseType: 'blob' });
+            const predictionImageUrl = URL.createObjectURL(response.data);
+            setImages((prevImages) => ({
+                ...prevImages,
+                [cellId]: { ...prevImages[cellId], prediction: predictionImageUrl }
+            }));
+        } catch (error) {
+            console.error("Error fetching prediction image:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (drawMode === "prediction" && cellIds.length > 0) {
+            const cellId = cellIds[currentIndex];
+            if (!images[cellId]?.prediction) {
+                fetchPredictionImage(cellId, db_name);
+            }
+        }
+    }, [drawMode, cellIds, currentIndex]);
+
     const contourPlotOptions: ChartOptions<'scatter'> = {
         maintainAspectRatio: true,
         aspectRatio: 1,
@@ -481,6 +504,7 @@ const CellImageGrid: React.FC = () => {
                                         <MenuItem value="light">Light</MenuItem>
                                         <MenuItem value="replot">Replot</MenuItem>
                                         <MenuItem value="path">Peak-path</MenuItem>
+                                        <MenuItem value="prediction">Prediction: T1</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Grid>
@@ -511,6 +535,7 @@ const CellImageGrid: React.FC = () => {
                                 <MenuItem value="light">Light</MenuItem>
                                 <MenuItem value="replot">Replot</MenuItem>
                                 <MenuItem value="path">Peak-path</MenuItem>
+                                <MenuItem value="prediction">Prediction: T1</MenuItem>
                             </Select>
                         </FormControl>
                     )}
@@ -528,6 +553,7 @@ const CellImageGrid: React.FC = () => {
                                         <MenuItem value="light">Light</MenuItem>
                                         <MenuItem value="replot">Replot</MenuItem>
                                         <MenuItem value="path">Peak-path</MenuItem>
+                                        <MenuItem value="prediction">Prediction: T1</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Grid>
@@ -546,6 +572,28 @@ const CellImageGrid: React.FC = () => {
                             </Grid>
                         </Grid>
                     )}
+                    {
+                        drawMode === "prediction" && (
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                                        <Select
+                                            labelId="draw-mode-select-label"
+                                            value={drawMode}
+                                            onChange={handleDrawModeChange}
+                                            displayEmpty
+                                        >
+                                            <MenuItem value="light">Light</MenuItem>
+                                            <MenuItem value="replot">Replot</MenuItem>
+                                            <MenuItem value="path">Peak-path</MenuItem>
+                                            <MenuItem value="prediction">Prediction: T1</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </Grid>
+                        )
+                    }
                     <Box mt={2}>
                         {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
                         {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
@@ -557,6 +605,9 @@ const CellImageGrid: React.FC = () => {
                             </Box>
                         ) : drawMode === "path" && images[cellIds[currentIndex]]?.path && (
                             <img src={images[cellIds[currentIndex]]?.path} alt={`Cell ${cellIds[currentIndex]} Path`} style={{ width: "100%" }} />
+                        )}
+                        {drawMode === "prediction" && images[cellIds[currentIndex]]?.prediction && (
+                            <img src={images[cellIds[currentIndex]]?.prediction} alt={`Cell ${cellIds[currentIndex]} Prediction`} style={{ width: "100%" }} />
                         )}
                     </Box>
                 </Box>
