@@ -19,3 +19,4 @@ experimental/U-net_Contour/images/fluo/*.png
 experimental/U-net_Contour/images/ph/*.png
 experimental/U-net_Contour/images/predicted/*.png
 backend/app/TimelapseParserTemp/
+.DS_Store
