@@ -17,11 +17,6 @@ import torch
 import torch.nn as nn
 import numpy as np
 import cv2
-import pickle
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, FLOAT, BLOB
 
 
 class UNet(nn.Module):
