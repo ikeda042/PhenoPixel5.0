@@ -1,29 +1,11 @@
 from __future__ import annotations
-from CellDBConsole.schemas import CellId, CellMorhology, ListDBresponse
-from database import get_session, Cell
-from sqlalchemy.future import select
-from exceptions import CellNotFoundError
 import cv2
 import numpy as np
 from numpy.linalg import eig, inv
 from fastapi.responses import StreamingResponse
 import io
-import pickle
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-import scipy
-from scipy.optimize import minimize
-import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib.figure import Figure
-from dataclasses import dataclass
-from fastapi import UploadFile
-import aiofiles
-import os
-import pandas as pd
-from sqlalchemy import update
-import shutil
-from typing import Literal
 import torch
 import cv2
 import io
@@ -196,27 +178,22 @@ class CellAiCrudBase:
         Returns:
         - Predicted contour image as a StreamingResponse.
         """
-        # Step 1: Decode the image from bytes
         img = await AsyncChores.async_imdecode(data)
 
-        # Step 2: Preprocess the image
-        img_resized = cv2.resize(img, (256, 256)) / 255.0  # Resize and normalize
+        img_resized = cv2.resize(img, (256, 256)) / 255.0
         img_tensor = (
             torch.tensor(img_resized.transpose(2, 0, 1), dtype=torch.float32)
             .unsqueeze(0)
             .to(self.device)
         )
 
-        # Step 3: Make a prediction
         with torch.no_grad():
             prediction = self.model(img_tensor)
         prediction = (prediction > 0.5).cpu().numpy().astype(np.uint8) * 255
 
-        # Step 4: Encode the predicted mask as an image
-        prediction_image = Image.fromarray(prediction[0][0])  # Convert to a PIL image
+        prediction_image = Image.fromarray(prediction[0][0])
         buffer = io.BytesIO()
-        prediction_image.save(buffer, format="PNG")  # Save the image to a buffer
+        prediction_image.save(buffer, format="PNG")
         buffer.seek(0)
 
-        # Step 5: Return the image as a StreamingResponse
         return StreamingResponse(buffer, media_type="image/png")
