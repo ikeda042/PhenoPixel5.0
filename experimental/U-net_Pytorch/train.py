@@ -188,7 +188,7 @@ for epoch in range(num_epochs):
 
     print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {epoch_loss/len(train_loader)}")
 
-torch.save(model.state_dict(), "experimental/U-net_Tensorflow/unet_model.pth")
+torch.save(model.state_dict(), "experimental/U-net_Pytorch/unet_model.pth")
 
 
 def predict_contour(model, img_ph):
@@ -207,5 +207,5 @@ for cell in cells_with_label_1:
     img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR)
     prediction = predict_contour(model, img_ph)
     cv2.imwrite(
-        f"experimental/U-net_Tensorflow/images/predicted/{cell.cell_id}.png", prediction
+        f"experimental/U-net_Pytorch/images/predicted/{cell.cell_id}.png", prediction
     )
