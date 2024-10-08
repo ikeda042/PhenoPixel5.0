@@ -587,7 +587,7 @@ const CellImageGrid: React.FC = () => {
                                             <MenuItem value="light">Light</MenuItem>
                                             <MenuItem value="replot">Replot</MenuItem>
                                             <MenuItem value="path">Peak-path</MenuItem>
-                                            <MenuItem value="prediction">Prediction: T1</MenuItem>
+                                            <MenuItem value="prediction">Model T1</MenuItem>
                                         </Select>
                                     </FormControl>
                                 </Grid>
