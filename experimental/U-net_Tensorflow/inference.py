@@ -27,7 +27,7 @@ class Cell(Base):
     center_y = Column(FLOAT)
 
 
-dbpath = "sqlite:///experimental/U-net_Contour/test_contour_label_data.db"
+dbpath = "sqlite:///experimental/U-net_Tensorflow/test_contour_label_data.db"
 engine = create_engine(dbpath)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
@@ -50,13 +50,16 @@ cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
 # モデルを保存したファイルから読み込む
 model = tf.keras.models.load_model("./model.h5")
 
+
 # 画像のリサイズ用関数（推論前にリサイズする）
 def resize_image(img, size=(256, 256)):
     return cv2.resize(img, size)
 
+
 # 画像のリサイズを元に戻すための関数（推論後にリサイズする）
 def resize_to_original_size(img, original_size):
     return cv2.resize(img, original_size)
+
 
 # 新しい画像に対して推論し、元のサイズに戻す
 def predict_contour(model, img_ph):
@@ -64,18 +67,22 @@ def predict_contour(model, img_ph):
     img_resized = resize_image(img_ph)  # 256x256にリサイズ
     img_resized = img_resized / 255.0
     img_resized = np.expand_dims(img_resized, axis=0)
-    
+
     # モデルで予測
     prediction = model.predict(img_resized)
-    
+
     # 二値化して255スケールに戻す
     prediction = (prediction > 0.5).astype(np.uint8) * 255
 
     # 予測結果を元のサイズにリサイズ
     prediction_resized = cv2.resize(prediction[0], (original_size[1], original_size[0]))
     return prediction_resized
+
+
 # 推論
 for cell in cells_with_label_1:
     img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR)
     prediction = predict_contour(model, img_ph)
-    cv2.imwrite(f"experimental/U-net_Contour/images/predicted/{cell.cell_id}.png", prediction)
+    cv2.imwrite(
+        f"experimental/U-net_Tensorflow/images/predicted/{cell.cell_id}.png", prediction
+    )
