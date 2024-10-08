@@ -153,12 +153,13 @@ class AsyncChores:
 
 class CellAiCrudBase:
 
-    def __init__(self, db_name: str, model_path: str = "CellAI/models/T1.pth"):
+    def __init__(self, db_name: str, model_path: str = "T1"):
         self.db_name = db_name
         self.model = UNet()
         self.device = torch.device(
             "mps" if torch.backends.mps.is_available() else "cpu"
         )
+        model_path = "CellAI/models/T1.pth" if model_path == "T1" else model_path
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         self.model.to(self.device)
         self.model.eval()
