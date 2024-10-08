@@ -30,7 +30,7 @@ class Cell(Base):
     center_y = Column(FLOAT)
 
 
-dbpath = "sqlite:///data.db"
+dbpath = "sqlite:///experimental/U-net_Pytorch/test_contour_label_data.db"
 engine = create_engine(dbpath)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
@@ -188,7 +188,7 @@ for epoch in range(num_epochs):
 
     print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {epoch_loss/len(train_loader)}")
 
-torch.save(model.state_dict(), "unet_model.pth")
+torch.save(model.state_dict(), "experimental/U-net_Tensorflow/unet_model.pth")
 
 
 def predict_contour(model, img_ph):
@@ -206,4 +206,6 @@ def predict_contour(model, img_ph):
 for cell in cells_with_label_1:
     img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR)
     prediction = predict_contour(model, img_ph)
-    cv2.imwrite(f"images/predicted/{cell.cell_id}.png", prediction)
+    cv2.imwrite(
+        f"experimental/U-net_Tensorflow/images/predicted/{cell.cell_id}.png", prediction
+    )
