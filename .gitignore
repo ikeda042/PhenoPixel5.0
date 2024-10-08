@@ -18,5 +18,6 @@ backend/letsencrypt/*
 experimental/U-net_Tensorflow/images/fluo/*.png
 experimental/U-net_Tensorflow/images/ph/*.png
 experimental/U-net_Tensorflow/images/predicted/*.png
+!experimental/U-net_Pytorch/test_contour_label_data.db
 backend/app/TimelapseParserTemp/
 .DS_Store
