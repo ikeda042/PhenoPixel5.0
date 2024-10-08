@@ -28,7 +28,7 @@ class Cell(Base):
     center_y = Column(FLOAT)
 
 
-dbpath = "sqlite:///experimental/U-net_Contour/test_contour_label_data.db"
+dbpath = "sqlite:///experimental/U-net_Tensorflow/test_contour_label_data.db"
 engine = create_engine(dbpath)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
@@ -49,8 +49,10 @@ cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
 
 for cell in cells_with_label_1:
     img_ph, masked = parse_image(cell)
-    cv2.imwrite(f"experimental/U-net_Contour/images/ph/{cell.cell_id}.png", img_ph)
-    cv2.imwrite(f"experimental/U-net_Contour/images/masked/{cell.cell_id}.png", masked)
+    cv2.imwrite(f"experimental/U-net_Tensorflow/images/ph/{cell.cell_id}.png", img_ph)
+    cv2.imwrite(
+        f"experimental/U-net_Tensorflow/images/masked/{cell.cell_id}.png", masked
+    )
 
 
 # U-Net
@@ -150,4 +152,7 @@ def predict_contour(model, img_ph):
 for cell in cells_with_label_1:
     img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR)
     prediction = predict_contour(model, img_ph)
-    cv2.imwrite(f"experimental/U-net_Contour/images/predicted/{cell.cell_id}.png", prediction)
+    cv2.imwrite(
+        f"experimental/U-net_Tensorflow/images/predicted/{cell.cell_id}.png",
+        prediction,
+    )
