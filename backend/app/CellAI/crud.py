@@ -152,7 +152,8 @@ class AsyncChores:
 
 
 class CellAiCrudBase:
-    def __init__(self, db_name: str, model_path: str):
+
+    def __init__(self, db_name: str, model_path: str = "CellAI/models/T1.pth"):
         self.db_name = db_name
         self.model = UNet()
         self.device = torch.device(
