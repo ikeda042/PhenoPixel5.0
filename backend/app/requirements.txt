@@ -10,6 +10,7 @@ click==8.1.7
 contourpy==1.2.1
 cycler==0.12.1
 dnspython==2.6.1
+dropbox==12.0.2
 email_validator==2.2.0
 exceptiongroup==1.2.1
 fastapi==0.111.0
@@ -53,6 +54,7 @@ packaging==24.1
 pandas==2.2.2
 pillow==10.3.0
 PIMS==0.7
+ply==3.11
 protobuf==4.25.5
 pydantic==2.7.4
 pydantic_core==2.18.4
@@ -73,6 +75,7 @@ slicerator==1.1.0
 sniffio==1.3.1
 SQLAlchemy==2.0.31
 starlette==0.37.2
+stone==3.3.1
 sympy==1.13.3
 tensorboard==2.17.1
 tensorboard-data-server==0.7.2
