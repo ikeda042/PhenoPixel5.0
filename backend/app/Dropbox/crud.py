@@ -27,3 +27,7 @@ class DropboxCrud:
                     },
                     data=await f.read(),
                 )
+
+    async def list_files(self) -> list:
+        response = await self.dbx.files_list_folder("/PhenoPixelDatabases")
+        return [file.name for file in response.entries]
