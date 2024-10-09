@@ -30,6 +30,7 @@ services:
       - .env
     environment:
       - HOST_NAME=${HOST_NAME}
+      - DROP_BOX_ACCESS_TOKEN=${DROP_BOX_ACCESS_TOKEN}
 
 networks:
   app-network:
