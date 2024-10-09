@@ -6,11 +6,17 @@ import dropbox
 from dropbox.files import WriteMode
 from dropbox import Dropbox
 import os
-from main import drop_box_token
 
 
 class DropboxCrud:
-    def __init__(self, token: str = os.getenv("DROPBOX_ACCESS_TOKEN", "")):
+
+    def __init__(
+        self,
+        token: str = os.getenv(
+            "DROPBOX_ACCESS_TOKEN",
+            "token",
+        ),
+    ):
         self.dbx: Dropbox = dropbox.Dropbox(token)
 
     async def upload_file(self, file_path: str, file_name: str) -> None:
@@ -27,7 +33,10 @@ class DropboxCrud:
                 )
 
     async def list_files(self) -> list:
-        response = await asyncio.to_thread(
-            self.dbx.files_list_folder, "/PhenoPixelDatabases"
-        )
-        return [file.name for file in response.entries]
+        try:
+            response = await asyncio.to_thread(
+                self.dbx.files_list_folder, "/PhenoPixelDatabases"
+            )
+            return [file.name for file in response.entries]
+        except Exception as e:
+            return []
