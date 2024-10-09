@@ -6,13 +6,13 @@ import dropbox
 from dropbox.files import WriteMode
 from dotenv import load_dotenv
 from dropbox import Dropbox
+import os
+
+load_dotenv()
 
 
 class DropboxCrud:
-    def __init__(
-        self,
-        token: str = load_dotenv().parsed.get("DROPBOX_ACCESS_TOKEN"),
-    ):
+    def __init__(self, token: str = os.getenv("DROPBOX_ACCESS_TOKEN")):
         self.dbx: Dropbox = dropbox.Dropbox(token)
 
     async def upload_file(self, file_path: str, file_name: str) -> None:
