@@ -12,7 +12,14 @@ load_dotenv()
 
 
 class DropboxCrud:
-    def __init__(self, token: str = os.getenv("DROPBOX_ACCESS_TOKEN")):
+    def __init__(
+        self,
+        token: str = (
+            os.getenv("DROPBOX_ACCESS_TOKEN")
+            if os.getenv("DROPBOX_ACCESS_TOKEN")
+            else ""
+        ),
+    ):
         self.dbx: Dropbox = dropbox.Dropbox(token)
 
     async def upload_file(self, file_path: str, file_name: str) -> None:
