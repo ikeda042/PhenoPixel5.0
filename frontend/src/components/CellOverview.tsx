@@ -58,6 +58,7 @@ const CellImageGrid: React.FC = () => {
     const [autoPlay, setAutoPlay] = useState<boolean>(false);
     const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
     const [contourData, setContourData] = useState<number[][]>([]);
+    const [contourDataT1, setContourDataT1] = useState<number[][]>([]);
     const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [drawMode, setDrawMode] = useState<string>(init_draw_mode);
     const [fitDegree, setFitDegree] = useState<number>(4);
@@ -131,6 +132,7 @@ const CellImageGrid: React.FC = () => {
                     [cellId]: { ...prevImages[cellId], ...newImages }
                 }));
                 fetchContour(cellId);
+                fetchContourT1(cellId);
             }
         };
 
@@ -163,6 +165,15 @@ const CellImageGrid: React.FC = () => {
         try {
             const response = await axios.get(`${url_prefix}/cells/${cellId}/contour/raw?db_name=${db_name}`);
             setContourData(response.data.contour);
+        } catch (error) {
+            console.error("Error fetching contour data:", error);
+        }
+    };
+
+    const fetchContourT1 = async (cellId: string) => {
+        try {
+            const response = await axios.get(`${url_prefix}/cell_ai/${db_name}/${cellId}/plot_data`);
+            setContourDataT1(response.data);
         } catch (error) {
             console.error("Error fetching contour data:", error);
         }
@@ -324,7 +335,14 @@ const CellImageGrid: React.FC = () => {
                 borderColor: 'lime',
                 backgroundColor: 'lime',
                 pointRadius: 1,
-            }
+            },
+            ...(drawMode === "t1contour" ? [{
+                label: 'Model T1',
+                data: contourDataT1.map(point => ({ x: point[0], y: point[1] })),
+                borderColor: 'red',
+                backgroundColor: 'red',
+                pointRadius: 1,
+            }] : [])
         ]
     };
 
@@ -535,7 +553,9 @@ const CellImageGrid: React.FC = () => {
                                 <MenuItem value="light">Light</MenuItem>
                                 <MenuItem value="replot">Replot</MenuItem>
                                 <MenuItem value="path">Peak-path</MenuItem>
+                                <MenuItem value="t1contour">T1 contour</MenuItem>
                                 <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
+
                             </Select>
                         </FormControl>
                     )}
@@ -553,6 +573,7 @@ const CellImageGrid: React.FC = () => {
                                         <MenuItem value="light">Light</MenuItem>
                                         <MenuItem value="replot">Replot</MenuItem>
                                         <MenuItem value="path">Peak-path</MenuItem>
+                                        <MenuItem value="t1contour">T1 contour</MenuItem>
                                         <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
                                     </Select>
                                 </FormControl>
@@ -587,6 +608,30 @@ const CellImageGrid: React.FC = () => {
                                             <MenuItem value="light">Light</MenuItem>
                                             <MenuItem value="replot">Replot</MenuItem>
                                             <MenuItem value="path">Peak-path</MenuItem>
+                                            <MenuItem value="t1contour">T1 contour</MenuItem>
+                                            <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </Grid>
+                        )
+                    }
+                    {
+                        drawMode === "t1contour" && (
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                                        <Select
+                                            labelId="draw-mode-select-label"
+                                            value={drawMode}
+                                            onChange={handleDrawModeChange}
+                                            displayEmpty
+                                        >
+                                            <MenuItem value="light">Light</MenuItem>
+                                            <MenuItem value="replot">Replot</MenuItem>
+                                            <MenuItem value="path">Peak-path</MenuItem>
+                                            <MenuItem value="t1contour">T1 contour</MenuItem>
                                             <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
                                         </Select>
                                     </FormControl>
@@ -609,6 +654,7 @@ const CellImageGrid: React.FC = () => {
                         {drawMode === "prediction" && images[cellIds[currentIndex]]?.prediction && (
                             <img src={images[cellIds[currentIndex]]?.prediction} alt={`Cell ${cellIds[currentIndex]} Prediction`} style={{ width: "100%" }} />
                         )}
+                        {drawMode === "t1contour" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
                     </Box>
                 </Box>
                 <Box sx={{ width: 350, height: 420, marginLeft: 2 }}>
