@@ -1511,10 +1511,14 @@ class CellCrudBase:
             f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed.db",
         )
         date = datetime.now().strftime("%Y-%m-%d")
-        await DropboxCrud().upload_file(
+        status = await DropboxCrud().upload_file(
             file_path=f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed.db",
             file_name=f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed-{date}.db",
         )
+        print("#########################################")
+        print("#########################################")
+        print("#########################################")
+        print(status)
         return True
 
     async def check_if_database_updated(self):
