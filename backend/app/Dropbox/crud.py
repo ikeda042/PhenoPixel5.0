@@ -19,7 +19,7 @@ class DropboxCrud:
     ):
         self.dbx: Dropbox = dropbox.Dropbox(token)
 
-    async def upload_file(self, file_path: str, file_name: str) -> None:
+    async def upload_file(self, file_path: str, file_name: str) -> str:
         async with aiohttp.ClientSession() as session:
             async with aiofiles.open(file_path, mode="rb") as f:
                 data = await f.read()
@@ -32,6 +32,7 @@ class DropboxCrud:
                     },
                     data=data,
                 )
+        return f"File {file_name} uploaded successfully"
 
     async def list_files(self) -> list:
         try:
