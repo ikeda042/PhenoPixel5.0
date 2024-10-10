@@ -200,3 +200,57 @@ class CellAiCrudBase:
         buffer.seek(0)
 
         return StreamingResponse(buffer, media_type="image/png")
+
+    async def predict_contour_draw(self, cell_id: str) -> list[list[float]]:
+        """
+        Predict the contour of a cell and return the contour image.
+
+        Parameters:
+        - cell_id: ID of the cell to predict.
+
+        Returns:
+        - Predicted contour image as a StreamingResponse.
+        """
+        cell = await CellCrudBase(self.db_name).read_cell(cell_id)
+        img = await AsyncChores.async_imdecode(cell.img_ph)
+
+        img_resized = cv2.resize(img, (256, 256)) / 255.0
+        img_tensor = (
+            torch.tensor(img_resized.transpose(2, 0, 1), dtype=torch.float32)
+            .unsqueeze(0)
+            .to(self.device)
+        )
+        with torch.no_grad():
+            prediction = self.model(img_tensor)
+
+        prediction = (prediction > 0.5).cpu().numpy().astype(np.uint8) * 255
+        prediction = prediction[0][0]
+        edges = cv2.Canny(prediction, 100, 200)
+
+        contours, _ = cv2.findContours(
+            edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        if not contours:
+            raise ValueError("No contours found")
+
+        image_center = (edges.shape[1] // 2, edges.shape[0] // 2)
+
+        min_distance = float("inf")
+        best_contour = None
+
+        for contour in contours:
+            M = cv2.moments(contour)
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                distance = np.sqrt(
+                    (cx - image_center[0]) ** 2 + (cy - image_center[1]) ** 2
+                )
+                if distance < min_distance:
+                    min_distance = distance
+                    best_contour = contour
+        if best_contour is None:
+            raise ValueError("No valid contours found")
+
+        return best_contour.squeeze().tolist()
