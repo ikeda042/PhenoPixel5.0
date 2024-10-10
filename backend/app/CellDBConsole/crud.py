@@ -24,6 +24,8 @@ import pandas as pd
 from sqlalchemy import update
 import shutil
 from typing import Literal
+from Dropbox.crud import DropboxCrud
+from datetime import datetime
 
 matplotlib.use("Agg")
 
@@ -1507,6 +1509,10 @@ class CellCrudBase:
         os.rename(
             f"databases/{dbname_cleaned}",
             f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed.db",
+        )
+        date = datetime.now().strftime("%Y-%m-%d")
+        await DropboxCrud.upload_file(
+            f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed-{date}.db",
         )
         return True
 
