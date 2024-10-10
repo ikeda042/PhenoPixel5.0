@@ -8,6 +8,9 @@ from CellAI.router import router_cell_ai
 from Dropbox.router import router_dropbox
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 api_title = os.getenv("API_TITLE", "FastAPI")
 api_prefix = os.getenv("API_PREFIX", "/api")
