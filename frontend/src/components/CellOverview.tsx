@@ -474,7 +474,7 @@ const CellImageGrid: React.FC = () => {
                             Prev
                         </Button>
                         <Typography variant="h6">
-                            {cellIds.length > 0 ? `Cell ${currentIndex + 1} of ${cellIds.length}` : `Cell ${currentIndex} of ${cellIds.length}`}
+                            {cellIds.length > 0 ? `Cell ${currentIndex + 1} of ${cellIds.length}` : `Cell ${currentIndex} of ${cellIds.length}`} / ({cellIds[currentIndex]})
                         </Typography>
                         <Button variant="contained" color="primary" onClick={handleNext} disabled={cellIds.length === 0} style={{ backgroundColor: "black", minWidth: "100px" }}>
                             Next
