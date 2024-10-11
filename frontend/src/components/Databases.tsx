@@ -95,7 +95,7 @@ const Databases: React.FC = () => {
     const handleDisplayModeChange = (event: SelectChangeEvent<string>) => {
         const newDisplayMode = event.target.value;
         setDisplayMode(newDisplayMode);
-        localStorage.setItem('displayMode', newDisplayMode); // Save displayMode in localStorage
+        localStorage.setItem('displayMode', newDisplayMode);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
