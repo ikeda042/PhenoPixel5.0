@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, TextField, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Select, MenuItem, SelectChangeEvent, Link, Breadcrumbs, CircularProgress } from "@mui/material";
+import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Select, MenuItem, SelectChangeEvent, Link, Breadcrumbs, CircularProgress, TextField } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -22,7 +22,7 @@ const Databases: React.FC = () => {
     const default_search_word = queryParams.get('default_search_word') ?? "";
     const [databases, setDatabases] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState(default_search_word);
-    const [displayMode, setDisplayMode] = useState('User uploaded');
+    const [displayMode, setDisplayMode] = useState(() => localStorage.getItem('displayMode') || 'User uploaded');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMessage, setDialogMessage] = useState("");
@@ -34,6 +34,9 @@ const Databases: React.FC = () => {
     const [selectedMode, setSelectedMode] = useState("fluo");
     const [selectedLabel, setSelectedLabel] = useState("1");
     const [loadingPreview, setLoadingPreview] = useState(false);
+    const [metadata, setMetadata] = useState<{ [key: string]: string }>({});
+    const [currentDatabase, setCurrentDatabase] = useState<string | null>(null);
+    const [newMetadata, setNewMetadata] = useState<{ [key: string]: string }>({});
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -57,6 +60,22 @@ const Databases: React.FC = () => {
                 }, {} as { [key: string]: boolean });
 
                 setMarkableDatabases(markableStatusMap);
+
+                // Fetch metadata for each database
+                const metadataResponses = await Promise.all(
+                    response.data.databases.map(async (db) => {
+                        const metadataResponse = await axios.get(`${url_prefix}/databases/${db}/metadata`);
+                        return { db, metadata: metadataResponse.data };
+                    })
+                );
+
+                const metadataMap = metadataResponses.reduce((acc, { db, metadata }) => {
+                    acc[db] = metadata;
+                    return acc;
+                }, {} as { [key: string]: string });
+
+                setMetadata(metadataMap);
+                setNewMetadata(metadataMap);
             } catch (error) {
                 console.error("Failed to fetch databases", error);
             }
@@ -74,7 +93,9 @@ const Databases: React.FC = () => {
     };
 
     const handleDisplayModeChange = (event: SelectChangeEvent<string>) => {
-        setDisplayMode(event.target.value);
+        const newDisplayMode = event.target.value;
+        setDisplayMode(newDisplayMode);
+        localStorage.setItem('displayMode', newDisplayMode);
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,6 +206,33 @@ const Databases: React.FC = () => {
         setPreviewImage(null);
     };
 
+    const handleMetadataChange = async (dbName: string, newMetadata: string) => {
+        setNewMetadata(prevMetadata => ({
+            ...prevMetadata,
+            [dbName]: newMetadata
+        }));
+
+        try {
+            const response = await axios.patch(`${url_prefix}/databases/${dbName}/update-metadata`, {
+                metadata: newMetadata
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            setDialogMessage("Metadata updated successfully!");
+            setDialogOpen(true);
+            setMetadata(prevMetadata => ({
+                ...prevMetadata,
+                [dbName]: newMetadata
+            }));
+        } catch (error) {
+            setDialogMessage("Failed to update metadata.");
+            setDialogOpen(true);
+            console.error("Failed to update metadata", error);
+        }
+    };
+
     const filteredDatabases = databases.filter(database => {
         const searchMatch = database.toLowerCase().includes(searchQuery.toLowerCase());
         if (displayMode === 'User uploaded') {
@@ -292,6 +340,7 @@ const Databases: React.FC = () => {
                         <TableHead>
                             <TableRow>
                                 <TableCell>Database Name</TableCell>
+                                <TableCell align="center">Metadata</TableCell>
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
                                 {displayMode === 'Completed' && <TableCell align="center">Export Database</TableCell>}
                                 <TableCell align="center">
@@ -337,6 +386,27 @@ const Databases: React.FC = () => {
                                     <TableCell component="th" scope="row">
                                         {database}
                                     </TableCell>
+                                    <TableCell>
+                                        <Box display="flex" alignItems="center" justifyContent="center" height="100%">
+                                            <TextField
+                                                value={newMetadata[database] || ""}
+                                                onChange={(e) => setNewMetadata(prevMetadata => ({
+                                                    ...prevMetadata,
+                                                    [database]: e.target.value
+                                                }))}
+                                                onBlur={() => handleMetadataChange(database, newMetadata[database] || "")}
+                                                fullWidth
+                                                InputProps={{
+                                                    sx: {
+                                                        height: '40px',
+                                                        padding: '0',
+                                                    },
+                                                    autoComplete: 'off'
+                                                }}
+                                            />
+                                        </Box>
+                                    </TableCell>
+
                                     {displayMode === 'User uploaded' && (
                                         <TableCell align="center">
                                             <Button
@@ -370,7 +440,7 @@ const Databases: React.FC = () => {
                                                 onClick={() => handleDownload(database)}
                                                 startIcon={<DownloadIcon />}
                                             >
-                                                Export Database
+                                                Export
                                             </Button>
                                         </TableCell>
                                     )}
