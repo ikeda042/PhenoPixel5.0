@@ -204,17 +204,15 @@ const Databases: React.FC = () => {
         setPreviewImage(null);
     };
 
-    const handleMetadataChange = (dbName: string, newMetadata: string) => {
+    const handleMetadataChange = async (dbName: string, newMetadata: string) => {
         setNewMetadata(prevMetadata => ({
             ...prevMetadata,
             [dbName]: newMetadata
         }));
-    };
 
-    const handleMetadataUpdate = async (dbName: string) => {
         try {
             const response = await axios.patch(`${url_prefix}/databases/${dbName}/update-metadata`, {
-                metadata: newMetadata[dbName]
+                metadata: newMetadata
             }, {
                 headers: {
                     'Content-Type': 'application/json'
@@ -224,7 +222,7 @@ const Databases: React.FC = () => {
             setDialogOpen(true);
             setMetadata(prevMetadata => ({
                 ...prevMetadata,
-                [dbName]: newMetadata[dbName]
+                [dbName]: newMetadata
             }));
         } catch (error) {
             setDialogMessage("Failed to update metadata.");
@@ -393,21 +391,6 @@ const Databases: React.FC = () => {
                                                 onChange={(e) => handleMetadataChange(database, e.target.value)}
                                                 fullWidth
                                             />
-                                            <Button
-                                                variant="contained"
-                                                sx={{
-                                                    backgroundColor: 'black',
-                                                    color: 'white',
-                                                    textTransform: 'none',
-                                                    '&:hover': {
-                                                        backgroundColor: 'gray'
-                                                    },
-                                                    marginLeft: 1
-                                                }}
-                                                onClick={() => handleMetadataUpdate(database)}
-                                            >
-                                                Update
-                                            </Button>
                                         </Box>
                                     </TableCell>
                                     {displayMode === 'User uploaded' && (
