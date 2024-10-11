@@ -270,6 +270,10 @@ async def get_metadata(db_name: str):
 
 @router_database.patch("/{db_name}/update-metadata")
 async def update_label_experiment(db_name: str, request: MetadataUpdateRequest):
+    if db_name == "test_database.db":
+        raise HTTPException(
+            status_code=400, detail="Cannot update metadata for the test database."
+        )
     return await CellCrudBase(db_name=db_name).update_all_cells_metadata(
         request.metadata
     )
