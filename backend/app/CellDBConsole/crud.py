@@ -144,7 +144,11 @@ class SyncChores:
 
     @staticmethod
     def box_plot(
-        values: list[float], target_val: float, y_label: str, cell_id: str
+        values: list[float],
+        target_val: float,
+        y_label: str,
+        cell_id: str,
+        label: str | None = None,
     ) -> io.BytesIO:
         fig = plt.figure(figsize=(8, 6))
         closest_point = min(values, key=lambda x: abs(x - target_val))
@@ -171,6 +175,8 @@ class SyncChores:
         plt.boxplot(values, flierprops=dict(marker=""))
         plt.ylim(0, 1.05)
         plt.ylabel(y_label)
+        if label:
+            plt.text(1.1, 0.5, label, fontsize=12, ha="center", va="center")
         plt.legend()
         plt.gca().axes.get_xaxis().set_visible(False)
         buf = io.BytesIO()
@@ -1362,7 +1368,17 @@ class CellCrudBase:
             )
         )
         buf = await AsyncChores.box_plot(
-            median_intensities, target_val=target_val, y_label=y_label, cell_id=cell_id
+            median_intensities,
+            target_val=target_val,
+            y_label=y_label,
+            cell_id=cell_id,
+            label=str(
+                round(
+                    len([i for i in median_intensities if i < 0.6])
+                    / len(median_intensities),
+                    2,
+                )
+            ),
         )
         return StreamingResponse(buf, media_type="image/png")
 
