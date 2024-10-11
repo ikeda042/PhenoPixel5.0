@@ -92,3 +92,7 @@ class CellStatsv2(BaseModel):
 
 class ListDBresponse(BaseModel):
     databases: list[str]
+
+
+class MetadataUpdateRequest(BaseModel):
+    metadata: str
