@@ -443,7 +443,7 @@ const Databases: React.FC = () => {
                                                 onClick={() => handleDownload(database)}
                                                 startIcon={<DownloadIcon />}
                                             >
-                                                Export Database
+                                                Export
                                             </Button>
                                         </TableCell>
                                     )}
