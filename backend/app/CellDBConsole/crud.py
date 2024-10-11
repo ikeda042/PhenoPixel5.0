@@ -1237,6 +1237,20 @@ class CellCrudBase:
             await session.commit()
         await session.close()
 
+    async def get_metadata(self) -> str:
+        """
+        Get the metadata of the experiment.
+
+        Returns:
+        - Metadata of the experiment from the first record.
+        """
+        stmt = select(Cell).limit(1)
+        async for session in get_session(dbname=self.db_name):
+            result = await session.execute(stmt)
+            cell: Cell = result.scalars().first()
+        await session.close()
+        return cell.label_experiment
+
     async def get_cell_ph(
         self, cell_id: str, draw_contour: bool = False, draw_scale_bar: bool = False
     ) -> StreamingResponse:
