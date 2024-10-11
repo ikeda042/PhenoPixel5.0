@@ -388,7 +388,11 @@ const Databases: React.FC = () => {
                                         <Box display="flex" alignItems="center">
                                             <TextField
                                                 value={newMetadata[database] || ""}
-                                                onChange={(e) => handleMetadataChange(database, e.target.value)}
+                                                onChange={(e) => setNewMetadata(prevMetadata => ({
+                                                    ...prevMetadata,
+                                                    [database]: e.target.value
+                                                }))}
+                                                onBlur={() => handleMetadataChange(database, newMetadata[database] || "")}
                                                 fullWidth
                                             />
                                         </Box>
