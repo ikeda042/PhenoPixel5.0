@@ -176,7 +176,7 @@ class SyncChores:
         plt.ylim(0, 1.05)
         plt.ylabel(y_label)
         if label:
-            plt.text(1.1, 0.5, label, fontsize=12, ha="center", va="center")
+            plt.text(1.3, 0.5, label, fontsize=12, ha="center", va="center")
         plt.legend()
         plt.gca().axes.get_xaxis().set_visible(False)
         buf = io.BytesIO()
