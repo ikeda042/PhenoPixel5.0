@@ -64,7 +64,6 @@ const CellImageGrid: React.FC = () => {
     const [fitDegree, setFitDegree] = useState<number>(4);
     const [isLoading, setIsLoading] = useState(false);
     const [engineMode, setEngineMode] = useState<string>("None");
-    const [metadata, setMetadata] = useState<string>('');
 
     const lastCallTimeRef = useRef<number | null>(null);
 
@@ -87,6 +86,8 @@ const CellImageGrid: React.FC = () => {
 
         fetchCellIds();
     }, [db_name, selectedLabel]);
+
+
 
     useEffect(() => {
         const fetchImages = async (cellId: string) => {
