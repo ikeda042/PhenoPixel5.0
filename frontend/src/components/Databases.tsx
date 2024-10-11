@@ -400,7 +400,8 @@ const Databases: React.FC = () => {
                                                     sx: {
                                                         height: '40px',
                                                         padding: '0',
-                                                    }
+                                                    },
+                                                    autoComplete: 'off'
                                                 }}
                                             />
                                         </Box>
