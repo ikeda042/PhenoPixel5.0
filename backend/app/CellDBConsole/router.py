@@ -261,3 +261,8 @@ async def get_cell_images_combined(
     return await CellCrudBase(db_name=db_name).get_cell_images_combined(
         label=label, mode=mode
     )
+
+
+@router_database.patch("/{db_name}/update-metadata")
+async def update_label_experiment(db_name: str, metadata: str):
+    return await CellCrudBase(db_name=db_name).update_all_cells_metadata(metadata)
