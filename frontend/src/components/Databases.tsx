@@ -385,7 +385,7 @@ const Databases: React.FC = () => {
                                         {database}
                                     </TableCell>
                                     <TableCell>
-                                        <Box display="flex" alignItems="center">
+                                        <Box display="flex" alignItems="center" justifyContent="center" height="100%">
                                             <TextField
                                                 value={newMetadata[database] || ""}
                                                 onChange={(e) => setNewMetadata(prevMetadata => ({
@@ -394,9 +394,16 @@ const Databases: React.FC = () => {
                                                 }))}
                                                 onBlur={() => handleMetadataChange(database, newMetadata[database] || "")}
                                                 fullWidth
+                                                InputProps={{
+                                                    sx: {
+                                                        height: '40px',
+                                                        padding: '0',
+                                                    }
+                                                }}
                                             />
                                         </Box>
                                     </TableCell>
+
                                     {displayMode === 'User uploaded' && (
                                         <TableCell align="center">
                                             <Button
