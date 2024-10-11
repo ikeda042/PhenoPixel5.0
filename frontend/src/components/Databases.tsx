@@ -35,9 +35,8 @@ const Databases: React.FC = () => {
     const [selectedLabel, setSelectedLabel] = useState("1");
     const [loadingPreview, setLoadingPreview] = useState(false);
     const [metadata, setMetadata] = useState<{ [key: string]: string }>({});
-    const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
     const [currentDatabase, setCurrentDatabase] = useState<string | null>(null);
-    const [newMetadata, setNewMetadata] = useState<string>("");
+    const [newMetadata, setNewMetadata] = useState<{ [key: string]: string }>({});
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -76,6 +75,7 @@ const Databases: React.FC = () => {
                 }, {} as { [key: string]: string });
 
                 setMetadata(metadataMap);
+                setNewMetadata(metadataMap);
             } catch (error) {
                 console.error("Failed to fetch databases", error);
             }
@@ -204,44 +204,32 @@ const Databases: React.FC = () => {
         setPreviewImage(null);
     };
 
-    const handleOpenMetadataDialog = (dbName: string) => {
-        setCurrentDatabase(dbName);
-        setNewMetadata(metadata[dbName] || "");
-        setMetadataDialogOpen(true);
+    const handleMetadataChange = (dbName: string, newMetadata: string) => {
+        setNewMetadata(prevMetadata => ({
+            ...prevMetadata,
+            [dbName]: newMetadata
+        }));
     };
 
-    const handleCloseMetadataDialog = () => {
-        setMetadataDialogOpen(false);
-        setCurrentDatabase(null);
-        setNewMetadata("");
-    };
-
-    const handleMetadataChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setNewMetadata(event.target.value);
-    };
-
-    const handleMetadataUpdate = async () => {
-        if (currentDatabase) {
-            try {
-                const response = await axios.patch(`${url_prefix}/databases/${currentDatabase}/update-metadata`, {
-                    metadata: newMetadata
-                }, {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                setDialogMessage("Metadata updated successfully!");
-                setDialogOpen(true);
-                setMetadata(prevMetadata => ({
-                    ...prevMetadata,
-                    [currentDatabase]: newMetadata
-                }));
-                handleCloseMetadataDialog();
-            } catch (error) {
-                setDialogMessage("Failed to update metadata.");
-                setDialogOpen(true);
-                console.error("Failed to update metadata", error);
-            }
+    const handleMetadataUpdate = async (dbName: string) => {
+        try {
+            const response = await axios.patch(`${url_prefix}/databases/${dbName}/update-metadata`, {
+                metadata: newMetadata[dbName]
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            setDialogMessage("Metadata updated successfully!");
+            setDialogOpen(true);
+            setMetadata(prevMetadata => ({
+                ...prevMetadata,
+                [dbName]: newMetadata[dbName]
+            }));
+        } catch (error) {
+            setDialogMessage("Failed to update metadata.");
+            setDialogOpen(true);
+            console.error("Failed to update metadata", error);
         }
     };
 
@@ -352,7 +340,7 @@ const Databases: React.FC = () => {
                         <TableHead>
                             <TableRow>
                                 <TableCell>Database Name</TableCell>
-                                <TableCell>Metadata</TableCell>
+                                <TableCell align="center">Metadata</TableCell>
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
                                 {displayMode === 'Completed' && <TableCell align="center">Export Database</TableCell>}
                                 <TableCell align="center">
@@ -399,12 +387,28 @@ const Databases: React.FC = () => {
                                         {database}
                                     </TableCell>
                                     <TableCell>
-                                        <Button
-                                            variant="contained"
-                                            onClick={() => handleOpenMetadataDialog(database)}
-                                        >
-                                            Update Metadata
-                                        </Button>
+                                        <Box display="flex" alignItems="center">
+                                            <TextField
+                                                value={newMetadata[database] || ""}
+                                                onChange={(e) => handleMetadataChange(database, e.target.value)}
+                                                fullWidth
+                                            />
+                                            <Button
+                                                variant="contained"
+                                                sx={{
+                                                    backgroundColor: 'black',
+                                                    color: 'white',
+                                                    textTransform: 'none',
+                                                    '&:hover': {
+                                                        backgroundColor: 'gray'
+                                                    },
+                                                    marginLeft: 1
+                                                }}
+                                                onClick={() => handleMetadataUpdate(database)}
+                                            >
+                                                Update
+                                            </Button>
+                                        </Box>
                                     </TableCell>
                                     {displayMode === 'User uploaded' && (
                                         <TableCell align="center">
@@ -517,27 +521,6 @@ const Databases: React.FC = () => {
                 <DialogActions>
                     <Button onClick={handleClosePreviewDialog} color="primary">
                         Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            <Dialog open={metadataDialogOpen} onClose={handleCloseMetadataDialog}>
-                <DialogTitle>{"Update Metadata"}</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        label="Metadata"
-                        variant="outlined"
-                        fullWidth
-                        value={newMetadata}
-                        onChange={handleMetadataChange}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseMetadataDialog} color="primary">
-                        Cancel
-                    </Button>
-                    <Button onClick={handleMetadataUpdate} color="primary">
-                        Update
                     </Button>
                 </DialogActions>
             </Dialog>
