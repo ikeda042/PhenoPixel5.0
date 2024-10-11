@@ -1224,15 +1224,14 @@ class CellCrudBase:
             raise CellNotFoundError(cell_id, "Cell with given ID does not exist")
         return cell
 
-    async def update_cell_metadata(self, cell_id: str, metadata: str) -> None:
+    async def update_all_cells_metadata(self, metadata: str) -> None:
         """
-        Update the "label_experimental" field of a cell.
+        Update the "label_experiment" field of all cells.
 
         Parameters:
-        - cell_id: ID of the cell to update.
-        - metadata: New metadata for the cell.
+        - metadata: New metadata for all cells.
         """
-        stmt = update(Cell).where(Cell.cell_id == cell_id).values(metadata=metadata)
+        stmt = update(Cell).values(label_experiment=metadata)
         async for session in get_session(dbname=self.db_name):
             await session.execute(stmt)
             await session.commit()
