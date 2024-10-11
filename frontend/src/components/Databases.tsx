@@ -22,7 +22,7 @@ const Databases: React.FC = () => {
     const default_search_word = queryParams.get('default_search_word') ?? "";
     const [databases, setDatabases] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState(default_search_word);
-    const [displayMode, setDisplayMode] = useState('User uploaded');
+    const [displayMode, setDisplayMode] = useState(() => localStorage.getItem('displayMode') || 'User uploaded');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMessage, setDialogMessage] = useState("");
@@ -93,7 +93,9 @@ const Databases: React.FC = () => {
     };
 
     const handleDisplayModeChange = (event: SelectChangeEvent<string>) => {
-        setDisplayMode(event.target.value);
+        const newDisplayMode = event.target.value;
+        setDisplayMode(newDisplayMode);
+        localStorage.setItem('displayMode', newDisplayMode); // Save displayMode in localStorage
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
