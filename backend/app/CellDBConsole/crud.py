@@ -1040,12 +1040,16 @@ class AsyncChores:
 
     @staticmethod
     async def box_plot(
-        values: list[float], target_val: float, y_label: str, cell_id: str
+        values: list[float],
+        target_val: float,
+        y_label: str,
+        cell_id: str,
+        label: str,
     ) -> io.BytesIO:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as pool:
             buf = await loop.run_in_executor(
-                pool, SyncChores.box_plot, values, target_val, y_label, cell_id
+                pool, SyncChores.box_plot, values, target_val, y_label, cell_id, label
             )
         return buf
 
