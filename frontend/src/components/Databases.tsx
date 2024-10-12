@@ -400,6 +400,7 @@ const Databases: React.FC = () => {
                                                 }))}
                                                 onBlur={() => handleMetadataChange(database, newMetadata[database] || "")}
                                                 fullWidth
+                                                placeholder="enter details"
                                                 InputProps={{
                                                     sx: {
                                                         height: '40px',
