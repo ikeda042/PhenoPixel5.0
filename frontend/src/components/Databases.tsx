@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Select, MenuItem, SelectChangeEvent, Link, Breadcrumbs, CircularProgress, TextField } from "@mui/material";
+import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, Button, Grid, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Select, MenuItem, SelectChangeEvent, Link, Breadcrumbs, CircularProgress, TextField, Tooltip } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -384,7 +384,11 @@ const Databases: React.FC = () => {
                             {filteredDatabases.map((database, index) => (
                                 <TableRow key={index}>
                                     <TableCell component="th" scope="row">
-                                        {database}
+                                        <Tooltip title={database}>
+                                            <Typography noWrap>
+                                                {database.length > 20 ? `${database.substring(0, 20)}...` : database}
+                                            </Typography>
+                                        </Tooltip>
                                     </TableCell>
                                     <TableCell>
                                         <Box display="flex" alignItems="center" justifyContent="center" height="100%">
