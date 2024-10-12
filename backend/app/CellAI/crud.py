@@ -229,9 +229,7 @@ class CellAiCrudBase:
         prediction = cv2.resize(prediction, (img.shape[1], img.shape[0]))
         edges = cv2.Canny(prediction, 100, 200)
 
-        contours, _ = cv2.findContours(
-            edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         if not contours:
             raise ValueError("No contours found")
