@@ -554,7 +554,7 @@ const CellImageGrid: React.FC = () => {
                                 <MenuItem value="light">Light</MenuItem>
                                 <MenuItem value="replot">Replot</MenuItem>
                                 <MenuItem value="path">Peak-path</MenuItem>
-                                <MenuItem value="t1contour">T1 contour</MenuItem>
+                                <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                 <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
 
                             </Select>
@@ -574,7 +574,7 @@ const CellImageGrid: React.FC = () => {
                                         <MenuItem value="light">Light</MenuItem>
                                         <MenuItem value="replot">Replot</MenuItem>
                                         <MenuItem value="path">Peak-path</MenuItem>
-                                        <MenuItem value="t1contour">T1 contour</MenuItem>
+                                        <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                         <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
                                     </Select>
                                 </FormControl>
@@ -609,7 +609,7 @@ const CellImageGrid: React.FC = () => {
                                             <MenuItem value="light">Light</MenuItem>
                                             <MenuItem value="replot">Replot</MenuItem>
                                             <MenuItem value="path">Peak-path</MenuItem>
-                                            <MenuItem value="t1contour">T1 contour</MenuItem>
+                                            <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                             <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
                                         </Select>
                                     </FormControl>
@@ -632,7 +632,7 @@ const CellImageGrid: React.FC = () => {
                                             <MenuItem value="light">Light</MenuItem>
                                             <MenuItem value="replot">Replot</MenuItem>
                                             <MenuItem value="path">Peak-path</MenuItem>
-                                            <MenuItem value="t1contour">T1 contour</MenuItem>
+                                            <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                             <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
                                         </Select>
                                     </FormControl>
