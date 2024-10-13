@@ -213,7 +213,7 @@ const Databases: React.FC = () => {
         }));
 
         try {
-            const response = await axios.patch(`${url_prefix}/databases/${dbName}/update-metadata`, {
+            await axios.patch(`${url_prefix}/databases/${dbName}/update-metadata`, {
                 metadata: newMetadata
             }, {
                 headers: {
