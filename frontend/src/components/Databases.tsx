@@ -35,7 +35,6 @@ const Databases: React.FC = () => {
     const [selectedLabel, setSelectedLabel] = useState("1");
     const [loadingPreview, setLoadingPreview] = useState(false);
     const [metadata, setMetadata] = useState<{ [key: string]: string }>({});
-    const [currentDatabase, setCurrentDatabase] = useState<string | null>(null);
     const [newMetadata, setNewMetadata] = useState<{ [key: string]: string }>({});
     const navigate = useNavigate();
 
