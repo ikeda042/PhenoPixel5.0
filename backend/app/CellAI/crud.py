@@ -1,21 +1,17 @@
 from __future__ import annotations
-import cv2
-import numpy as np
-from fastapi.responses import StreamingResponse
-import io
+
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-import torch
-import cv2
 import io
-import numpy as np
-from fastapi.responses import StreamingResponse
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
-from PIL import Image
+
+import cv2
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-import cv2
+from fastapi.responses import StreamingResponse
+from PIL import Image
+
 from CellDBConsole.crud import CellCrudBase
 
 
