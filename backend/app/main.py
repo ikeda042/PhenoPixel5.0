@@ -1,14 +1,16 @@
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from CellAI.router import router_cell_ai
 from CellDBConsole.router import router_cell, router_database
 from CellExtraction.router import router_cell_extraction
-from GraphEngine.router import router_graphengine
 from Dev.router import router_dev
-from TimeLapseEngine.router import router_tl_engine
-from CellAI.router import router_cell_ai
 from Dropbox.router import router_dropbox
-from fastapi.middleware.cors import CORSMiddleware
-import os
-from dotenv import load_dotenv
+from GraphEngine.router import router_graphengine
+from TimeLapseEngine.router import router_tl_engine
 
 load_dotenv()
 

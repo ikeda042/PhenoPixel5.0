@@ -10,7 +10,8 @@ import numpy as np
 from PIL import Image
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy import BLOB, Column, FLOAT, Integer, String, create_async_engine
+from sqlalchemy import BLOB, Column, FLOAT, Integer, String
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
