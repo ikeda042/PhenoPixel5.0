@@ -180,3 +180,18 @@ async def test_read_cell_fluo(client: AsyncClient):
         "/api/cells/F0C1/test_database.db/False/False/fluo_image"
     )
     assert response.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_read_cell_contour(client: AsyncClient):
+    response = await client.get(
+        "/api/cells/F0C1/contour/raw", params={"db_name": "test_database.db"}
+    )
+    assert response.status_code == 200
+    assert "contour" in response.json()
+
+    response = await client.get(
+        "/api/cells/F0C1/contour/converted", params={"db_name": "test_database.db"}
+    )
+    assert response.status_code == 200
+    assert "contour" in response.json()
