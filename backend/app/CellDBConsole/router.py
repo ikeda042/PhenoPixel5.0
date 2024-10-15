@@ -11,7 +11,7 @@ router_cell = APIRouter(prefix="/cells", tags=["cells"])
 router_database = APIRouter(prefix="/databases", tags=["databases"])
 
 
-@router_cell.get("/database/healtcheck")
+@router_cell.get("/database/healthcheck")
 async def db_healthcheck():
     return await CellCrudBase(db_name="test_database.db").get_cell_ph(
         cell_id="F0C1", draw_contour=False, draw_scale_bar=False
