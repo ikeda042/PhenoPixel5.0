@@ -1,9 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import os
-from fastapi import UploadFile
-import aiofiles
-from fastapi import HTTPException
 
 router_dev = APIRouter(prefix="/dev", tags=["dev"])
 
