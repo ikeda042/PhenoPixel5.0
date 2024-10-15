@@ -1,9 +1,7 @@
 import os
-
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 import pytest
 from httpx import AsyncClient
-from app.main import app  # FastAPI などのアプリケーションをインポート
+from main import app
 
 
 @pytest.fixture(scope="session")
