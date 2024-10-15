@@ -630,7 +630,9 @@ You can find the “Download Bulk” button after switching the morphoengine to 
 
 ![Start-up window](docs_images/stacked_heatmap_rel.png)
 </div>
-
+<p align="center">
+Fig. 8-1 staked heatmap with normalized cell lengths.
+</p>
 
 Note that cell lengths are normalized to relative positions so you can focus on localization. However, if you also need to consider the absolute lengths of the cells, you can run the following.
 
@@ -638,8 +640,13 @@ Note that cell lengths are normalized to relative positions so you can focus on 
 
 <div align="center">
 
-![Start-up window](docs_images/stacked_heatmap_abs.png)
+![Start-up window](docs_images/stacked_heatmap_abs.png)(in pixel)
 </div>
+
+<p align="center">
+Fig. 8-2 staked heatmap with absolute cell lengths.(in pixel)
+</p>
+
 
 
 [Scripts for heatmap(centered)](https://github.com/ikeda042/PhenoPixel5.0/blob/main/demo/get_heatmap_centered.py)
@@ -649,5 +656,11 @@ Note that cell lengths are normalized to relative positions so you can focus on 
 ![Start-up window](docs_images/stacked_heatmap_abs_centered.png)
 </div>
 
+<p align="center">
+Fig. 8-3 staked heatmap with absolute cell lengths. (in µm)
+</p>
+
+
 
 # U-net masking (experimental)
+
