@@ -5,11 +5,9 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import cv2
 import pickle
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String, FLOAT, BLOB
-from sklearn.model_selection import train_test_split
-import os
 
 Base = declarative_base()
 

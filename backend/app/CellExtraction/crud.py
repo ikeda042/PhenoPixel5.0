@@ -13,8 +13,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import BLOB, Column, FLOAT, Integer, String
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
 
 Base = declarative_base()
