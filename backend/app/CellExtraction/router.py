@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from CellExtraction.crud import ExtractionCrudBase
-from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from typing import Literal
 import os
 from fastapi import UploadFile
