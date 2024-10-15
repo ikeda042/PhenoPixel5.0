@@ -125,3 +125,9 @@ async def test_read_cell_label(client: AsyncClient):
     assert response.status_code == 200
     response_template = 1
     assert response.json() == response_template
+
+
+@pytest.mark.anyio
+async def test_read_cell_ph(client: AsyncClient):
+    response = await client.get("/api/cells/F0C1/test_database.db/False/False/ph_image")
+    assert response.status_code == 200
