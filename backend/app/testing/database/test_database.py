@@ -195,3 +195,11 @@ async def test_read_cell_contour(client: AsyncClient):
     )
     assert response.status_code == 200
     assert "contour" in response.json()
+
+
+@pytest.mark.anyio
+async def test_read_cell_morphology(client: AsyncClient):
+    response = await client.get(
+        "/api/cells/F0C1/test_database.db/morphology", params={"polyfit_degree": 3}
+    )
+    assert response.status_code == 200
