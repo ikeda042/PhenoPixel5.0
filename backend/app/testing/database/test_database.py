@@ -117,3 +117,11 @@ async def test_read_cell_ids(client: AsyncClient):
         {"cell_id": "F7C44"},
     ]
     assert response.json() == response_template
+
+
+@pytest.mark.anyio
+async def test_read_cell_label(client: AsyncClient):
+    response = await client.get("/api/cells/test_database.db/F0C1/label")
+    assert response.status_code == 200
+    response_template = 1
+    assert response.json() == response_template
