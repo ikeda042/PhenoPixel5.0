@@ -1,7 +1,6 @@
 from __future__ import annotations
 import cv2
 import numpy as np
-from numpy.linalg import eig, inv
 from fastapi.responses import StreamingResponse
 import io
 import asyncio
