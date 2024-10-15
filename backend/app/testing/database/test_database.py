@@ -1,6 +1,7 @@
 import pytest
 from httpx import AsyncClient
 import os
+import asyncio
 
 os.chdir(os.path.dirname(os.path.abspath("..")))
 
@@ -117,6 +118,46 @@ async def test_read_cell_ids(client: AsyncClient):
         {"cell_id": "F7C44"},
     ]
     assert response.json() == response_template
+
+
+@pytest.mark.anyio
+async def test_read_cells_with_label_1(client: AsyncClient):
+    cell_ids = [
+        "F0C1",
+        "F0C2",
+        "F0C3",
+        "F0C7",
+        "F0C9",
+        "F0C11",
+        "F0C16",
+        "F0C18",
+        "F0C20",
+        "F0C21",
+        "F0C24",
+        "F0C27",
+        "F1C0",
+        "F1C2",
+        "F1C3",
+        "F1C6",
+        "F1C9",
+        "F1C10",
+        "F1C11",
+        "F1C12",
+        "F1C13",
+        "F1C20",
+    ]
+
+    async def fetch_cell_label(cell_id):
+        response = await client.get(f"/api/cells/test_database.db/{cell_id}/label")
+        assert response.status_code == 200
+        label = response.json()
+        assert label == 1
+        return cell_id, label
+
+    results = await asyncio.gather(*(fetch_cell_label(cell_id) for cell_id in cell_ids))
+
+    for cell_id, label in results:
+        assert label == 1
 
 
 @pytest.mark.anyio
