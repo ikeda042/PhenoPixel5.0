@@ -1078,7 +1078,6 @@ class AsyncChores:
 class CellCrudBase:
     def __init__(self, db_name: str) -> None:
         self.db_name: str = db_name
-
     @staticmethod
     async def parse_image(
         data: bytes,
