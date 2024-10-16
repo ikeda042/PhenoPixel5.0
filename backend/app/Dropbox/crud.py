@@ -42,3 +42,7 @@ class DropboxCrud:
             return [file.name for file in response.entries]
         except Exception as e:
             return []
+
+    async def backup_databases(self, file_names: list[str]):
+        for file_name in file_names:
+            await self.upload_file(f"{file_name}", file_name)
