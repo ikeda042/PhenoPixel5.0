@@ -109,7 +109,7 @@ const HeatmapEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, deg
                 startIcon={<DownloadIcon />}
                 disabled={bulkLoading}
             >
-                {bulkLoading ? <CircularProgress size={24} /> : 'Download CSV (bulk)'}
+                {bulkLoading ? <CircularProgress size={24} /> : 'All path csv(queued)'}
             </Button>
         </Box>
     );
