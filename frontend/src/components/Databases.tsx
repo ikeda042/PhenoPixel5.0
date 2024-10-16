@@ -440,9 +440,11 @@ const Databases: React.FC = () => {
                             {filteredDatabases.map((database, index) => (
                                 <TableRow key={index}>
                                     <TableCell component="th" scope="row">
-                                        <Typography noWrap>
-                                            {database.length > 15 ? `${database.substring(0, 15)}...` : database}
-                                        </Typography>
+                                        <Tooltip title={database} placement="top">
+                                            <Typography noWrap>
+                                                {database.length > 15 ? `${database.substring(0, 15)}...` : database}
+                                            </Typography>
+                                        </Tooltip>
                                     </TableCell>
                                     <TableCell>
                                         <Tooltip title="Copy to clipboard">
