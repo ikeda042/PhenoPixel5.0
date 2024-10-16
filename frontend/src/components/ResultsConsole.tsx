@@ -18,7 +18,7 @@ const ResultsConsole: React.FC = () => {
         const fetchFiles = async () => {
             try {
                 const response = await axios.get<FileItem[]>(`${url_prefix}/results`);
-                setFiles(response.data);
+                setFiles(response.data); // API response is already an array of {name: string}
             } catch (error) {
                 console.error("Failed to fetch files", error);
             }
