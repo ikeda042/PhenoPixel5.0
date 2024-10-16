@@ -3,7 +3,6 @@ import aiohttp
 import aiofiles
 import asyncio
 import dropbox
-from dropbox.files import WriteMode
 from dropbox import Dropbox
 import os
 
