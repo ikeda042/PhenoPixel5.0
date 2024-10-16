@@ -42,6 +42,11 @@ class DropboxCrud:
         except Exception as e:
             return []
 
+    async def connection_check(self) -> bool:
+        if "databases" not in await self.list_files():
+            return False
+        return True
+
     async def backup_databases(self, file_names: list[str]):
         for file_name in file_names:
             await self.upload_file(f"{file_name}", file_name)
