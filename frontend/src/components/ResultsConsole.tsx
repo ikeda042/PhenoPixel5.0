@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Select, MenuItem, Button } from "@mui/material";
+import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Select, MenuItem, Button, Breadcrumbs, Link } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
 
@@ -53,8 +53,13 @@ const ResultsConsole: React.FC = () => {
 
     return (
         <Container>
-            <Box>
-                <Typography variant="h4">Results Console</Typography>
+            <Box mb={3}>
+                <Breadcrumbs aria-label="breadcrumb">
+                    <Link underline="hover" color="inherit" href="/">
+                        Top
+                    </Link>
+                    <Typography color="text.primary">Results console</Typography>
+                </Breadcrumbs>
             </Box>
 
             <Box mt={3} display="flex" justifyContent="space-between">
