@@ -13,6 +13,8 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
     const [backendStatus, setBackendStatus] = useState<string | null>(null);
+    const [dropboxStatus, setDropboxStatus] = useState<boolean | null>(null);
+
 
     useEffect(() => {
         const checkBackend = async () => {
@@ -28,8 +30,23 @@ const TopPage: React.FC = () => {
                 setBackendStatus("not working");
             }
         };
+        const checkDropboxConnection = async () => {
+            try {
+                const response = await fetch(`${settings.url_prefix}/dropbox/connection_check`);
+                const data = await response.json();
+                if (response.status === 200 && data.status) {
+                    setDropboxStatus(true);
+                } else {
+                    setDropboxStatus(false);
+                }
+            } catch (error) {
+                console.error("Error checking Dropbox connection:", error);
+                setDropboxStatus(false);
+            }
+        };
 
         checkBackend();
+        checkDropboxConnection();
     }, []);
 
     const handleNavigate = (path: string) => {
@@ -42,6 +59,11 @@ const TopPage: React.FC = () => {
                 {backendStatus && (
                     <Typography variant="h6" color={backendStatus === "ready" ? "green" : "red"}>
                         Backend {backendStatus}: {settings.url_prefix}
+                    </Typography>
+                )}
+                {dropboxStatus !== null && (
+                    <Typography variant="h6" color={dropboxStatus ? "green" : "red"}>
+                        Dropbox connection {dropboxStatus ? "successful" : "failed"}
                     </Typography>
                 )}
                 <Button
