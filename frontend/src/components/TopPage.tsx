@@ -63,7 +63,7 @@ const TopPage: React.FC = () => {
                 )}
                 {dropboxStatus !== null && (
                     <Typography variant="h6" color={dropboxStatus ? "green" : "red"}>
-                        Dropbox connection {dropboxStatus ? "successful" : "failed"}
+                        Dropbox {dropboxStatus ? "Connected" : "not connected"}
                     </Typography>
                 )}
                 <Button
