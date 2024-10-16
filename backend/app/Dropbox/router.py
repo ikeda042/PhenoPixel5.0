@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from Dropbox.crud import DropboxCrud
+import os
 
 
 router_dropbox = APIRouter(prefix="/dropbox", tags=["dropbox"])
@@ -17,6 +18,9 @@ async def list_files():
 
 
 @router_dropbox.post("/databases/backup")
-async def backup_databases(file_names: list[str]):
+async def backup_databases():
+    file_names = [
+        i for i in os.listdir() if i.endswith(".db") and i != "test_database.db"
+    ]
     await DropboxCrud().backup_databases(file_names)
     return {"message": "Backup completed"}
