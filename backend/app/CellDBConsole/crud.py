@@ -1548,7 +1548,7 @@ class CellCrudBase:
 
         df = pd.DataFrame(combined_paths)
 
-        csv_file_path = f"peak_paths_{db_name}.csv"
+        csv_file_path = f"results/peak_paths_{db_name}.csv"
         df.to_csv(csv_file_path, index=False, header=False)
 
         return csv_file_path
