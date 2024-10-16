@@ -198,17 +198,6 @@ async def get_heatmap_bulk_csv(db_name: str, label: str = "1"):
 
 
 @router_cell.get(
-    "/{db_name}/{label}/save-peak-paths",
-    response_class=StreamingResponse,
-)
-async def save_peak_paths(
-    background_tasks: BackgroundTasks, db_name: str, label: str = "1"
-):
-    await AsyncChores().validate_database_name(db_name)
-    background_tasks.add_task(CellCrudBase(db_name=db_name).save_peak_paths_csv, label)
-
-
-@router_cell.get(
     "/{db_name}/{label}/{cell_id}/paths_plot", response_class=StreamingResponse
 )
 async def get_paths_plot(db_name: str, label: str = 1):
