@@ -232,7 +232,7 @@ const Databases: React.FC = () => {
     };
     const handleBackup = async () => {
         try {
-            const response = await axios.post(`http://localhost:8000/api/dropbox/databases/backup`);
+            const response = await axios.post(`${url_prefix}/dropbox/databases/backup`);
             setDialogMessage("Backup completed successfully!");
             setDialogOpen(true);
         } catch (error) {
