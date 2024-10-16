@@ -1,7 +1,7 @@
 import os
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException, UploadFile, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from CellDBConsole.crud import AsyncChores, CellCrudBase
@@ -195,6 +195,17 @@ async def get_heatmap_csv(db_name: str, label: str, cell_id: str):
 async def get_heatmap_bulk_csv(db_name: str, label: str = "1"):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).get_peak_paths_csv(degree=4, label=label)
+
+
+@router_cell.get(
+    "/{db_name}/{label}/save-peak-paths",
+    response_class=StreamingResponse,
+)
+async def save_peak_paths(
+    background_tasks: BackgroundTasks, db_name: str, label: str = "1"
+):
+    await AsyncChores().validate_database_name(db_name)
+    background_tasks.add_task(CellCrudBase(db_name=db_name).save_peak_paths_csv, label)
 
 
 @router_cell.get(
