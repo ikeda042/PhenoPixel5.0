@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 import dropbox
 import aiohttp
 import aiofiles
@@ -5,6 +6,8 @@ import asyncio
 import dropbox
 from dropbox import Dropbox
 import os
+
+load_dotenv()
 
 
 class DropboxCrud:
