@@ -253,7 +253,7 @@ const ResultsConsole: React.FC = () => {
                     <Link underline="hover" color="inherit" href="/">
                         Top
                     </Link>
-                    <Typography color="text.primary">Database Console</Typography>
+                    <Typography color="text.primary">Results</Typography>
                 </Breadcrumbs>
             </Box>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="space-between" mt={2}>
