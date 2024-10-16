@@ -291,138 +291,14 @@ const ResultsConsole: React.FC = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell>Database Name</TableCell>
-                                <TableCell align="center">Metadata</TableCell>
-                                {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
-                                {displayMode === 'Completed' && <TableCell align="center">Export Database</TableCell>}
-                                <TableCell align="center">
-
-                                    <Box display="flex" justifyContent="center" alignItems="center">
-                                        <Box>
-                                            <Typography>Preview mode</Typography>
-                                        </Box>
-                                        <Box ml={1}>
-                                            <Select
-                                                value={selectedMode}
-                                                onChange={(e) => setSelectedMode(e.target.value)}
-                                                displayEmpty
-                                                inputProps={{ 'aria-label': 'Without label' }}
-                                                sx={{ marginRight: 1, height: '25px' }}
-                                            >
-                                                <MenuItem value="fluo">Fluo</MenuItem>
-                                                <MenuItem value="ph">Ph</MenuItem>
-                                                <MenuItem value="ph_contour">Ph + contour</MenuItem>
-                                                <MenuItem value="fluo_contour">Fluo + contour</MenuItem>
-                                            </Select>
-                                            <Select
-                                                value={selectedLabel}
-                                                onChange={(e) => setSelectedLabel(e.target.value)}
-                                                displayEmpty
-                                                inputProps={{ 'aria-label': 'Without label' }}
-                                                sx={{ marginRight: 1, height: '25px' }}
-                                            >
-                                                <MenuItem value="N/A">N/A</MenuItem>
-                                                <MenuItem value="1">1</MenuItem>
-                                                <MenuItem value="2">2</MenuItem>
-                                                <MenuItem value="3">3</MenuItem>
-                                            </Select>
-                                        </Box>
-                                    </Box>
-                                </TableCell>
+                                <TableCell>Files</TableCell>
                                 <TableCell align="center"></TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {filteredDatabases.map((database, index) => (
                                 <TableRow key={index}>
-                                    <TableCell component="th" scope="row">
-                                        <Tooltip title={database}>
-                                            <Typography noWrap>
-                                                {database.length > 20 ? `${database.substring(0, 20)}...` : database}
-                                            </Typography>
-                                        </Tooltip>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Box display="flex" alignItems="center" justifyContent="center" height="100%">
-                                            <TextField
-                                                value={newMetadata[database] || ""}
-                                                onChange={(e) => setNewMetadata(prevMetadata => ({
-                                                    ...prevMetadata,
-                                                    [database]: e.target.value
-                                                }))}
-                                                onBlur={() => handleMetadataChange(database, newMetadata[database] || "")}
-                                                fullWidth
-                                                placeholder="enter details"
-                                                InputProps={{
-                                                    sx: {
-                                                        height: '40px',
-                                                        padding: '0',
-                                                    },
-                                                    autoComplete: 'off'
-                                                }}
-                                            />
-                                        </Box>
-                                    </TableCell>
 
-                                    {displayMode === 'User uploaded' && (
-                                        <TableCell align="center">
-                                            <Button
-                                                variant="contained"
-                                                sx={{
-                                                    backgroundColor: markableDatabases[database] ? 'green' : 'grey',
-                                                    color: 'white',
-                                                    '&:hover': {
-                                                        backgroundColor: markableDatabases[database] ? 'darkgreen' : 'grey'
-                                                    }
-                                                }}
-                                                onClick={() => handleOpenConfirmDialog(database)}
-                                                startIcon={<TaskIcon />}
-                                                disabled={!markableDatabases[database]}
-                                            >
-                                                Mark as Complete
-                                            </Button>
-                                        </TableCell>
-                                    )}
-                                    {displayMode === 'Completed' && (
-                                        <TableCell align="center">
-                                            <Button
-                                                variant="contained"
-                                                sx={{
-                                                    backgroundColor: 'black',
-                                                    color: 'white',
-                                                    '&:hover': {
-                                                        backgroundColor: 'gray'
-                                                    }
-                                                }}
-                                                onClick={() => handleDownload(database)}
-                                                startIcon={<DownloadIcon />}
-                                            >
-                                                Export
-                                            </Button>
-                                        </TableCell>
-                                    )}
-                                    <TableCell align="center">
-                                        <Button
-                                            variant="contained"
-                                            sx={{
-                                                backgroundColor: 'black',
-                                                color: 'white',
-                                                textTransform: 'none',
-                                                '&:hover': {
-                                                    backgroundColor: 'gray'
-                                                }
-                                            }}
-                                            onClick={() => handlePreview(database)}
-                                        >
-                                            Export Preview
-                                        </Button>
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <IconButton onClick={() => handleNavigate(database)}>
-                                            <Typography>Access database </Typography>
-                                            <NavigateNextIcon />
-                                        </IconButton>
-                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
