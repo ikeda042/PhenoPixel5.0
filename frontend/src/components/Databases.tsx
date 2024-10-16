@@ -231,6 +231,17 @@ const Databases: React.FC = () => {
             console.error("Failed to update metadata", error);
         }
     };
+    const handleBackup = async () => {
+        try {
+            const response = await axios.get(`http://localhost:8000/api/dropbox/databases/backup`);
+            setDialogMessage("Backup completed successfully!");
+            setDialogOpen(true);
+        } catch (error) {
+            setDialogMessage("Failed to backup the database.");
+            setDialogOpen(true);
+            console.error("Backup failed", error);
+        }
+    };
 
     const filteredDatabases = databases.filter(database => {
         const searchMatch = database.toLowerCase().includes(searchQuery.toLowerCase());
@@ -311,7 +322,7 @@ const Databases: React.FC = () => {
                             </Button>
                         </label>
                     </Grid>
-                    <Grid item xs={3}>
+                    {displayMode !== 'Completed' && (<Grid item xs={3}>
                         <Button
                             onClick={handleUpload}
                             variant="contained"
@@ -329,7 +340,28 @@ const Databases: React.FC = () => {
                         >
                             Upload
                         </Button>
-                    </Grid>
+                    </Grid>)}
+
+                    {displayMode === 'Completed' && (
+                        <Grid item xs={3}>
+                            <Button
+                                onClick={handleBackup}
+                                variant="contained"
+                                sx={{
+                                    backgroundColor: 'black',
+                                    color: 'white',
+                                    width: '100%',
+                                    height: '56px',
+                                    '&:hover': {
+                                        backgroundColor: 'grey'
+                                    }
+                                }}
+                                startIcon={<DownloadIcon />}
+                            >
+                                Backup
+                            </Button>
+                        </Grid>
+                    )}
                 </Grid>
             </Box>
 
