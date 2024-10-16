@@ -20,7 +20,9 @@ async def list_files():
 @router_dropbox.post("/databases/backup")
 async def backup_databases():
     file_names = [
-        i for i in os.listdir() if i.endswith(".db") and i != "test_database.db"
+        i
+        for i in os.listdir("databases")
+        if i.endswith(".db") and i != "test_database.db"
     ]
     # await DropboxCrud().backup_databases(file_names)
     return {"message": file_names}
