@@ -10,7 +10,7 @@ import { useLocation } from "react-router-dom";
 import TaskIcon from '@mui/icons-material/Task';
 import DownloadIcon from '@mui/icons-material/Download';
 import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
-
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 interface ListDBResponse {
     databases: string[];
 }
@@ -121,6 +121,12 @@ const Databases: React.FC = () => {
                 console.error("Failed to upload database", error);
             }
         }
+    };
+
+    const handleCopyToClipboard = (dbName: string) => {
+        navigator.clipboard.writeText(dbName).then(() => {
+            alert(`${dbName} copied to clipboard!`);
+        });
     };
 
     const handleCloseDialog = () => {
@@ -372,6 +378,7 @@ const Databases: React.FC = () => {
                         <TableHead>
                             <TableRow>
                                 <TableCell>Database Name</TableCell>
+                                <TableCell>Copy</TableCell>
                                 <TableCell align="center">Metadata</TableCell>
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
                                 {displayMode === 'Completed' && <TableCell align="center">Export Database</TableCell>}
@@ -416,10 +423,15 @@ const Databases: React.FC = () => {
                             {filteredDatabases.map((database, index) => (
                                 <TableRow key={index}>
                                     <TableCell component="th" scope="row">
-                                        <Tooltip title={database}>
-                                            <Typography noWrap>
-                                                {database.length > 20 ? `${database.substring(0, 20)}...` : database}
-                                            </Typography>
+                                        <Typography noWrap>
+                                            {database.length > 15 ? `${database.substring(0, 15)}...` : database}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Tooltip title="Copy to clipboard">
+                                            <IconButton onClick={() => handleCopyToClipboard(database)}>
+                                                <ContentCopyIcon />
+                                            </IconButton>
                                         </Tooltip>
                                     </TableCell>
                                     <TableCell>
