@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import TaskIcon from '@mui/icons-material/Task';
 import DownloadIcon from '@mui/icons-material/Download';
+import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
 
 interface ListDBResponse {
     databases: string[];
@@ -59,8 +60,6 @@ const Databases: React.FC = () => {
                 }, {} as { [key: string]: boolean });
 
                 setMarkableDatabases(markableStatusMap);
-
-                // Fetch metadata for each database
                 const metadataResponses = await Promise.all(
                     response.data.databases.map(async (db) => {
                         const metadataResponse = await axios.get(`${url_prefix}/databases/${db}/metadata`);
@@ -348,17 +347,18 @@ const Databases: React.FC = () => {
                                 onClick={handleBackup}
                                 variant="contained"
                                 sx={{
-                                    backgroundColor: 'black',
+                                    backgroundColor: '#0061FE',
                                     color: 'white',
                                     width: '100%',
                                     height: '56px',
+                                    textTransform: 'none',
                                     '&:hover': {
                                         backgroundColor: 'grey'
                                     }
                                 }}
-                                startIcon={<DownloadIcon />}
+                                startIcon={<DriveFileMoveIcon />}
                             >
-                                Backup
+                                Sync to Dropbox
                             </Button>
                         </Grid>
                     )}
