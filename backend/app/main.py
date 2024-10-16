@@ -11,6 +11,7 @@ from Dev.router import router_dev
 from Dropbox.router import router_dropbox
 from GraphEngine.router import router_graphengine
 from TimeLapseEngine.router import router_tl_engine
+from results.router import router_results
 
 load_dotenv()
 
@@ -56,6 +57,7 @@ app.include_router(router_graphengine, prefix=api_prefix)
 app.include_router(router_tl_engine, prefix=api_prefix)
 app.include_router(router_cell_ai, prefix=api_prefix)
 app.include_router(router_dropbox, prefix=api_prefix)
+app.include_router(router_results, prefix=api_prefix)
 
 if __name__ == "__main__":
     import uvicorn
