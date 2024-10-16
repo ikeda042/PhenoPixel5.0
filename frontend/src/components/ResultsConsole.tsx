@@ -92,7 +92,7 @@ const ResultsConsole: React.FC = () => {
                         <TableHead>
                             <TableRow>
                                 <TableCell align="center">Result file</TableCell>
-                                <TableCell align="center">Download</TableCell>
+                                <TableCell align="center"></TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
