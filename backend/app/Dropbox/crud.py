@@ -19,7 +19,6 @@ class DropboxCrud:
             "token",
         ),
     ):
-        print(token)
         self.dbx: Dropbox = dropbox.Dropbox(token)
 
     async def upload_file(self, file_path: str, file_name: str) -> str:
