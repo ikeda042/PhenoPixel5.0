@@ -1,5 +1,6 @@
 import os
 import asyncio
+from results.schemas import FileName
 
 
 class ResultsCRUD:
@@ -16,7 +17,7 @@ class ResultsCRUD:
                 result_files.append(entry.name)
 
         return [
-            file
+            FileName(name=file)
             for file in result_files
             if file.split(".")[-1] not in ["py", "pyc", "gitignore"]
         ]
