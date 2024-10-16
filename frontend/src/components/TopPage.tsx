@@ -8,6 +8,7 @@ import { settings } from "../settings";
 import GitHubIcon from '@mui/icons-material/GitHub';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DisplaySettingsIcon from '@mui/icons-material/DisplaySettings';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
 
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
@@ -60,6 +61,24 @@ const TopPage: React.FC = () => {
                     }}
                 >
                     Data Analyses
+                </Button>
+                <Button
+                    variant="contained"
+                    component="span"
+                    startIcon={<Inventory2Icon />}
+                    onClick={() => handleNavigate('/results')}
+                    sx={{
+                        backgroundColor: 'white',
+                        color: 'black',
+                        width: '100%',
+                        height: '56px',
+                        textTransform: 'none',
+                        '&:hover': {
+                            backgroundColor: 'lightgrey'
+                        }
+                    }}
+                >
+                    Results
                 </Button>
                 <Button
                     variant="contained"
