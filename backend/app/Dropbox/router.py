@@ -26,3 +26,8 @@ async def backup_databases():
     ]
     await DropboxCrud().backup_databases(file_names)
     return {"message": file_names}
+
+
+@router_dropbox.get("/connection_check")
+async def connection_check():
+    return {"status": await DropboxCrud().connection_check()}
