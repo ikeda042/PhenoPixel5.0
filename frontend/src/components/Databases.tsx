@@ -400,7 +400,6 @@ const Databases: React.FC = () => {
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
                                 {displayMode === 'Completed' && <TableCell align="center">Export</TableCell>}
                                 <TableCell align="center">
-
                                     <Box display="flex" justifyContent="center" alignItems="center">
                                         <Box>
                                             <Typography>Mode</Typography>
