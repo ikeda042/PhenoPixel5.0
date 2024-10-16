@@ -1,4 +1,5 @@
-import aiofiles
+import os
+import asyncio
 
 
 class ResultsCRUD:
@@ -7,8 +8,15 @@ class ResultsCRUD:
         result_files = []
         results_dir = "results/"
 
-        async for entry in aiofiles.os.scandir(results_dir):
+        loop = asyncio.get_event_loop()
+        entries = await loop.run_in_executor(None, os.scandir, results_dir)
+
+        for entry in entries:
             if entry.is_file():
                 result_files.append(entry.name)
 
-        return result_files
+        return [
+            file
+            for file in result_files
+            if file.split(".")[-1] not in ["py", "pyc", "gitignore"]
+        ]
