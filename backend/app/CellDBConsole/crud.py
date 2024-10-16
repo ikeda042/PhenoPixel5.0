@@ -1527,7 +1527,6 @@ class CellCrudBase:
         buf = io.BytesIO()
         df.to_csv(buf, index=False, header=False)
         buf.seek(0)
-
         async with aiofiles.open(f"results/peak_paths_{self.db_name}.csv", "w") as f:
             await f.write(buf.getvalue())
         return StreamingResponse(buf, media_type="text/csv")
