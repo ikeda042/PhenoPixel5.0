@@ -260,7 +260,7 @@ const ResultsConsole: React.FC = () => {
                 <Grid container spacing={2} alignItems="center">
                     <Grid item xs={8}>
                         <TextField
-                            label="Search Database"
+                            label="Search File"
                             variant="outlined"
                             fullWidth
                             value={searchQuery}
@@ -268,7 +268,7 @@ const ResultsConsole: React.FC = () => {
                             sx={{ height: '56px' }}
                         />
                     </Grid>
-                    <Grid item xs={2}>
+                    <Grid item xs={4}>
                         <Select
                             value={displayMode}
                             onChange={handleDisplayModeChange}
