@@ -17,6 +17,7 @@ load_dotenv()
 
 api_title = os.getenv("API_TITLE", "FastAPI")
 api_prefix = os.getenv("API_PREFIX", "/api")
+test_env = os.getenv("TEST_ENV", "")
 app = FastAPI(
     title=api_title,
     docs_url=f"{api_prefix}/docs",
@@ -47,6 +48,15 @@ async def root():
 @app.get(f"{api_prefix}/healthcheck")
 async def healthcheck():
     return {"status": "ok"}
+
+
+@app.get(f"{api_prefix}/env")
+async def get_env():
+    return {
+        "API_TITLE": api_title,
+        "API_PREFIX": api_prefix,
+        "TEST_ENV": test_env,
+    }
 
 
 app.include_router(router_cell, prefix=api_prefix)
