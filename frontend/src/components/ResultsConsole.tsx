@@ -305,55 +305,6 @@ const ResultsConsole: React.FC = () => {
                     </Table>
                 </TableContainer>
             </Box>
-
-            <Dialog open={dialogOpen} onClose={handleCloseDialog}>
-                <DialogTitle>{"File Upload Status"}</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        {dialogMessage}
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseDialog} color="primary">
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            <Dialog open={confirmDialogOpen} onClose={handleCloseConfirmDialog}>
-                <DialogTitle>{"Confirm Mark as Complete"}</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Are you sure you want to mark this database as complete?
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseConfirmDialog} color="primary">
-                        Cancel
-                    </Button>
-                    <Button onClick={handleMarkAsComplete} color="primary">
-                        Confirm
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            <Dialog open={previewDialogOpen} onClose={handleClosePreviewDialog}>
-                <DialogTitle>{"Preview Image"}</DialogTitle>
-                <DialogContent>
-                    {loadingPreview ? (
-                        <Box display="flex" justifyContent="center">
-                            <CircularProgress />
-                        </Box>
-                    ) : (
-                        previewImage && <img src={previewImage} alt="Preview" style={{ width: '100%' }} />
-                    )}
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClosePreviewDialog} color="primary">
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </Container>
     );
 };
