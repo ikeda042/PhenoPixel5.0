@@ -56,6 +56,7 @@ async def get_env():
         "API_TITLE": api_title,
         "API_PREFIX": api_prefix,
         "TEST_ENV": test_env,
+        "DROPBOX_ACCESS_TOKEN": os.getenv("DROPBOX_ACCESS_TOKEN", ""),
     }
 
 
