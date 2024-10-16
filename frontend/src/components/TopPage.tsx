@@ -55,7 +55,7 @@ const TopPage: React.FC = () => {
 
     return (
         <Container>
-            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" gap={2} height="140vh">
+            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" gap={2} height="120vh">
                 {backendStatus && (
                     <Typography variant="h6" color={backendStatus === "ready" ? "green" : "red"}>
                         Backend {backendStatus}: {settings.url_prefix}
