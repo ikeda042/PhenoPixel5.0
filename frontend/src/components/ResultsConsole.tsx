@@ -282,54 +282,7 @@ const ResultsConsole: React.FC = () => {
                             <MenuItem value="Completed">Completed</MenuItem>
                         </Select>
                     </Grid>
-                    <Grid item xs={3}>
-                        <input
-                            accept=".db"
-                            style={{ display: 'none' }}
-                            id="raised-button-file"
-                            multiple
-                            type="file"
-                            onChange={handleFileChange}
-                        />
-                        <label htmlFor="raised-button-file">
-                            <Button
-                                variant="contained"
-                                component="span"
-                                startIcon={<DatabaseIcon />}
-                                sx={{
-                                    backgroundColor: 'white',
-                                    color: 'black',
-                                    width: '100%',
-                                    height: '56px',
-                                    textTransform: 'none',
-                                    '&:hover': {
-                                        backgroundColor: 'lightgrey'
-                                    }
-                                }}
-                            >
-                                {selectedFile ? selectedFile.name : "Select Database"}
-                            </Button>
-                        </label>
-                    </Grid>
-                    <Grid item xs={3}>
-                        <Button
-                            onClick={handleUpload}
-                            variant="contained"
-                            sx={{
-                                backgroundColor: 'black',
-                                color: 'white',
-                                width: '100%',
-                                height: '56px',
-                                '&:hover': {
-                                    backgroundColor: 'grey'
-                                }
-                            }}
-                            startIcon={<FileUploadIcon />}
-                            disabled={!selectedFile}
-                        >
-                            Upload
-                        </Button>
-                    </Grid>
+
                 </Grid>
             </Box>
 
