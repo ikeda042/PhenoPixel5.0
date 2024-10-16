@@ -1527,31 +1527,10 @@ class CellCrudBase:
         buf = io.BytesIO()
         df.to_csv(buf, index=False, header=False)
         buf.seek(0)
+        # asynchronously save the csv file
+        async with aiofiles.open(f"results/peak_paths_{self.db_name}.csv", "w") as f:
+            await f.write(buf.getvalue())
         return StreamingResponse(buf, media_type="text/csv")
-
-    async def save_peak_paths_csv(
-        self, db_name: str, degree: int = 4, label: str = "1"
-    ):
-        cell_ids = await self.read_cell_ids(label="1")
-        cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
-
-        combined_paths = []
-
-        for cell in cells:
-            path = await AsyncChores.find_path_return_list(
-                cell.img_fluo1, cell.contour, degree
-            )
-            u1_values = [p[0] for p in path]
-            G_values = [p[1] for p in path]
-            combined_paths.append(u1_values)
-            combined_paths.append(G_values)
-
-        df = pd.DataFrame(combined_paths)
-
-        csv_file_path = f"results/peak_paths_{db_name}.csv"
-        df.to_csv(csv_file_path, index=False, header=False)
-
-        return csv_file_path
 
     async def plot_peak_paths(
         self, degree: int = 3, label: str = 1
