@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Select, MenuItem, Link } from "@mui/material";
+import { Box, Typography, Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Select, MenuItem, Button } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
 
@@ -18,7 +18,7 @@ const ResultsConsole: React.FC = () => {
         const fetchFiles = async () => {
             try {
                 const response = await axios.get<FileItem[]>(`${url_prefix}/results`);
-                setFiles(response.data); // API response is already an array of {name: string}
+                setFiles(response.data);
             } catch (error) {
                 console.error("Failed to fetch files", error);
             }
@@ -81,22 +81,27 @@ const ResultsConsole: React.FC = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell>File Name</TableCell>
+                                <TableCell align="center" >Result file</TableCell>
                                 <TableCell align="center">Download</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {filteredFiles.map((file, index) => (
                                 <TableRow key={index}>
-                                    <TableCell>
-                                        <Link component="button" variant="body2" onClick={() => handleDownload(file.name)}>
-                                            {file.name}
-                                        </Link>
+                                    <TableCell align="center">
+                                        {file.name}
                                     </TableCell>
                                     <TableCell align="center">
-                                        <Link component="button" onClick={() => handleDownload(file.name)}>
+                                        <Button variant="contained" onClick={() => handleDownload(file.name)} sx={
+                                            {
+                                                backgroundColor: '#4CAF50',
+                                                '&:hover': {
+                                                    backgroundColor: '#388e3c',
+                                                }
+                                            }
+                                        }>
                                             Download
-                                        </Link>
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
