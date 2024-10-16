@@ -124,9 +124,26 @@ const Databases: React.FC = () => {
     };
 
     const handleCopyToClipboard = (dbName: string) => {
-        navigator.clipboard.writeText(dbName).then(() => {
-            alert(`${dbName} copied to clipboard!`);
-        });
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(dbName).then(() => {
+                alert(`${dbName} copied to clipboard!`);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        } else {
+            const textArea = document.createElement('textarea');
+            textArea.value = dbName;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert(`${dbName} copied to clipboard!`);
+            } catch (err) {
+                console.error('Failed to copy text using execCommand: ', err);
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
     };
 
     const handleCloseDialog = () => {
