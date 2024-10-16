@@ -398,12 +398,12 @@ const Databases: React.FC = () => {
                                 <TableCell>Copy</TableCell>
                                 <TableCell align="center">Metadata</TableCell>
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
-                                {displayMode === 'Completed' && <TableCell align="center">Export Database</TableCell>}
+                                {displayMode === 'Completed' && <TableCell align="center">Export</TableCell>}
                                 <TableCell align="center">
 
                                     <Box display="flex" justifyContent="center" alignItems="center">
                                         <Box>
-                                            <Typography>Preview mode</Typography>
+                                            <Typography>Mode</Typography>
                                         </Box>
                                         <Box ml={1}>
                                             <Select
