@@ -48,7 +48,7 @@ const ResultsConsole: React.FC = () => {
     const filteredFiles = files
         .filter(file =>
             file.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-            (fileExtension ? file.name.endsWith(fileExtension) : true) // Filter by file extension
+            (fileExtension ? file.name.endsWith(fileExtension) : true)
         );
 
     return (
