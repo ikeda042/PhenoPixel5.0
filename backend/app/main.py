@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from CellAI.router import router_cell_ai
@@ -57,6 +57,14 @@ async def get_env():
         "API_PREFIX": api_prefix,
         "TEST_ENV": test_env,
     }
+
+
+@app.post(f"{api_prefix}/replace_env")
+async def replace_env(file: UploadFile):
+    contents = await file.read()
+    with open(".env", "wb") as f:
+        f.write(contents)
+    return {"status": "ok"}
 
 
 app.include_router(router_cell, prefix=api_prefix)
