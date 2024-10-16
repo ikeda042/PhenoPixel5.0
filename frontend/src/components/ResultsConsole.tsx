@@ -260,7 +260,7 @@ const ResultsConsole: React.FC = () => {
                 <Grid container spacing={2} alignItems="center">
                     <Grid item xs={8}>
                         <TextField
-                            label="Search File"
+                            label="Search Files"
                             variant="outlined"
                             fullWidth
                             value={searchQuery}
