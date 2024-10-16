@@ -258,7 +258,7 @@ const ResultsConsole: React.FC = () => {
             </Box>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="space-between" mt={2}>
                 <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={4}>
+                    <Grid item xs={8}>
                         <TextField
                             label="Search Database"
                             variant="outlined"
