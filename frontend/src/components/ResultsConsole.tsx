@@ -12,7 +12,7 @@ const url_prefix = settings.url_prefix;
 const ResultsConsole: React.FC = () => {
     const [files, setFiles] = useState<FileItem[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
-    const [displayMode, setDisplayMode] = useState(() => localStorage.getItem('displayMode') || 'User uploaded');
+    const [fileExtension, setFileExtension] = useState("");
 
     useEffect(() => {
         const fetchFiles = async () => {
@@ -45,9 +45,11 @@ const ResultsConsole: React.FC = () => {
         }
     };
 
-    const filteredFiles = files.filter(file =>
-        file.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredFiles = files
+        .filter(file =>
+            file.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+            (fileExtension ? file.name.endsWith(fileExtension) : true) // Filter by file extension
+        );
 
     return (
         <Container>
@@ -64,15 +66,18 @@ const ResultsConsole: React.FC = () => {
                     sx={{ width: '70%' }}
                 />
                 <Select
-                    value={displayMode}
-                    onChange={(e) => setDisplayMode(e.target.value)}
+                    value={fileExtension}
+                    onChange={(e) => setFileExtension(e.target.value as string)}
                     displayEmpty
                     inputProps={{ 'aria-label': 'Without label' }}
                     sx={{ width: '28%' }}
                 >
-                    <MenuItem value="Validated">Validated</MenuItem>
-                    <MenuItem value="User uploaded">Uploaded</MenuItem>
-                    <MenuItem value="Completed">Completed</MenuItem>
+                    <MenuItem value="">All files</MenuItem>
+                    <MenuItem value=".png">.png</MenuItem>
+                    <MenuItem value=".xlsx">.xlsx</MenuItem>
+                    <MenuItem value=".csv">.csv</MenuItem>
+                    <MenuItem value=".txt">.txt</MenuItem>
+                    <MenuItem value=".gif">.gif</MenuItem>
                 </Select>
             </Box>
 
@@ -81,7 +86,7 @@ const ResultsConsole: React.FC = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell align="center" >Result file</TableCell>
+                                <TableCell align="center">Result file</TableCell>
                                 <TableCell align="center">Download</TableCell>
                             </TableRow>
                         </TableHead>
