@@ -1527,8 +1527,12 @@ class CellCrudBase:
         buf = io.BytesIO()
         df.to_csv(buf, index=False, header=False)
         buf.seek(0)
+        csv_content = buf.getvalue().decode("utf-8")
+
         async with aiofiles.open(f"results/peak_paths_{self.db_name}.csv", "w") as f:
-            await f.write(buf.getvalue())
+            await f.write(csv_content)
+
+        buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
 
     async def plot_peak_paths(
