@@ -2,7 +2,6 @@ from dotenv import load_dotenv
 import aiohttp
 import aiofiles
 import asyncio
-import dropbox
 from dropbox import Dropbox
 import os
 
