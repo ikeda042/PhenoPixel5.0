@@ -6,34 +6,31 @@ from dropbox import Dropbox
 import os
 
 load_dotenv()
-APP_KEY = os.getenv("DROPBOX_APP_KEY")
-APP_SECRET = os.getenv("DROPBOX_APP_SECRET")
-ACCESS_CODE = os.getenv("DROPBOX_ACCESS_CODE")
+REFRESH_TOKEN = os.getenv("DROPBOX_REFRESH_TOKEN")
 
 
 class DropboxCrud:
-    app_key: str = APP_KEY
-    app_secret: str = APP_SECRET
-    access_code: str = ACCESS_CODE
+    refresh_token: str = REFRESH_TOKEN
 
     @classmethod
     async def get_access_token(cls) -> str:
         auth_url = "https://api.dropboxapi.com/oauth2/token"
         data = {
-            "grant_type": "authorization_code",
-            "code": cls.access_code,
+            "grant_type": "refresh_token",
+            "refresh_token": cls.refresh_token,
+            "client_id": cls.client_id,
+            "client_secret": cls.client_secret,
         }
 
-        auth = aiohttp.BasicAuth(login=cls.app_key, password=cls.app_secret)
-
         async with aiohttp.ClientSession() as session:
-            async with session.post(auth_url, data=data, auth=auth) as response:
+            async with session.post(auth_url, data=data) as response:
+                response_data = await response.json()
                 if response.status == 200:
-                    response_data = await response.json()
-                    print(response_data)
                     return response_data["access_token"]
                 else:
-                    raise Exception("Failed to get access token")
+                    raise Exception(
+                        f"Failed to refresh access token: {response.status}, {response_data}"
+                    )
 
     async def upload_file(self, file_path: str, file_name: str) -> str:
         async with aiofiles.open(file_path, mode="rb") as f:
