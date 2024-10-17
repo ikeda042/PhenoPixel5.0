@@ -30,6 +30,7 @@ class DropboxCrud:
             async with session.post(auth_url, data=data, auth=auth) as response:
                 if response.status == 200:
                     response_data = await response.json()
+                    print(response_data)
                     return response_data["access_token"]
                 else:
                     raise Exception("Failed to get access token")
