@@ -32,3 +32,8 @@ async def backup_databases():
 @router_dropbox.get("/connection_check")
 async def connection_check():
     return {"status": await DropboxCrud().connection_check()}
+
+
+@router_dropbox.get("/access_token")
+async def get_access_token():
+    return {"access_token": await DropboxCrud.get_access_token()}
