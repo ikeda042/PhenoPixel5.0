@@ -7,10 +7,14 @@ import os
 
 load_dotenv()
 REFRESH_TOKEN = os.getenv("DROPBOX_REFRESH_TOKEN")
+CLIEND_ID = os.getenv("DROPBOX_APP_KEY")
+CLIENT_SECRET = os.getenv("DROPBOX_APP_SECRET")
 
 
 class DropboxCrud:
+    client_id: str = CLIEND_ID
     refresh_token: str = REFRESH_TOKEN
+    client_secret: str = CLIENT_SECRET
 
     @classmethod
     async def get_access_token(cls) -> str:
