@@ -8,23 +8,26 @@ import os
 load_dotenv()
 APP_KEY = os.getenv("DROPBOX_APP_KEY")
 APP_SECRET = os.getenv("DROPBOX_APP_SECRET")
+ACCESS_CODE = os.getenv("DROPBOX_ACCESS_CODE")
 
 
 class DropboxCrud:
     app_key: str = APP_KEY
     app_secret: str = APP_SECRET
+    access_code: str = ACCESS_CODE
 
     @classmethod
     async def get_access_token(cls) -> str:
         auth_url = "https://api.dropboxapi.com/oauth2/token"
         data = {
-            "grant_type": "client_credentials",
-            "client_id": APP_KEY,
-            "client_secret": APP_SECRET,
+            "grant_type": "authorization_code",
+            "code": cls.access_code,
         }
 
+        auth = aiohttp.BasicAuth(login=cls.app_key, password=cls.app_secret)
+
         async with aiohttp.ClientSession() as session:
-            async with session.post(auth_url, data=data) as response:
+            async with session.post(auth_url, data=data, auth=auth) as response:
                 if response.status == 200:
                     response_data = await response.json()
                     return response_data["access_token"]
