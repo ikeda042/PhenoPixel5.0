@@ -1652,10 +1652,14 @@ class CellCrudBase:
             if os.path.exists(tmp_folder):
                 shutil.rmtree(tmp_folder)
 
-    async def get_cloud_points(self, cell_id: str, angle: float = 270) -> io.BytesIO:
+    async def get_cloud_points(
+        self, cell_id: str, angle: float = 270, mode: Literal["fluo", "ph"] = "fluo"
+    ) -> io.BytesIO:
         cell = await self.read_cell(cell_id)
-
-        image = np.frombuffer(cell.img_fluo1, dtype=np.uint8)
+        if mode == "fluo":
+            image = np.frombuffer(cell.img_fluo1, dtype=np.uint8)
+        elif mode == "ph":
+            image = np.frombuffer(cell.img_ph, dtype=np.uint8)
         image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
 
         height, width = image.shape
@@ -1665,7 +1669,10 @@ class CellCrudBase:
         # 画像からポイントクラウドを生成
         for y in range(height):
             for x in range(width):
-                z = image[y, x]
+                if mode == "fluo":
+                    z = image[y, x]
+                elif mode == "ph":
+                    z = 255 - image[y, x]
                 if z > 15:  # 輝度値が15以上の点のみを使用
                     point_cloud.append([x, y, z])
 
