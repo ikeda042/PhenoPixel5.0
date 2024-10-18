@@ -1,5 +1,6 @@
 import os
 
+import aiohttp
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,6 +58,22 @@ async def get_env():
         "API_PREFIX": api_prefix,
         "TEST_ENV": test_env,
     }
+
+
+async def check_internet_connection():
+    url = "https://www.google.com"
+    timeout = aiohttp.ClientTimeout(total=5)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        try:
+            async with session.get(url):
+                return True
+        except aiohttp.ClientError:
+            return False
+
+
+@app.get(f"{api_prefix}/internet-connection")
+async def internet_connection():
+    return {"status": await check_internet_connection()}
 
 
 @app.post(f"{api_prefix}/replace_env")
