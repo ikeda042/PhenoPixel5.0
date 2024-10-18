@@ -92,10 +92,16 @@ async def periodic_task(interval: int):
         await asyncio.sleep(interval)
 
 
-@app.lifespan
-async def lifespan(app: FastAPI):
+async def periodic_task(interval: int):
+    while True:
+        connection_status = await check_internet_connection()
+        print(f"Internet connection status: {connection_status}")
+        await asyncio.sleep(interval)
+
+
+@app.on_event("startup")
+async def startup_event():
     asyncio.create_task(periodic_task(60))
-    yield
 
 
 app.include_router(router_cell, prefix=api_prefix)
