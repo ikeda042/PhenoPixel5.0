@@ -1651,3 +1651,39 @@ class CellCrudBase:
         finally:
             if os.path.exists(tmp_folder):
                 shutil.rmtree(tmp_folder)
+
+    async def get_cloud_points(self, cell_id: str) -> list[list[float]]:
+        cell = await self.read_cell(cell_id)
+        image = cv2.imdecode(np.frombuffer(cell.img_fluo1, np.uint8), cv2.IMREAD_COLOR)
+        height, width = image.shape
+
+        point_cloud = []
+
+        for y in range(height):
+            for x in range(width):
+                z = image[y, x]
+                if z > 15:
+                    point_cloud.append([x, y, z])
+
+        point_cloud = np.array(point_cloud)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection="3d")
+        ax.scatter(
+            point_cloud[:, 0],
+            point_cloud[:, 1],
+            point_cloud[:, 2],
+            cmap="viridis",
+            marker="o",
+            s=1,
+        )
+
+        ax.set_xlabel("X Label")
+        ax.set_ylabel("Y Label")
+        ax.set_zlabel("Z Label")
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        plt.close(fig)
+        return buf
