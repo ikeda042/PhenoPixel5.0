@@ -277,3 +277,9 @@ async def update_label_experiment(db_name: str, request: MetadataUpdateRequest):
     return await CellCrudBase(db_name=db_name).update_all_cells_metadata(
         request.metadata
     )
+
+
+@router_cell.get("/{db_name}/{cell_id}/3d")
+async def get_3d_plot(db_name: str, cell_id: str):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).get_cloud_points(cell_id=cell_id)
