@@ -15,6 +15,7 @@ const TopPage: React.FC = () => {
     const navigate = useNavigate();
     const [backendStatus, setBackendStatus] = useState<string | null>(null);
     const [dropboxStatus, setDropboxStatus] = useState<boolean | null>(null);
+    const [internetStatus, setInternetStatus] = useState<boolean | null>(null); // New state for internet status
 
     useEffect(() => {
         const checkBackend = async () => {
@@ -30,6 +31,7 @@ const TopPage: React.FC = () => {
                 setBackendStatus("not working");
             }
         };
+
         const checkDropboxConnection = async () => {
             try {
                 const response = await fetch(`${settings.url_prefix}/dropbox/connection_check`);
@@ -45,8 +47,24 @@ const TopPage: React.FC = () => {
             }
         };
 
+        const checkInternetConnection = async () => { // New function to check internet status
+            try {
+                const response = await fetch(`${settings.url_prefix}/internet-connection`);
+                const data = await response.json();
+                if (response.status === 200 && data.status) {
+                    setInternetStatus(true);
+                } else {
+                    setInternetStatus(false);
+                }
+            } catch (error) {
+                console.error("Error checking internet connection:", error);
+                setInternetStatus(false);
+            }
+        };
+
         checkBackend();
         checkDropboxConnection();
+        checkInternetConnection(); // Call the new function
     }, []);
 
     const handleNavigate = (path: string) => {
@@ -60,7 +78,6 @@ const TopPage: React.FC = () => {
             path: '/dbconsole',
             description: "Label cells / manage databases."
         },
-
         {
             title: "Cell Extraction",
             icon: <ScienceIcon />,
@@ -110,6 +127,9 @@ const TopPage: React.FC = () => {
                     </Typography>
                     <Typography variant="body2" color={dropboxStatus !== null && dropboxStatus ? "green" : "red"}>
                         Dropbox: {dropboxStatus !== null ? (dropboxStatus ? "Connected" : "Not connected") : "unknown"}
+                    </Typography>
+                    <Typography variant="body2" color={internetStatus !== null && internetStatus ? "green" : "red"}>
+                        Internet: {internetStatus !== null ? (internetStatus ? "Connected" : "Not connected") : "unknown"}
                     </Typography>
                 </>
             ),
