@@ -1694,13 +1694,12 @@ class CellCrudBase:
         # 視点を調整し、アングルを動的に回転させる
         ax.view_init(elev=30, azim=angle)
 
-        # 余白を減らして描画領域を広くする
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
         buf = io.BytesIO()
         plt.savefig(
             buf, format="png", dpi=200, bbox_inches="tight"
-        )  # bbox_inches="tight"で余白をさらに削減
+        ) 
         buf.seek(0)
         plt.close(fig)
 
