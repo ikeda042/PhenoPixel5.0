@@ -1,0 +1,76 @@
+import asyncio
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.chrome.options import Options
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+class HINETLogin:
+    def __init__(self) -> None:
+        self.driver = None
+        self.email = os.getenv("EMAIL", None)
+        self.password = os.getenv("PASSWORD", None)
+        self.hinet_url = os.getenv("HINET_URL", None)
+
+    async def start_driver(self) -> None:
+        self.chrome_options = Options()
+        self.chrome_options.add_argument("--headless")
+        self.driver = webdriver.Chrome(options=self.chrome_options)
+
+    async def login(self) -> None:
+        await self.start_driver()
+        print("driver started")
+        self.driver.get(self.hinet_url)
+
+        await asyncio.sleep(5)
+        account_input = self.driver.find_element(By.ID, "i0116")
+        account_input.send_keys(self.email)
+        print("email entered")
+        next_button = self.driver.find_element(By.ID, "idSIButton9")
+        next_button.click()
+        print("next button clicked")
+        await asyncio.sleep(2)
+
+        password_input = self.driver.find_element(By.ID, "i0118")
+        password_input.send_keys(self.password)
+        print("password entered")
+        signin_button = self.driver.find_element(By.ID, "idSIButton9")
+        signin_button.click()
+        print("signin button clicked")
+        await asyncio.sleep(2)
+
+        stay_signed_in_button = self.driver.find_element(By.ID, "idSIButton9")
+        stay_signed_in_button.click()
+        print("stay signed in button clicked")
+        await asyncio.sleep(5)
+
+        try:
+            registration_button = self.driver.find_element(
+                By.XPATH, '//button[contains(text(), "Registration")]'
+            )
+
+            registration_button.click()
+
+            print("Registration button found and clicked.")
+        except NoSuchElementException:
+            pass
+
+        await asyncio.sleep(10)
+        self.driver.quit()
+
+    async def close_driver(self):
+        if self.driver:
+            self.driver.quit()
+
+
+async def main():
+    hinet_login = HINETLogin()
+    await hinet_login.login()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
