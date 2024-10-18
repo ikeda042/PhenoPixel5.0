@@ -1652,7 +1652,7 @@ class CellCrudBase:
             if os.path.exists(tmp_folder):
                 shutil.rmtree(tmp_folder)
 
-    async def get_cloud_points(self, cell_id: str) -> list[list[float]]:
+    async def get_cloud_points(self, cell_id: str) -> io.BytesIO:
         cell = await self.read_cell(cell_id)
 
         image = np.frombuffer(cell.img_fluo1, dtype=np.uint8)
@@ -1671,7 +1671,7 @@ class CellCrudBase:
 
         point_cloud = np.array(point_cloud)
 
-        fig = plt.figure()
+        fig = plt.figure(figsize=(8, 8))  # 図のサイズを指定して拡大
         ax = fig.add_subplot(111, projection="3d")
 
         ax.scatter(
@@ -1687,11 +1687,20 @@ class CellCrudBase:
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_zlabel("G")
+
         ax.set_ylim(height, 0)
         ax.set_xlim(0, width)
 
+        # 視点を調整して拡大表示
+        ax.view_init(elev=30, azim=120)
+
+        # 余白を減らして描画領域を広くする
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
+
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=200)
+        plt.savefig(
+            buf, format="png", dpi=200, bbox_inches="tight"
+        )  # bbox_inches="tight"で余白をさらに削減
         buf.seek(0)
         plt.close(fig)
 
