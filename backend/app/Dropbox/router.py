@@ -22,7 +22,7 @@ async def backup_databases():
     file_names = [
         f"databases/{i}"
         for i in os.listdir("databases")
-        if i.endswith(".db") and i != "test_database.db"
+        if i.endswith(".db") and i != "test_database.db" and "-uploaded.db" not in i
     ]
     await DropboxCrud().backup_databases(file_names)
     print(file_names)
