@@ -7,9 +7,9 @@ WORKDIR /app
 # Copy the requirements file into the container
 COPY ./app/requirements.txt /app/requirements.txt
 
-# Install dependencies including Chrome and ChromeDriver
+# Install dependencies including gnupg, Chrome, and ChromeDriver
 RUN apt-get update && \
-    apt-get install -y wget unzip curl \
+    apt-get install -y wget unzip curl gnupg \
     libgl1-mesa-glx libglib2.0-0 libnss3 libx11-xcb1 libxcomposite1 libxcursor1 \
     libxdamage1 libxi6 libxtst6 libxrandr2 libxss1 libasound2 libatk1.0-0 \
     libatk-bridge2.0-0 libgbm1 libgtk-3-0 xvfb && \
