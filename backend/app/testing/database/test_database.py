@@ -220,3 +220,9 @@ async def test_multiple_connections(client: AsyncClient):
 
     for cell_id, label in results:
         assert label == 1
+
+
+@pytest.mark.anyio
+async def test_get_metadata(client: AsyncClient):
+    response = await client.get("/api/cells/test_database.db/metadata")
+    assert response.status_code == 200
