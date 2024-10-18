@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 import os
-import asyncio
+
 
 os.chdir(os.path.dirname(os.path.abspath("..")))
 
