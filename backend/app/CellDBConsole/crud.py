@@ -1652,56 +1652,54 @@ class CellCrudBase:
             if os.path.exists(tmp_folder):
                 shutil.rmtree(tmp_folder)
 
-    async def get_cloud_points(self, cell_id: str) -> io.BytesIO:
-        cell = await self.read_cell(cell_id)
+    async def get_cloud_points(self, cell_id: str, angle: float = 120) -> io.BytesIO:
+    cell = await self.read_cell(cell_id)
 
-        image = np.frombuffer(cell.img_fluo1, dtype=np.uint8)
-        image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
+    image = np.frombuffer(cell.img_fluo1, dtype=np.uint8)
+    image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
 
-        height, width = image.shape
+    height, width = image.shape
 
-        point_cloud = []
+    point_cloud = []
 
-        # 画像からポイントクラウドを生成
-        for y in range(height):
-            for x in range(width):
-                z = image[y, x]
-                if z > 15:  # 輝度値が15以上の点のみを使用
-                    point_cloud.append([x, y, z])
+    # 画像からポイントクラウドを生成
+    for y in range(height):
+        for x in range(width):
+            z = image[y, x]
+            if z > 15:  # 輝度値が15以上の点のみを使用
+                point_cloud.append([x, y, z])
 
-        point_cloud = np.array(point_cloud)
+    point_cloud = np.array(point_cloud)
 
-        fig = plt.figure(figsize=(8, 8))
-        ax = fig.add_subplot(111, projection="3d")
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(111, projection="3d")
 
-        ax.scatter(
-            point_cloud[:, 0],
-            point_cloud[:, 1],
-            point_cloud[:, 2],
-            cmap="jet",
-            c=point_cloud[:, 2],
-            marker="o",
-            s=1,
-        )
+    ax.scatter(
+        point_cloud[:, 0],
+        point_cloud[:, 1],
+        point_cloud[:, 2],
+        cmap="jet",
+        c=point_cloud[:, 2],
+        marker="o",
+        s=1,
+    )
 
-        ax.set_xlabel("X")
-        ax.set_ylabel("Y")
-        ax.set_zlabel("G")
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("G")
 
-        ax.set_ylim(height, 0)
-        ax.set_xlim(0, width)
+    ax.set_ylim(height, 0)
+    ax.set_xlim(0, width)
 
-        # 視点を調整して拡大表示
-        ax.view_init(elev=30, azim=120)
+    # 視点を調整し、アングルを動的に回転させる
+    ax.view_init(elev=30, azim=angle)
 
-        # 余白を減らして描画領域を広くする
-        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
+    # 余白を減らして描画領域を広くする
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
-        buf = io.BytesIO()
-        plt.savefig(
-            buf, format="png", dpi=200, bbox_inches="tight"
-        )  # bbox_inches="tight"で余白をさらに削減
-        buf.seek(0)
-        plt.close(fig)
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", dpi=200, bbox_inches="tight")  # bbox_inches="tight"で余白をさらに削減
+    buf.seek(0)
+    plt.close(fig)
 
-        return buf
+    return buf
