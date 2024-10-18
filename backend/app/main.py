@@ -14,6 +14,7 @@ from Dropbox.router import router_dropbox
 from GraphEngine.router import router_graphengine
 from TimeLapseEngine.router import router_tl_engine
 from results.router import router_results
+from Dev.crud import HINETLogin
 
 load_dotenv()
 
@@ -94,14 +95,14 @@ async def periodic_task(interval: int):
 
 async def periodic_task(interval: int):
     while True:
-        connection_status = await check_internet_connection()
-        print(f"Internet connection status: {connection_status}")
+        if await check_internet_connection():
+            await HINETLogin().login()
         await asyncio.sleep(interval)
 
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(periodic_task(10))
+    asyncio.create_task(periodic_task(1))
 
 
 app.include_router(router_cell, prefix=api_prefix)
