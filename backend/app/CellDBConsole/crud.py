@@ -1676,7 +1676,7 @@ class CellCrudBase:
 
         point_cloud = np.array(point_cloud)
 
-        fig = plt.figure(figsize=(8, 8))
+        fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(111, projection="3d")
 
         ax.scatter(
@@ -1686,7 +1686,7 @@ class CellCrudBase:
             cmap="jet",
             c=point_cloud[:, 2],
             marker="o",
-            s=1,
+            s=2,
         )
 
         ax.set_xlabel("X")
