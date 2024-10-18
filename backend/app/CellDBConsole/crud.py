@@ -823,7 +823,8 @@ class AsyncChores:
             x,
             y,
             s=10,
-            color="lime",
+            cmap="jet",
+            c=[i.G for i in raw_points],
         )
         px, py = [i.u1 for i in path], [i.G for i in path]
         plt.scatter(
@@ -836,7 +837,7 @@ class AsyncChores:
         plt.xlim(min(px) - 10, max(px) + 10)
         plt.plot(px, py, color="magenta")
         buf = io.BytesIO()
-        plt.savefig(buf, format="png")
+        plt.savefig(buf, format="png", dpi=100)
         buf.seek(0)
         plt.close(fig)
         return buf
