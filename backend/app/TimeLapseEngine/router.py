@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from TimeLapseEngine.crud import TimelapseEngineCrudBase
-from fastapi.responses import JSONResponse, StreamingResponse,
+from fastapi.responses import JSONResponse, StreamingResponse
 import os
 from fastapi import UploadFile
 import aiofiles
