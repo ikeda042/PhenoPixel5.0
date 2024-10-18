@@ -41,6 +41,8 @@ type ImageState = {
     path?: string;
     prediction?: string;
     cloud_points?: string;
+    cloud_points_ph?: string;
+
 };
 const url_prefix = settings.url_prefix;
 
@@ -393,6 +395,28 @@ const CellImageGrid: React.FC = () => {
         }
     }, [drawMode, cellIds, currentIndex]);
 
+    const fetch3DPhImage = async (cellId: string, dbName: string) => {
+        try {
+            const response = await axios.get(`${url_prefix}/cells/${dbName}/${cellId}/3d-ph`, { responseType: 'blob' });
+            const imageUrl = URL.createObjectURL(response.data);
+            setImages((prevImages) => ({
+                ...prevImages,
+                [cellId]: { ...prevImages[cellId], cloud_points_ph: imageUrl }
+            }));
+        } catch (error) {
+            console.error("Error fetching 3D image:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (drawMode === "cloud_points_ph" && cellIds.length > 0) {
+            const cellId = cellIds[currentIndex];
+            if (!images[cellId]?.cloud_points_ph) {
+                fetch3DPhImage(cellId, db_name);
+            }
+        }
+    }, [drawMode, cellIds, currentIndex]);
+
     const contourPlotOptions: ChartOptions<'scatter'> = {
         maintainAspectRatio: true,
         aspectRatio: 1,
@@ -581,6 +605,8 @@ const CellImageGrid: React.FC = () => {
                                 <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                 <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
                                 <MenuItem value="cloud_points">3D Plot</MenuItem>
+                                <MenuItem value="cloud_points_ph">3D PH</MenuItem>
+
 
                             </Select>
                         </FormControl>
@@ -602,6 +628,7 @@ const CellImageGrid: React.FC = () => {
                                         <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                         <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
                                         <MenuItem value="cloud_points">3D Plot</MenuItem>
+                                        <MenuItem value="cloud_points_ph">3D PH</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Grid>
@@ -638,6 +665,7 @@ const CellImageGrid: React.FC = () => {
                                             <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                             <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
                                             <MenuItem value="cloud_points">3D Plot</MenuItem>
+                                            <MenuItem value="cloud_points_ph">3D PH</MenuItem>
                                         </Select>
                                     </FormControl>
                                 </Grid>
@@ -662,6 +690,7 @@ const CellImageGrid: React.FC = () => {
                                             <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                             <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
                                             <MenuItem value="cloud_points">3D Plot</MenuItem>
+                                            <MenuItem value="cloud_points_ph">3D PH</MenuItem>
                                         </Select>
                                     </FormControl>
                                 </Grid>
@@ -686,6 +715,32 @@ const CellImageGrid: React.FC = () => {
                                             <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                             <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
                                             <MenuItem value="cloud_points">3D Plot</MenuItem>
+                                            <MenuItem value="cloud_points_ph">3D PH</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </Grid>
+                        )
+                    }
+                    {
+                        drawMode === "cloud_points_ph" && (
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                                        <Select
+                                            labelId="draw-mode-select-label"
+                                            value={drawMode}
+                                            onChange={handleDrawModeChange}
+                                            displayEmpty
+                                        >
+                                            <MenuItem value="light">Light</MenuItem>
+                                            <MenuItem value="replot">Replot</MenuItem>
+                                            <MenuItem value="path">Peak-path</MenuItem>
+                                            <MenuItem value="t1contour">Light+Model T1</MenuItem>
+                                            <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
+                                            <MenuItem value="cloud_points">3D Plot</MenuItem>
+                                            <MenuItem value="cloud_points_ph">3D PH</MenuItem>
                                         </Select>
                                     </FormControl>
                                 </Grid>
@@ -710,6 +765,9 @@ const CellImageGrid: React.FC = () => {
                         {drawMode === "t1contour" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
                         {drawMode === "cloud_points" && images[cellIds[currentIndex]]?.cloud_points && (
                             <img src={images[cellIds[currentIndex]]?.cloud_points} alt={`Cell ${cellIds[currentIndex]} 3D`} style={{ width: "100%" }} />
+                        )}
+                        {drawMode === "cloud_points_ph" && images[cellIds[currentIndex]]?.cloud_points_ph && (
+                            <img src={images[cellIds[currentIndex]]?.cloud_points_ph} alt={`Cell ${cellIds[currentIndex]} 3D`} style={{ width: "100%" }} />
                         )}
                     </Box>
                 </Box>
