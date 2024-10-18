@@ -1691,15 +1691,12 @@ class CellCrudBase:
         ax.set_ylim(height, 0)
         ax.set_xlim(0, width)
 
-        # 視点を調整し、アングルを動的に回転させる
         ax.view_init(elev=30, azim=angle)
 
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
         buf = io.BytesIO()
-        plt.savefig(
-            buf, format="png", dpi=200, bbox_inches="tight"
-        ) 
+        plt.savefig(buf, format="png", dpi=200, bbox_inches="tight")
         buf.seek(0)
         plt.close(fig)
 
