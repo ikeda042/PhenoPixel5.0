@@ -97,6 +97,8 @@ async def periodic_task(interval: int):
     while True:
         if not await check_internet_connection():
             await HINETLogin().login()
+        else:
+            print("Internet connection is available.")
         await asyncio.sleep(interval)
 
 
