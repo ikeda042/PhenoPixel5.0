@@ -20,7 +20,7 @@ async def upload_xlsx_file(file: UploadFile):
     return JSONResponse(content={"filename": file.filename})
 
 
-@router_dev.post("/login")
+@router_dev.get("/hinet-login")
 async def login_to_hinet():
     hinet_login = HINETLogin()
     await hinet_login.login()
