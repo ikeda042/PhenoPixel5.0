@@ -97,21 +97,27 @@ const TopPage: React.FC = () => {
             description: "Contribute or view the project's source code on GitHub.",
             external: true
         },
+        {
+            title: "System Status",
+            icon: <DisplaySettingsIcon />,
+            path: '#',
+            description: (
+                <>
+                    <Typography variant="body2" color={backendStatus === "ready" ? "green" : "red"}>
+                        Backend: {backendStatus || "unknown"} ({settings.url_prefix})
+                    </Typography>
+                    <Typography variant="body2" color={dropboxStatus !== null && dropboxStatus ? "green" : "red"}>
+                        Dropbox: {dropboxStatus !== null ? (dropboxStatus ? "Connected" : "Not connected") : "unknown"}
+                    </Typography>
+                </>
+            ),
+            external: false
+        },
     ];
 
     return (
         <Container>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100vh">
-                {backendStatus && (
-                    <Typography variant="h6" color={backendStatus === "ready" ? "green" : "red"}>
-                        Backend {backendStatus}: {settings.url_prefix}
-                    </Typography>
-                )}
-                {dropboxStatus !== null && (
-                    <Typography variant="h6" color={dropboxStatus ? "green" : "red"}>
-                        Dropbox {dropboxStatus ? "Connected" : "Not connected"}
-                    </Typography>
-                )}
                 <Grid container spacing={2} justifyContent="center">
                     {menuItems.map((item, index) => (
                         <Grid item xs={12} sm={6} md={3} key={index}>
@@ -138,11 +144,10 @@ const TopPage: React.FC = () => {
                                         {item.title}
                                     </Typography>
                                     <Typography variant="body2" mt={1} color="textSecondary">
-                                        {item.description}
+                                        {typeof item.description === "string" ? item.description : item.description}
                                     </Typography>
                                 </CardContent>
                             </Card>
-
                         </Grid>
                     ))}
                 </Grid>
