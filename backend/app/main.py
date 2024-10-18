@@ -1,6 +1,7 @@
 import os
 
 import aiohttp
+import asyncio
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -82,6 +83,19 @@ async def replace_env(file: UploadFile):
     with open(".env", "wb") as f:
         f.write(contents)
     return {"status": "ok"}
+
+
+async def periodic_task(interval: int):
+    while True:
+        connection_status = await check_internet_connection()
+        print(f"Internet connection status: {connection_status}")
+        await asyncio.sleep(interval)
+
+
+@app.lifespan
+async def lifespan(app: FastAPI):
+    asyncio.create_task(periodic_task(60))
+    yield
 
 
 app.include_router(router_cell, prefix=api_prefix)
