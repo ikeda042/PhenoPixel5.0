@@ -117,7 +117,20 @@ const TopPage: React.FC = () => {
                         <Grid item xs={12} sm={6} md={3} key={index}>
                             <Card
                                 onClick={() => item.external ? window.open(item.path, '_blank') : handleNavigate(item.path)}
-                                sx={{ cursor: 'pointer', textAlign: 'center', height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { backgroundColor: 'lightgrey' } }}
+                                sx={{
+                                    cursor: 'pointer',
+                                    textAlign: 'center',
+                                    height: '200px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    boxShadow: 6,
+                                    transition: 'box-shadow 0.3s ease-in-out',
+                                    '&:hover': {
+                                        backgroundColor: 'lightgrey',
+                                        boxShadow: 10
+                                    }
+                                }}
                             >
                                 <CardContent>
                                     {item.icon}
@@ -129,6 +142,7 @@ const TopPage: React.FC = () => {
                                     </Typography>
                                 </CardContent>
                             </Card>
+
                         </Grid>
                     ))}
                 </Grid>
