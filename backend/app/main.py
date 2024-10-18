@@ -1,7 +1,6 @@
 import os
 
 import aiohttp
-import asyncio
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +13,6 @@ from Dropbox.router import router_dropbox
 from GraphEngine.router import router_graphengine
 from TimeLapseEngine.router import router_tl_engine
 from results.router import router_results
-from Dev.crud import HINETLogin
 
 load_dotenv()
 
@@ -84,27 +82,6 @@ async def replace_env(file: UploadFile):
     with open(".env", "wb") as f:
         f.write(contents)
     return {"status": "ok"}
-
-
-async def periodic_task(interval: int):
-    while True:
-        connection_status = await check_internet_connection()
-        print(f"Internet connection status: {connection_status}")
-        await asyncio.sleep(interval)
-
-
-async def periodic_task(interval: int):
-    while True:
-        if not await check_internet_connection():
-            await HINETLogin().login()
-        else:
-            print("Internet connection is available.")
-        await asyncio.sleep(interval)
-
-
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(periodic_task(10))
 
 
 app.include_router(router_cell, prefix=api_prefix)
