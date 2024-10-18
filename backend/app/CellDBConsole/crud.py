@@ -1671,7 +1671,7 @@ class CellCrudBase:
 
         point_cloud = np.array(point_cloud)
 
-        fig = plt.figure(figsize=(8, 8))  # 図のサイズを指定して拡大
+        fig = plt.figure(figsize=(8, 8))
         ax = fig.add_subplot(111, projection="3d")
 
         ax.scatter(
