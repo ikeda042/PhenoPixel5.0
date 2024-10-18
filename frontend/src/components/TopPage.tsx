@@ -9,6 +9,7 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DisplaySettingsIcon from '@mui/icons-material/DisplaySettings';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
+import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
 
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
@@ -99,7 +100,7 @@ const TopPage: React.FC = () => {
         },
         {
             title: "System Status",
-            icon: <DisplaySettingsIcon />,
+            icon: <SettingsEthernetIcon />,
             path: '#',
             description: (
                 <>
