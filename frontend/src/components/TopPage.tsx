@@ -77,7 +77,7 @@ const TopPage: React.FC = () => {
             title: "X100TLengine",
             icon: <DisplaySettingsIcon />,
             path: '/tl-engine',
-            description: "Process nd2 timelapse files."
+            description: "Process nd2 timelapse files.(beta)"
         },
         {
             title: "GraphEngine",
