@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import json
 
 # 画像をグレースケールで読み込む
 image = cv2.imread("experimental/3d/test.png", cv2.IMREAD_GRAYSCALE)
@@ -11,13 +12,15 @@ point_cloud = []
 for y in range(height):
     for x in range(width):
         z = image[y, x]
-        if z > 15:
+        if z > 15:  # zが15を超える点のみを含める
             point_cloud.append([x, y, z])
 
-point_cloud = np.array(point_cloud)
+# JSONファイルとして保存
+with open("experimental/3d/point_cloud.json", "w") as f:
+    json.dump([{"x": int(x), "y": int(y), "z": int(z)} for x, y, z in point_cloud], f)
 
-# point_cloudをCSVファイルに保存
-np.savetxt("experimental/3d/point_cloud.csv", point_cloud, delimiter=",", fmt="%d")
+# point_cloudをNumPy配列に変換
+point_cloud = np.array(point_cloud)
 
 # point_cloudをプロット
 import matplotlib.pyplot as plt
