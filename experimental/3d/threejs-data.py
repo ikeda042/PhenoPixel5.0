@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import json
 
 # 画像をグレースケールで読み込む
 image = cv2.imread("experimental/3d/test.png", cv2.IMREAD_GRAYSCALE)
@@ -18,7 +19,8 @@ point_cloud = np.array(point_cloud)
 
 # point_cloudをCSVファイルに保存
 np.savetxt("experimental/3d/point_cloud.csv", point_cloud, delimiter=",", fmt="%d")
-
+with open("experimental/3d/point_cloud.json", "w") as f:
+    json.dump([{"x": int(x), "y": int(y), "z": int(z)} for x, y, z in point_cloud], f)
 # point_cloudをプロット
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
