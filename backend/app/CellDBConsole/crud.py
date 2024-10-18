@@ -1669,11 +1669,8 @@ class CellCrudBase:
         # 画像からポイントクラウドを生成
         for y in range(height):
             for x in range(width):
-                if mode == "fluo":
-                    z = image[y, x]
-                elif mode == "ph":
-                    z = 255 - image[y, x]
-                if z > 15:  # 輝度値が15以上の点のみを使用
+                z = image[y, x]
+                if z > 0:  # 輝度値が15以上の点のみを使用
                     point_cloud.append([x, y, z])
 
         point_cloud = np.array(point_cloud)
@@ -1703,7 +1700,7 @@ class CellCrudBase:
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=200, bbox_inches="tight")
+        plt.savefig(buf, format="png", dpi=90, bbox_inches="tight")
         buf.seek(0)
         plt.close(fig)
 
