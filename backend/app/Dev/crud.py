@@ -28,7 +28,7 @@ class HINETLogin:
         print("driver started")
         self.driver.get(self.hinet_url)
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(1)
         account_input = self.driver.find_element(By.ID, "i0116")
         account_input.send_keys(self.email)
         print("email entered")
@@ -48,7 +48,7 @@ class HINETLogin:
         stay_signed_in_button = self.driver.find_element(By.ID, "idSIButton9")
         stay_signed_in_button.click()
         print("stay signed in button clicked")
-        await asyncio.sleep(5)
+        await asyncio.sleep(1)
 
         try:
             registration_button = self.driver.find_element(
@@ -61,7 +61,7 @@ class HINETLogin:
         except NoSuchElementException:
             pass
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(2)
         self.driver.quit()
 
     async def close_driver(self):
