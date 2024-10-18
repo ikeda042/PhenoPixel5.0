@@ -12,15 +12,17 @@ load_dotenv()
 class HINETLogin:
     def __init__(self) -> None:
         self.driver = None
-        self.headless = False
+
         self.email = os.getenv("EMAIL", None)
         self.password = os.getenv("PASSWORD", None)
         self.hinet_url = os.getenv("HINET_URL", None)
 
     async def start_driver(self) -> None:
         self.chrome_options = Options()
-        if self.headless:
-            self.chrome_options.add_argument("--headless")
+        self.chrome_options.add_argument("--headless")
+        self.chrome_options.add_argument("--no-sandbox")
+        self.chrome_options.add_argument("--disable-dev-shm-usage")
+
         self.driver = webdriver.Chrome(options=self.chrome_options)
 
     async def login(self) -> None:
