@@ -66,11 +66,11 @@ class HINETLogin:
         if self.driver:
             self.driver.quit()
 
-
-async def main():
-    hinet_login = HINETLogin()
-    await hinet_login.login()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    async def main():
+        hinet_login = HINETLogin()
+        if hinet_login.email and hinet_login.password and hinet_login.hinet_url:
+            await hinet_login.login()
+        else:
+            raise Exception(
+                "Please provide email, password and hinet url in .env file."
+            )
