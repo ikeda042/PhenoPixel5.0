@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Container, Typography } from "@mui/material";
+import { Box, Card, CardContent, Grid, Typography, Container } from "@mui/material";
 import DatabaseIcon from '@mui/icons-material/Storage';
 import ScienceIcon from '@mui/icons-material/Science';
 import TerminalIcon from '@mui/icons-material/Terminal';
@@ -14,7 +14,6 @@ const TopPage: React.FC = () => {
     const navigate = useNavigate();
     const [backendStatus, setBackendStatus] = useState<string | null>(null);
     const [dropboxStatus, setDropboxStatus] = useState<boolean | null>(null);
-
 
     useEffect(() => {
         const checkBackend = async () => {
@@ -53,9 +52,19 @@ const TopPage: React.FC = () => {
         navigate(path);
     };
 
+    const menuItems = [
+        { title: "Data Analyses", icon: <DatabaseIcon />, path: '/dbconsole' },
+        { title: "Results", icon: <Inventory2Icon />, path: '/results' },
+        { title: "Cell Extraction", icon: <ScienceIcon />, path: '/nd2files' },
+        { title: "X100TLengine", icon: <DisplaySettingsIcon />, path: '/tl-engine' },
+        { title: "GraphEngine", icon: <BarChartIcon />, path: '/graphengine' },
+        { title: "Swagger UI", icon: <TerminalIcon />, path: `${settings.url_prefix}/docs`, external: true },
+        { title: "Github", icon: <GitHubIcon />, path: 'https://github.com/ikeda042/PhenoPixel5.0', external: true },
+    ];
+
     return (
         <Container>
-            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" gap={2} height="120vh">
+            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100vh">
                 {backendStatus && (
                     <Typography variant="h6" color={backendStatus === "ready" ? "green" : "red"}>
                         Backend {backendStatus}: {settings.url_prefix}
@@ -63,135 +72,26 @@ const TopPage: React.FC = () => {
                 )}
                 {dropboxStatus !== null && (
                     <Typography variant="h6" color={dropboxStatus ? "green" : "red"}>
-                        Dropbox {dropboxStatus ? "Connected" : "not connected"}
+                        Dropbox {dropboxStatus ? "Connected" : "Not connected"}
                     </Typography>
                 )}
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<DatabaseIcon />}
-                    onClick={() => handleNavigate('/dbconsole')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    Data Analyses
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<Inventory2Icon />}
-                    onClick={() => handleNavigate('/results')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    Results
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<ScienceIcon />}
-                    onClick={() => handleNavigate('/nd2files')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    Cell Extraction
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<DisplaySettingsIcon />}
-                    onClick={() => handleNavigate('/tl-engine')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    X100TLengine
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<BarChartIcon />}
-                    onClick={() => handleNavigate('/graphengine')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    GraphEngine
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<TerminalIcon />}
-                    onClick={() => window.open(`${settings.url_prefix}/docs`, '_blank')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    Swagger UI
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<GitHubIcon />}
-                    onClick={() => window.open(`https://github.com/ikeda042/PhenoPixel5.0`, '_blank')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    Github
-                </Button>
+                <Grid container spacing={2} justifyContent="center">
+                    {menuItems.map((item, index) => (
+                        <Grid item xs={12} sm={6} md={3} key={index}>
+                            <Card
+                                onClick={() => item.external ? window.open(item.path, '_blank') : handleNavigate(item.path)}
+                                sx={{ cursor: 'pointer', textAlign: 'center', height: '150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { backgroundColor: 'lightgrey' } }}
+                            >
+                                <CardContent>
+                                    {item.icon}
+                                    <Typography variant="h6" mt={2}>
+                                        {item.title}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
             </Box>
         </Container>
     );
