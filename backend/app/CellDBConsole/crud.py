@@ -1689,7 +1689,7 @@ class CellCrudBase:
         ax.set_zlabel("Z Label")
 
         buf = io.BytesIO()
-        plt.savefig(buf, format="png")
+        plt.savefig(buf, format="png", dpi=100)
         buf.seek(0)
         plt.close(fig)
 
