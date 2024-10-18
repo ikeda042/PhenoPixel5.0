@@ -83,20 +83,20 @@ const TopPage: React.FC = () => {
             title: "GraphEngine",
             icon: <BarChartIcon />,
             path: '/graphengine',
-            description: "Create graphs and analyze relationships in your data."
+            description: "Create graphs from the data."
         },
         {
             title: "Swagger UI",
             icon: <TerminalIcon />,
             path: `${settings.url_prefix}/docs`,
-            description: "Explore and test the API endpoints.",
+            description: "Test the API endpoints.",
             external: true
         },
         {
             title: "Github",
             icon: <GitHubIcon />,
             path: 'https://github.com/ikeda042/PhenoPixel5.0',
-            description: "Contribute or view the project's source code on GitHub.",
+            description: "Project documentation.",
             external: true
         },
         {
