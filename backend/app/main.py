@@ -85,13 +85,13 @@ async def replace_env(file: UploadFile):
     return {"status": "ok"}
 
 
-@app.on_event("startup")
-async def startup_event():
-    hinet_login = HINETLogin()
-    if hinet_login.email and hinet_login.password and hinet_login.hinet_url:
-        await hinet_login.login()
-    else:
-        raise Exception("Please provide email, password and hinet url in .env file.")
+# @app.on_event("startup")
+# async def startup_event():
+#     hinet_login = HINETLogin()
+#     if hinet_login.email and hinet_login.password and hinet_login.hinet_url:
+#         await hinet_login.login()
+#     else:
+#         raise Exception("Please provide email, password and hinet url in .env file.")
 
 
 app.include_router(router_dev, prefix=api_prefix)
