@@ -101,7 +101,7 @@ async def periodic_task(interval: int):
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(periodic_task(60))
+    asyncio.create_task(periodic_task(10))
 
 
 app.include_router(router_cell, prefix=api_prefix)
