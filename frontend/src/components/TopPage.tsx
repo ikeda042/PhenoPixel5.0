@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Container, Typography } from "@mui/material";
+import { Box, Card, CardContent, Grid, Typography, Container } from "@mui/material";
 import DatabaseIcon from '@mui/icons-material/Storage';
 import ScienceIcon from '@mui/icons-material/Science';
 import TerminalIcon from '@mui/icons-material/Terminal';
@@ -9,12 +9,13 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DisplaySettingsIcon from '@mui/icons-material/DisplaySettings';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
+import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
 
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
     const [backendStatus, setBackendStatus] = useState<string | null>(null);
     const [dropboxStatus, setDropboxStatus] = useState<boolean | null>(null);
-
+    const [internetStatus, setInternetStatus] = useState<boolean | null>(null);
 
     useEffect(() => {
         const checkBackend = async () => {
@@ -30,6 +31,7 @@ const TopPage: React.FC = () => {
                 setBackendStatus("not working");
             }
         };
+
         const checkDropboxConnection = async () => {
             try {
                 const response = await fetch(`${settings.url_prefix}/dropbox/connection_check`);
@@ -45,153 +47,132 @@ const TopPage: React.FC = () => {
             }
         };
 
+        const checkInternetConnection = async () => {
+            try {
+                const response = await fetch(`${settings.url_prefix}/internet-connection`);
+                const data = await response.json();
+                if (response.status === 200 && data.status) {
+                    setInternetStatus(true);
+                } else {
+                    setInternetStatus(false);
+                }
+            } catch (error) {
+                console.error("Error checking internet connection:", error);
+                setInternetStatus(false);
+            }
+        };
+
         checkBackend();
         checkDropboxConnection();
+        checkInternetConnection();
     }, []);
 
     const handleNavigate = (path: string) => {
         navigate(path);
     };
 
+    const menuItems = [
+        {
+            title: "Database Console",
+            icon: <DatabaseIcon />,
+            path: '/dbconsole',
+            description: "Label cells / manage databases."
+        },
+        {
+            title: "Cell Extraction",
+            icon: <ScienceIcon />,
+            path: '/nd2files',
+            description: "Extract cells from ND2 files."
+        },
+        {
+            title: "Results",
+            icon: <Inventory2Icon />,
+            path: '/results',
+            description: "Results for the queued jobs."
+        },
+        {
+            title: "X100TLengine",
+            icon: <DisplaySettingsIcon />,
+            path: '/tl-engine',
+            description: "Process nd2 timelapse files.(beta)"
+        },
+        {
+            title: "GraphEngine",
+            icon: <BarChartIcon />,
+            path: '/graphengine',
+            description: "Create graphs from the data."
+        },
+        {
+            title: "Swagger UI",
+            icon: <TerminalIcon />,
+            path: `${settings.url_prefix}/docs`,
+            description: "Test the API endpoints.",
+            external: true
+        },
+        {
+            title: "Github",
+            icon: <GitHubIcon />,
+            path: 'https://github.com/ikeda042/PhenoPixel5.0',
+            description: "Project documentation.",
+            external: true
+        },
+        {
+            title: "System Status",
+            icon: <SettingsEthernetIcon />,
+            path: '#',
+            description: (
+                <>
+                    <Typography variant="body2" color={backendStatus === "ready" ? "green" : "red"}>
+                        Backend: {backendStatus || "unknown"} ({settings.url_prefix})
+                    </Typography>
+                    <Typography variant="body2" color={dropboxStatus !== null && dropboxStatus ? "green" : "red"}>
+                        Dropbox: {dropboxStatus !== null ? (dropboxStatus ? "Connected" : "Not connected") : "unknown"}
+                    </Typography>
+                    <Typography variant="body2" color={internetStatus !== null && internetStatus ? "green" : "red"}>
+                        Internet: {internetStatus !== null ? (internetStatus ? "Connected" : "Not connected") : "unknown"}
+                    </Typography>
+                </>
+            ),
+            external: false
+        },
+    ];
+
     return (
         <Container>
-            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" gap={2} height="120vh">
-                {backendStatus && (
-                    <Typography variant="h6" color={backendStatus === "ready" ? "green" : "red"}>
-                        Backend {backendStatus}: {settings.url_prefix}
-                    </Typography>
-                )}
-                {dropboxStatus !== null && (
-                    <Typography variant="h6" color={dropboxStatus ? "green" : "red"}>
-                        Dropbox {dropboxStatus ? "Connected" : "not connected"}
-                    </Typography>
-                )}
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<DatabaseIcon />}
-                    onClick={() => handleNavigate('/dbconsole')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    Data Analyses
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<Inventory2Icon />}
-                    onClick={() => handleNavigate('/results')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    Results
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<ScienceIcon />}
-                    onClick={() => handleNavigate('/nd2files')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    Cell Extraction
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<DisplaySettingsIcon />}
-                    onClick={() => handleNavigate('/tl-engine')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    X100TLengine
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<BarChartIcon />}
-                    onClick={() => handleNavigate('/graphengine')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    GraphEngine
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<TerminalIcon />}
-                    onClick={() => window.open(`${settings.url_prefix}/docs`, '_blank')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    Swagger UI
-                </Button>
-                <Button
-                    variant="contained"
-                    component="span"
-                    startIcon={<GitHubIcon />}
-                    onClick={() => window.open(`https://github.com/ikeda042/PhenoPixel5.0`, '_blank')}
-                    sx={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        width: '100%',
-                        height: '56px',
-                        textTransform: 'none',
-                        '&:hover': {
-                            backgroundColor: 'lightgrey'
-                        }
-                    }}
-                >
-                    Github
-                </Button>
+            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100vh">
+                <Grid container spacing={2} justifyContent="center">
+                    {menuItems.map((item, index) => (
+                        <Grid item xs={12} sm={6} md={3} key={index}>
+                            <Card
+                                onClick={() => item.external ? window.open(item.path, '_blank') : handleNavigate(item.path)}
+                                sx={{
+                                    cursor: 'pointer',
+                                    textAlign: 'center',
+                                    height: '200px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    boxShadow: 6,
+                                    transition: 'box-shadow 0.3s ease-in-out',
+                                    '&:hover': {
+                                        backgroundColor: 'lightgrey',
+                                        boxShadow: 10
+                                    }
+                                }}
+                            >
+                                <CardContent>
+                                    {item.icon}
+                                    <Typography variant="h6" mt={2}>
+                                        {item.title}
+                                    </Typography>
+                                    <Typography variant="body2" mt={1} color="textSecondary">
+                                        {typeof item.description === "string" ? item.description : item.description}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
             </Box>
         </Container>
     );
