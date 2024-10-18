@@ -1687,9 +1687,11 @@ class CellCrudBase:
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_zlabel("G")
+        ax.set_ylim(height, 0)
+        ax.set_xlim(0, width)
 
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=100)
+        plt.savefig(buf, format="png", dpi=200)
         buf.seek(0)
         plt.close(fig)
 
