@@ -8,17 +8,9 @@ WORKDIR /app
 COPY ./app/requirements.txt /app/requirements.txt
 
 # Install dependencies including libglib2.0-0 for libgthread-2.0.so.0
-# and other necessary libraries for running Chrome and ChromeDriver
 RUN apt-get update && \
-    apt-get install -y libgl1-mesa-glx libglib2.0-0 \
-    libnss3 libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 libxi6 libxtst6 \
-    libxrandr2 libxss1 libasound2 libatk1.0-0 libatk-bridge2.0-0 libgbm1 libgtk-3-0 \
-    wget unzip && \
-    pip install --no-cache-dir -r /app/requirements.txt && \
-    # Download ChromeDriver (adjust the version if needed)
-    wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/114.0.5735.90/chromedriver_linux64.zip && \
-    unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
-    rm /tmp/chromedriver.zip
+    apt-get install -y libgl1-mesa-glx libglib2.0-0 && \
+    pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the rest of the application code
 COPY ./app /app
