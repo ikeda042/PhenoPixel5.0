@@ -13,6 +13,7 @@ from Dropbox.router import router_dropbox
 from GraphEngine.router import router_graphengine
 from TimeLapseEngine.router import router_tl_engine
 from results.router import router_results
+from Dev.crud import HINETLogin
 
 load_dotenv()
 
@@ -82,6 +83,19 @@ async def replace_env(file: UploadFile):
     with open(".env", "wb") as f:
         f.write(contents)
     return {"status": "ok"}
+
+
+# 定期的にHINETにログインしているか確認する(use check_internet_connection)
+# app.on_event("startup")を使用する
+
+
+@app.on_event("startup")
+async def startup_event():
+    hinet_login = HINETLogin()
+    if hinet_login.email and hinet_login.password and hinet_login.hinet_url:
+        await hinet_login.login()
+    else:
+        raise Exception("Please provide email, password and hinet url in .env file.")
 
 
 app.include_router(router_dev, prefix=api_prefix)
