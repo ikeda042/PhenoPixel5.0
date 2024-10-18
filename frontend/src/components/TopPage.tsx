@@ -58,26 +58,26 @@ const TopPage: React.FC = () => {
             title: "Data Analyses",
             icon: <DatabaseIcon />,
             path: '/dbconsole',
-            description: "Analyze your data efficiently with powerful tools."
+            description: "Label cells / manage databases."
         },
 
         {
             title: "Cell Extraction",
             icon: <ScienceIcon />,
             path: '/nd2files',
-            description: "Extract cells from images and visualize the results."
+            description: "Extract cells from ND2 files."
         },
         {
             title: "Results",
             icon: <Inventory2Icon />,
             path: '/results',
-            description: "View the results of your experiments and download reports."
+            description: "Results for the queued jobs."
         },
         {
             title: "X100TLengine",
             icon: <DisplaySettingsIcon />,
             path: '/tl-engine',
-            description: "Process your images with X100 time-lapse engine."
+            description: "Process nd2 timelapse files."
         },
         {
             title: "GraphEngine",
