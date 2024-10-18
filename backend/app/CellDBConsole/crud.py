@@ -1678,7 +1678,8 @@ class CellCrudBase:
             point_cloud[:, 0],
             point_cloud[:, 1],
             point_cloud[:, 2],
-            c="r",
+            cmap="jet",
+            c=point_cloud[:, 2],
             marker="o",
             s=1,
         )
