@@ -1654,26 +1654,31 @@ class CellCrudBase:
 
     async def get_cloud_points(self, cell_id: str) -> list[list[float]]:
         cell = await self.read_cell(cell_id)
-        image = cv2.imdecode(np.frombuffer(cell.img_fluo1, np.uint8), cv2.IMREAD_COLOR)
+
+        image = np.frombuffer(cell.img_fluo1, dtype=np.uint8)
+        image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
+
         height, width = image.shape
 
         point_cloud = []
 
+        # 画像からポイントクラウドを生成
         for y in range(height):
             for x in range(width):
                 z = image[y, x]
-                if z > 15:
+                if z > 15:  # 輝度値が15以上の点のみを使用
                     point_cloud.append([x, y, z])
 
         point_cloud = np.array(point_cloud)
 
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
+
         ax.scatter(
             point_cloud[:, 0],
             point_cloud[:, 1],
             point_cloud[:, 2],
-            cmap="viridis",
+            c="r",
             marker="o",
             s=1,
         )
@@ -1686,4 +1691,5 @@ class CellCrudBase:
         plt.savefig(buf, format="png")
         buf.seek(0)
         plt.close(fig)
+
         return buf
