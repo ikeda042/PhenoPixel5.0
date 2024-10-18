@@ -85,10 +85,6 @@ async def replace_env(file: UploadFile):
     return {"status": "ok"}
 
 
-# 定期的にHINETにログインしているか確認する(use check_internet_connection)
-# app.on_event("startup")を使用する
-
-
 @app.on_event("startup")
 async def startup_event():
     hinet_login = HINETLogin()
