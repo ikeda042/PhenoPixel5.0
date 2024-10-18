@@ -203,3 +203,20 @@ async def test_read_cell_morphology(client: AsyncClient):
         "/api/cells/F0C1/test_database.db/morphology", params={"polyfit_degree": 3}
     )
     assert response.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_multiple_connections(client: AsyncClient):
+    async def fetch_cell_label(cell_id):
+        response = await client.get(f"/api/cells/test_database.db/{cell_id}/label")
+        assert response.status_code == 200
+        label = response.json()
+        assert label == 1
+        return cell_id, label
+
+    results = await asyncio.gather(
+        *(fetch_cell_label("F0C1") for _ in range(10)), return_exceptions=True
+    )
+
+    for cell_id, label in results:
+        assert label == 1
