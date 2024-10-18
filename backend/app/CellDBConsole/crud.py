@@ -1652,7 +1652,7 @@ class CellCrudBase:
             if os.path.exists(tmp_folder):
                 shutil.rmtree(tmp_folder)
 
-    async def get_cloud_points(self, cell_id: str, angle: float = 290) -> io.BytesIO:
+    async def get_cloud_points(self, cell_id: str, angle: float = 270) -> io.BytesIO:
         cell = await self.read_cell(cell_id)
 
         image = np.frombuffer(cell.img_fluo1, dtype=np.uint8)
