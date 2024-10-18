@@ -84,14 +84,14 @@ async def replace_env(file: UploadFile):
     return {"status": "ok"}
 
 
+app.include_router(router_dev, prefix=api_prefix)
 app.include_router(router_cell, prefix=api_prefix)
 app.include_router(router_database, prefix=api_prefix)
 app.include_router(router_cell_extraction, prefix=api_prefix)
-app.include_router(router_dev, prefix=api_prefix)
-app.include_router(router_graphengine, prefix=api_prefix)
-app.include_router(router_tl_engine, prefix=api_prefix)
 app.include_router(router_cell_ai, prefix=api_prefix)
+app.include_router(router_tl_engine, prefix=api_prefix)
 app.include_router(router_dropbox, prefix=api_prefix)
+app.include_router(router_graphengine, prefix=api_prefix)
 app.include_router(router_results, prefix=api_prefix)
 
 if __name__ == "__main__":
