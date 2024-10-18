@@ -15,7 +15,7 @@ const TopPage: React.FC = () => {
     const navigate = useNavigate();
     const [backendStatus, setBackendStatus] = useState<string | null>(null);
     const [dropboxStatus, setDropboxStatus] = useState<boolean | null>(null);
-    const [internetStatus, setInternetStatus] = useState<boolean | null>(null); // New state for internet status
+    const [internetStatus, setInternetStatus] = useState<boolean | null>(null);
 
     useEffect(() => {
         const checkBackend = async () => {
@@ -47,7 +47,7 @@ const TopPage: React.FC = () => {
             }
         };
 
-        const checkInternetConnection = async () => { // New function to check internet status
+        const checkInternetConnection = async () => {
             try {
                 const response = await fetch(`${settings.url_prefix}/internet-connection`);
                 const data = await response.json();
@@ -64,7 +64,7 @@ const TopPage: React.FC = () => {
 
         checkBackend();
         checkDropboxConnection();
-        checkInternetConnection(); // Call the new function
+        checkInternetConnection();
     }, []);
 
     const handleNavigate = (path: string) => {
