@@ -34,7 +34,7 @@ const PointCloud: React.FC<PointCloudProps> = ({ jsonUrl }) => {
                 <Points ref={pointsRef}>
                     <bufferGeometry>
                         <bufferAttribute
-                            attachObject={['attributes', 'position']}
+                            attach="attributes.position"
                             array={positions}
                             itemSize={3}
                             count={positions.length / 3}
