@@ -73,7 +73,7 @@ const TopPage: React.FC = () => {
 
     const menuItems = [
         {
-            title: "Data Analyses",
+            title: "Database Console",
             icon: <DatabaseIcon />,
             path: '/dbconsole',
             description: "Label cells / manage databases."
