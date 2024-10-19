@@ -74,51 +74,51 @@ const TopPage: React.FC = () => {
     const menuItems = [
         {
             title: "Database Console",
-            icon: <DatabaseIcon />,
+            icon: <DatabaseIcon sx={{ fontSize: 50 }} />,
             path: '/dbconsole',
             description: "Label cells / manage databases."
         },
         {
             title: "Cell Extraction",
-            icon: <ScienceIcon />,
+            icon: <ScienceIcon sx={{ fontSize: 50 }} />,
             path: '/nd2files',
             description: "Extract cells from ND2 files."
         },
         {
             title: "Results",
-            icon: <Inventory2Icon />,
+            icon: <Inventory2Icon sx={{ fontSize: 50 }} />,
             path: '/results',
             description: "Results for the queued jobs."
         },
         {
             title: "X100TLengine",
-            icon: <DisplaySettingsIcon />,
+            icon: <DisplaySettingsIcon sx={{ fontSize: 50 }} />,
             path: '/tl-engine',
             description: "Process nd2 timelapse files.(beta)"
         },
         {
             title: "GraphEngine",
-            icon: <BarChartIcon />,
+            icon: <BarChartIcon sx={{ fontSize: 50 }} />,
             path: '/graphengine',
             description: "Create graphs from the data."
         },
         {
             title: "Swagger UI",
-            icon: <TerminalIcon />,
+            icon: <TerminalIcon sx={{ fontSize: 50 }} />,
             path: `${settings.url_prefix}/docs`,
             description: "Test the API endpoints.",
             external: true
         },
         {
             title: "Github",
-            icon: <GitHubIcon />,
+            icon: <GitHubIcon sx={{ fontSize: 50 }} />,
             path: 'https://github.com/ikeda042/PhenoPixel5.0',
             description: "Project documentation.",
             external: true
         },
         {
             title: "System Status",
-            icon: <SettingsEthernetIcon />,
+            icon: <SettingsEthernetIcon sx={{ fontSize: 50 }} />,
             path: '#',
             description: (
                 <>
