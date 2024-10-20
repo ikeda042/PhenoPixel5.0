@@ -14,7 +14,22 @@ router_database = APIRouter(prefix="/databases", tags=["databases"])
 @router_cell.get("/database/healthcheck")
 async def db_healthcheck():
     return await CellCrudBase(db_name="test_database.db").get_cell_ph(
-        cell_id="F0C1", draw_contour=False, draw_scale_bar=False
+        cell_id="F0C5", draw_contour=False, draw_scale_bar=False
+    )
+
+
+@router_cell.get("/database/healthcheck/fluo")
+async def db_healthcheck_fluo():
+    return await CellCrudBase(db_name="test_database.db").get_cell_fluo(
+        cell_id="F0C5", draw_contour=False, draw_scale_bar=False
+    )
+
+
+@router_cell.get("/database/healthcheck/replot")
+async def db_healthcheck_replot():
+    return StreamingResponse(
+        await CellCrudBase(db_name="test_database.db").replot(cell_id="F0C5", degree=3),
+        media_type="image/png",
     )
 
 
