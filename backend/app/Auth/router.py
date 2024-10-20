@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Security
 from fastapi.responses import JSONResponse
 from Auth.crud import Auth
 
@@ -15,3 +15,8 @@ def generate_password_hash(password: str):
 def login(plain_password: str, hashed_password: str):
     is_verified = Auth.verify_password(plain_password, hashed_password)
     return JSONResponse(content={"is_verified": is_verified})
+
+
+@router_auth.get("/account")
+def protected_route(account: str = Security(Auth.get_account)):
+    return JSONResponse(content={"account": account})
