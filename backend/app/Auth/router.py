@@ -1,7 +1,5 @@
-from fastapi import APIRouter, UploadFile, HTTPException
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-import os
-import aiofiles
 from Auth.crud import AuthCrud
 
 router_auth = APIRouter(prefix="/auth", tags=["auth"])
