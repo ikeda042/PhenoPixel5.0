@@ -334,28 +334,28 @@ const TopPage: React.FC = () => {
                             <Grid item xs={12} sm={6} md={3}>
                                 <ImageCard
                                     title="PH"
-                                    description="Phase image of cells."
-                                    imageUrl={image3DUrl2}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                                <ImageCard
-                                    title="Fluo"
-                                    description="3D point cloud from fluorescence."
+                                    description={`PH image of ${cellId}.`}
                                     imageUrl={image3DUrl1}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6} md={3}>
                                 <ImageCard
+                                    title="Fluo"
+                                    description={`Fluo image of ${cellId}.`}
+                                    imageUrl={image3DUrl2}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                                <ImageCard
                                     title="Replotted"
-                                    description="Replotted image."
+                                    description={`Replotted image of ${cellId}.`}
                                     imageUrl={image3DUrl3}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6} md={3}>
                                 <ImageCard
                                     title="3D Plot"
-                                    description="3D point cloud."
+                                    description={`3D plot of ${cellId}.`}
                                     imageUrl={image3DUrl4}
                                 />
                             </Grid>
