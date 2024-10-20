@@ -266,7 +266,7 @@ const TopPage: React.FC = () => {
 
     return (
         <Container>
-            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100vh">
+            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="150vh">
                 <Grid container spacing={2} justifyContent="center">
                     {/* Render the main menu cards */}
                     {menuItems.map((item, index) => (
