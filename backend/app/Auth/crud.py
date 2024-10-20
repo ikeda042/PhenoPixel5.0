@@ -4,6 +4,8 @@ import bcrypt
 from dotenv import load_dotenv
 import os
 
+load_dotenv()
+
 
 class AuthCrud:
     security = HTTPBasic()
