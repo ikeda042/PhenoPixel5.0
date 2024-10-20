@@ -300,30 +300,37 @@ const TopPage: React.FC = () => {
                             </Card>
                         </Grid>
                     ))}
+
+                    <Grid item xs={12} sm={12} md={12}>
+                        <Typography variant="h4" mt={4}>
+                            Demo dataset
+                        </Typography>
+                    </Grid>
+
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="3D Phase Contrast Image"
+                            title="PH"
                             description="3D point cloud from phase contrast."
                             imageUrl={image3DUrl2}
                         />
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="3D Fluorescent Image"
+                            title="Fluo"
                             description="3D point cloud from fluorescence."
                             imageUrl={image3DUrl1}
                         />
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="Replotted Image"
+                            title="Replotted "
                             description="Replotted image."
                             imageUrl={image3DUrl3}
                         />
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="3D Image"
+                            title="3D Plot"
                             description="3D point cloud."
                             imageUrl={image3DUrl4}
                         />
