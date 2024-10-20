@@ -312,7 +312,7 @@ const TopPage: React.FC = () => {
 
     return (
         <Container>
-            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="150vh">
+            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="125vh">
                 <Grid container spacing={2} justifyContent="center">
                     {/* スイッチの追加 */}
                     <Grid item xs={12} sm={12} md={12} sx={{ textAlign: 'center', marginTop: 4 }}>
