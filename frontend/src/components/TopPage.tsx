@@ -24,10 +24,10 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
             sx={{
                 cursor: 'pointer',
                 textAlign: 'center',
-                height: '200px',
+                height: '250px',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'center',
+                justifyContent: 'space-between',
                 boxShadow: 6,
                 transition: 'box-shadow 0.3s ease-in-out',
                 '&:hover': {
@@ -36,20 +36,58 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
                 }
             }}
         >
-            <CardContent>
+            <CardContent
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                }}
+            >
                 {imageUrl && (
-                    <img src={imageUrl} alt="3D Cell Cloud" style={{ maxHeight: '150px', maxWidth: '100%' }} />
+                    <Box
+                        sx={{
+                            height: '120px',
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        <img src={imageUrl} alt="3D Cell Cloud" style={{ maxHeight: '100%', maxWidth: '100%' }} />
+                    </Box>
                 )}
-                <Typography variant="h6" mt={2}>
-                    {title}
-                </Typography>
-                <Typography variant="body2" mt={1} color="textSecondary">
+                <Box
+                    sx={{
+                        marginTop: 2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    <Typography variant="h6">
+                        {title}
+                    </Typography>
+                </Box>
+                <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{
+                        textAlign: 'center',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
                     {description}
                 </Typography>
             </CardContent>
         </Card>
     );
 };
+
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
     const [backendStatus, setBackendStatus] = useState<string | null>(null);
