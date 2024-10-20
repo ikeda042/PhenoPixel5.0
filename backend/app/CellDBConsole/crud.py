@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import aiofiles
+import aiofiles.os
 import asyncio
 import cv2
 import io
@@ -1079,6 +1080,15 @@ class AsyncChores:
 class CellCrudBase:
     def __init__(self, db_name: str) -> None:
         self.db_name: str = db_name
+
+    async def delete_database(self) -> None:
+        """
+        Delete a database.
+
+        Parameters:
+        - db_name: Name of the database to delete.
+        """
+        await aiofiles.os.remove(f"databases/{self.db_name}")
 
     @staticmethod
     async def parse_image(
