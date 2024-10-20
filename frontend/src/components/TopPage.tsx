@@ -144,7 +144,7 @@ const TopPage: React.FC = () => {
 
         const fetchImage1 = async () => {
             try {
-                const response = await fetch("http://localhost:8000/api/cells/database/healthcheck/fluo");
+                const response = await fetch(`${settings.url_prefix}/api/cells/${cellId}/test_database.db/false/false/ph_image`);
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 setImage3DUrl1(url);
