@@ -144,7 +144,7 @@ const TopPage: React.FC = () => {
 
         const fetchImage1 = async () => {
             try {
-                const response = await fetch(`${settings.url_prefix}/api/cells/${cellId}/test_database.db/false/false/ph_image`);
+                const response = await fetch(`${settings.url_prefix}/cells/${cellId}/test_database.db/false/false/ph_image`);
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 setImage3DUrl1(url);
@@ -155,7 +155,7 @@ const TopPage: React.FC = () => {
 
         const fetchImage2 = async () => {
             try {
-                const response = await fetch("http://localhost:8000/api/cells/database/healthcheck");
+                const response = await fetch(`${settings.url_prefix}/cells/${cellId}/test_database.db/false/false/fluo_image`);
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 setImage3DUrl2(url);
@@ -166,7 +166,7 @@ const TopPage: React.FC = () => {
 
         const fetchImage3 = async () => {
             try {
-                const response = await fetch("http://localhost:8000/api/cells/F0C5/test_database.db/replot?degree=3");
+                const response = await fetch(`${settings.url_prefix}/cells/${cellId}/test_database.db/replot?degree=3`);
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 setImage3DUrl3(url);
@@ -177,7 +177,7 @@ const TopPage: React.FC = () => {
 
         const fetchImage4 = async () => {
             try {
-                const response = await fetch("http://localhost:8000/api/cells/test_database.db/F0C5/3d");
+                const response = await fetch(`${settings.url_prefix}/cells/test_database.db/${cellId}/3d`);
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 setImage3DUrl4(url);
