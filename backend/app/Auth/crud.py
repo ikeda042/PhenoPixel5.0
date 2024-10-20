@@ -1,14 +1,15 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import bcrypt
+from dotenv import load_dotenv
 import os
-
-security = HTTPBasic()
-
-password_hash_hard_coded = os.getenv("PASSWORD_HASH_SECRET")
 
 
 class AuthCrud:
+    security = HTTPBasic()
+
+    password_hash_hard_coded = os.getenv("PASSWORD_HASH_SECRET")
+
     @classmethod
     def hash_password(cls, password: str) -> str:
         return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
