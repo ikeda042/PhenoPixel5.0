@@ -275,8 +275,8 @@ const TopPage: React.FC = () => {
                     ))}
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="3D Cell Cloud"
-                            description="3D point cloud of the cell."
+                            title="3D plot"
+                            description="Rendering status: OK"
                             imageUrl={image3DUrl}
                         />
                     </Grid>
