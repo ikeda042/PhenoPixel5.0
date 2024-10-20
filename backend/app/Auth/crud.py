@@ -7,7 +7,7 @@ import os
 load_dotenv()
 
 
-class AuthCrud:
+class Auth:
     security = HTTPBasic()
 
     password_hash_hard_coded = os.getenv("PASSWORD_HASH_SECRET")
