@@ -13,6 +13,7 @@ from Dropbox.router import router_dropbox
 from GraphEngine.router import router_graphengine
 from TimeLapseEngine.router import router_tl_engine
 from results.router import router_results
+from Auth.router import router_auth
 from Dev.crud import HINETLogin
 
 load_dotenv()
@@ -93,7 +94,7 @@ async def replace_env(file: UploadFile):
 #     else:
 #         raise Exception("Please provide email, password and hinet url in .env file.")
 
-
+app.include_router(router_auth, prefix=api_prefix)
 app.include_router(router_dev, prefix=api_prefix)
 app.include_router(router_cell, prefix=api_prefix)
 app.include_router(router_database, prefix=api_prefix)
@@ -103,7 +104,6 @@ app.include_router(router_tl_engine, prefix=api_prefix)
 app.include_router(router_dropbox, prefix=api_prefix)
 app.include_router(router_graphengine, prefix=api_prefix)
 app.include_router(router_results, prefix=api_prefix)
-
 if __name__ == "__main__":
     import uvicorn
 
