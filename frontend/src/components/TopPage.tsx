@@ -23,7 +23,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
             sx={{
                 cursor: 'pointer',
                 textAlign: 'center',
-                height: '200px',
+                height: '220px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
