@@ -299,4 +299,4 @@ async def update_label_experiment(db_name: str, request: MetadataUpdateRequest):
 async def delete_database(db_name: str):
     if db_name == "test_database.db":
         raise HTTPException(status_code=400, detail="Cannot delete the test database.")
-    return await CellCrudBase().delete_database(db_name)
+    return await CellCrudBase(db_name=db_name).delete_database()
