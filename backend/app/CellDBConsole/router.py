@@ -28,6 +28,16 @@ async def db_healthcheck_3d():
     )
 
 
+@router_cell.get("/{db_name}/{label}")
+async def read_cell_ids(db_name: str, label: str):
+    await AsyncChores().validate_database_name(db_name)
+    if label == "1000":
+        label = "N/A"
+    if label == "74":
+        label = None
+    return await CellCrudBase(db_name=db_name).read_cell_ids(label=label)
+
+
 @router_cell.get("/{db_name}/{cell_id}/label")
 async def read_cell_label(db_name: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
