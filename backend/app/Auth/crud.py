@@ -25,7 +25,7 @@ class AuthCrud:
     @classmethod
     def get_account(cls, credentials: HTTPBasicCredentials = Depends(security)) -> str:
         correct_username = "admin"
-        correct_password_hash = password_hash_hard_coded
+        correct_password_hash = cls.password_hash_hard_coded
         if correct_password_hash is None:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
