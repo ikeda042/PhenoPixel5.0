@@ -11,11 +11,51 @@ import DisplaySettingsIcon from '@mui/icons-material/DisplaySettings';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
 
+
+interface ImageCardProps {
+    title: string;
+    description: string;
+    imageUrl: string | null;
+}
+
+const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) => {
+    return (
+        <Card
+            sx={{
+                cursor: 'pointer',
+                textAlign: 'center',
+                height: '200px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                boxShadow: 6,
+                transition: 'box-shadow 0.3s ease-in-out',
+                '&:hover': {
+                    backgroundColor: 'lightgrey',
+                    boxShadow: 10
+                }
+            }}
+        >
+            <CardContent>
+                {imageUrl && (
+                    <img src={imageUrl} alt="3D Cell Cloud" style={{ maxHeight: '150px', maxWidth: '100%' }} />
+                )}
+                <Typography variant="h6" mt={2}>
+                    {title}
+                </Typography>
+                <Typography variant="body2" mt={1} color="textSecondary">
+                    {description}
+                </Typography>
+            </CardContent>
+        </Card>
+    );
+};
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
     const [backendStatus, setBackendStatus] = useState<string | null>(null);
     const [dropboxStatus, setDropboxStatus] = useState<boolean | null>(null);
     const [internetStatus, setInternetStatus] = useState<boolean | null>(null);
+    const [image3DUrl, setImage3DUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const checkBackend = async () => {
@@ -62,9 +102,21 @@ const TopPage: React.FC = () => {
             }
         };
 
+        const fetch3DImage = async () => {
+            try {
+                const response = await fetch("http://localhost:8000/api/cells/database/healthcheck/3d");
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                setImage3DUrl(url);
+            } catch (error) {
+                console.error("Error fetching 3D image:", error);
+            }
+        };
+
         checkBackend();
         checkDropboxConnection();
         checkInternetConnection();
+        fetch3DImage(); // Fetch the 3D image
     }, []);
 
     const handleNavigate = (path: string) => {
@@ -134,13 +186,14 @@ const TopPage: React.FC = () => {
                 </>
             ),
             external: false
-        },
+        }
     ];
 
     return (
         <Container>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="100vh">
                 <Grid container spacing={2} justifyContent="center">
+                    {/* Render the main menu cards */}
                     {menuItems.map((item, index) => (
                         <Grid item xs={12} sm={6} md={3} key={index}>
                             <Card
@@ -172,6 +225,15 @@ const TopPage: React.FC = () => {
                             </Card>
                         </Grid>
                     ))}
+
+                    {/* Render the ImageCard for the 3D Cell Cloud */}
+                    <Grid item xs={12} sm={6} md={3}>
+                        <ImageCard
+                            title="3D Cell Cloud"
+                            description="3D point cloud of the cell."
+                            imageUrl={image3DUrl}
+                        />
+                    </Grid>
                 </Grid>
             </Box>
         </Container>
