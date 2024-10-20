@@ -312,12 +312,12 @@ const TopPage: React.FC = () => {
 
     return (
         <Container>
-            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="100vh">
+            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="150vh">
                 <Grid container spacing={2} justifyContent="center">
                     {/* スイッチの追加 */}
                     <Grid item xs={12} sm={12} md={12} sx={{ textAlign: 'center', marginTop: 4 }}>
                         <FormControlLabel
-                            control={<Switch checked={showDemo} onChange={handleToggle} color="primary" />}
+                            control={<Switch checked={showDemo} onChange={handleToggle} color="success" />}
                             label="Show Demo Dataset"
                         />
                     </Grid>
@@ -326,9 +326,9 @@ const TopPage: React.FC = () => {
                     {showDemo && (
                         <>
                             <Grid item xs={12} sm={12} md={12}>
-                                <Typography variant="h4" mt={4} textAlign="center">
+                                {/* <Typography variant="h4" mt={4} textAlign="center">
                                     Demo dataset
-                                </Typography>
+                                </Typography> */}
                             </Grid>
 
                             <Grid item xs={12} sm={6} md={3}>
