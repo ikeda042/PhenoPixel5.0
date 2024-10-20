@@ -34,6 +34,18 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
                 }
             }}
         >
+            {imageUrl && (
+                <Box
+                    component="img"
+                    src={imageUrl}
+                    alt="3D Cell Cloud"
+                    sx={{
+                        height: '120px',
+                        width: '100%',
+                        objectFit: 'cover',
+                    }}
+                />
+            )}
             <CardContent
                 sx={{
                     display: 'flex',
@@ -43,31 +55,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
                     height: '100%',
                 }}
             >
-                {imageUrl && (
-                    <Box
-                        sx={{
-                            height: '120px',
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            overflow: 'hidden',
-                        }}
-                    >
-                        <Box
-                            component="img"
-                            src={imageUrl}
-                            alt="3D Cell Cloud"
-                            sx={{
-                                transform: 'scale(1.5)',
-                                maxHeight: 'none',
-                                maxWidth: 'none',
-                                minHeight: '100%',
-                                minWidth: '100%',
-                            }}
-                        />
-                    </Box>
-                )}
                 <Box
                     sx={{
                         marginTop: 2,
