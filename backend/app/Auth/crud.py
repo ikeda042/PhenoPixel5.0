@@ -11,7 +11,6 @@ class Auth:
     security = HTTPBasic()
 
     password_hash_hard_coded = os.getenv("ADMIN_PASSWORD_HASH", None)
-    print(password_hash_hard_coded)
 
     @classmethod
     def hash_password(cls, password: str) -> str:
