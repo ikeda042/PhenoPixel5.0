@@ -7,7 +7,7 @@ router_auth = APIRouter(prefix="/auth", tags=["auth"])
 
 @router_auth.post("/generate_password_hash")
 def generate_password_hash(password: str):
-    password_hash = Auth.hash_password(password)
+    password_hash = Auth.hash_password(password).decode("utf-8")
     return JSONResponse(content={"password_hash": password_hash})
 
 
