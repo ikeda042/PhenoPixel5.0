@@ -297,6 +297,8 @@ async def update_label_experiment(db_name: str, request: MetadataUpdateRequest):
 
 @router_database.delete("/{db_name}")
 async def delete_database(db_name: str):
+    if not os.path.exists(f"databases/{db_name}"):
+        raise HTTPException(status_code=404, detail="File not found")
     if db_name == "test_database.db":
         raise HTTPException(status_code=400, detail="Cannot delete the test database.")
     return await CellCrudBase(db_name=db_name).delete_database()
