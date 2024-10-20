@@ -263,9 +263,27 @@ const TopPage: React.FC = () => {
                             </Card>
                         </Grid>
                     ))}
-
-                    {/* Render the ImageCard for the 3D Cell Cloud */}
                     <Grid item xs={12} sm={6} md={3}>
+                        <ImageCard
+                            title="3D Cell Cloud"
+                            description="3D point cloud of the cell."
+                            imageUrl={image3DUrl}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <ImageCard
+                            title="3D Cell Cloud"
+                            description="3D point cloud of the cell."
+                            imageUrl={image3DUrl}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <ImageCard
+                            title="3D Cell Cloud"
+                            description="3D point cloud of the cell."
+                            imageUrl={image3DUrl}
+                        />
+                    </Grid>  <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
                             title="3D Cell Cloud"
                             description="3D point cloud of the cell."
