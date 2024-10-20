@@ -17,14 +17,13 @@ interface ImageCardProps {
     description: string;
     imageUrl: string | null;
 }
-
 const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) => {
     return (
         <Card
             sx={{
                 cursor: 'pointer',
                 textAlign: 'center',
-                height: '250px',
+                height: '200px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
@@ -53,10 +52,21 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            overflow: 'hidden'
+                            overflow: 'hidden',
                         }}
                     >
-                        <img src={imageUrl} alt="3D Cell Cloud" style={{ maxHeight: '100%', maxWidth: '100%' }} />
+                        <Box
+                            component="img"
+                            src={imageUrl}
+                            alt="3D Cell Cloud"
+                            sx={{
+                                transform: 'scale(1.5)',
+                                maxHeight: 'none',
+                                maxWidth: 'none',
+                                minHeight: '100%',
+                                minWidth: '100%',
+                            }}
+                        />
                     </Box>
                 )}
                 <Box
