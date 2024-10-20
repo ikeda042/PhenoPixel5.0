@@ -18,10 +18,13 @@ async def db_healthcheck():
     )
 
 
-@router_cell.get("database/healthcheck/3d")
+@router_cell.get("/database/healthcheck/3d")
 async def db_healthcheck_3d():
-    return await CellCrudBase(db_name="test_database.db").get_cloud_points(
-        cell_id="F0C1"
+    return StreamingResponse(
+        await CellCrudBase(db_name="test_database.db").get_cloud_points(
+            cell_id="F0C5", mode="fluo", angle=0
+        ),
+        media_type="image/png",
     )
 
 
