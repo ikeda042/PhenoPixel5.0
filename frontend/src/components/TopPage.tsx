@@ -96,6 +96,7 @@ const TopPage: React.FC = () => {
     const [image3DUrl3, setImage3DUrl3] = useState<string | null>(null);
     const [image3DUrl4, setImage3DUrl4] = useState<string | null>(null);
 
+    const cellId = "F0C5";
     useEffect(() => {
         const checkBackend = async () => {
             try {
@@ -310,7 +311,7 @@ const TopPage: React.FC = () => {
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
                             title="PH"
-                            description="3D point cloud from phase contrast."
+                            description="Phase image of "
                             imageUrl={image3DUrl2}
                         />
                     </Grid>
