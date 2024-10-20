@@ -11,7 +11,6 @@ import DisplaySettingsIcon from '@mui/icons-material/DisplaySettings';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
 
-
 interface ImageCardProps {
     title: string;
     description: string;
@@ -100,10 +99,15 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
 
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
+
     const [backendStatus, setBackendStatus] = useState<string | null>(null);
     const [dropboxStatus, setDropboxStatus] = useState<boolean | null>(null);
     const [internetStatus, setInternetStatus] = useState<boolean | null>(null);
-    const [image3DUrl, setImage3DUrl] = useState<string | null>(null);
+
+    const [image3DUrl1, setImage3DUrl1] = useState<string | null>(null);
+    const [image3DUrl2, setImage3DUrl2] = useState<string | null>(null);
+    const [image3DUrl3, setImage3DUrl3] = useState<string | null>(null);
+    const [image3DUrl4, setImage3DUrl4] = useState<string | null>(null);
 
     useEffect(() => {
         const checkBackend = async () => {
@@ -150,21 +154,57 @@ const TopPage: React.FC = () => {
             }
         };
 
-        const fetch3DImage = async () => {
+        const fetchImage1 = async () => {
             try {
-                const response = await fetch("http://localhost:8000/api/cells/database/healthcheck/3d");
+                const response = await fetch("http://localhost:8000/api/cells/database/healthcheck/fluo");
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
-                setImage3DUrl(url);
+                setImage3DUrl1(url);
             } catch (error) {
-                console.error("Error fetching 3D image:", error);
+                console.error("Error fetching 3D image 1:", error);
             }
         };
+
+        const fetchImage2 = async () => {
+            try {
+                const response = await fetch("http://localhost:8000/api/cells/database/healthcheck");
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                setImage3DUrl2(url);
+            } catch (error) {
+                console.error("Error fetching 3D image 2:", error);
+            }
+        };
+
+        const fetchImage3 = async () => {
+            try {
+                const response = await fetch("http://localhost:8000/api/cells/F0C5/test_database.db/replot?degree=3");
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                setImage3DUrl3(url);
+            } catch (error) {
+                console.error("Error fetching 3D image 3:", error);
+            }
+        };
+
+        const fetchImage4 = async () => {
+            try {
+                const response = await fetch("http://localhost:8000/api/cells/test_database.db/F0C5/3d");
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                setImage3DUrl4(url);
+            } catch (error) {
+                console.error("Error fetching 3D image 3:", error);
+            }
+        }
 
         checkBackend();
         checkDropboxConnection();
         checkInternetConnection();
-        fetch3DImage(); // Fetch the 3D image
+        fetchImage1();
+        fetchImage2();
+        fetchImage3();
+        fetchImage4();
     }, []);
 
     const handleNavigate = (path: string) => {
@@ -275,29 +315,30 @@ const TopPage: React.FC = () => {
                     ))}
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="3D plot"
-                            description="Rendering status: OK"
-                            imageUrl={image3DUrl}
+                            title="3D Fluorescent Image"
+                            description="3D point cloud from fluorescence."
+                            imageUrl={image3DUrl1}
                         />
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="3D Cell Cloud"
-                            description="3D point cloud of the cell."
-                            imageUrl={image3DUrl}
+                            title="3D Phase Contrast Image"
+                            description="3D point cloud from phase contrast."
+                            imageUrl={image3DUrl2}
                         />
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="3D Cell Cloud"
-                            description="3D point cloud of the cell."
-                            imageUrl={image3DUrl}
+                            title="Replotted Image"
+                            description="Replotted image."
+                            imageUrl={image3DUrl3}
                         />
-                    </Grid>  <Grid item xs={12} sm={6} md={3}>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="3D Cell Cloud"
-                            description="3D point cloud of the cell."
-                            imageUrl={image3DUrl}
+                            title="3D Image"
+                            description="3D point cloud."
+                            imageUrl={image3DUrl4}
                         />
                     </Grid>
                 </Grid>
