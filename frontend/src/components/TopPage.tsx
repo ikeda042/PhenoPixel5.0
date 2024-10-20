@@ -315,16 +315,16 @@ const TopPage: React.FC = () => {
                     ))}
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="3D Fluorescent Image"
-                            description="3D point cloud from fluorescence."
-                            imageUrl={image3DUrl1}
+                            title="3D Phase Contrast Image"
+                            description="3D point cloud from phase contrast."
+                            imageUrl={image3DUrl2}
                         />
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                         <ImageCard
-                            title="3D Phase Contrast Image"
-                            description="3D point cloud from phase contrast."
-                            imageUrl={image3DUrl2}
+                            title="3D Fluorescent Image"
+                            description="3D point cloud from fluorescence."
+                            imageUrl={image3DUrl1}
                         />
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
