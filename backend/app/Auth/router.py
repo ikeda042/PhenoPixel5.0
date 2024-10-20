@@ -12,6 +12,6 @@ def generate_password_hash(password: str):
 
 
 @router_auth.post("/login")
-def verify_password(plain_password: str, hashed_password: str):
+def login(plain_password: str, hashed_password: str):
     is_verified = Auth.verify_password(plain_password, hashed_password)
     return JSONResponse(content={"is_verified": is_verified})
