@@ -96,6 +96,35 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
     );
 };
 
+const cell_ids = [
+    "F0C1",
+    "F0C2",
+    "F0C3",
+    "F0C7",
+    "F0C9",
+    "F0C11",
+    "F0C16",
+    "F0C18",
+    "F0C20",
+    "F0C21",
+    "F0C24",
+    "F0C27",
+    "F1C0",
+    "F1C2",
+    "F1C3",
+    "F1C6",
+    "F1C9",
+    "F1C10",
+    "F1C11",
+    "F1C12",
+    "F1C13",
+    "F1C20",
+];
+
+
+const cellId = cell_ids[Math.floor(Math.random() * cell_ids.length)];
+
+
 const TopPage: React.FC = () => {
     const navigate = useNavigate();
 
@@ -109,9 +138,6 @@ const TopPage: React.FC = () => {
     const [image3DUrl4, setImage3DUrl4] = useState<string | null>(null);
 
     const [showDemo, setShowDemo] = useState<boolean>(false);
-
-    const cellId = "F0C5";
-
     // 初期のステータスチェック
     useEffect(() => {
         const checkBackend = async () => {
