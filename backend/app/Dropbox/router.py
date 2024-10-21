@@ -47,7 +47,5 @@ async def get_access_token(account: str = Security(Auth.get_account)):
 
 @router_dropbox.post("/download")
 async def download_file(file_name: str):
-    file_name = file_name.replace(".", "").replace("/", "")
-
-    await DropboxCrud().download_file(file_name, f"{file_name}")
+    await DropboxCrud().download_file(file_name)
     return {"message": f"File {file_name} downloaded successfully"}
