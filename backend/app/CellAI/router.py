@@ -20,5 +20,4 @@ async def get_plot_data(
     data: list[list[float]] = await CellAiCrudBase(
         db_name, model_path=model
     ).predict_contour_draw(cell_id)
-    print(data)
     return data
