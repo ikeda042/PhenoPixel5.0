@@ -37,6 +37,7 @@ const Databases: React.FC = () => {
     const [loadingPreview, setLoadingPreview] = useState(false);
     const [metadata, setMetadata] = useState<{ [key: string]: string }>({});
     const [newMetadata, setNewMetadata] = useState<{ [key: string]: string }>({});
+    const [dropboxFiles, setDropboxFiles] = useState<string[]>([]);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -78,9 +79,20 @@ const Databases: React.FC = () => {
                 console.error("Failed to fetch databases", error);
             }
         };
-
-        fetchDatabases();
-    }, []);
+        const fetchDropboxFiles = async () => {
+            try {
+                const response = await axios.get(`${url_prefix}/dropbox/list`);
+                setDropboxFiles(response.data.files);
+            } catch (error) {
+                console.error("Failed to fetch Dropbox files", error);
+            }
+        };
+        if (displayMode !== 'Dropbox') {
+            fetchDatabases();
+        } else {
+            fetchDropboxFiles(); // Fetch Dropbox files when "Dropbox" mode is selected
+        }
+    }, [displayMode]);
 
     const handleNavigate = (dbName: string) => {
         navigate(`/databases/?db_name=${dbName}`);
