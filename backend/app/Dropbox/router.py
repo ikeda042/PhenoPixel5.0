@@ -41,7 +41,7 @@ async def connection_check():
 
 
 @router_dropbox.get("/access_token")
-async def get_access_token(account: str = Security(Auth.get_account())):
+async def get_access_token(account: str = Security(Auth.get_account)):
     return {"access_token": await DropboxCrud.get_access_token()}
 
 
