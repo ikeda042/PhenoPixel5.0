@@ -61,6 +61,16 @@ class DropboxCrud:
         except Exception as e:
             return []
 
+    async def list_databases(self) -> list:
+        dbx = Dropbox(await DropboxCrud.get_access_token())
+        try:
+            response = await asyncio.to_thread(
+                dbx.files_list_folder, "/PhenoPixelDatabases/databases"
+            )
+            return [file.name for file in response.entries]
+        except Exception as e:
+            return []
+
     async def connection_check(self) -> bool:
         if "databases" not in await self.list_files():
             return False
