@@ -45,6 +45,6 @@ async def get_access_token(account: str = Security(Auth.get_account)):
     return {"access_token": await DropboxCrud.get_access_token()}
 
 
-@router_dropbox.post("/download")
+@router_dropbox.get("/download")
 async def download_file(file_name: str):
     return {"message": await DropboxCrud().download_file(file_name)}
