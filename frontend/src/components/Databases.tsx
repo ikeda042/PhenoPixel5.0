@@ -427,7 +427,6 @@ const Databases: React.FC = () => {
                             <TableRow>
                                 <TableCell>Database Name</TableCell>
                                 <TableCell>Copy</TableCell>
-
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
                                 {displayMode === 'Completed' && <TableCell align="center">Export</TableCell>}
                                 {displayMode !== 'Dropbox' && (
@@ -481,10 +480,10 @@ const Databases: React.FC = () => {
                                             <Tooltip title={file} placement="top">
                                                 <Typography noWrap>
                                                     {
-                                                        displayMode === 'Dropbox' && file.length > 30 ? `${file.substring(0, 15)}...` : file
+                                                        displayMode === 'Dropbox' && (file.length > 30 ? `${file.substring(0, 30)}...` : file)
                                                     }
                                                     {
-                                                        displayMode !== 'Dropbox' && file.length > 15 ? `${file.substring(0, 15)}...` : file
+                                                        displayMode !== 'Dropbox' && (file.length > 15 ? `${file.substring(0, 15)}...` : file)
                                                     }
 
                                                 </Typography>
@@ -497,6 +496,26 @@ const Databases: React.FC = () => {
                                                 </IconButton>
                                             </Tooltip>
                                         </TableCell>
+                                        {
+                                            displayMode === 'Dropbox' && (
+                                                <TableCell align="center">
+                                                    <Button
+                                                        variant="contained"
+                                                        sx={{
+                                                            backgroundColor: 'black',
+                                                            color: 'white',
+                                                            '&:hover': {
+                                                                backgroundColor: 'gray'
+                                                            }
+                                                        }}
+                                                        onClick={() => handleDropboxDownload(file)}
+                                                        startIcon={<DownloadIcon />}
+                                                    >
+                                                        Download
+                                                    </Button>
+                                                </TableCell>
+                                            )
+                                        }
                                         {displayMode !== 'Dropbox' && (<TableCell align="center">N/A</TableCell>)}
                                     </TableRow>
                                 ))
@@ -600,26 +619,6 @@ const Databases: React.FC = () => {
                                                 </TableCell>
                                             </>
                                         )}
-                                        {
-                                            displayMode === 'Dropbox' && (
-                                                <TableCell align="center">
-                                                    <Button
-                                                        variant="contained"
-                                                        sx={{
-                                                            backgroundColor: 'black',
-                                                            color: 'white',
-                                                            '&:hover': {
-                                                                backgroundColor: 'gray'
-                                                            }
-                                                        }}
-                                                        onClick={() => handleDropboxDownload(database)}
-                                                        startIcon={<DownloadIcon />}
-                                                    >
-                                                        Download
-                                                    </Button>
-                                                </TableCell>
-                                            )
-                                        }
                                     </TableRow>
                                 ))}
                         </TableBody>
