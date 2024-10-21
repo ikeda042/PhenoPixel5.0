@@ -400,42 +400,47 @@ const Databases: React.FC = () => {
                             <TableRow>
                                 <TableCell>Database Name</TableCell>
                                 <TableCell>Copy</TableCell>
-                                <TableCell align="center">Metadata</TableCell>
+
                                 {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
                                 {displayMode === 'Completed' && <TableCell align="center">Export</TableCell>}
-                                <TableCell align="center">
-                                    <Box display="flex" justifyContent="center" alignItems="center">
-                                        <Box>
-                                            <Typography>Mode</Typography>
-                                        </Box>
-                                        <Box ml={1}>
-                                            <Select
-                                                value={selectedMode}
-                                                onChange={(e) => setSelectedMode(e.target.value)}
-                                                displayEmpty
-                                                inputProps={{ 'aria-label': 'Without label' }}
-                                                sx={{ marginRight: 1, height: '25px' }}
-                                            >
-                                                <MenuItem value="fluo">Fluo</MenuItem>
-                                                <MenuItem value="ph">Ph</MenuItem>
-                                                <MenuItem value="ph_contour">Ph + contour</MenuItem>
-                                                <MenuItem value="fluo_contour">Fluo + contour</MenuItem>
-                                            </Select>
-                                            <Select
-                                                value={selectedLabel}
-                                                onChange={(e) => setSelectedLabel(e.target.value)}
-                                                displayEmpty
-                                                inputProps={{ 'aria-label': 'Without label' }}
-                                                sx={{ marginRight: 1, height: '25px' }}
-                                            >
-                                                <MenuItem value="N/A">N/A</MenuItem>
-                                                <MenuItem value="1">1</MenuItem>
-                                                <MenuItem value="2">2</MenuItem>
-                                                <MenuItem value="3">3</MenuItem>
-                                            </Select>
-                                        </Box>
-                                    </Box>
-                                </TableCell>
+                                {displayMode !== 'Dropbox' && (
+                                    <>
+                                        <TableCell align="center">Metadata</TableCell>
+                                        <TableCell align="center">
+                                            <Box display="flex" justifyContent="center" alignItems="center">
+                                                <Box>
+                                                    <Typography>Mode</Typography>
+                                                </Box>
+                                                <Box ml={1}>
+                                                    <Select
+                                                        value={selectedMode}
+                                                        onChange={(e) => setSelectedMode(e.target.value)}
+                                                        displayEmpty
+                                                        inputProps={{ 'aria-label': 'Without label' }}
+                                                        sx={{ marginRight: 1, height: '25px' }}
+                                                    >
+                                                        <MenuItem value="fluo">Fluo</MenuItem>
+                                                        <MenuItem value="ph">Ph</MenuItem>
+                                                        <MenuItem value="ph_contour">Ph + contour</MenuItem>
+                                                        <MenuItem value="fluo_contour">Fluo + contour</MenuItem>
+                                                    </Select>
+                                                    <Select
+                                                        value={selectedLabel}
+                                                        onChange={(e) => setSelectedLabel(e.target.value)}
+                                                        displayEmpty
+                                                        inputProps={{ 'aria-label': 'Without label' }}
+                                                        sx={{ marginRight: 1, height: '25px' }}
+                                                    >
+                                                        <MenuItem value="N/A">N/A</MenuItem>
+                                                        <MenuItem value="1">1</MenuItem>
+                                                        <MenuItem value="2">2</MenuItem>
+                                                        <MenuItem value="3">3</MenuItem>
+                                                    </Select>
+                                                </Box>
+                                            </Box>
+                                        </TableCell>
+                                    </>)}
+
                                 <TableCell align="center"></TableCell>
                             </TableRow>
                         </TableHead>
@@ -534,28 +539,33 @@ const Databases: React.FC = () => {
                                                 </Button>
                                             </TableCell>
                                         )}
-                                        <TableCell align="center">
-                                            <Button
-                                                variant="contained"
-                                                sx={{
-                                                    backgroundColor: 'black',
-                                                    color: 'white',
-                                                    textTransform: 'none',
-                                                    '&:hover': {
-                                                        backgroundColor: 'gray'
-                                                    }
-                                                }}
-                                                onClick={() => handlePreview(database)}
-                                            >
-                                                Export Preview
-                                            </Button>
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <IconButton onClick={() => handleNavigate(database)}>
-                                                <Typography>Access database </Typography>
-                                                <NavigateNextIcon />
-                                            </IconButton>
-                                        </TableCell>
+                                        {displayMode !== 'Dropbox' && (
+                                            <>
+                                                <TableCell align="center">
+                                                    <Button
+                                                        variant="contained"
+                                                        sx={{
+                                                            backgroundColor: 'black',
+                                                            color: 'white',
+                                                            textTransform: 'none',
+                                                            '&:hover': {
+                                                                backgroundColor: 'gray'
+                                                            }
+                                                        }}
+                                                        onClick={() => handlePreview(database)}
+                                                    >
+                                                        Export Preview
+                                                    </Button>
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <IconButton onClick={() => handleNavigate(database)}>
+                                                        <Typography>Access database </Typography>
+                                                        <NavigateNextIcon />
+                                                    </IconButton>
+                                                </TableCell>
+                                            </>
+                                        )}
+
                                     </TableRow>
                                 ))}
                         </TableBody>
