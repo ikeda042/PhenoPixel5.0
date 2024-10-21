@@ -80,19 +80,19 @@ class DropboxCrud:
         for file_name in file_names:
             await self.upload_file(f"{file_name}", file_name)
 
-    async def download_file(self, file_name: str, save_path: str) -> str:
+    async def download_file(self, file_name: str) -> str:
         dbx = Dropbox(await DropboxCrud.get_access_token())
         try:
-            # check if file exists
             files = await self.list_databases()
+            print("Downloading...")
+            print("#################################################################")
             print(files)
-            print(file_name not in files)
             if file_name not in files:
                 raise Exception(f"File {file_name} not found")
-            response = await asyncio.to_thread(
-                dbx.files_download_to_file,
-                save_path,
-                f"/PhenoPixelDatabases/databases/{file_name}",
+            local_file_path = f"databases/{file_name}"
+            dropbox_file_path = f"/PhenoPixelDatabases/databases/{file_name}"
+            await asyncio.to_thread(
+                dbx.files_download_to_file, local_file_path, dropbox_file_path
             )
             return f"File {file_name} downloaded successfully"
         except Exception as e:
