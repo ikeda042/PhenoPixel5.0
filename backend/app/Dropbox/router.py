@@ -17,6 +17,11 @@ async def list_files():
     return {"files": await DropboxCrud().list_files()}
 
 
+@router_dropbox.get("/list_databases")
+async def list_databases():
+    return {"files": await DropboxCrud().list_databases()}
+
+
 @router_dropbox.post("/databases/backup")
 async def backup_databases():
     file_names = [
