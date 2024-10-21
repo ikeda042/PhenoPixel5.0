@@ -90,7 +90,7 @@ const Databases: React.FC = () => {
         if (displayMode !== 'Dropbox') {
             fetchDatabases();
         } else {
-            fetchDropboxFiles(); // Fetch Dropbox files when "Dropbox" mode is selected
+            fetchDropboxFiles();
         }
     }, [displayMode]);
 
