@@ -439,9 +439,10 @@ const Databases: React.FC = () => {
                                                 </Box>
                                             </Box>
                                         </TableCell>
+                                        <TableCell align="center"></TableCell>
                                     </>)}
 
-                                <TableCell align="center"></TableCell>
+
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -462,7 +463,7 @@ const Databases: React.FC = () => {
                                                 </IconButton>
                                             </Tooltip>
                                         </TableCell>
-                                        <TableCell align="center">N/A</TableCell>
+                                        {displayMode !== 'Dropbox' && (<TableCell align="center">N/A</TableCell>)}
                                     </TableRow>
                                 ))
                                 : filteredDatabases.map((database, index) => (
