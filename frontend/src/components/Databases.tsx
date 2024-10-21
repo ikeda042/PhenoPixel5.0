@@ -23,7 +23,7 @@ const Databases: React.FC = () => {
     const queryParams = new URLSearchParams(location.search);
     const default_search_word = queryParams.get('default_search_word') ?? "";
     const [databases, setDatabases] = useState<string[]>([]);
-    const [dropboxFiles, setDropboxFiles] = useState<string[]>([]); // New state for Dropbox files
+    const [dropboxFiles, setDropboxFiles] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState(default_search_word);
     const [displayMode, setDisplayMode] = useState(() => localStorage.getItem('displayMode') || 'User uploaded');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -84,7 +84,7 @@ const Databases: React.FC = () => {
 
         const fetchDropboxFiles = async () => {
             try {
-                const response = await axios.get(`${url_prefix}/dropbox/list`);
+                const response = await axios.get(`${url_prefix}/dropbox/list_databases`);
                 setDropboxFiles(response.data.files);
             } catch (error) {
                 console.error("Failed to fetch Dropbox files", error);
