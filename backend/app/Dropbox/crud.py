@@ -69,3 +69,15 @@ class DropboxCrud:
     async def backup_databases(self, file_names: list[str]):
         for file_name in file_names:
             await self.upload_file(f"{file_name}", file_name)
+
+    async def download_file(self, file_name: str, save_path: str) -> str:
+        dbx = Dropbox(await DropboxCrud.get_access_token())
+        try:
+            response = await asyncio.to_thread(
+                dbx.files_download_to_file,
+                save_path,
+                f"./databases/{file_name}",
+            )
+            return f"File {file_name} downloaded successfully"
+        except Exception as e:
+            return f"Failed to download file {file_name}: {e}"
