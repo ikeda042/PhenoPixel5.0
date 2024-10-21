@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Security
 from Dropbox.crud import DropboxCrud
 import os
+from Auth.crud import Auth
 
 
 router_dropbox = APIRouter(prefix="/dropbox", tags=["dropbox"])
@@ -40,5 +41,13 @@ async def connection_check():
 
 
 @router_dropbox.get("/access_token")
-async def get_access_token():
+async def get_access_token(account: str = Security(Auth.get_account())):
     return {"access_token": await DropboxCrud.get_access_token()}
+
+
+@router_dropbox.post("/download")
+async def download_file(file_name: str):
+    file_name = file_name.replace(".", "").replace("/", "")
+
+    await DropboxCrud().download_file(file_name, f"{file_name}")
+    return {"message": f"File {file_name} downloaded successfully"}
