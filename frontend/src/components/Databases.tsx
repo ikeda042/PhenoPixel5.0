@@ -98,26 +98,12 @@ const Databases: React.FC = () => {
         }
     }, [displayMode]);
 
-    // @router_dropbox.get("/download")
-    // async def download_file(file_name: str):
-    // return { "message": await DropboxCrud().download_file(file_name) }
 
     const handleDropboxDownload = async (file: string) => {
         try {
-            const response = await axios.get(`${url_prefix}/dropbox/download/${file}`, {
+            await axios.get(`${url_prefix}/dropbox/download/${file}`, {
                 responseType: 'blob'
             });
-
-            const contentDisposition = response.headers['content-disposition'];
-            const fileName = contentDisposition ? contentDisposition.split('filename=')[1] : file;
-
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', fileName);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
         } catch (error) {
             setDialogMessage("Failed to download database.");
             setDialogOpen(true);
