@@ -11,6 +11,7 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
+import re
 import scipy
 import shutil
 from concurrent.futures import ThreadPoolExecutor
@@ -1166,6 +1167,14 @@ class CellCrudBase:
         Returns:
         - List of CellId objects.
         """
+
+        def sort_key(cell_id: str) -> tuple[int, int]:
+            match = re.match(r"F(\d+)C(\d+)", cell_id)
+            if match:
+                frame, cell = match.groups()
+                return int(frame), int(cell)
+            return float("inf"), float("inf")
+
         stmt = select(Cell)
         if label:
             stmt = stmt.where(Cell.manual_label == label)
@@ -1173,7 +1182,8 @@ class CellCrudBase:
             result = await session.execute(stmt)
             cells: list[Cell] = result.scalars().all()
         await session.close()
-        return [CellId(cell_id=cell.cell_id) for cell in cells]
+        sorted_cells = sorted(cells, key=lambda cell: sort_key(cell.cell_id))
+        return [CellId(cell_id=cell.cell_id) for cell in sorted_cells]
 
     async def read_cell_label(self, cell_id: str) -> str:
         """
