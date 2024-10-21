@@ -98,6 +98,33 @@ const Databases: React.FC = () => {
         }
     }, [displayMode]);
 
+    // @router_dropbox.get("/download")
+    // async def download_file(file_name: str):
+    // return { "message": await DropboxCrud().download_file(file_name) }
+
+    const handleDropboxDownload = async (file: string) => {
+        try {
+            const response = await axios.get(`${url_prefix}/dropbox/download/${file}`, {
+                responseType: 'blob'
+            });
+
+            const contentDisposition = response.headers['content-disposition'];
+            const fileName = contentDisposition ? contentDisposition.split('filename=')[1] : file;
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            setDialogMessage("Failed to download database.");
+            setDialogOpen(true);
+            console.error("Failed to download database", error);
+        }
+    }
+
     const handleDisplayModeChange = (event: SelectChangeEvent<string>) => {
         const newDisplayMode = event.target.value;
         setDisplayMode(newDisplayMode);
@@ -441,8 +468,9 @@ const Databases: React.FC = () => {
                                         </TableCell>
                                         <TableCell align="center"></TableCell>
                                     </>)}
-
-
+                                {displayMode === 'Dropbox' && (
+                                    <TableCell align="center">Download</TableCell>
+                                )}
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -452,7 +480,13 @@ const Databases: React.FC = () => {
                                         <TableCell component="th" scope="row">
                                             <Tooltip title={file} placement="top">
                                                 <Typography noWrap>
-                                                    {file.length > 15 ? `${file.substring(0, 15)}...` : file}
+                                                    {
+                                                        displayMode === 'Dropbox' && file.length > 30 ? `${file.substring(0, 15)}...` : file
+                                                    }
+                                                    {
+                                                        displayMode !== 'Dropbox' && file.length > 15 ? `${file.substring(0, 15)}...` : file
+                                                    }
+
                                                 </Typography>
                                             </Tooltip>
                                         </TableCell>
@@ -566,7 +600,26 @@ const Databases: React.FC = () => {
                                                 </TableCell>
                                             </>
                                         )}
-
+                                        {
+                                            displayMode === 'Dropbox' && (
+                                                <TableCell align="center">
+                                                    <Button
+                                                        variant="contained"
+                                                        sx={{
+                                                            backgroundColor: 'black',
+                                                            color: 'white',
+                                                            '&:hover': {
+                                                                backgroundColor: 'gray'
+                                                            }
+                                                        }}
+                                                        onClick={() => handleDropboxDownload(database)}
+                                                        startIcon={<DownloadIcon />}
+                                                    >
+                                                        Download
+                                                    </Button>
+                                                </TableCell>
+                                            )
+                                        }
                                     </TableRow>
                                 ))}
                         </TableBody>
