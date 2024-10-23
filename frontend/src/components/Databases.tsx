@@ -413,11 +413,13 @@ const Databases: React.FC = () => {
                             <TableRow>
                                 <TableCell>Database Name</TableCell>
                                 <TableCell>Copy</TableCell>
-                                {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
-                                {displayMode === 'Completed' && <TableCell align="center">Export</TableCell>}
+                        
                                 {displayMode !== 'Dropbox' && (
                                     <>
-                                        <TableCell align="center">Metadata</TableCell>
+                                                              <TableCell align="center">Metadata</TableCell>
+                                     {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
+                                     {displayMode === 'Completed' && <TableCell align="center">Export</TableCell>}
+              
                                         <TableCell align="center">
                                             <Box display="flex" justifyContent="center" alignItems="center">
                                                 <Box>
