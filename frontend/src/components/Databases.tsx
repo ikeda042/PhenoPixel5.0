@@ -416,7 +416,7 @@ const Databases: React.FC = () => {
                         
                                 {displayMode !== 'Dropbox' && (
                                     <>
-                                                              <TableCell align="center">Metadata</TableCell>
+                                     <TableCell align="center">Metadata</TableCell>
                                      {displayMode === 'User uploaded' && <TableCell align="center">Mark as Complete</TableCell>}
                                      {displayMode === 'Completed' && <TableCell align="center">Export</TableCell>}
               
