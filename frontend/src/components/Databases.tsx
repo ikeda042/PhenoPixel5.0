@@ -531,7 +531,7 @@ const Databases: React.FC = () => {
                                                     }))}
                                                     onBlur={() => handleMetadataChange(database, newMetadata[database] || "")}
                                                     fullWidth
-                                                    placeholder="enter details"
+                                                    placeholder="e.g., yyyy/mm/dd"
                                                     InputProps={{
                                                         sx: {
                                                             height: '40px',
