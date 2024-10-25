@@ -28,7 +28,7 @@ def run_fetch_bulk_heatmap_data(db_names, cell_id):
 import os
 
 db_names = [
-    i for i in os.listdir("experimental/bulk-peakpaths-local") if i.endswith(".db")
+    i for i in os.listdir("backend/app/databases") if i.endswith(".db")
 ]
 print(db_names)
 
