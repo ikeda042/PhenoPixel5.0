@@ -228,6 +228,7 @@ const Databases: React.FC = () => {
                 setDialogMessage(response.data.message);
                 setDialogOpen(true);
                 handleCloseConfirmDialog();
+                window.location.reload();
             } catch (error) {
                 setDialogMessage("Failed to mark database as complete.");
                 setDialogOpen(true);
