@@ -1535,6 +1535,7 @@ class CellCrudBase:
         combined_paths = []
 
         for cell in cells:
+            print(cell.cell_id)
             path = await AsyncChores.find_path_return_list(
                 cell.img_fluo1, cell.contour, degree
             )
