@@ -564,10 +564,10 @@ class ExtractionCrudBase:
         return True
 
     async def get_ph_contours(self, frame_num: int) -> StreamingResponse:
-        filepath = f"ph_contours/{frame_num}.png"
+        filepath = f"ph_contours{self.ulid}/{frame_num}.png"
         if not os.path.exists(filepath):
             raise HTTPException(status_code=404, detail="File not found")
         return StreamingResponse(open(filepath, "rb"), media_type="image/png")
 
     async def get_ph_contours_num(self):
-        return len(os.listdir("ph_contours"))
+        return len(os.listdir(f"ph_contours{self.ulid}"))
