@@ -86,3 +86,13 @@ async def extract_cells(
         return CellExtractionResponse(num_tiff=int(ret[0]), ulid=str(ret[1]))
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router_cell_extraction.delete("ph_contours/{ulid}")
+async def delete_extracted_files(ulid: str):
+    ph_contours_dir = f"ph_contours{ulid}"
+    try:
+        shutil.rmtree(ph_contours_dir)
+    except:
+        raise HTTPException(status_code=404, detail="Files not found")
+    return JSONResponse(content={"message": "Files deleted"})
