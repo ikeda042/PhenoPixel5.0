@@ -21,3 +21,6 @@ experimental/U-net_Tensorflow/images/predicted/*.png
 !experimental/U-net_Pytorch/test_contour_label_data.db
 backend/app/TimelapseParserTemp/
 .DS_Store
+backend/app/ph_contour*/
+backend/app/TempData*/
+backend/app/nd2totiff*/

@@ -63,7 +63,7 @@ class SyncChores:
         return array.astype(np.uint8)
 
     @staticmethod
-    def save_images(images, file_name, num_channels):
+    def save_images(images, file_name, num_channels, ulid):
         """
         画像を保存し、MultipageTIFFとして出力する。
         """
@@ -72,10 +72,10 @@ class SyncChores:
             if num_channels > 1:
                 for j in range(num_channels):
                     all_images.append(
-                        Image.open(f"nd2totiff/image_{i}_channel_{j}.tif")
+                        Image.open(f"nd2totiff{ulid}/image_{i}_channel_{j}.tif")
                     )
             else:
-                all_images.append(Image.open(f"nd2totiff/image_{i}.tif"))
+                all_images.append(Image.open(f"nd2totiff{ulid}/image_{i}.tif"))
 
         all_images[0].save(
             f"{file_name.split('/')[-1].split('.')[0]}.tif",
@@ -91,11 +91,11 @@ class SyncChores:
         return center_x, center_y
 
     @staticmethod
-    def extract_nd2(file_name: str, mode: str, reverse: bool = False) -> int:
+    def extract_nd2(file_name: str, mode: str, ulid: str, reverse: bool = False) -> int:
         """
         nd2ファイルをMultipageTIFFに変換する。
         """
-        temp_dir = f"nd2totiff{ulid.new()}"
+        temp_dir = f"nd2totiff{ulid}"
         os.makedirs(temp_dir, exist_ok=True)
 
         with nd2reader.ND2Reader(file_name) as images:
@@ -124,11 +124,11 @@ class SyncChores:
                     array = SyncChores.process_image(array)
                     image = Image.fromarray(array)
                     image.save(f"{temp_dir}/image_{n}.tif")
-
-            SyncChores.save_images(images, file_name, num_channels)
+            SyncChores.save_images(images, file_name, num_channels, ulid=ulid)
         SyncChores.cleanup(temp_dir)
         num_tiff = SyncChores.extract_tiff(
             tiff_path=f"./{file_name.split('/')[-1].split('.')[0]}.tif",
+            ulid=ulid,
             mode=mode,
             reverse=reverse,
         )
@@ -138,10 +138,11 @@ class SyncChores:
     @staticmethod
     def extract_tiff(
         tiff_path: str,
+        ulid: str,
         mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual_layer",
         reverse: bool = False,
     ) -> int:
-        temp_dir = f"TempData{ulid.new()}"
+        temp_dir = f"TempData{ulid}"
         os.makedirs(temp_dir, exist_ok=True)
         folders = [
             folder
@@ -226,11 +227,14 @@ class SyncChores:
     def init(
         input_filename: str,
         num_tiff: int,
+        ulid: str,
         param1: int = 130,
         image_size: int = 200,
         mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual_layer",
     ) -> int:
-
+        temp_dir = f"TempData{ulid}"
+        print(f"Initializing {temp_dir}")
+        print("}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}")
         if mode == "triple_layer":
             set_num = 3
             init_folders = ["Fluo1", "Fluo2", "PH", "frames", "app_data"]
@@ -242,14 +246,14 @@ class SyncChores:
             init_folders = ["Fluo1", "PH", "frames", "app_data"]
 
         try:
-            os.mkdir("TempData")
+            os.mkdir(f"{temp_dir}")
         except:
             pass
 
-        init_folders = [f"TempData/{d}" for d in init_folders]
+        init_folders = [f"{temp_dir}/{d}" for d in init_folders]
         folders = [
             folder
-            for folder in os.listdir("TempData")
+            for folder in os.listdir(f"{temp_dir}")
             if os.path.isdir(os.path.join(".", folder))
         ]
         for i in [i for i in init_folders if i not in folders]:
@@ -260,47 +264,47 @@ class SyncChores:
         # フォルダの作成
         for i in range(num_tiff // set_num):
             try:
-                os.mkdir(f"TempData/frames/tiff_{i}")
+                os.mkdir(f"{temp_dir}/frames/tiff_{i}")
             except Exception as e:
                 print(e)
             try:
-                os.mkdir(f"TempData/frames/tiff_{i}/Cells")
+                os.mkdir(f"{temp_dir}/frames/tiff_{i}/Cells")
             except Exception as e:
                 print(e)
             try:
-                os.mkdir(f"TempData/frames/tiff_{i}/Cells/ph")
+                os.mkdir(f"{temp_dir}/frames/tiff_{i}/Cells/ph")
             except Exception as e:
                 print(e)
             try:
-                os.mkdir(f"TempData/frames/tiff_{i}/Cells/fluo1")
+                os.mkdir(f"{temp_dir}/frames/tiff_{i}/Cells/fluo1")
             except Exception as e:
                 print(e)
             try:
-                os.mkdir(f"ph_contours")
+                os.mkdir(f"ph_contours{ulid}")
             except Exception as e:
                 print(e)
 
             if mode == "triple_layer":
                 try:
-                    os.mkdir(f"TempData/frames/tiff_{i}/Cells/fluo2")
+                    os.mkdir(f"{temp_dir}/frames/tiff_{i}/Cells/fluo2")
                 except Exception as e:
                     print(e)
                 try:
-                    os.mkdir(f"TempData/frames/tiff_{i}/Cells/fluo2_adjusted")
+                    os.mkdir(f"{temp_dir}/frames/tiff_{i}/Cells/fluo2_adjusted")
                 except Exception as e:
                     print(e)
                 try:
-                    os.mkdir(f"TempData/frames/tiff_{i}/Cells/fluo2_contour")
+                    os.mkdir(f"{temp_dir}/frames/tiff_{i}/Cells/fluo2_contour")
                 except Exception as e:
                     print(e)
         loop_num = num_tiff // set_num if mode != "single_layer" else num_tiff
         for k in range(loop_num):
-            image_ph = cv2.imread(f"TempData/PH/{k}.tif")
+            image_ph = cv2.imread(f"{temp_dir}/PH/{k}.tif")
             print(num_tiff)
             if mode == "dual_layer" or mode == "triple_layer":
-                image_fluo_1 = cv2.imread(f"TempData/Fluo1/{k}.tif")
+                image_fluo_1 = cv2.imread(f"{temp_dir}/Fluo1/{k}.tif")
             if mode == "triple_layer":
-                image_fluo_2 = cv2.imread(f"TempData/Fluo2/{k}.tif")
+                image_fluo_2 = cv2.imread(f"{temp_dir}/Fluo2/{k}.tif")
             img_gray = cv2.cvtColor(image_ph, cv2.COLOR_BGR2GRAY)
 
             # ２値化を行う
@@ -344,7 +348,7 @@ class SyncChores:
 
             image_ph_copy = image_ph.copy()
             cv2.drawContours(image_ph_copy, contours, -1, (0, 255, 0), 3)
-            cv2.imwrite(f"ph_contours/{k}.png", image_ph_copy)
+            cv2.imwrite(f"ph_contours{ulid}/{k}.png", image_ph_copy)
             n = 0
             if mode == "triple_layer":
                 for ph, fluo1, fluo2 in zip(
@@ -358,26 +362,26 @@ class SyncChores:
                         and len(fluo2) == output_size[0]
                         and len(fluo2[0]) == output_size[1]
                     ):
-                        cv2.imwrite(f"TempData/frames/tiff_{k}/Cells/ph/{n}.png", ph)
+                        cv2.imwrite(f"{temp_dir}/frames/tiff_{k}/Cells/ph/{n}.png", ph)
                         cv2.imwrite(
-                            f"TempData/frames/tiff_{k}/Cells/fluo1/{n}.png", fluo1
+                            f"{temp_dir}/frames/tiff_{k}/Cells/fluo1/{n}.png", fluo1
                         )
                         cv2.imwrite(
-                            f"TempData/frames/tiff_{k}/Cells/fluo2/{n}.png", fluo2
+                            f"{temp_dir}/frames/tiff_{k}/Cells/fluo2/{n}.png", fluo2
                         )
                         n += 1
 
             elif mode == "single_layer":
                 for ph in zip(cropped_images_ph):
                     if len(ph) == output_size[0] and len(ph[0]) == output_size[1]:
-                        cv2.imwrite(f"TempData/frames/tiff_{k}/Cells/ph/{n}.png", ph)
+                        cv2.imwrite(f"{temp_dir}/frames/tiff_{k}/Cells/ph/{n}.png", ph)
                         n += 1
             elif mode == "dual_layer":
                 for ph, fluo1 in zip(cropped_images_ph, cropped_images_fluo_1):
                     if len(ph) == output_size[0] and len(ph[0]) == output_size[1]:
-                        cv2.imwrite(f"TempData/frames/tiff_{k}/Cells/ph/{n}.png", ph)
+                        cv2.imwrite(f"{temp_dir}/frames/tiff_{k}/Cells/ph/{n}.png", ph)
                         cv2.imwrite(
-                            f"TempData/frames/tiff_{k}/Cells/fluo1/{n}.png", fluo1
+                            f"{temp_dir}/frames/tiff_{k}/Cells/fluo1/{n}.png", fluo1
                         )
                         n += 1
         return num_tiff
@@ -399,6 +403,7 @@ class ExtractionCrudBase:
         self.param1 = param1
         self.image_size = image_size
         self.reverse_layers = reverse_layers
+        self.ulid = ulid.new()
 
     async def load_image(self, path):
         async with aiofiles.open(path, mode="rb") as f:
@@ -439,11 +444,13 @@ class ExtractionCrudBase:
         )
         async with async_session() as session:
             cell_id = f"F{i}C{j}"
-            img_ph = await self.load_image(f"TempData/frames/tiff_{i}/Cells/ph/{j}.png")
+            img_ph = await self.load_image(
+                f"TempData{self.ulid}/frames/tiff_{i}/Cells/ph/{j}.png"
+            )
             img_fluo1 = img_fluo2 = None
             if self.mode != "single_layer":
                 img_fluo1 = await self.load_image(
-                    f"TempData/frames/tiff_{i}/Cells/fluo1/{j}.png"
+                    f"TempData{self.ulid}/frames/tiff_{i}/Cells/fluo1/{j}.png"
                 )
 
             contour, img_ph_gray, img_fluo1_gray, img_fluo2_gray = self.process_image(
@@ -466,7 +473,7 @@ class ExtractionCrudBase:
                         ].tobytes()
                     if self.mode == "triple_layer":
                         img_fluo2 = await self.load_image(
-                            f"TempData/frames/tiff_{i}/Cells/fluo2/{j}.png"
+                            f"TempData{self.ulid}/frames/tiff_{i}/Cells/fluo2/{j}.png"
                         )
                         img_fluo2_gray = cv2.cvtColor(img_fluo2, cv2.COLOR_BGR2GRAY)
                         img_fluo2_data = cv2.imencode(".png", img_fluo2_gray)[
@@ -508,13 +515,14 @@ class ExtractionCrudBase:
             pass
 
         num_tiff = await asyncio.to_thread(
-            chores.extract_nd2, self.nd2_path, self.mode, self.reverse_layers
+            chores.extract_nd2, self.nd2_path, self.mode, self.ulid, self.reverse_layers
         )
 
         await asyncio.to_thread(
             chores.init,
             f"{self.file_prefix}.nd2",
             num_tiff,
+            self.ulid,
             self.param1,
             self.image_size,
             self.mode,
@@ -534,13 +542,13 @@ class ExtractionCrudBase:
 
         tasks = []
         for i in range(iter_n[self.mode]):
-            cell_path = f"TempData/frames/tiff_{i}/Cells/ph/"
+            cell_path = f"TempData{self.ulid}/frames/tiff_{i}/Cells/ph/"
             cell_files = await asyncio.to_thread(os.listdir, cell_path)
             for j in range(len(cell_files)):
                 tasks.append(self.process_cell(dbname, i, j))
 
         await asyncio.gather(*tasks)
-        await asyncio.to_thread(SyncChores.cleanup, "TempData")
+        await asyncio.to_thread(SyncChores.cleanup, f"TempData{self.ulid}")
         return num_tiff
 
     async def get_nd2_filenames(self) -> list[str]:
