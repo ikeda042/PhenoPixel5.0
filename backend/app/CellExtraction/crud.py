@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
+import ulid
 
 Base = declarative_base()
 
@@ -94,7 +95,8 @@ class SyncChores:
         """
         nd2ファイルをMultipageTIFFに変換する。
         """
-        os.makedirs("nd2totiff", exist_ok=True)
+        temp_dir = f"nd2totiff{ulid.new()}"
+        os.makedirs(temp_dir, exist_ok=True)
 
         with nd2reader.ND2Reader(file_name) as images:
             print(f"Available axes: {images.axes}")
@@ -116,15 +118,15 @@ class SyncChores:
                         image = Image.fromarray(array)
                         if reverse:
                             channel = num_channels - channel - 1
-                        image.save(f"nd2totiff/image_{n}_channel_{channel}.tif")
+                        image.save(f"{temp_dir}/image_{n}_channel_{channel}.tif")
                 else:
                     array = np.array(img)
                     array = SyncChores.process_image(array)
                     image = Image.fromarray(array)
-                    image.save(f"nd2totiff/image_{n}.tif")
+                    image.save(f"{temp_dir}/image_{n}.tif")
 
             SyncChores.save_images(images, file_name, num_channels)
-        SyncChores.cleanup("nd2totiff")
+        SyncChores.cleanup(temp_dir)
         num_tiff = SyncChores.extract_tiff(
             tiff_path=f"./{file_name.split('/')[-1].split('.')[0]}.tif",
             mode=mode,
@@ -139,11 +141,12 @@ class SyncChores:
         mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual_layer",
         reverse: bool = False,
     ) -> int:
-        os.makedirs("TempData", exist_ok=True)
+        temp_dir = f"TempData{ulid.new()}"
+        os.makedirs(temp_dir, exist_ok=True)
         folders = [
             folder
-            for folder in os.listdir("TempData")
-            if os.path.isdir(os.path.join("TempData", folder))
+            for folder in os.listdir(temp_dir)
+            if os.path.isdir(os.path.join(temp_dir, folder))
         ]
 
         layers = {
@@ -153,7 +156,7 @@ class SyncChores:
         }
 
         for layer in layers.get(mode, []):
-            os.makedirs(f"TempData/{layer}", exist_ok=True)
+            os.makedirs(f"{temp_dir}/{layer}", exist_ok=True)
 
         with Image.open(tiff_path) as tiff:
             num_pages = tiff.n_frames
@@ -173,7 +176,7 @@ class SyncChores:
                 tiff.seek(i)
                 layer_idx = i % len(layer_map[mode])
                 layer = layer_map[mode][layer_idx][1]
-                filename = f"TempData/{layer}/{img_num}.tif"
+                filename = f"{temp_dir}/{layer}/{img_num}.tif"
                 print(filename)
                 tiff.save(filename, format="TIFF")
                 if layer_idx == len(layer_map[mode]) - 1:
