@@ -68,7 +68,6 @@ pluggy==1.5.0
 ply==3.11
 propcache==0.2.0
 protobuf==4.25.5
-py-ulid==1.0.3
 pydantic==2.7.4
 pydantic_core==2.18.4
 Pygments==2.18.0
