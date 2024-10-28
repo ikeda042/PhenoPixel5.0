@@ -68,6 +68,7 @@ pluggy==1.5.0
 ply==3.11
 propcache==0.2.0
 protobuf==4.25.5
+py-ulid==1.0.3
 pydantic==2.7.4
 pydantic_core==2.18.4
 Pygments==2.18.0
@@ -109,6 +110,7 @@ typer==0.12.3
 typing_extensions==4.12.2
 tzdata==2024.1
 ujson==5.10.0
+ulid-py==1.1.0
 urllib3==2.2.2
 uvicorn==0.30.1
 uvloop==0.19.0
