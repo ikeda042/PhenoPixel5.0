@@ -36,6 +36,11 @@ const CustomTextField = styled(TextField)({
     },
 });
 
+interface CellExtractionResponse {
+    num_tiff: number;
+    ulid: string;
+}
+
 const Extraction: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -47,6 +52,7 @@ const Extraction: React.FC = () => {
     const [numImages, setNumImages] = useState(0);
     const [currentImage, setCurrentImage] = useState(0);
     const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+    const [sessionUlid, setSessionUlid] = useState<string | null>(null);
 
     const handleExtractCells = async () => {
         setIsLoading(true);
@@ -54,18 +60,21 @@ const Extraction: React.FC = () => {
         const actualMode = mode === "dual_layer_reversed" ? "dual_layer" : mode;
 
         try {
-            await axios.get(`${url_prefix}/cell_extraction/${fileName}/${actualMode}`, {
+            const extractResponse = await axios.get<CellExtractionResponse>(`${url_prefix}/cell_extraction/${fileName}/${actualMode}`, {
                 params: {
                     param1,
                     image_size: imageSize,
                     reverse_layers: reverseLayers,
                 },
             });
-            const countResponse = await axios.get(`${url_prefix}/cell_extraction/ph_contours/count`);
+            const { ulid } = extractResponse.data;
+            setSessionUlid(ulid);
+
+            const countResponse = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${ulid}/count`);
             const numImages = countResponse.data.count;
             setNumImages(numImages);
             setCurrentImage(0);
-            fetchImage(0);
+            fetchImage(0, ulid);
         } catch (error) {
             console.error("Failed to extract cells", error);
         } finally {
@@ -73,9 +82,9 @@ const Extraction: React.FC = () => {
         }
     };
 
-    const fetchImage = async (frameNum: number) => {
+    const fetchImage = async (frameNum: number, ulid: string) => {
         try {
-            const response = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${frameNum}`, {
+            const response = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${ulid}/${frameNum}`, {
                 responseType: 'blob',
             });
             const imageUrl = URL.createObjectURL(response.data);
@@ -87,17 +96,17 @@ const Extraction: React.FC = () => {
 
     const handlePreviousImage = () => {
         const newImage = currentImage - 1;
-        if (newImage >= 0) {
+        if (newImage >= 0 && sessionUlid) {
             setCurrentImage(newImage);
-            fetchImage(newImage);
+            fetchImage(newImage, sessionUlid);
         }
     };
 
     const handleNextImage = () => {
         const newImage = currentImage + 1;
-        if (newImage < numImages) {
+        if (newImage < numImages && sessionUlid) {
             setCurrentImage(newImage);
-            fetchImage(newImage);
+            fetchImage(newImage, sessionUlid);
         }
     };
 
