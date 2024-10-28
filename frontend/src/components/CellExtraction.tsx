@@ -110,7 +110,15 @@ const Extraction: React.FC = () => {
         }
     };
 
-    const handleGoToDatabases = () => {
+    const handleGoToDatabases = async () => {
+        if (sessionUlid) {
+            try {
+                await axios.delete(`${url_prefix}/cell_extraction/ph_contours/${sessionUlid}`);
+                console.log("Files deleted successfully");
+            } catch (error) {
+                console.error("Failed to delete files", error);
+            }
+        }
         navigate(`/dbconsole?default_search_word=${fileName.slice(0, -10)}`);
     };
 
