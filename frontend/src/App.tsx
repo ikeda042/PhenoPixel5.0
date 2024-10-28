@@ -42,7 +42,7 @@ const PasswordProtect: React.FC = () => {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="パスワードを入力してください"
+          placeholder="enter password"
           style={{ padding: '8px', margin: '8px', borderRadius: '4px' }}
         />
         <button type="submit" style={{ padding: '8px 16px' }}>送信</button>
