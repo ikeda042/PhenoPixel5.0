@@ -11,18 +11,20 @@ from CellExtraction.crud import ExtractionCrudBase
 router_cell_extraction = APIRouter(prefix="/cell_extraction", tags=["cell_extraction"])
 
 
-@router_cell_extraction.get("/ph_contours/count")
-async def get_ph_contours_count():
+@router_cell_extraction.get("/ph_contours/{session_ulid}/count")
+async def get_ph_contours_count(session_ulid: str):
     return JSONResponse(
-        content={"count": await ExtractionCrudBase("").get_ph_contours_num()}
+        content={
+            "count": await ExtractionCrudBase("").get_ph_contours_num(ulid=session_ulid)
+        }
     )
 
 
 @router_cell_extraction.get(
-    "/ph_contours/{frame_num}", response_class=StreamingResponse
+    "/ph_contours/{session_ulid}/{frame_num}", response_class=StreamingResponse
 )
-async def get_ph_contours(frame_num: int):
-    return await ExtractionCrudBase("").get_ph_contours(frame_num)
+async def get_ph_contours(frame_num: int, session_ulid: str):
+    return await ExtractionCrudBase("").get_ph_contours(frame_num, session_ulid)
 
 
 @router_cell_extraction.post("/nd2_files")
@@ -62,11 +64,11 @@ async def extract_cells(
     image_size: int = 200,
     reverse_layers: bool = False,
 ):
-    ph_contours_dir = "ph_contours"
-    try:
-        shutil.rmtree(ph_contours_dir)
-    except:
-        pass
+    # ph_contours_dir = "ph_contours"
+    # try:
+    #     shutil.rmtree(ph_contours_dir)
+    # except:
+    #     pass
 
     file_path = os.path.join("uploaded_files", db_name)
     if not os.path.exists(file_path):
@@ -79,6 +81,7 @@ async def extract_cells(
             image_size=image_size,
             reverse_layers=reverse_layers,
         )
+        # return value : num_tiff:int, ulid:str
         return await extractor.main()
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))

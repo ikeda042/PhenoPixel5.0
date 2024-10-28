@@ -549,7 +549,7 @@ class ExtractionCrudBase:
 
         await asyncio.gather(*tasks)
         await asyncio.to_thread(SyncChores.cleanup, f"TempData{self.ulid}")
-        return num_tiff
+        return num_tiff, self.ulid
 
     async def get_nd2_filenames(self) -> list[str]:
         return [
@@ -563,11 +563,11 @@ class ExtractionCrudBase:
         await asyncio.to_thread(os.remove, f"uploaded_files/{filename}")
         return True
 
-    async def get_ph_contours(self, frame_num: int) -> StreamingResponse:
-        filepath = f"ph_contours{self.ulid}/{frame_num}.png"
+    async def get_ph_contours(self, frame_num: int, ulid: str) -> StreamingResponse:
+        filepath = f"ph_contours{ulid}/{frame_num}.png"
         if not os.path.exists(filepath):
             raise HTTPException(status_code=404, detail="File not found")
         return StreamingResponse(open(filepath, "rb"), media_type="image/png")
 
-    async def get_ph_contours_num(self):
-        return len(os.listdir(f"ph_contours{self.ulid}"))
+    async def get_ph_contours_num(self, ulid: str) -> int:
+        return len(os.listdir(f"ph_contours{ulid}"))
