@@ -83,9 +83,6 @@ async def extract_cells(
         )
         # return value : num_tiff:int, ulid:str
         ret = await extractor.main()
-        return CellExtractionResponse(
-            num_tiff=ret[0],
-            ulid=ret[1],
-        )
+        return CellExtractionResponse(num_tiff=int(ret[0]), ulid=str(ret[1]))
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
