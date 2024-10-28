@@ -88,7 +88,7 @@ async def extract_cells(
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router_cell_extraction.delete("ph_contours/{ulid}")
+@router_cell_extraction.delete("/ph_contours_delete/{ulid}")
 async def delete_extracted_files(ulid: str):
     ph_contours_dir = f"ph_contours{ulid}"
     try:

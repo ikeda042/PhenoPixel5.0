@@ -113,7 +113,7 @@ const Extraction: React.FC = () => {
     const handleGoToDatabases = async () => {
         if (sessionUlid) {
             try {
-                await axios.delete(`${url_prefix}/cell_extraction/ph_contours/${sessionUlid}`);
+                await axios.delete(`${url_prefix}/cell_extraction/ph_contours_delete/${sessionUlid}`);
                 console.log("Files deleted successfully");
             } catch (error) {
                 console.error("Failed to delete files", error);
