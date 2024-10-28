@@ -1,4 +1,3 @@
-
 import './App.css';
 import Nav from './components/Nav';
 import { Box } from '@mui/system';
@@ -13,86 +12,132 @@ import GraphEngine from './components/GraphEngine';
 import TimelapseNd2List from './components/TimelapseNd2List';
 import TimelapseParser from './components/TimelapseParser';
 import ResultsConsole from './components/ResultsConsole';
+import React, { useState } from 'react';
+
+
+const PasswordProtect: React.FC = () => {
+  const [password, setPassword] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const correctPassword = 'llama2';
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === correctPassword) {
+      setIsAuthenticated(true);
+    } else {
+      alert('Invalid password');
+    }
+  };
+
+  if (isAuthenticated) {
+    return null;
+  }
+
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'background.default' }}>
+      <form onSubmit={handlePasswordSubmit}>
+        <h2>Protected</h2>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="パスワードを入力してください"
+          style={{ padding: '8px', margin: '8px', borderRadius: '4px' }}
+        />
+        <button type="submit" style={{ padding: '8px 16px' }}>送信</button>
+      </form>
+    </Box>
+  );
+};
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !(window.location.hostname === '10.32.17.73' && window.location.port === '3000')
+  );
+
   return (
     <Box sx={{ bgcolor: "000", color: 'black', minHeight: '100vh' }}>
-      <Router>
-        <Routes>
-          <Route path="/" element={
-            <>
-              <Nav title={`PhenoPixel5.0`} />
-              <Grid container spacing={4} margin={5} mt={-20}>
-                <TopPage />
-              </Grid >
-            </>
-          } />
-          <Route path="/dbconsole" element={
-            <>
-              <Nav title='PhenoPixel5.0' />
-              <Grid container spacing={4} margin={5} mt={-4}>
-                <Databases />
-              </Grid >
-            </>
-          } />
-          <Route path="/databases" element={
-            <>
-              <Nav title='PhenoPixel5.0' />
-              <Grid container spacing={1} margin={3} mt={-4}>
-                <CellImageGrid />
-              </Grid >
-            </>
-          } />
-          <Route path="/nd2files" element={
-            <>
-              <Nav title='PhenoPixel5.0' />
-              <Grid container spacing={1} margin={3} mt={-4}>
-                <Nd2Files />
-              </Grid >
-            </>
-          } />
-          <Route path="/cellextraction" element={
-            <>
-              <Nav title='PhenoPixel5.0' />
-              <Grid container spacing={1} margin={3} mt={-4}>
-                <CellExtraction />
-              </Grid >
-            </>
-          } />
-          <Route path="/graphengine" element={
-            <>
-              <Nav title='PhenoPixel5.0' />
-              <Grid container spacing={1} margin={3} mt={-4}>
-                <GraphEngine />
-              </Grid >
-            </>
-          } />
-          <Route path="/tl-engine" element={
-            <>
-              <Nav title='PhenoPixel5.0' />
-              <Grid container spacing={1} margin={3} mt={-4}>
-                <TimelapseNd2List />
-              </Grid >
-            </>
-          } />
-          <Route path="/tlparser" element={
-            <>
-              <Nav title='PhenoPixel5.0' />
-              <Grid container spacing={1} margin={3} mt={-4}>
-                <TimelapseParser />
-              </Grid >
-            </>
-          } />
-          <Route path="/results" element={
-            <>
-              <Nav title='PhenoPixel5.0' />
-              <Grid container spacing={1} margin={3} mt={-4}>
-                <ResultsConsole />
-              </Grid >
-            </>
-          } />
-        </Routes>
-      </Router>
+      {isAuthenticated ? (
+        <Router>
+          <Routes>
+            <Route path="/" element={
+              <>
+                <Nav title={`PhenoPixel5.0`} />
+                <Grid container spacing={4} margin={5} mt={-20}>
+                  <TopPage />
+                </Grid>
+              </>
+            } />
+            <Route path="/dbconsole" element={
+              <>
+                <Nav title='PhenoPixel5.0' />
+                <Grid container spacing={4} margin={5} mt={-4}>
+                  <Databases />
+                </Grid>
+              </>
+            } />
+            <Route path="/databases" element={
+              <>
+                <Nav title='PhenoPixel5.0' />
+                <Grid container spacing={1} margin={3} mt={-4}>
+                  <CellImageGrid />
+                </Grid>
+              </>
+            } />
+            <Route path="/nd2files" element={
+              <>
+                <Nav title='PhenoPixel5.0' />
+                <Grid container spacing={1} margin={3} mt={-4}>
+                  <Nd2Files />
+                </Grid>
+              </>
+            } />
+            <Route path="/cellextraction" element={
+              <>
+                <Nav title='PhenoPixel5.0' />
+                <Grid container spacing={1} margin={3} mt={-4}>
+                  <CellExtraction />
+                </Grid>
+              </>
+            } />
+            <Route path="/graphengine" element={
+              <>
+                <Nav title='PhenoPixel5.0' />
+                <Grid container spacing={1} margin={3} mt={-4}>
+                  <GraphEngine />
+                </Grid>
+              </>
+            } />
+            <Route path="/tl-engine" element={
+              <>
+                <Nav title='PhenoPixel5.0' />
+                <Grid container spacing={1} margin={3} mt={-4}>
+                  <TimelapseNd2List />
+                </Grid>
+              </>
+            } />
+            <Route path="/tlparser" element={
+              <>
+                <Nav title='PhenoPixel5.0' />
+                <Grid container spacing={1} margin={3} mt={-4}>
+                  <TimelapseParser />
+                </Grid>
+              </>
+            } />
+            <Route path="/results" element={
+              <>
+                <Nav title='PhenoPixel5.0' />
+                <Grid container spacing={1} margin={3} mt={-4}>
+                  <ResultsConsole />
+                </Grid>
+              </>
+            } />
+          </Routes>
+        </Router>
+      ) : (
+        <PasswordProtect />
+      )}
     </Box>
   );
 }
