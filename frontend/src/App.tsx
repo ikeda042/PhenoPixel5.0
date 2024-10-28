@@ -14,10 +14,8 @@ import TimelapseParser from './components/TimelapseParser';
 import ResultsConsole from './components/ResultsConsole';
 import React, { useState } from 'react';
 
-
-const PasswordProtect: React.FC = () => {
+const PasswordProtect: React.FC<{ setIsAuthenticated: (isAuthenticated: boolean) => void }> = ({ setIsAuthenticated }) => {
   const [password, setPassword] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const correctPassword = 'llama2';
 
@@ -30,10 +28,6 @@ const PasswordProtect: React.FC = () => {
     }
   };
 
-  if (isAuthenticated) {
-    return null;
-  }
-
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'background.default' }}>
       <form onSubmit={handlePasswordSubmit}>
@@ -45,7 +39,7 @@ const PasswordProtect: React.FC = () => {
           placeholder="enter password"
           style={{ padding: '8px', margin: '8px', borderRadius: '4px' }}
         />
-        <button type="submit" style={{ padding: '8px 16px' }}>送信</button>
+        <button type="submit" style={{ padding: '8px 16px' }}>authorize</button>
       </form>
     </Box>
   );
@@ -136,7 +130,7 @@ function App() {
           </Routes>
         </Router>
       ) : (
-        <PasswordProtect />
+        <PasswordProtect setIsAuthenticated={setIsAuthenticated} />
       )}
     </Box>
   );
