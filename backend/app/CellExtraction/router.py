@@ -1,12 +1,12 @@
 import os
 import shutil
 from typing import Literal
-
 import aiofiles
 from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from CellExtraction.crud import ExtractionCrudBase
+from CellExtraction.schemas import CellExtractionResponse
 
 router_cell_extraction = APIRouter(prefix="/cell_extraction", tags=["cell_extraction"])
 
@@ -82,6 +82,10 @@ async def extract_cells(
             reverse_layers=reverse_layers,
         )
         # return value : num_tiff:int, ulid:str
-        return await extractor.main()
+        ret = await extractor.main()
+        return CellExtractionResponse(
+            num_tiff=ret[0],
+            ulid=ret[1],
+        )
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
