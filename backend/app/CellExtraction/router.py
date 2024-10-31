@@ -64,11 +64,6 @@ async def extract_cells(
     image_size: int = 200,
     reverse_layers: bool = False,
 ):
-    # ph_contours_dir = "ph_contours"
-    # try:
-    #     shutil.rmtree(ph_contours_dir)
-    # except:
-    #     pass
 
     file_path = os.path.join("uploaded_files", db_name)
     if not os.path.exists(file_path):
