@@ -59,7 +59,9 @@ async def delete_nd2_file(file_name: str):
 @router_cell_extraction.get("/{db_name}/{mode}")
 async def extract_cells(
     db_name: str,
-    mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual",
+    mode: Literal[
+        "single_layer", "dual_layer", "triple_layer", "dual_layer_reversed"
+    ] = "dual",
     param1: int = 100,
     image_size: int = 200,
     reverse_layers: bool = False,
