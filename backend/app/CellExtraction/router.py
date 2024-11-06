@@ -78,7 +78,6 @@ async def extract_cells(
             image_size=image_size,
             reverse_layers=reverse_layers,
         )
-        # return value : num_tiff:int, ulid:str
         ret = await extractor.main()
         return CellExtractionResponse(num_tiff=int(ret[0]), ulid=str(ret[1]))
     except FileNotFoundError as e:
