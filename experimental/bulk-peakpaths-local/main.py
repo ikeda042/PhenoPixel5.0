@@ -9,7 +9,7 @@ async def fetch_heatmap_data(session, db_name, cell_id=""):
             data = await response.text()
             return db_name, data
         else:
-            return db_name, None  #
+            return db_name, None
 
 
 async def fetch_bulk_heatmap_data(db_names, cell_id):
