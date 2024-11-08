@@ -27,7 +27,11 @@ def run_fetch_bulk_heatmap_data(db_names, cell_id):
 
 import os
 
-db_names = [i for i in os.listdir("backend/app/databases") if i.endswith(".db")]
+db_names = [
+    i
+    for i in os.listdir("backend/app/databases")
+    if i.endswith(".db") and i != "test_database.db"
+]
 print(db_names)
 
 results = run_fetch_bulk_heatmap_data(db_names, "")

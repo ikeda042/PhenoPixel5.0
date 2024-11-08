@@ -1,3 +1,4 @@
 * 
 !test_database.db
 !.gitignore
+!migration.py
