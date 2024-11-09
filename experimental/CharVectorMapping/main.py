@@ -62,3 +62,92 @@ for cell in cells_with_label_1:
         f"experimental/CharVectorMapping/images/fluo_masked/{cell.cell_id}.png",
         masked,
     )
+
+
+import torch
+import torch.nn as nn
+from torchvision import transforms, models
+import numpy as np
+import cv2
+import os
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+
+# fluo_maskedフォルダにある画像パスを取得
+image_folder = "experimental/CharVectorMapping/images/fluo_masked"
+image_paths = [
+    os.path.join(image_folder, f)
+    for f in os.listdir(image_folder)
+    if f.endswith(".png")
+]
+
+# 画像読み込みと変換用
+transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize((0.5,), (0.5,)),  # 必要に応じて正規化の値を調整
+    ]
+)
+
+
+# カスタムデータセットの作成
+class CustomFluoDataset(torch.utils.data.Dataset):
+    def __init__(self, image_paths, transform=None):
+        self.image_paths = image_paths
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        image = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)  # グレースケールで読み込み
+        image = cv2.resize(image, (200, 200))  # 必要に応じてサイズを調整
+        if self.transform:
+            image = self.transform(image)
+        return image, img_path
+
+
+dataset = CustomFluoDataset(image_paths, transform=transform)
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False)
+
+# 事前学習済みモデルを使って特徴抽出
+model = models.resnet18(pretrained=True)
+model.fc = nn.Identity()  # 最終全結合層を無効化して中間層の出力を取得
+model.eval()
+
+features = []
+file_names = []
+
+# 特徴抽出
+with torch.no_grad():
+    for images, paths in dataloader:
+        images = images.expand(-1, 3, -1, -1)  # グレースケールをRGBに拡張
+        output = model(images)
+        features.append(output.numpy())
+        file_names.extend(paths)
+
+# 特徴を一つの配列に結合
+features = np.concatenate(features, axis=0)
+
+# 次元削減 (PCA)
+pca = PCA(n_components=50)  # 必要に応じて変更
+reduced_features = pca.fit_transform(features)
+
+# クラスタリング (K-means)
+kmeans = KMeans(n_clusters=5)  # クラスター数は任意に設定
+labels = kmeans.fit_predict(reduced_features)
+
+# クラスタリング結果の可視化
+plt.figure(figsize=(10, 7))
+plt.scatter(reduced_features[:, 0], reduced_features[:, 1], c=labels, cmap="viridis")
+plt.title("Clustering of Fluorescence Images")
+plt.xlabel("PCA Component 1")
+plt.ylabel("PCA Component 2")
+plt.colorbar()
+plt.show()
+
+# クラスタリング結果の表示
+for path, label in zip(file_names, labels):
+    print(f"Image: {path} -> Cluster: {label}")
