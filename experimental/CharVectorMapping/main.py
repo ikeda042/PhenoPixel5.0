@@ -28,6 +28,16 @@ class Cell(Base):
     center_y = Column(FLOAT)
 
 
+def parse_image(cell: Cell) -> tuple:
+    img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR)
+    contour = pickle.loads(cell.contour)
+    mask = np.zeros_like(img_ph)
+    cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
+    masked = cv2.bitwise_and(img_ph, mask)
+    masked[mask > 0] = 255
+    return img_ph, masked
+
+
 dbpath = "sqlite:///experimental/CharVectorMapping/sk326Gen120min.db"
 engine = create_engine(dbpath)
 Base.metadata.create_all(engine)
@@ -36,5 +46,7 @@ session = Session()
 
 cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
 
-for i in cells_with_label_1:
-    print(i.cell_id)
+for cell in cells_with_label_1:
+    img_ph, masked = parse_image(cell)
+    cv2.imwrite(f"images/ph/{cell.cell_id}.png", img_ph)
+    cv2.imwrite(f"images/masked/{cell.cell_id}.png", masked)
