@@ -63,7 +63,6 @@ for cell in cells_with_label_1:
         masked,
     )
 
-
 import torch
 import torch.nn as nn
 from torchvision import transforms, models
@@ -71,8 +70,8 @@ import numpy as np
 import cv2
 import os
 from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  # 3Dプロット用
 
 # fluo_maskedフォルダにある画像パスを取得
 image_folder = "experimental/CharVectorMapping/images/fluo_masked"
@@ -132,22 +131,25 @@ with torch.no_grad():
 features = np.concatenate(features, axis=0)
 
 # 次元削減 (PCA)
-pca = PCA(n_components=50)  # 必要に応じて変更
+pca = PCA(n_components=3)  # 2次元または3次元に変更可能
 reduced_features = pca.fit_transform(features)
 
-# クラスタリング (K-means)
-kmeans = KMeans(n_clusters=5)  # クラスター数は任意に設定
-labels = kmeans.fit_predict(reduced_features)
-
-# クラスタリング結果の可視化
+# 次元削減結果の可視化 (2Dプロット)
 plt.figure(figsize=(10, 7))
-plt.scatter(reduced_features[:, 0], reduced_features[:, 1], c=labels, cmap="viridis")
-plt.title("Clustering of Fluorescence Images")
+plt.scatter(reduced_features[:, 0], reduced_features[:, 1], alpha=0.7)
+plt.title("PCA Visualization of Extracted Features (2D)")
 plt.xlabel("PCA Component 1")
 plt.ylabel("PCA Component 2")
-plt.colorbar()
 plt.show()
 
-# クラスタリング結果の表示
-for path, label in zip(file_names, labels):
-    print(f"Image: {path} -> Cluster: {label}")
+# 次元削減結果の可視化 (3Dプロット)
+fig = plt.figure(figsize=(10, 7))
+ax = fig.add_subplot(111, projection="3d")
+ax.scatter(
+    reduced_features[:, 0], reduced_features[:, 1], reduced_features[:, 2], alpha=0.7
+)
+ax.set_title("PCA Visualization of Extracted Features (3D)")
+ax.set_xlabel("PCA Component 1")
+ax.set_ylabel("PCA Component 2")
+ax.set_zlabel("PCA Component 3")
+plt.show()
