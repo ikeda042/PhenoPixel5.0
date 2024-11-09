@@ -28,7 +28,7 @@ class Cell(Base):
     center_y = Column(FLOAT)
 
 
-dbpath = "sqlite:///experimental/U-net_Pytorch/test_contour_label_data.db"
+dbpath = "sqlite:///experimental/CharVectorMapping/sk326Gen120min.db"
 engine = create_engine(dbpath)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
