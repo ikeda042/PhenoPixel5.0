@@ -33,3 +33,8 @@ engine = create_engine(dbpath)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 session = Session()
+
+cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
+
+for i in cells_with_label_1:
+    print(i.cell_id)
