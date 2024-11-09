@@ -34,7 +34,6 @@ def parse_image(cell: Cell) -> tuple:
     mask = np.zeros_like(img_fluo)
     cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
     masked = cv2.bitwise_and(img_fluo, mask)
-    masked[mask > 0] = 255
     return img_fluo, masked
 
 
