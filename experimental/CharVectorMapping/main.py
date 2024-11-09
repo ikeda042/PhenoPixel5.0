@@ -34,7 +34,15 @@ def parse_image(cell: Cell) -> tuple:
     mask = np.zeros_like(img_fluo)
     cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
     masked = cv2.bitwise_and(img_fluo, mask)
-    return img_fluo, masked
+    masked_gray = cv2.cvtColor(masked, cv2.COLOR_BGR2GRAY)
+    min_val, max_val, _, _ = cv2.minMaxLoc(masked_gray)
+    if max_val > min_val:
+        normalized = cv2.normalize(
+            masked, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX
+        )
+    else:
+        normalized = masked
+    return img_fluo, normalized
 
 
 dbpath = "sqlite:///experimental/CharVectorMapping/sk326Gen120min.db"
