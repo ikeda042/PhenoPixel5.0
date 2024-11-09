@@ -31,9 +31,9 @@ class Cell(Base):
 def parse_image(cell: Cell) -> tuple:
     img_fluo = cv2.imdecode(np.frombuffer(cell.img_fluo1, np.uint8), cv2.IMREAD_COLOR)
     contour = pickle.loads(cell.contour)
-    mask = np.zeros_like(img_ph)
+    mask = np.zeros_like(img_fluo)
     cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
-    masked = cv2.bitwise_and(img_ph, mask)
+    masked = cv2.bitwise_and(img_fluo, mask)
     masked[mask > 0] = 255
     return img_fluo, masked
 
@@ -47,6 +47,11 @@ session = Session()
 cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
 
 for cell in cells_with_label_1:
-    img_ph, masked = parse_image(cell)
-    cv2.imwrite(f"images/fluo/{cell.cell_id}.png", img_ph)
-    cv2.imwrite(f"images/fluo_masked/{cell.cell_id}.png", masked)
+    img_fluo, masked = parse_image(cell)
+    cv2.imwrite(
+        f"experimental/CharVectorMapping/images/fluo/{cell.cell_id}.png", img_fluo
+    )
+    cv2.imwrite(
+        f"experimental/CharVectorMapping/images/fluo_masked/{cell.cell_id}.png",
+        masked,
+    )
