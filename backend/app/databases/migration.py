@@ -28,14 +28,36 @@ def migrate(dbname: str) -> None:
 
     Session = sessionmaker(bind=engine)
     session = Session()
+
     try:
-        for table_name in Base.metadata.tables.keys():
-            result = session.execute(
-                text(f"PRAGMA table_info({table_name})")
-            ).fetchall()
-            print(f"Table {table_name} columns:")
-            for column_info in result:
-                print(f" - {column_info[1]} (Type: {column_info[2]})")
+        with engine.connect() as connection:
+            inspector = engine.dialect.get_columns(connection, Cell.__tablename__)
+            existing_columns = {col["name"] for col in inspector}
+
+            model_columns = {col.name for col in Cell.__table__.columns}
+            missing_columns = model_columns - existing_columns
+
+            if missing_columns:
+                print(f"Missing columns in '{Cell.__tablename__}': {missing_columns}")
+                for col_name in missing_columns:
+                    col_type = next(
+                        (
+                            col.type
+                            for col in Cell.__table__.columns
+                            if col.name == col_name
+                        ),
+                        None,
+                    )
+                    if col_type:
+                        alter_query = f"ALTER TABLE {Cell.__tablename__} ADD COLUMN {col_name} {col_type}"
+                        try:
+                            connection.execute(text(alter_query))
+                            print(f"Added column '{col_name}' with type '{col_type}'")
+                        except OperationalError as e:
+                            print(f"Failed to add column '{col_name}': {e}")
+                session.commit()
+            else:
+                print(f"No missing columns in '{Cell.__tablename__}'")
     except OperationalError as e:
         print(f"Error while migrating {dbname}: {e}")
     finally:
