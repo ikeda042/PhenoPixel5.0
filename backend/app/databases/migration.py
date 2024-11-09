@@ -2,7 +2,24 @@ from sqlalchemy import create_engine, Column, Integer, String, BLOB, FLOAT, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.exc import OperationalError
 import os
-from database import Base
+
+Base = declarative_base()
+
+
+class Cell(Base):
+    __tablename__ = "cells"
+    id = Column(Integer, primary_key=True)
+    cell_id = Column(String)
+    label_experiment = Column(String)
+    manual_label = Column(Integer)
+    perimeter = Column(FLOAT)
+    area = Column(FLOAT)
+    img_ph = Column(BLOB)
+    img_fluo1 = Column(BLOB, nullable=True)
+    img_fluo2 = Column(BLOB, nullable=True)
+    contour = Column(BLOB)
+    center_x = Column(FLOAT)
+    center_y = Column(FLOAT)
 
 
 def migrate(dbname: str) -> None:
@@ -27,5 +44,6 @@ def migrate(dbname: str) -> None:
 
 for i in os.listdir("backend/app/databases"):
     if i.endswith(".db"):
+        print(i)
         migrate(i)
         print(f"migrated {i}")
