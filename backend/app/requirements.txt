@@ -23,6 +23,7 @@ h11==0.14.0
 idna==3.10
 imageio==2.36.0
 Jinja2==3.1.4
+joblib==1.4.2
 kiwisolver==1.4.7
 MarkupSafe==3.0.2
 matplotlib==3.9.2
@@ -48,6 +49,7 @@ python-dotenv==1.0.1
 python-multipart==0.0.17
 pytz==2024.2
 requests==2.32.3
+scikit-learn==1.5.2
 scipy==1.14.1
 selenium==4.26.1
 six==1.16.0
@@ -58,8 +60,10 @@ SQLAlchemy==2.0.36
 starlette==0.41.2
 stone==3.3.1
 sympy==1.13.1
+threadpoolctl==3.5.0
 tifffile==2024.9.20
 torch==2.5.1
+torchvision==0.20.1
 trio==0.27.0
 trio-websocket==0.11.1
 typing_extensions==4.12.2
