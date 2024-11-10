@@ -11,18 +11,6 @@ import matplotlib.pyplot as plt
 image_contorols = "experimental/CharVectorMapping/images/dataset/ctrls"
 image_positives = "experimental/CharVectorMapping/images/dataset/positives"
 
-image_ctrls_paths = sorted([
-    os.path.join(image_contorols, file) for file in os.listdir(image_contorols) if file.endswith(".png")
-])
-image_positives_paths = sorted([
-    os.path.join(image_positives, file) for file in os.listdir(image_positives) if file.endswith(".png")
-])
-
-# それぞれの群の画像を0.png, 1.png, 2.png, ... としてリネーム
-for i, path in enumerate(image_ctrls_paths):
-    os.rename(path, os.path.join(image_contorols, f"{i}.png"))
-for i, path in enumerate(image_positives_paths):
-    os.rename(path, os.path.join(image_positives, f"{i}.png"))
 
 image_ctrls_paths = [
     os.path.join(image_contorols, file) for file in os.listdir(image_contorols) if file.endswith(".png")
@@ -89,3 +77,20 @@ ax.set_ylabel('PC2')
 ax.set_zlabel('PC3')
 ax.set_title('PCA 3D Projection with Image Names')
 plt.show()
+
+
+# image_contorols = "experimental/CharVectorMapping/images/dataset/ctrls"
+# image_positives = "experimental/CharVectorMapping/images/dataset/positives"
+
+# image_ctrls_paths = sorted([
+#     os.path.join(image_contorols, file) for file in os.listdir(image_contorols) if file.endswith(".png")
+# ])
+# image_positives_paths = sorted([
+#     os.path.join(image_positives, file) for file in os.listdir(image_positives) if file.endswith(".png")
+# ])
+
+# # それぞれの群の画像を0.png, 1.png, 2.png, ... としてリネーム
+# for i, path in enumerate(image_ctrls_paths):
+#     os.rename(path, os.path.join(image_contorols, f"{i}.png"))
+# for i, path in enumerate(image_positives_paths):
+#     os.rename(path, os.path.join(image_positives, f"{i}.png"))
