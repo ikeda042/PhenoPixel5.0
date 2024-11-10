@@ -21,15 +21,6 @@ image_positives_paths = [
 
 
 
-# 特徴量抽出関数 (LBP)
-def extract_lbp_features(image_path):
-    image = io.imread(image_path)
-    if image.ndim == 3:  # RGBの場合はグレースケールに変換
-        image = color.rgb2gray(image)
-    lbp = local_binary_pattern(image, P=8, R=1, method='uniform')
-    lbp_hist, _ = np.histogram(lbp, bins=np.arange(0, 11), density=True)
-    return lbp_hist
-
 # 特徴量抽出関数 (Zernike Moments)
 def extract_zernike_features(image_path, radius=100):
     image = io.imread(image_path)
@@ -39,9 +30,6 @@ def extract_zernike_features(image_path, radius=100):
     zernike_moments_features = zernike_moments(image, radius)
     return zernike_moments_features
 
-# コントロール群とpositive群の特徴量抽出
-features_ctrls = [extract_lbp_features(path) for path in image_ctrls_paths]
-features_positives = [extract_lbp_features(path) for path in image_positives_paths]
 
 # Zernike Moments の使用例（必要に応じて切り替えて試す）
 features_ctrls = [extract_zernike_features(path) for path in image_ctrls_paths]
