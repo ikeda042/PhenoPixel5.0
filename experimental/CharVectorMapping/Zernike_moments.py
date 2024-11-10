@@ -52,7 +52,7 @@ for i in range(X_pca.shape[0]):
 plt.xlabel('PC1')
 plt.ylabel('PC2')
 plt.title('PCA 2D Projection with Image Names')
-plt.show()
+plt.savefig("experimental/CharVectorMapping/images/PCA_2D_Zernike.png")
 
 # 3Dプロット
 fig = plt.figure(figsize=(12, 10))
@@ -64,21 +64,4 @@ ax.set_xlabel('PC1')
 ax.set_ylabel('PC2')
 ax.set_zlabel('PC3')
 ax.set_title('PCA 3D Projection with Image Names')
-plt.show()
-
-# import os 
-# image_contorols = "experimental/CharVectorMapping/images/dataset/ctrls"
-# image_positives = "experimental/CharVectorMapping/images/dataset/positives"
-
-# image_ctrls_paths = sorted([
-#     os.path.join(image_contorols, file) for file in os.listdir(image_contorols) if file.endswith(".png")
-# ])
-# image_positives_paths = sorted([
-#     os.path.join(image_positives, file) for file in os.listdir(image_positives) if file.endswith(".png")
-# ])
-
-# # それぞれの群の画像を0.png, 1.png, 2.png, ... としてリネーム
-# for i, path in enumerate(image_ctrls_paths):
-#     os.rename(path, os.path.join(image_contorols, f"{i}.png"))
-# for i, path in enumerate(image_positives_paths):
-#     os.rename(path, os.path.join(image_positives, f"{i}.png"))
+plt.savefig("experimental/CharVectorMapping/images/PCA_3D_Zernike.png")
