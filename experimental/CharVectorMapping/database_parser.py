@@ -41,20 +41,21 @@ def parse_image(cell: Cell) -> tuple:
     return img_fluo, normalized
 
 
-dbpath = "sqlite:///experimental/CharVectorMapping/sk326Gen120min.db"
-engine = create_engine(dbpath)
-Base.metadata.create_all(engine)
-Session = sessionmaker(bind=engine)
-session = Session()
+def database_parser(dbname: str):
+    dbpath = f"sqlite:///experimental/CharVectorMapping/{dbname}"
+    engine = create_engine(dbpath)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
+    cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
 
-for cell in cells_with_label_1:
-    img_fluo, masked = parse_image(cell)
-    cv2.imwrite(
-        f"experimental/CharVectorMapping/images/fluo/{cell.cell_id}.png", img_fluo
-    )
-    cv2.imwrite(
-        f"experimental/CharVectorMapping/images/fluo_masked/{cell.cell_id}.png",
-        masked,
-    )
+    for cell in cells_with_label_1:
+        img_fluo, masked = parse_image(cell)
+        cv2.imwrite(
+            f"experimental/CharVectorMapping/images/fluo/{cell.cell_id}.png", img_fluo
+        )
+        cv2.imwrite(
+            f"experimental/CharVectorMapping/images/fluo_masked/{cell.cell_id}.png",
+            masked,
+        )
