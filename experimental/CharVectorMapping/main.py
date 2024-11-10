@@ -40,8 +40,8 @@ features_ctrls = [extract_lbp_features(path) for path in image_ctrls_paths]
 features_positives = [extract_lbp_features(path) for path in image_positives_paths]
 
 # Zernike Moments の使用例（必要に応じて切り替えて試す）
-# features_ctrls = [extract_zernike_features(path) for path in image_ctrls_paths]
-# features_positives = [extract_zernike_features(path) for path in image_positives_paths]
+features_ctrls = [extract_zernike_features(path) for path in image_ctrls_paths]
+features_positives = [extract_zernike_features(path) for path in image_positives_paths]
 
 # 特徴量を結合し、ラベルを設定
 X = np.vstack((features_ctrls, features_positives))
