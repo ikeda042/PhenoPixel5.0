@@ -49,7 +49,7 @@ for i in range(X_pca.shape[0]):
 plt.xlabel('PC1')
 plt.ylabel('PC2')
 plt.title('PCA 2D Projection with Image Names')
-plt.show()
+plt.savefig("experimental/CharVectorMapping/images/PCA_2D_Haralick.png")
 
 # 3Dプロット
 fig = plt.figure(figsize=(12, 10))
@@ -61,4 +61,4 @@ ax.set_xlabel('PC1')
 ax.set_ylabel('PC2')
 ax.set_zlabel('PC3')
 ax.set_title('PCA 3D Projection with Image Names')
-plt.show()
+plt.savefig("experimental/CharVectorMapping/images/PCA_3D_Haralick.png")
