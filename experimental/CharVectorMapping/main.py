@@ -17,6 +17,7 @@ image_ctrls_paths = [
 image_positives_paths = [
     os.path.join(image_positives, file) for file in os.listdir(image_positives) if file.endswith(".png")
 ]
+
 # 特徴量抽出関数 (LBP)
 def extract_lbp_features(image_path):
     image = io.imread(image_path)
@@ -43,38 +44,33 @@ features_positives = [extract_lbp_features(path) for path in image_positives_pat
 features_ctrls = [extract_zernike_features(path) for path in image_ctrls_paths]
 features_positives = [extract_zernike_features(path) for path in image_positives_paths]
 
-# 特徴量を結合し、ラベルを設定
+# 特徴量を結合し、ラベルとファイル名を設定
 X = np.vstack((features_ctrls, features_positives))
 y = np.array([0] * len(features_ctrls) + [1] * len(features_positives))
+image_paths = image_ctrls_paths + image_positives_paths
 
 # PCAの適用
 pca = PCA(n_components=3)
 X_pca = pca.fit_transform(X)
 
 # 2Dプロット
-plt.figure(figsize=(8, 6))
-plt.scatter(X_pca[y == 0, 0], X_pca[y == 0, 1], label='Control', alpha=0.7)
-plt.scatter(X_pca[y == 1, 0], X_pca[y == 1, 1], label='Positive', alpha=0.7)
+plt.figure(figsize=(12, 8))
+for i in range(X_pca.shape[0]):
+    plt.scatter(X_pca[i, 0], X_pca[i, 1], c='blue' if y[i] == 0 else 'red', alpha=0.7)
+    plt.text(X_pca[i, 0], X_pca[i, 1], os.path.basename(image_paths[i]), fontsize=8)
 plt.xlabel('PC1')
 plt.ylabel('PC2')
-plt.legend()
-plt.title('PCA 2D Projection')
+plt.title('PCA 2D Projection with Image Names')
 plt.show()
 
 # 3Dプロット
-fig = plt.figure(figsize=(10, 8))
+fig = plt.figure(figsize=(12, 10))
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter(X_pca[y == 0, 0], X_pca[y == 0, 1], X_pca[y == 0, 2], label='Control', alpha=0.7)
-ax.scatter(X_pca[y == 1, 0], X_pca[y == 1, 1], X_pca[y == 1, 2], label='Positive', alpha=0.7)
+for i in range(X_pca.shape[0]):
+    ax.scatter(X_pca[i, 0], X_pca[i, 1], X_pca[i, 2], c='blue' if y[i] == 0 else 'red', alpha=0.7)
+    ax.text(X_pca[i, 0], X_pca[i, 1], X_pca[i, 2], os.path.basename(image_paths[i]), fontsize=8)
 ax.set_xlabel('PC1')
 ax.set_ylabel('PC2')
 ax.set_zlabel('PC3')
-ax.set_title('PCA 3D Projection')
-plt.legend()
+ax.set_title('PCA 3D Projection with Image Names')
 plt.show()
-
-
-
-
-
-
