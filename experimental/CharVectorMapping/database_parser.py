@@ -53,9 +53,9 @@ def database_parser(dbname: str):
     for cell in cells_with_label_1:
         img_fluo, masked = parse_image(cell)
         cv2.imwrite(
-            f"experimental/CharVectorMapping/images/fluo/{cell.cell_id}.png", img_fluo
+            f"experimental/CharVectorMapping/images/fluo/{dbname}-{cell.cell_id}.png", img_fluo
         )
         cv2.imwrite(
-            f"experimental/CharVectorMapping/images/fluo_masked/{cell.cell_id}.png",
+            f"experimental/CharVectorMapping/images/fluo_masked/{dbname}-{cell.cell_id}.png",
             masked,
         )
