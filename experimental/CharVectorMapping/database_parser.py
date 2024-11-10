@@ -31,14 +31,29 @@ def parse_image(cell: Cell) -> tuple:
     cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
     masked = cv2.bitwise_and(img_fluo, mask)
     masked_gray = cv2.cvtColor(masked, cv2.COLOR_BGR2GRAY)
+    
+    # ユニークな輝度値を取得してソート
+    unique_vals = np.unique(masked_gray[masked_gray > 0])
+    
+    # 最小から2番目の輝度値を取得
+    if len(unique_vals) > 1:
+        second_min_val = unique_vals[1]  # 2番目に小さい輝度値
+    else:
+        second_min_val = unique_vals[0]  # 画素が1種類しかない場合
+    
     min_val, max_val, _, _ = cv2.minMaxLoc(masked_gray)
+    
+    # 輝度の正規化処理
     if max_val > min_val:
+        normalized = np.clip(masked_gray, second_min_val, max_val)  # 範囲を制限
         normalized = cv2.normalize(
-            masked, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX
+            normalized, None, alpha=1, beta=255, norm_type=cv2.NORM_MINMAX
         )
     else:
-        normalized = masked
+        normalized = masked_gray
+    
     return img_fluo, normalized
+
 
 
 def database_parser(dbname: str):
