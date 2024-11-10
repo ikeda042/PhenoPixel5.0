@@ -23,17 +23,25 @@ class Cell(Base):
     center_x = Column(FLOAT)
     center_y = Column(FLOAT)
 
-
 def parse_image(cell: Cell) -> tuple:
+    # BGR画像を読み込み
     img_fluo = cv2.imdecode(np.frombuffer(cell.img_fluo1, np.uint8), cv2.IMREAD_COLOR)
-    contour = pickle.loads(cell.contour)
-    mask = np.zeros_like(img_fluo)
-    cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
-    masked = cv2.bitwise_and(img_fluo, mask)
-    masked_gray = cv2.cvtColor(masked, cv2.COLOR_BGR2GRAY)
     
-    # ユニークな輝度値を取得してソート
-    unique_vals = np.unique(masked_gray[masked_gray > 0])
+    # 緑チャネルのみを抽出
+    green_channel = img_fluo[:, :, 1]  # 1は緑チャネルを示す
+    
+    # 輪郭情報をデコード
+    contour = pickle.loads(cell.contour)
+    
+    # マスク作成
+    mask = np.zeros_like(green_channel)
+    cv2.drawContours(mask, [contour], -1, 255, -1)
+    
+    # マスクを適用して緑チャネルの画像を作成
+    masked_green = cv2.bitwise_and(green_channel, mask)
+    
+    # 輝度値の抽出とソート
+    unique_vals = np.unique(masked_green[masked_green > 0])
     
     # 最小から2番目の輝度値を取得
     if len(unique_vals) > 1:
@@ -41,19 +49,21 @@ def parse_image(cell: Cell) -> tuple:
     else:
         second_min_val = unique_vals[0]  # 画素が1種類しかない場合
     
-    min_val, max_val, _, _ = cv2.minMaxLoc(masked_gray)
+    min_val, max_val, _, _ = cv2.minMaxLoc(masked_green)
     
     # 輝度の正規化処理
     if max_val > min_val:
-        normalized = np.clip(masked_gray, second_min_val, max_val)  # 範囲を制限
+        normalized = np.clip(masked_green, second_min_val, max_val)  # 範囲を制限
         normalized = cv2.normalize(
             normalized, None, alpha=1, beta=255, norm_type=cv2.NORM_MINMAX
         )
     else:
-        normalized = masked_gray
+        normalized = masked_green
     
-    return img_fluo, normalized
-
+    # 緑チャネルをカラー画像として出力するためにBGRに変換
+    green_bgr = cv2.merge([np.zeros_like(normalized), normalized, np.zeros_like(normalized)])
+    
+    return img_fluo, green_bgr
 
 
 def database_parser(dbname: str):
