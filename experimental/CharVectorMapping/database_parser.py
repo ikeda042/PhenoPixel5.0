@@ -59,3 +59,11 @@ def database_parser(dbname: str):
             f"experimental/CharVectorMapping/images/fluo_masked/{dbname}-{cell.cell_id}.png",
             masked,
         )
+
+    session.close()
+
+if __name__ == "__main__":
+    database_parser("sk326Gen30min.db")
+    database_parser("sk326Gen60min.db")
+    database_parser("sk326Gen90min.db")
+    database_parser("sk326Gen120min.db")
