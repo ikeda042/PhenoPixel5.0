@@ -230,9 +230,11 @@ def find_path(
     # set axes equal
     plt.axis("equal")
     # plot points 
-    for i in raw_points:
-        print(i.q,i.dist)
-        plt.scatter(i.p, i.dist*i.sign, s=40,c=i.G, cmap="inferno")
+    ps = [i.p for i in raw_points]
+    qs = [i.q for i in raw_points]
+    dists = [i.dist*i.sign for i in raw_points]
+    gs = [i.G for i in raw_points]
+    plt.scatter(ps, dists , s=100, c=gs, cmap="inferno")
     fig.savefig("experimental/DotPatternMap/images/points.png")
 
 
