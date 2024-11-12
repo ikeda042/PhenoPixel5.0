@@ -384,11 +384,12 @@ for filename in [
 ]:
     os.remove(os.path.join("experimental/DotPatternMap/images/points_box", filename))
 
-cells: list[Cell] = database_parser("sk326tri120min.db")
+db = "sk326tri120min.db"
+cells: list[Cell] = database_parser(db)
 map64 = Map64()
 for cell in tqdm(cells):
     image_fluo_raw = cell.img_fluo1
     contour_raw = cell.contour
     cell_id = cell.cell_id
     map64.extract_map(image_fluo_raw, contour_raw, 4, cell_id)
-map64.combine_images()
+map64.combine_images(out_name=db.replace(".db", ".png"))
