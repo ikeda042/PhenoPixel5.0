@@ -280,7 +280,7 @@ class Map64:
             high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST
         )
         # 画像を保存
-        cv2.imwrite(f"experimental/DotPatternMap/images/image_64_{cell_id}.png", high_res_image)
+        cv2.imwrite(f"experimental/DotPatternMap/images/map64/image_64_{cell_id}.png", high_res_image)
 
 
 cells: list[Cell] = database_parser("sk326Gen90min.db")
