@@ -270,8 +270,9 @@ def find_path(
 
 
 
-cells: list[Cell] = database_parser("sk326Gen90min.db")
-cell = cells[9]
+cells: list[Cell] = database_parser("sk326Cip90min.db")
+print(cells)
+cell = cells[1]
 image_fluo_raw = cell.img_fluo1
 contour_raw = cell.contour
 
