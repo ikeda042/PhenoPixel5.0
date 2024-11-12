@@ -123,3 +123,8 @@ def replot(
 
 cells: list[Cell] = database_parser("sk326Gen90min.db")
 print(cells[0].cell_id)
+
+image_fluo_raw = cells[0].img_fluo1
+contour_raw = cells[0].contour
+
+replot(image_fluo_raw, contour_raw, 1)
