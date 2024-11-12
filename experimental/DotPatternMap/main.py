@@ -9,9 +9,10 @@ from dataclasses import dataclass
 
 @dataclass
 class Point:
-    def __init__(self, u1: float, G: float) -> None:
+    def __init__(self, u1: float, G: float,dist:float) -> None:
         self.u1 = u1
         self.G = G
+        self.dist = dist
 
     def __gt__(self, other) -> bool:
         return self.u1 > other.u1
