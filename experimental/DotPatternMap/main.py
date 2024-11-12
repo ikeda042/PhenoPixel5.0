@@ -122,4 +122,4 @@ def replot(
         plt.savefig("experimental/DotPatternMap/images/contour.png")
 
 cells: list[Cell] = database_parser("sk326Gen90min.db")
-print(cells[0].id)
+print(cells[0].cell_id)
