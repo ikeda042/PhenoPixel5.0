@@ -108,6 +108,7 @@ class Map64:
 
     @classmethod
     def replot(
+        cls,
         image_fluo_raw: bytes,
         contour_raw: bytes,
         degree: int,
@@ -146,7 +147,7 @@ class Map64:
             u2_c,
             U,
             contour_U,
-        ) = basis_conversion(
+        ) = cls.basis_conversion(
             [list(i[0]) for i in unpickled_contour],
             X,
             image_fluo.shape[0] / 2,
@@ -172,7 +173,7 @@ class Map64:
         plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
 
         x = np.linspace(min_u1, max_u1, 1000)
-        theta = poly_fit(U, degree=degree)
+        theta = cls.poly_fit(U, degree=degree)
         y = np.polyval(theta, x)
         plt.plot(x, y, color="red")
         plt.scatter(u1_contour, u2_contour, color="lime", s=3)
@@ -181,104 +182,104 @@ class Map64:
         plt.savefig("experimental/DotPatternMap/images/contour.png")
 
 
-@staticmethod
-def find_path(image_fluo_raw: bytes, contour_raw: bytes, degree: int):
-    image_fluo = cv2.imdecode(np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR)
-    image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+    @classmethod
+    def extract_map(image_fluo_raw: bytes, contour_raw: bytes, degree: int):
+        image_fluo = cv2.imdecode(np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR)
+        image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
 
-    mask = np.zeros_like(image_fluo_gray)
+        mask = np.zeros_like(image_fluo_gray)
 
-    unpickled_contour = pickle.loads(contour_raw)
-    cv2.fillPoly(mask, [unpickled_contour], 255)
+        unpickled_contour = pickle.loads(contour_raw)
+        cv2.fillPoly(mask, [unpickled_contour], 255)
 
-    coords_inside_cell_1 = np.column_stack(np.where(mask))
-    points_inside_cell_1 = image_fluo_gray[
-        coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
-    ]
-
-    X = np.array(
-        [
-            [i[1] for i in coords_inside_cell_1],
-            [i[0] for i in coords_inside_cell_1],
+        coords_inside_cell_1 = np.column_stack(np.where(mask))
+        points_inside_cell_1 = image_fluo_gray[
+            coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
         ]
-    )
 
-    (
-        u1,
-        u2,
-        u1_contour,
-        u2_contour,
-        min_u1,
-        max_u1,
-        u1_c,
-        u2_c,
-        U,
-        contour_U,
-    ) = basis_conversion(
-        [list(i[0]) for i in unpickled_contour],
-        X,
-        image_fluo.shape[0] / 2,
-        image_fluo.shape[1] / 2,
-        coords_inside_cell_1,
-    )
-
-    theta = poly_fit(U, degree=degree)
-    raw_points: list[Point] = []
-    for i, j, p in zip(u1, u2, points_inside_cell_1):
-        min_distance, min_point = find_minimum_distance_and_point(theta, i, j)
-        sign = 1 if j > min_point[1] else -1
-        raw_points.append(
-            Point(min_point[0], min_point[1], i, j, min_distance, p, sign)
+        X = np.array(
+            [
+                [i[1] for i in coords_inside_cell_1],
+                [i[0] for i in coords_inside_cell_1],
+            ]
         )
-    raw_points.sort()
 
-    fig = plt.figure(figsize=(6, 6))
-    plt.axis("equal")
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = basis_conversion(
+            [list(i[0]) for i in unpickled_contour],
+            X,
+            image_fluo.shape[0] / 2,
+            image_fluo.shape[1] / 2,
+            coords_inside_cell_1,
+        )
 
-    ps = [i.p for i in raw_points]
-    qs = [i.q for i in raw_points]
-    dists = [i.dist * i.sign for i in raw_points]
-    gs = [i.G for i in raw_points]
-    min_p, max_p = min(ps), max(ps)
-    min_dist, max_dist = min(dists), max(dists)
-    print(min_dist, max_dist)
-    # gsを正規化する（最大を255に、最小を0にする）
-    gs_norm = (
-        (gs - min(gs)) / (max(gs) - min(gs)) * 255
-        if max(gs) > min(gs)
-        else [0] * len(gs)
-    )
+        theta = poly_fit(U, degree=degree)
+        raw_points: list[Point] = []
+        for i, j, p in zip(u1, u2, points_inside_cell_1):
+            min_distance, min_point = find_minimum_distance_and_point(theta, i, j)
+            sign = 1 if j > min_point[1] else -1
+            raw_points.append(
+                Point(min_point[0], min_point[1], i, j, min_distance, p, sign)
+            )
+        raw_points.sort()
 
-    plt.scatter(ps, dists, s=1, c=gs_norm, cmap="inferno")
-    plt.xlabel("p")
-    plt.ylabel("dist")
-    # 外接矩形の描画
-    plt.plot([min_p, max_p], [min_dist, min_dist], color="red")
-    plt.plot([min_p, max_p], [max_dist, max_dist], color="red")
-    plt.plot([min_p, min_p], [min_dist, max_dist], color="red")
-    plt.plot([max_p, max_p], [min_dist, max_dist], color="red")
+        fig = plt.figure(figsize=(6, 6))
+        plt.axis("equal")
 
-    fig.savefig("experimental/DotPatternMap/images/points.png")
-    plt.close(fig)
-    plt.clf()
+        ps = [i.p for i in raw_points]
+        qs = [i.q for i in raw_points]
+        dists = [i.dist * i.sign for i in raw_points]
+        gs = [i.G for i in raw_points]
+        min_p, max_p = min(ps), max(ps)
+        min_dist, max_dist = min(dists), max(dists)
+        print(min_dist, max_dist)
+        # gsを正規化する（最大を255に、最小を0にする）
+        gs_norm = (
+            (gs - min(gs)) / (max(gs) - min(gs)) * 255
+            if max(gs) > min(gs)
+            else [0] * len(gs)
+        )
 
-    # 画像サイズを元の範囲に厳密に設定
-    scale_factor = 1
-    scaled_width = int((max_p - min_p) * scale_factor)
-    scaled_height = int((max_dist - min_dist) * scale_factor)
-    high_res_image = np.zeros((scaled_height, scaled_width), dtype=np.uint8)
+        plt.scatter(ps, dists, s=1, c=gs_norm, cmap="inferno")
+        plt.xlabel("p")
+        plt.ylabel("dist")
+        # 外接矩形の描画
+        plt.plot([min_p, max_p], [min_dist, min_dist], color="red")
+        plt.plot([min_p, max_p], [max_dist, max_dist], color="red")
+        plt.plot([min_p, min_p], [min_dist, max_dist], color="red")
+        plt.plot([max_p, max_p], [min_dist, max_dist], color="red")
 
-    # 点群を描画
-    for p, dist, G in zip(ps, dists, gs_norm):
-        p_scaled = int((p - min_p) * scale_factor)
-        dist_scaled = int((dist - min_dist) * scale_factor)
-        cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
-    # resize image to 28x28
-    high_res_image = cv2.resize(
-        high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST
-    )
-    # 画像を保存
-    cv2.imwrite("experimental/DotPatternMap/images/image_c.png", high_res_image)
+        fig.savefig("experimental/DotPatternMap/images/points.png")
+        plt.close(fig)
+        plt.clf()
+
+        # 画像サイズを元の範囲に厳密に設定
+        scale_factor = 1
+        scaled_width = int((max_p - min_p) * scale_factor)
+        scaled_height = int((max_dist - min_dist) * scale_factor)
+        high_res_image = np.zeros((scaled_height, scaled_width), dtype=np.uint8)
+
+        # 点群を描画
+        for p, dist, G in zip(ps, dists, gs_norm):
+            p_scaled = int((p - min_p) * scale_factor)
+            dist_scaled = int((dist - min_dist) * scale_factor)
+            cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
+        # resize image to 28x28
+        high_res_image = cv2.resize(
+            high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST
+        )
+        # 画像を保存
+        cv2.imwrite("experimental/DotPatternMap/images/image_c.png", high_res_image)
 
 
 cells: list[Cell] = database_parser("sk326Cip120min.db")
