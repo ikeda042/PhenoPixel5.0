@@ -53,78 +53,6 @@ def find_minimum_distance_and_point(coefficients, x_Q, y_Q):
 
         return min_distance, min_point
 
-@staticmethod
-def find_path(
-    image_fluo_raw: bytes, contour_raw: bytes, degree: int
-):
-
-    image_fluo = cv2.imdecode(
-        np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
-    )
-    image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
-
-    mask = np.zeros_like(image_fluo_gray)
-
-    unpickled_contour = pickle.loads(contour_raw)
-    cv2.fillPoly(mask, [unpickled_contour], 255)
-
-    coords_inside_cell_1 = np.column_stack(np.where(mask))
-    points_inside_cell_1 = image_fluo_gray[
-        coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
-    ]
-
-    X = np.array(
-        [
-            [i[1] for i in coords_inside_cell_1],
-            [i[0] for i in coords_inside_cell_1],
-        ]
-    )
-
-    (
-        u1,
-        u2,
-        u1_contour,
-        u2_contour,
-        min_u1,
-        max_u1,
-        u1_c,
-        u2_c,
-        U,
-        contour_U,
-    ) = basis_conversion(
-        [list(i[0]) for i in unpickled_contour],
-        X,
-        image_fluo.shape[0] / 2,
-        image_fluo.shape[1] / 2,
-        coords_inside_cell_1,
-    )
-
-    theta = poly_fit(U, degree=degree)
-    raw_points: list[Point] = []
-    for i, j, p in zip(u1, u2, points_inside_cell_1):
-        min_distance, min_point = find_minimum_distance_and_point(
-            theta, i, j
-        )
-        sign = 1 if j > min_point[1] else -1
-        raw_points.append(Point(min_point[0], min_point[1], i, j,min_distance, p,sign ))
-    raw_points.sort()
-
-    fig = plt.figure(figsize=(6, 6))
-    # set axes equal
-    plt.axis("equal")
-    # plot points 
-    for i in raw_points:
-        print(i.q,i.dist)
-        plt.scatter(i.p, i.dist*i.sign, s=1,color="blue")
-    margin_width = 50
-    margin_height = 50
-    # plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
-    # plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
-    
-
-    fig.savefig("experimental/DotPatternMap/images/points.png")
-
-
 def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
     u1_values = np.array([i[1] for i in U])
     f_values = np.array([i[0] for i in U])
@@ -239,6 +167,76 @@ def replot(
         plt.tick_params(direction="in")
         plt.grid(True)
         plt.savefig("experimental/DotPatternMap/images/contour.png")
+
+
+
+@staticmethod
+def find_path(
+    image_fluo_raw: bytes, contour_raw: bytes, degree: int
+):
+
+    image_fluo = cv2.imdecode(
+        np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
+    )
+    image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+
+    mask = np.zeros_like(image_fluo_gray)
+
+    unpickled_contour = pickle.loads(contour_raw)
+    cv2.fillPoly(mask, [unpickled_contour], 255)
+
+    coords_inside_cell_1 = np.column_stack(np.where(mask))
+    points_inside_cell_1 = image_fluo_gray[
+        coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
+    ]
+
+    X = np.array(
+        [
+            [i[1] for i in coords_inside_cell_1],
+            [i[0] for i in coords_inside_cell_1],
+        ]
+    )
+
+    (
+        u1,
+        u2,
+        u1_contour,
+        u2_contour,
+        min_u1,
+        max_u1,
+        u1_c,
+        u2_c,
+        U,
+        contour_U,
+    ) = basis_conversion(
+        [list(i[0]) for i in unpickled_contour],
+        X,
+        image_fluo.shape[0] / 2,
+        image_fluo.shape[1] / 2,
+        coords_inside_cell_1,
+    )
+
+    theta = poly_fit(U, degree=degree)
+    raw_points: list[Point] = []
+    for i, j, p in zip(u1, u2, points_inside_cell_1):
+        min_distance, min_point = find_minimum_distance_and_point(
+            theta, i, j
+        )
+        sign = 1 if j > min_point[1] else -1
+        raw_points.append(Point(min_point[0], min_point[1], i, j,min_distance, p,sign ))
+    raw_points.sort()
+
+    fig = plt.figure(figsize=(6, 6))
+    # set axes equal
+    plt.axis("equal")
+    # plot points 
+    for i in raw_points:
+        print(i.q,i.dist)
+        plt.scatter(i.p, i.dist*i.sign, s=40,c=i.G, cmap="inferno")
+    
+
+    fig.savefig("experimental/DotPatternMap/images/points.png")
+
 
 cells: list[Cell] = database_parser("sk326Gen90min.db")
 cell = cells[71]
