@@ -110,7 +110,7 @@ def find_path(
     fig = plt.figure(figsize=(6, 6))
     # plot points 
     for i in raw_points:
-        plt.scatter(i.p, i.q, s=5)
+        plt.scatter(i.u1, i.u2, s=5)
     fig.savefig("experimental/DotPatternMap/images/points.png")
 
 
