@@ -101,13 +101,13 @@ def find_path(
         min_distance, min_point = find_minimum_distance_and_point(
             theta, i, j
         )
-        raw_points.append(Point(min_point[0], p))
+        raw_points.append(Point(min_point[0], p, min_distance))
     raw_points.sort()
 
     fig = plt.figure(figsize=(6, 6))
     # plot points 
     for i in raw_points:
-        plt.scatter(i.u1, i.G, s=5)
+        plt.scatter(i.u1, i.dist, s=5)
     fig.savefig("experimental/DotPatternMap/images/points.png")
 
 
