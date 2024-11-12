@@ -295,53 +295,44 @@ class Map64:
 
     @classmethod
     def combine_images(cls):
-        images = []
-        for filename in os.listdir("experimental/DotPatternMap/images/map64"):
-            img = cv2.imread(f"experimental/DotPatternMap/images/map64/{filename}")
-            images.append(img)
-        # 元の画像をほとんど正方形に並べる(nマイの画像)
-        n = len(images)
-        row = int(np.sqrt(n))
-        col = n // row
-        if row * col < n:
-            col += 1
-        # 画像を結合
-        combined_image = np.zeros((64 * row, 64 * col), dtype=np.uint8)
+        map64_dir = "experimental/DotPatternMap/images/map64"
+        points_box_dir = "experimental/DotPatternMap/images/points_box"
 
-        for i, img in enumerate(images):
-            x = (i % col) * 64
-            y = (i // col) * 64
-            combined_image[y : y + 64, x : x + 64] = img
-        # 画像を保存
+        map64_images = [
+            cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
+            for filename in os.listdir(map64_dir)
+        ]
+        points_box_images = [
+            cv2.imread(os.path.join(points_box_dir, filename), cv2.IMREAD_COLOR)
+            for filename in os.listdir(points_box_dir)
+        ]
+
+        def calculate_grid_size(n):
+            row = int(np.sqrt(n))
+            col = (n + row - 1) // row
+            return row, col
+
+        def combine_images_grid(images, image_size, channels=1):
+            n = len(images)
+            row, col = calculate_grid_size(n)
+            combined_image = np.zeros(
+                (image_size * row, image_size * col, channels), dtype=np.uint8
+            )
+            for i, img in enumerate(images):
+                x = (i % col) * image_size
+                y = (i // col) * image_size
+                combined_image[y : y + image_size, x : x + image_size] = img
+            return combined_image
+
+        combined_map64_image = combine_images_grid(map64_images, 64, 1)
         cv2.imwrite(
-            "experimental/DotPatternMap/images/combined_image.png", combined_image
+            "experimental/DotPatternMap/images/combined_image.png", combined_map64_image
         )
 
-        images_box = []
-        for filename in os.listdir("experimental/DotPatternMap/images/points_box"):
-            img = cv2.imread(
-                f"experimental/DotPatternMap/images/points_box/{filename}",
-                cv2.IMREAD_COLOR,
-            )
-            images_box.append(img)
-        # 元の画像をほとんど正方形に並べる(nマイの画像)
-        n = len(images_box)
-        row = int(np.sqrt(n))
-        col = n // row
-        if row * col < n:
-            col += 1
-        # 画像を結合
-        combined_image_box = np.zeros((64 * row, 64 * col, 3), dtype=np.uint8)
-
-        for i, img in enumerate(images_box):
-            x = (i % col) * 64
-            y = (i // col) * 64
-            combined_image_box[y : y + 64, x : x + 64] = img
-
-        # 画像を保存
+        combined_points_box_image = combine_images_grid(points_box_images, 64, 3)
         cv2.imwrite(
             "experimental/DotPatternMap/images/combined_image_box.png",
-            combined_image_box,
+            combined_points_box_image,
         )
 
 
