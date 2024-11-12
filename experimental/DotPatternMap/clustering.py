@@ -1,10 +1,12 @@
 import os
 import numpy as np
-import cv2  # OpenCVをインポート
+import cv2
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import shutil
-from mahotas.features import zernike_moments  # Mahotasライブラリを使用
+from mahotas.features import zernike_moments
+from skimage.feature import hog
+
 
 # 画像パスの設定
 image_dir = "experimental/DotPatternMap/images/map64"
@@ -36,7 +38,7 @@ for path in image_paths:
 features = np.array(features)
 
 # 次元削減 (PCA)
-pca = PCA(n_components=10)
+pca = PCA(n_components=min(features.shape[0], features.shape[1], 10))
 features_pca = pca.fit_transform(features)
 
 # クラスタリング
