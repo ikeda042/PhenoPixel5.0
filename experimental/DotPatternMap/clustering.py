@@ -4,6 +4,7 @@ import cv2  # OpenCVをインポート
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import shutil
+from mahotas.features import zernike_moments  # Mahotasライブラリを使用
 
 # 画像パスの設定
 image_dir = "experimental/DotPatternMap/images/map64"
@@ -14,11 +15,14 @@ image_paths = [
 ]
 
 
-# 特徴抽出関数（画像のピクセル値をそのまま使用）
+# 特徴抽出関数 (Zernikeモーメント)
 def extract_features(image_path):
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    image_resized = cv2.resize(image, (64, 64))  # サイズ調整（必要に応じて）
-    return image_resized.flatten()  # 平坦化して1次元配列にする
+    image_resized = cv2.resize(image, (64, 64))  # 必要に応じてサイズ変更
+    _, binary_image = cv2.threshold(image_resized, 128, 255, cv2.THRESH_BINARY)
+    radius = 32  # 画像サイズの半分
+    zernike_features = zernike_moments(binary_image, radius, degree=8)
+    return zernike_features
 
 
 # すべての画像から特徴を抽出
@@ -68,33 +72,34 @@ for path, label in zip(image_paths, labels):
     os.makedirs(cluster_dir, exist_ok=True)
     output_path = os.path.join(cluster_dir, os.path.basename(path))
     cv2.imwrite(output_path, image)
-    # クラスタごとの画像を一枚にまとめる
-    for cluster_id, cell_list in clusters.items():
-        cluster_dir = os.path.join(output_dir, f"cluster_{cluster_id}")
-        images = []
-        for cell_id in cell_list:
-            img_path = os.path.join(cluster_dir, f"{cell_id}.png")
-            img = cv2.imread(img_path)
-            if img is not None:
-                images.append(img)
 
-        if images:  # Check if images list is not empty
-            # 画像の数に応じてグリッドサイズを決定
-            grid_size = int(np.ceil(np.sqrt(len(images))))
-            image_height, image_width, _ = images[0].shape
-            combined_image = np.zeros(
-                (grid_size * image_height, grid_size * image_width, 3), dtype=np.uint8
-            )
+# クラスタごとの画像を一枚にまとめる
+for cluster_id, cell_list in clusters.items():
+    cluster_dir = os.path.join(output_dir, f"cluster_{cluster_id}")
+    images = []
+    for cell_id in cell_list:
+        img_path = os.path.join(cluster_dir, f"{cell_id}.png")
+        img = cv2.imread(img_path)
+        if img is not None:
+            images.append(img)
 
-            for idx, image in enumerate(images):
-                row = idx // grid_size
-                col = idx % grid_size
-                combined_image[
-                    row * image_height : (row + 1) * image_height,
-                    col * image_width : (col + 1) * image_width,
-                ] = image
+    if images:  # Check if images list is not empty
+        # 画像の数に応じてグリッドサイズを決定
+        grid_size = int(np.ceil(np.sqrt(len(images))))
+        image_height, image_width, _ = images[0].shape
+        combined_image = np.zeros(
+            (grid_size * image_height, grid_size * image_width, 3), dtype=np.uint8
+        )
 
-            combined_image_path = os.path.join(
-                output_dir, f"cluster_{cluster_id}_combined.png"
-            )
-            cv2.imwrite(combined_image_path, combined_image)
+        for idx, image in enumerate(images):
+            row = idx // grid_size
+            col = idx % grid_size
+            combined_image[
+                row * image_height : (row + 1) * image_height,
+                col * image_width : (col + 1) * image_width,
+            ] = image
+
+        combined_image_path = os.path.join(
+            output_dir, f"cluster_{cluster_id}_combined.png"
+        )
+        cv2.imwrite(combined_image_path, combined_image)
