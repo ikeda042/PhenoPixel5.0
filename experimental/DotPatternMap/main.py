@@ -41,6 +41,24 @@ class Map64:
             return f"({self.u1},{self.G})"
 
     @classmethod
+    def flip_image_if_needed(cls, image):
+        # 画像がカラーの場合、グレースケールに変換
+        if len(image.shape) == 3:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        h, w = image.shape
+        left_half = image[:, : w // 2]
+        right_half = image[:, w // 2 :]
+
+        left_brightness = np.mean(left_half)
+        right_brightness = np.mean(right_half)
+
+        if right_brightness > left_brightness:
+            # 右の輝度が高い場合は左右反転
+            image = cv2.flip(image, 1)
+        return image
+
+    @classmethod
     def find_minimum_distance_and_point(cls, coefficients, x_Q, y_Q):
         # 関数の定義
         def f_x(x):
@@ -287,6 +305,8 @@ class Map64:
         high_res_image = cv2.resize(
             high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST
         )
+        # 画像反転関数を適用
+        high_res_image = cls.flip_image_if_needed(high_res_image)
         # 画像を保存
         cv2.imwrite(
             f"experimental/DotPatternMap/images/map64/{cell_id}.png",
