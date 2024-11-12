@@ -68,3 +68,30 @@ for path, label in zip(image_paths, labels):
     os.makedirs(cluster_dir, exist_ok=True)
     output_path = os.path.join(cluster_dir, os.path.basename(path))
     cv2.imwrite(output_path, image)
+    # クラスタごとの画像を一枚にまとめる
+    for cluster_id, cell_list in clusters.items():
+        cluster_dir = os.path.join(output_dir, f"cluster_{cluster_id}")
+        images = [
+            cv2.imread(os.path.join(cluster_dir, f"{cell_id}.png"))
+            for cell_id in cell_list
+        ]
+
+        # 画像の数に応じてグリッドサイズを決定
+        grid_size = int(np.ceil(np.sqrt(len(images))))
+        image_height, image_width, _ = images[0].shape
+        combined_image = np.zeros(
+            (grid_size * image_height, grid_size * image_width, 3), dtype=np.uint8
+        )
+
+        for idx, image in enumerate(images):
+            row = idx // grid_size
+            col = idx % grid_size
+            combined_image[
+                row * image_height : (row + 1) * image_height,
+                col * image_width : (col + 1) * image_width,
+            ] = image
+
+        combined_image_path = os.path.join(
+            output_dir, f"cluster_{cluster_id}_combined.png"
+        )
+        cv2.imwrite(combined_image_path, combined_image)
