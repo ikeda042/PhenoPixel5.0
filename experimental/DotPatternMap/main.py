@@ -110,14 +110,17 @@ def find_path(
     raw_points.sort()
 
     fig = plt.figure(figsize=(6, 6))
+    # set axes equal
+    plt.axis("equal")
     # plot points 
     for i in raw_points:
         print(i.q,i.dist)
         plt.scatter(i.p, i.dist*i.sign, s=1,color="blue")
-    # margin_width = 50
-    # margin_height = 50
+    margin_width = 50
+    margin_height = 50
     # plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
     # plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
+    
 
     fig.savefig("experimental/DotPatternMap/images/points.png")
 
