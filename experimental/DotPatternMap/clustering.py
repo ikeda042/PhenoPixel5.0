@@ -50,7 +50,7 @@ for cell_id, label in zip(cell_ids, labels):
 for cluster_id, cell_list in clusters.items():
     print(f"Cluster {cluster_id}: {', '.join(cell_list)}")
     # クラスタごとに画像を保存
-    output_dir = "experimental/DotPatternMap/clustered_images"
+    output_dir = "experimental/DotPatternMap/images/clustered_images"
     os.makedirs(output_dir, exist_ok=True)
 
     for path, label in zip(image_paths, labels):
@@ -58,4 +58,8 @@ for cluster_id, cell_list in clusters.items():
         output_path = os.path.join(
             output_dir, f"cluster{label}_{os.path.basename(path)}"
         )
+        cv2.imwrite(output_path, image)
+        cluster_dir = os.path.join(output_dir, f"cluster_{label}")
+        os.makedirs(cluster_dir, exist_ok=True)
+        output_path = os.path.join(cluster_dir, os.path.basename(path))
         cv2.imwrite(output_path, image)
