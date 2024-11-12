@@ -3,6 +3,7 @@ import numpy as np
 import cv2  # OpenCVをインポート
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+import shutil
 
 # 画像パスの設定
 image_dir = "experimental/DotPatternMap/images/map64"
@@ -49,17 +50,21 @@ for cell_id, label in zip(cell_ids, labels):
 # クラスタの結果を表示
 for cluster_id, cell_list in clusters.items():
     print(f"Cluster {cluster_id}: {', '.join(cell_list)}")
-    # クラスタごとに画像を保存
-    output_dir = "experimental/DotPatternMap/images/clustered_images"
-    os.makedirs(output_dir, exist_ok=True)
 
-    for path, label in zip(image_paths, labels):
-        image = cv2.imread(path)
-        output_path = os.path.join(
-            output_dir, f"cluster{label}_{os.path.basename(path)}"
-        )
-        cv2.imwrite(output_path, image)
-        cluster_dir = os.path.join(output_dir, f"cluster_{label}")
-        os.makedirs(cluster_dir, exist_ok=True)
-        output_path = os.path.join(cluster_dir, os.path.basename(path))
-        cv2.imwrite(output_path, image)
+# クラスタごとに画像を保存
+output_dir = "experimental/DotPatternMap/images/clustered_images"
+if os.path.exists(output_dir):
+    for file in os.listdir(output_dir):
+        file_path = os.path.join(output_dir, file)
+        if os.path.isfile(file_path):
+            os.unlink(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+os.makedirs(output_dir, exist_ok=True)
+
+for path, label in zip(image_paths, labels):
+    image = cv2.imread(path)
+    cluster_dir = os.path.join(output_dir, f"cluster_{label}")
+    os.makedirs(cluster_dir, exist_ok=True)
+    output_path = os.path.join(cluster_dir, os.path.basename(path))
+    cv2.imwrite(output_path, image)
