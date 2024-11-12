@@ -383,4 +383,4 @@ for cell in tqdm(cells):
     contour_raw = cell.contour
     cell_id = cell.cell_id
     map64.extract_map(image_fluo_raw, contour_raw, 4, cell_id)
-# map64.combine_images()
+map64.combine_images()
