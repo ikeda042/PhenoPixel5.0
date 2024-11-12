@@ -49,3 +49,13 @@ for cell_id, label in zip(cell_ids, labels):
 # クラスタの結果を表示
 for cluster_id, cell_list in clusters.items():
     print(f"Cluster {cluster_id}: {', '.join(cell_list)}")
+    # クラスタごとに画像を保存
+    output_dir = "experimental/DotPatternMap/clustered_images"
+    os.makedirs(output_dir, exist_ok=True)
+
+    for path, label in zip(image_paths, labels):
+        image = cv2.imread(path)
+        output_path = os.path.join(
+            output_dir, f"cluster{label}_{os.path.basename(path)}"
+        )
+        cv2.imwrite(output_path, image)
