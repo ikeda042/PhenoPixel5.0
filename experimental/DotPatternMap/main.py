@@ -311,6 +311,14 @@ class Map64:
             is not None
         ]
 
+        # Calculate total brightness for each map64 image
+        brightness = [np.sum(img) for img in map64_images]
+
+        # Sort images by brightness in descending order
+        sorted_indices = np.argsort(brightness)[::-1]
+        map64_images = [map64_images[i] for i in sorted_indices]
+        points_box_images = [points_box_images[i] for i in sorted_indices]
+
         def calculate_grid_size(n):
             row = int(np.sqrt(n))
             col = (n + row - 1) // row
