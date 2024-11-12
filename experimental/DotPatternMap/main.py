@@ -16,7 +16,7 @@ class Point:
         self.u2 = u2
         self.dist = dist
         self.G = G
-        self.is_positive = sign
+        self.sign = sign
         
 
     def __gt__(self, other) -> bool:
@@ -113,11 +113,11 @@ def find_path(
     # plot points 
     for i in raw_points:
         print(i.q,i.dist)
-        plt.scatter(i.p, i.q, s=1,color="blue")
-    margin_width = 50
-    margin_height = 50
-    plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
-    plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
+        plt.scatter(i.p, i.dist*i.sign, s=1,color="blue")
+    # margin_width = 50
+    # margin_height = 50
+    # plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
+    # plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
 
     fig.savefig("experimental/DotPatternMap/images/points.png")
 
