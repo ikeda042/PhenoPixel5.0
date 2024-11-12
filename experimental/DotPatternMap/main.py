@@ -288,7 +288,7 @@ class Map64:
         )
         # 画像を保存
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64/image_64_{cell_id}.png",
+            f"experimental/DotPatternMap/images/map64/{cell_id}.png",
             high_res_image,
         )
 
