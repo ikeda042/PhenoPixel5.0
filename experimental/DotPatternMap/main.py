@@ -4,6 +4,33 @@ import matplotlib.pyplot as plt
 import cv2
 import pickle
 from database_parser import database_parser, Cell
+from scipy.optimize import minimize
+
+@staticmethod
+def find_minimum_distance_and_point(coefficients, x_Q, y_Q):
+        # 関数の定義
+        def f_x(x):
+            return sum(
+                coefficient * x**i for i, coefficient in enumerate(coefficients[::-1])
+            )
+
+        # 点Qから関数上の点までの距離 D の定義
+        def distance(x):
+            return np.sqrt((x - x_Q) ** 2 + (f_x(x) - y_Q) ** 2)
+
+        # scipyのminimize関数を使用して最短距離を見つける
+        # 初期値は0とし、精度は低く設定して計算速度を向上させる
+        result = minimize(
+            distance, 0, method="Nelder-Mead", options={"xatol": 1e-4, "fatol": 1e-2}
+        )
+
+        # 最短距離とその時の関数上の点
+        x_min = result.x[0]
+        min_distance = distance(x_min)
+        min_point = (x_min, f_x(x_min))
+
+        return min_distance, min_point
+
 
 
 def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
