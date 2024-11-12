@@ -34,6 +34,14 @@ def migrate(dbname: str) -> None:
             inspector = engine.dialect.get_columns(connection, Cell.__tablename__)
             existing_columns = {col["name"] for col in inspector}
 
+            # Rename img_fluo to img_fluo1 if it exists
+            if "img_fluo" in existing_columns:
+                try:
+                    connection.execute(text(f"ALTER TABLE {Cell.__tablename__} RENAME COLUMN img_fluo TO img_fluo1"))
+                    print("Renamed column 'img_fluo' to 'img_fluo1'")
+                except OperationalError as e:
+                    print(f"Failed to rename column 'img_fluo': {e}")
+
             model_columns = {col.name for col in Cell.__table__.columns}
             missing_columns = model_columns - existing_columns
 
