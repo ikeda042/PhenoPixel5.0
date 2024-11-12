@@ -383,7 +383,7 @@ for filename in [
 ]:
     os.remove(os.path.join("experimental/DotPatternMap/images/points_box", filename))
 
-cells: list[Cell] = database_parser("sk326tri60min.db")
+cells: list[Cell] = database_parser("sk326tri120min.db")
 map64 = Map64()
 for cell in tqdm(cells):
     image_fluo_raw = cell.img_fluo1
