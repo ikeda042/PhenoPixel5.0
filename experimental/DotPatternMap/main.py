@@ -234,23 +234,24 @@ def find_path(
     qs = [i.q for i in raw_points]
     dists = [i.dist*i.sign for i in raw_points]
     gs = [i.G for i in raw_points]
+    #gsを正規化する（最大を255に、最小値を0にする）
+    gs_norm  = (gs - min(gs)) / (max(gs) - min(gs)) * 255
     plt.scatter(ps, dists , s=100, c=gs, cmap="inferno")
     plt.xlabel("p")
     plt.ylabel("dist")
     fig.savefig("experimental/DotPatternMap/images/points.png")
     plt.close(fig)
     plt.clf()
-
     min_p,max_p = min(ps),max(ps)
     min_dist,max_dist = min(dists),max(dists)
      # 高解像度画像の生成
-    scale_factor = 10  # 高解像度用スケールファクター
+    scale_factor = 1  # 高解像度用スケールファクター
     scaled_width = int((max_p - min_p) * scale_factor) + 20
     scaled_height = int((max_dist - min_dist) * scale_factor) + 20
     high_res_image = np.zeros((scaled_height, scaled_width), dtype=np.uint8)
 
     # 点群を高解像度画像に描画
-    for p, dist, G in zip(ps, dists, gs):
+    for p, dist, G in zip(ps, dists, gs_norm ):
         p_scaled = int((p - min_p) * scale_factor + 10)
         dist_scaled = int((dist - min_dist) * scale_factor + 10)
         cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
