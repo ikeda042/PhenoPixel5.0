@@ -5,8 +5,24 @@ import cv2
 import pickle
 from database_parser import database_parser, Cell
 from scipy.optimize import minimize
+from dataclasses import dataclass
 
-@staticmethod
+@dataclass
+class Point:
+    def __init__(self, u1: float, G: float) -> None:
+        self.u1 = u1
+        self.G = G
+
+    def __gt__(self, other) -> bool:
+        return self.u1 > other.u1
+
+    def __lt__(self, other) -> bool:
+        return self.u1 < other.u1
+
+    def __repr__(self) -> str:
+        return f"({self.u1},{self.G})"
+
+
 def find_minimum_distance_and_point(coefficients, x_Q, y_Q):
         # 関数の定義
         def f_x(x):
@@ -31,6 +47,100 @@ def find_minimum_distance_and_point(coefficients, x_Q, y_Q):
 
         return min_distance, min_point
 
+@staticmethod
+async def find_path(
+    image_fluo_raw: bytes, contour_raw: bytes, degree: int
+) -> io.BytesIO:
+
+    image_fluo = cv2.imdecode(
+        np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
+    )
+    image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+
+    mask = np.zeros_like(image_fluo_gray)
+
+    unpickled_contour = pickle.loads(contour_raw)
+    cv2.fillPoly(mask, [unpickled_contour], 255)
+
+    coords_inside_cell_1 = np.column_stack(np.where(mask))
+    points_inside_cell_1 = image_fluo_gray[
+        coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
+    ]
+
+    X = np.array(
+        [
+            [i[1] for i in coords_inside_cell_1],
+            [i[0] for i in coords_inside_cell_1],
+        ]
+    )
+
+    (
+        u1,
+        u2,
+        u1_contour,
+        u2_contour,
+        min_u1,
+        max_u1,
+        u1_c,
+        u2_c,
+        U,
+        contour_U,
+    ) = SyncChores.basis_conversion(
+        [list(i[0]) for i in unpickled_contour],
+        X,
+        image_fluo.shape[0] / 2,
+        image_fluo.shape[1] / 2,
+        coords_inside_cell_1,
+    )
+
+    theta = await AsyncChores.poly_fit(U, degree=degree)
+    ### projection
+    raw_points: list[Point] = []
+    for i, j, p in zip(u1, u2, points_inside_cell_1):
+        min_distance, min_point = await AsyncChores.find_minimum_distance_and_point(
+            theta, i, j
+        )
+        raw_points.append(Point(min_point[0], p))
+    raw_points.sort()
+
+    ### peak-path finder
+    ### Meta parameters
+    split_num: int = 35
+    delta_L: float = (max(u1) - min(u1)) / split_num
+
+    first_point: Point = raw_points[0]
+    last_point: Point = raw_points[-1]
+    path: list[Point] = [first_point]
+    for i in range(1, int(split_num)):
+        x_0 = min(u1) + i * delta_L
+        x_1 = min(u1) + (i + 1) * delta_L
+        points = [p for p in raw_points if x_0 <= p.u1 <= x_1]
+        if len(points) == 0:
+            continue
+        point = max(points, key=lambda x: x.G)
+        path.append(point)
+    path.append(last_point)
+    fig = plt.figure(figsize=(6, 6))
+    plt.axis("equal")
+    x = [i.u1 for i in raw_points]
+    y = [i.G for i in raw_points]
+    plt.scatter(
+        x,
+        y,
+        s=10,
+        cmap="jet",
+        c=[i.G for i in raw_points],
+    )
+    px, py = [i.u1 for i in path], [i.G for i in path]
+    plt.scatter(
+        px,
+        py,
+        s=50,
+        color="magenta",
+        zorder=100,
+    )
+    plt.xlim(min(px) - 10, max(px) + 10)
+    plt.plot(px, py, color="magenta")
 
 
 def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
