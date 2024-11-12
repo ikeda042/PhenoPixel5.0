@@ -99,7 +99,6 @@ def find_path(
     )
 
     theta = poly_fit(U, degree=degree)
-    ### projection
     raw_points: list[Point] = []
     for i, j, p in zip(u1, u2, points_inside_cell_1):
         min_distance, min_point = find_minimum_distance_and_point(
