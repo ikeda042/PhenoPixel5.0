@@ -234,7 +234,7 @@ def find_path(
     gs = [i.G for i in raw_points]
     min_p, max_p = min(ps), max(ps)
     min_dist, max_dist = min(dists), max(dists)
-
+    print(min_dist, max_dist)
     # gsを正規化する（最大を255に、最小を0にする）
     gs_norm = (gs - min(gs)) / (max(gs) - min(gs)) * 255 if max(gs) > min(gs) else [0] * len(gs)
 
@@ -242,8 +242,8 @@ def find_path(
     plt.xlabel("p")
     plt.ylabel("dist")
     #外接矩形の描画
-    plt.plot([min_p, max_p], [0, 0], color="red")
-    plt.plot([min_p, max_p], [0, 0], color="red")
+    plt.plot([min_p,max_p ], [min_dist,min_dist ], color="red")
+    plt.plot([min_p,max_p ], [max_dist,max_dist ], color="red")
     plt.plot([min_p, min_p], [min_dist, max_dist], color="red")
     plt.plot([max_p, max_p], [min_dist, max_dist], color="red")
     
@@ -271,7 +271,7 @@ def find_path(
 
 
 cells: list[Cell] = database_parser("sk326Gen90min.db")
-cell = cells[71]
+cell = cells[9]
 image_fluo_raw = cell.img_fluo1
 contour_raw = cell.contour
 
