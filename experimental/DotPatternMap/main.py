@@ -267,7 +267,7 @@ class Map64:
         plt.plot([min_p, min_p], [min_dist, max_dist], color="red")
         plt.plot([max_p, max_p], [min_dist, max_dist], color="red")
 
-        fig.savefig("experimental/DotPatternMap/images/points.png")
+        fig.savefig(f"experimental/DotPatternMap/images/{cell_id}.png")
         plt.close(fig)
         plt.clf()
 
