@@ -233,8 +233,6 @@ def find_path(
     for i in raw_points:
         print(i.q,i.dist)
         plt.scatter(i.p, i.dist*i.sign, s=40,c=i.G, cmap="inferno")
-    
-
     fig.savefig("experimental/DotPatternMap/images/points.png")
 
 
