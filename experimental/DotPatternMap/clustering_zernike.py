@@ -5,8 +5,6 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import shutil
 from mahotas.features import zernike_moments
-from skimage.feature import hog
-
 
 # 画像パスの設定
 image_dir = "experimental/DotPatternMap/images/map64"
@@ -15,6 +13,24 @@ image_paths = [
     for file in os.listdir(image_dir)
     if file.endswith(".png")
 ]
+
+
+def flip_image_if_needed(image):
+    # 画像がカラーの場合、グレースケールに変換
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    h, w = image.shape
+    left_half = image[:, : w // 2]
+    right_half = image[:, w // 2 :]
+
+    left_brightness = np.mean(left_half)
+    right_brightness = np.mean(right_half)
+
+    if right_brightness > left_brightness:
+        # 右の輝度が高い場合は左右反転
+        image = cv2.flip(image, 1)
+    return image
 
 
 # 特徴抽出関数 (Zernikeモーメント)
@@ -83,6 +99,11 @@ for cluster_id, cell_list in clusters.items():
         img_path = os.path.join(cluster_dir, f"{cell_id}.png")
         img = cv2.imread(img_path)
         if img is not None:
+            # flip_image_if_needed を適用して画像を処理
+            img = flip_image_if_needed(img)
+            # グレースケール画像をカラーに変換
+            if len(img.shape) == 2:
+                img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
             images.append(img)
 
     if images:  # Check if images list is not empty
