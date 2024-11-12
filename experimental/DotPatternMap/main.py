@@ -301,10 +301,14 @@ class Map64:
         map64_images = [
             cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
             for filename in os.listdir(map64_dir)
+            if cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
+            is not None
         ]
         points_box_images = [
             cv2.imread(os.path.join(points_box_dir, filename), cv2.IMREAD_COLOR)
             for filename in os.listdir(points_box_dir)
+            if cv2.imread(os.path.join(points_box_dir, filename), cv2.IMREAD_COLOR)
+            is not None
         ]
 
         def calculate_grid_size(n):
@@ -321,6 +325,9 @@ class Map64:
             for i, img in enumerate(images):
                 x = (i % col) * image_size
                 y = (i // col) * image_size
+                img = cv2.resize(img, (image_size, image_size))
+                if img.ndim == 2:
+                    img = img[:, :, np.newaxis]
                 combined_image[y : y + image_size, x : x + image_size] = img
             return combined_image
 
@@ -339,8 +346,9 @@ class Map64:
 cells: list[Cell] = database_parser("sk326Gen90min.db")
 map64 = Map64()
 
-for cell in tqdm(cells):
-    image_fluo_raw = cell.img_fluo1
-    contour_raw = cell.contour
-    cell_id = cell.cell_id
-    map64.extract_map(image_fluo_raw, contour_raw, 4, cell_id)
+# for cell in tqdm(cells):
+#     image_fluo_raw = cell.img_fluo1
+#     contour_raw = cell.contour
+#     cell_id = cell.cell_id
+# map64.extract_map(image_fluo_raw, contour_raw, 4, cell_id)
+map64.combine_images()
