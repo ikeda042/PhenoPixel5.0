@@ -263,7 +263,8 @@ def find_path(
         p_scaled = int((p - min_p) * scale_factor)
         dist_scaled = int((dist - min_dist) * scale_factor)
         cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
-
+    #resize image to 28x28
+    high_res_image = cv2.resize(high_res_image, (28, 28), interpolation=cv2.INTER_NEAREST)
     # 画像を保存
     cv2.imwrite("experimental/DotPatternMap/images/image_c.png", high_res_image)
 
