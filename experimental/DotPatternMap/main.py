@@ -48,7 +48,7 @@ def find_minimum_distance_and_point(coefficients, x_Q, y_Q):
         return min_distance, min_point
 
 @staticmethod
-async def find_path(
+def find_path(
     image_fluo_raw: bytes, contour_raw: bytes, degree: int
 ):
 
@@ -102,6 +102,12 @@ async def find_path(
         )
         raw_points.append(Point(min_point[0], p))
     raw_points.sort()
+
+    fig = plt.figure(figsize=(6, 6))
+    # plot points 
+    for i in raw_points:
+        plt.scatter(i.u1, i.G, s=5)
+    fig.savefig("experimental/DotPatternMap/images/points.png")
 
 
 def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
@@ -226,3 +232,4 @@ image_fluo_raw = cells[0].img_fluo1
 contour_raw = cells[0].contour
 
 replot(image_fluo_raw, contour_raw, 4)
+find_path(image_fluo_raw, contour_raw, 4)
