@@ -243,6 +243,20 @@ def find_path(
 
     min_p,max_p = min(ps),max(ps)
     min_dist,max_dist = min(dists),max(dists)
+     # 高解像度画像の生成
+    scale_factor = 10  # 高解像度用スケールファクター
+    scaled_width = int((max_p - min_p) * scale_factor) + 20
+    scaled_height = int((max_dist - min_dist) * scale_factor) + 20
+    high_res_image = np.zeros((scaled_height, scaled_width), dtype=np.uint8)
+
+    # 点群を高解像度画像に描画
+    for p, dist, G in zip(ps, dists, gs):
+        p_scaled = int((p - min_p) * scale_factor + 10)
+        dist_scaled = int((dist - min_dist) * scale_factor + 10)
+        cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
+
+    # 画像を保存
+    cv2.imwrite("image_c.png", high_res_image)
 
 
 
