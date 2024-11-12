@@ -183,7 +183,7 @@ class Map64:
 
 
     @classmethod
-    def extract_map(cls,image_fluo_raw: bytes, contour_raw: bytes, degree: int):
+    def extract_map(cls,image_fluo_raw: bytes, contour_raw: bytes, degree: int,cell_id: str="default_cell_id"):   
         image_fluo = cv2.imdecode(np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR)
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
 
@@ -279,14 +279,17 @@ class Map64:
             high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST
         )
         # 画像を保存
-        cv2.imwrite("experimental/DotPatternMap/images/image_c.png", high_res_image)
+        cv2.imwrite(f"experimental/DotPatternMap/images/image_64_{cell_id}.png", high_res_image)
 
 
-cells: list[Cell] = database_parser("sk326Cip120min.db")
-print(cells)
-cell = cells[13]
-image_fluo_raw = cell.img_fluo1
-contour_raw = cell.contour
+cells: list[Cell] = database_parser("sk326Gen90min.db")
+map64 = Map64()
 
-replot(image_fluo_raw, contour_raw, 4)
-find_path(image_fluo_raw, contour_raw, 4)
+for cell in cells
+# print(cells)
+# cell = cells[13]
+# image_fluo_raw = cell.img_fluo1
+# contour_raw = cell.contour
+
+# replot(image_fluo_raw, contour_raw, 4)
+# find_path(image_fluo_raw, contour_raw, 4)
