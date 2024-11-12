@@ -1,9 +1,9 @@
 import os
 import numpy as np
-from skimage import io, color, img_as_ubyte
-from skimage.feature import hog
+import cv2  # OpenCVをインポート
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+from skimage.feature import local_binary_pattern
 
 # 画像パスの設定
 image_dir = "experimental/DotPatternMap/images/map64"
@@ -14,25 +14,32 @@ image_paths = [
 ]
 
 
-# 特徴量抽出関数 (HOG特徴量)
-def extract_hog_features(image_path):
-    image = io.imread(image_path)
-    if image.ndim == 3:  # RGBの場合はグレースケールに変換
-        image = color.rgb2gray(image)
-    image = img_as_ubyte(image)  # HOG特徴量はuint8に対応
-    hog_features = hog(
-        image,
-        orientations=8,
-        pixels_per_cell=(8, 8),
-        cells_per_block=(2, 2),
-        block_norm="L2-Hys",
-        visualize=False,  # visualizeは必要ない場合Falseに
-    )
-    return hog_features
+# LBP特徴量を抽出する関数
+def extract_lbp_features(image_path, num_points=24, radius=3):
+    image = cv2.imread(
+        image_path, cv2.IMREAD_GRAYSCALE
+    )  # グレースケールで画像を読み込む
+    image = cv2.resize(image, (64, 64))  # 画像を64x64ピクセルにリサイズ
+
+    # LBP特徴量を計算
+    lbp = local_binary_pattern(image, num_points, radius, method="uniform")
+
+    # ヒストグラムを計算
+    n_bins = int(lbp.max() + 1)
+    hist, _ = np.histogram(lbp.ravel(), bins=n_bins, range=(0, n_bins))
+
+    # ヒストグラムを正規化
+    hist = hist.astype("float")
+    hist /= hist.sum() + 1e-6  # ゼロ除算を防ぐ
+
+    return hist
 
 
 # 特徴量抽出
-features = [extract_hog_features(path) for path in image_paths]
+features = []
+for path in image_paths:
+    feature = extract_lbp_features(path)
+    features.append(feature)
 
 # 特徴量を行列に変換
 X = np.vstack(features)
@@ -56,8 +63,8 @@ for i in range(X_pca_3d.shape[0]):
 ax.set_xlabel("PC1")
 ax.set_ylabel("PC2")
 ax.set_zlabel("PC3")
-ax.set_title("PCA 3D Projection with Image Names (HOG Features)")
-plt.savefig("experimental/DotPatternMap/images/PCA_3D_HOG_map64.png")
+ax.set_title("PCA 3D Projection with Image Names (LBP Features)")
+plt.savefig("experimental/DotPatternMap/images/PCA_3D_LBP_map64.png")
 
 # PCAの適用 (n=2)
 pca_2d = PCA(n_components=2)
@@ -75,5 +82,7 @@ for i in range(X_pca_2d.shape[0]):
     )
 plt.xlabel("PC1")
 plt.ylabel("PC2")
-plt.title("PCA 2D Projection with Image Names (HOG Features)")
-plt.savefig("experimental/DotPatternMap/images/PCA_2D_HOG_map64.png")
+plt.title("PCA 2D Projection with Image Names (LBP Features)")
+plt.savefig("experimental/DotPatternMap/images/PCA_2D_LBP_map64.png")
+
+plt.show()
