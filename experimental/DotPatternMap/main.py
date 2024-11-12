@@ -238,7 +238,7 @@ def find_path(
     # gsを正規化する（最大を255に、最小を0にする）
     gs_norm = (gs - min(gs)) / (max(gs) - min(gs)) * 255 if max(gs) > min(gs) else [0] * len(gs)
 
-    plt.scatter(ps, dists, s=100, c=gs_norm, cmap="inferno")
+    plt.scatter(ps, dists, s=1, c=gs_norm, cmap="inferno")
     plt.xlabel("p")
     plt.ylabel("dist")
     #外接矩形の描画
