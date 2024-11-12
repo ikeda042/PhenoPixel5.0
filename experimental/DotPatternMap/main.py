@@ -241,6 +241,9 @@ def find_path(
     plt.close(fig)
     plt.clf()
 
+    min_p,max_p = min(ps),max(ps)
+    min_dist,max_dist = min(dists),max(dists)
+
 
 
 cells: list[Cell] = database_parser("sk326Gen90min.db")
