@@ -182,10 +182,17 @@ class Map64:
         plt.grid(True)
         plt.savefig("experimental/DotPatternMap/images/contour.png")
 
-
     @classmethod
-    def extract_map(cls,image_fluo_raw: bytes, contour_raw: bytes, degree: int,cell_id: str="default_cell_id"):   
-        image_fluo = cv2.imdecode(np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR)
+    def extract_map(
+        cls,
+        image_fluo_raw: bytes,
+        contour_raw: bytes,
+        degree: int,
+        cell_id: str = "default_cell_id",
+    ):
+        image_fluo = cv2.imdecode(
+            np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
+        )
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
 
         mask = np.zeros_like(image_fluo_gray)
@@ -280,7 +287,10 @@ class Map64:
             high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST
         )
         # 画像を保存
-        cv2.imwrite(f"experimental/DotPatternMap/images/map64/image_64_{cell_id}.png", high_res_image)
+        cv2.imwrite(
+            f"experimental/DotPatternMap/images/map64/image_64_{cell_id}.png",
+            high_res_image,
+        )
 
 
 cells: list[Cell] = database_parser("sk326Gen90min.db")
@@ -291,4 +301,3 @@ for cell in tqdm(cells):
     contour_raw = cell.contour
     cell_id = cell.cell_id
     map64.extract_map(image_fluo_raw, contour_raw, 4, cell_id)
-
