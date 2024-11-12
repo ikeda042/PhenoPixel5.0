@@ -235,11 +235,12 @@ def find_path(
     dists = [i.dist*i.sign for i in raw_points]
     gs = [i.G for i in raw_points]
     plt.scatter(ps, dists , s=100, c=gs, cmap="inferno")
+    plt.xlabel("p")
+    plt.ylabel("dist")
     fig.savefig("experimental/DotPatternMap/images/points.png")
-
     plt.close(fig)
     plt.clf()
-    
+
 
 
 cells: list[Cell] = database_parser("sk326Gen90min.db")
