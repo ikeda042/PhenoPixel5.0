@@ -264,15 +264,15 @@ def find_path(
         dist_scaled = int((dist - min_dist) * scale_factor)
         cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
     #resize image to 28x28
-    high_res_image = cv2.resize(high_res_image, (28, 28), interpolation=cv2.INTER_NEAREST)
+    high_res_image = cv2.resize(high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST)
     # 画像を保存
     cv2.imwrite("experimental/DotPatternMap/images/image_c.png", high_res_image)
 
 
 
-cells: list[Cell] = database_parser("sk326Cip90min.db")
+cells: list[Cell] = database_parser("sk326Cip120min.db")
 print(cells)
-cell = cells[1]
+cell = cells[13]
 image_fluo_raw = cell.img_fluo1
 contour_raw = cell.contour
 
