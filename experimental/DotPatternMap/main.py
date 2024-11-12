@@ -314,7 +314,7 @@ class Map64:
         )
 
     @classmethod
-    def combine_images(cls):
+    def combine_images(cls, out_name: str = "combined_image.png"):
         map64_dir = "experimental/DotPatternMap/images/map64"
         points_box_dir = "experimental/DotPatternMap/images/points_box"
 
@@ -359,7 +359,8 @@ class Map64:
 
         combined_map64_image = combine_images_grid(map64_images, 64, 1)
         cv2.imwrite(
-            "experimental/DotPatternMap/images/combined_image.png", combined_map64_image
+            f"experimental/DotPatternMap/images/{out_name}",
+            combined_map64_image,
         )
 
         combined_points_box_image = combine_images_grid(points_box_images, 64, 3)
