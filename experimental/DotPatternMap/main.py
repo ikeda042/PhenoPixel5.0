@@ -9,14 +9,14 @@ from dataclasses import dataclass
 
 @dataclass
 class Point:
-    def __init__(self,p:float,q:float,u1:float,u2:float,dist:float,G:float,is_positive:bool) -> None:
+    def __init__(self,p:float,q:float,u1:float,u2:float,dist:float,G:float,sign:int) -> None:
         self.p = p
         self.q = q
         self.u1 = u1
         self.u2 = u2
         self.dist = dist
         self.G = G
-        self.is_positive = is_positive
+        self.is_positive = sign
         
 
     def __gt__(self, other) -> bool:
@@ -105,7 +105,8 @@ def find_path(
         min_distance, min_point = find_minimum_distance_and_point(
             theta, i, j
         )
-        raw_points.append(Point(min_point[0], min_point[1], i, j,min_distance, p))
+        sign = 1 if j > min_point[1] else -1
+        raw_points.append(Point(min_point[0], min_point[1], i, j,min_distance, p,sign ))
     raw_points.sort()
 
     fig = plt.figure(figsize=(6, 6))
