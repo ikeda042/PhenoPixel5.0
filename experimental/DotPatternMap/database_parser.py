@@ -66,11 +66,11 @@ def parse_image(cell: Cell) -> tuple:
     return img_fluo, green_bgr
 
 
-def database_parser(dbname: str)->tuple[bytes, bytes]:
+def database_parser(dbname: str) -> list[Cell]:
     dbpath = f"sqlite:///experimental/DaoPatternMap/{dbname}"
     engine = create_engine(dbpath)
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
+    return session.query(Cell).filter(Cell.manual_label == 1).all()
