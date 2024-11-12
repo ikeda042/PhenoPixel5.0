@@ -237,6 +237,10 @@ def find_path(
     plt.scatter(ps, dists , s=100, c=gs, cmap="inferno")
     fig.savefig("experimental/DotPatternMap/images/points.png")
 
+    plt.close(fig)
+    plt.clf()
+    
+
 
 cells: list[Cell] = database_parser("sk326Gen90min.db")
 cell = cells[71]
