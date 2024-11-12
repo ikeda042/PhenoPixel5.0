@@ -183,7 +183,7 @@ class Map64:
 
 
     @classmethod
-    def extract_map(image_fluo_raw: bytes, contour_raw: bytes, degree: int):
+    def extract_map(cls,image_fluo_raw: bytes, contour_raw: bytes, degree: int):
         image_fluo = cv2.imdecode(np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR)
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
 
@@ -215,7 +215,7 @@ class Map64:
             u2_c,
             U,
             contour_U,
-        ) = basis_conversion(
+        ) = cls.basis_conversion(
             [list(i[0]) for i in unpickled_contour],
             X,
             image_fluo.shape[0] / 2,
@@ -223,13 +223,13 @@ class Map64:
             coords_inside_cell_1,
         )
 
-        theta = poly_fit(U, degree=degree)
-        raw_points: list[Point] = []
+        theta = cls.poly_fit(U, degree=degree)
+        raw_points: list[cls.Point] = []
         for i, j, p in zip(u1, u2, points_inside_cell_1):
-            min_distance, min_point = find_minimum_distance_and_point(theta, i, j)
+            min_distance, min_point = cls.find_minimum_distance_and_point(theta, i, j)
             sign = 1 if j > min_point[1] else -1
             raw_points.append(
-                Point(min_point[0], min_point[1], i, j, min_distance, p, sign)
+                cls.Point(min_point[0], min_point[1], i, j, min_distance, p, sign)
             )
         raw_points.sort()
 
