@@ -50,7 +50,7 @@ def find_minimum_distance_and_point(coefficients, x_Q, y_Q):
 @staticmethod
 async def find_path(
     image_fluo_raw: bytes, contour_raw: bytes, degree: int
-) -> io.BytesIO:
+):
 
     image_fluo = cv2.imdecode(
         np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
