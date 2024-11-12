@@ -376,7 +376,7 @@ for filename in [
     if i.endswith(".png")
 ]:
     os.remove(os.path.join("experimental/DotPatternMap/images/map64", filename))
-cells: list[Cell] = database_parser("sk326Gen90min.db")
+cells: list[Cell] = database_parser("sk326tri60min.db")
 map64 = Map64()
 for cell in tqdm(cells):
     image_fluo_raw = cell.img_fluo1
