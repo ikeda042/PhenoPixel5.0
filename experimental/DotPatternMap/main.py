@@ -241,10 +241,9 @@ def replot(
         plt.savefig("experimental/DotPatternMap/images/contour.png")
 
 cells: list[Cell] = database_parser("sk326Gen90min.db")
-print(cells[0].cell_id)
-
-image_fluo_raw = cells[0].img_fluo1
-contour_raw = cells[0].contour
+cell = cells[0]
+image_fluo_raw = cell.img_fluo1
+contour_raw = cell.contour
 
 replot(image_fluo_raw, contour_raw, 4)
 find_path(image_fluo_raw, contour_raw, 4)
