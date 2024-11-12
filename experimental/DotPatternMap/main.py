@@ -9,13 +9,14 @@ from dataclasses import dataclass
 
 @dataclass
 class Point:
-    def __init__(self,p:float,q:float,u1:float,u2:float,dist:float,G:float) -> None:
+    def __init__(self,p:float,q:float,u1:float,u2:float,dist:float,G:float,is_positive:bool) -> None:
         self.p = p
         self.q = q
         self.u1 = u1
         self.u2 = u2
         self.dist = dist
         self.G = G
+        self.is_positive = is_positive
         
 
     def __gt__(self, other) -> bool:
@@ -110,7 +111,13 @@ def find_path(
     fig = plt.figure(figsize=(6, 6))
     # plot points 
     for i in raw_points:
-        plt.scatter(i.u1, i.u2, s=5)
+        print(i.q,i.dist)
+        plt.scatter(i.p, i.q, s=1,color="blue")
+    margin_width = 50
+    margin_height = 50
+    plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
+    plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
+
     fig.savefig("experimental/DotPatternMap/images/points.png")
 
 
