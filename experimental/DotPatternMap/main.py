@@ -6,6 +6,7 @@ import pickle
 from database_parser import database_parser, Cell
 from scipy.optimize import minimize
 from dataclasses import dataclass
+from tqdm import tqdm
 
 
 class Map64:
@@ -285,11 +286,9 @@ class Map64:
 cells: list[Cell] = database_parser("sk326Gen90min.db")
 map64 = Map64()
 
-for cell in cells
-# print(cells)
-# cell = cells[13]
-# image_fluo_raw = cell.img_fluo1
-# contour_raw = cell.contour
+for cell in tqdm(cells):
+    image_fluo_raw = cell.img_fluo1
+    contour_raw = cell.contour
+    cell_id = cell.cell_id
+    map64.extract_map(image_fluo_raw, contour_raw, 4, cell_id)
 
-# replot(image_fluo_raw, contour_raw, 4)
-# find_path(image_fluo_raw, contour_raw, 4)
