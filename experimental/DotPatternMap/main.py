@@ -1,8 +1,16 @@
 import numpy as np 
-from numpy.linalg import eig
+from numpy.linalg import eig, inv
 import matplotlib.pyplot as plt
 import cv2
 import pickle
+
+
+def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
+    u1_values = np.array([i[1] for i in U])
+    f_values = np.array([i[0] for i in U])
+    W = np.vander(u1_values, degree + 1)
+    return inv(W.T @ W) @ W.T @ f_values
+
 
 def basis_conversion(
         contour: list[list[int]],
@@ -77,7 +85,7 @@ def replot(
             u2_c,
             U,
             contour_U,
-        ) = SyncChores.basis_conversion(
+        ) = basis_conversion(
             [list(i[0]) for i in unpickled_contour],
             X,
             image_fluo.shape[0] / 2,
@@ -102,49 +110,6 @@ def replot(
         plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
         plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
 
-        max_val = np.max(points_inside_cell_1)
-        normalized_points = [i / max_val for i in points_inside_cell_1]
-        # plt text of median of points inside cell
-        plt.text(
-            0.5,
-            0.2,
-            f"Median: {np.median(points_inside_cell_1)}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
-
-        normalized_median = round(np.median(normalized_points), 2)
-        # plt text of normalized median of points inside cell
-        plt.text(
-            0.5,
-            0.1,
-            f"Normalized median: {normalized_median}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
-
-        # plt text of mean of points inside cell
-        plt.text(
-            0.5,
-            0.15,
-            f"Mean: {round(np.mean(points_inside_cell_1),2)}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
-
-        normalized_mean = round(np.mean(normalized_points), 2)
-        # plt text of normalized mean of points inside cell
-        plt.text(
-            0.5,
-            0.05,
-            f"Normalized mean: {normalized_mean}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
 
         x = np.linspace(min_u1, max_u1, 1000)
         theta = await AsyncChores.poly_fit(U, degree=degree)
