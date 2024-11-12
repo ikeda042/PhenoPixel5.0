@@ -256,7 +256,7 @@ def find_path(
         cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
 
     # 画像を保存
-    cv2.imwrite("image_c.png", high_res_image)
+    cv2.imwrite("experimental/DotPatternMap/images/image_c.png", high_res_image)
 
 
 
