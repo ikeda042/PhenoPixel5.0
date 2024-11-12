@@ -370,14 +370,17 @@ class Map64:
 
 
 # clear directory
-for filename in os.listdir("experimental/DotPatternMap/images/map64"):
+for filename in [
+    i
+    for i in os.listdir("experimental/DotPatternMap/images/map64")
+    if i.endswith(".png")
+]:
     os.remove(os.path.join("experimental/DotPatternMap/images/map64", filename))
 cells: list[Cell] = database_parser("sk326Gen90min.db")
 map64 = Map64()
-
 for cell in tqdm(cells):
     image_fluo_raw = cell.img_fluo1
     contour_raw = cell.contour
     cell_id = cell.cell_id
-map64.extract_map(image_fluo_raw, contour_raw, 4, cell_id)
-map64.combine_images()
+    map64.extract_map(image_fluo_raw, contour_raw, 4, cell_id)
+# map64.combine_images()
