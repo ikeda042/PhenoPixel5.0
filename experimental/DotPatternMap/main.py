@@ -85,7 +85,7 @@ async def find_path(
         u2_c,
         U,
         contour_U,
-    ) = SyncChores.basis_conversion(
+    ) = basis_conversion(
         [list(i[0]) for i in unpickled_contour],
         X,
         image_fluo.shape[0] / 2,
@@ -93,54 +93,15 @@ async def find_path(
         coords_inside_cell_1,
     )
 
-    theta = await AsyncChores.poly_fit(U, degree=degree)
+    theta = poly_fit(U, degree=degree)
     ### projection
     raw_points: list[Point] = []
     for i, j, p in zip(u1, u2, points_inside_cell_1):
-        min_distance, min_point = await AsyncChores.find_minimum_distance_and_point(
+        min_distance, min_point = find_minimum_distance_and_point(
             theta, i, j
         )
         raw_points.append(Point(min_point[0], p))
     raw_points.sort()
-
-    ### peak-path finder
-    ### Meta parameters
-    split_num: int = 35
-    delta_L: float = (max(u1) - min(u1)) / split_num
-
-    first_point: Point = raw_points[0]
-    last_point: Point = raw_points[-1]
-    path: list[Point] = [first_point]
-    for i in range(1, int(split_num)):
-        x_0 = min(u1) + i * delta_L
-        x_1 = min(u1) + (i + 1) * delta_L
-        points = [p for p in raw_points if x_0 <= p.u1 <= x_1]
-        if len(points) == 0:
-            continue
-        point = max(points, key=lambda x: x.G)
-        path.append(point)
-    path.append(last_point)
-    fig = plt.figure(figsize=(6, 6))
-    plt.axis("equal")
-    x = [i.u1 for i in raw_points]
-    y = [i.G for i in raw_points]
-    plt.scatter(
-        x,
-        y,
-        s=10,
-        cmap="jet",
-        c=[i.G for i in raw_points],
-    )
-    px, py = [i.u1 for i in path], [i.G for i in path]
-    plt.scatter(
-        px,
-        py,
-        s=50,
-        color="magenta",
-        zorder=100,
-    )
-    plt.xlim(min(px) - 10, max(px) + 10)
-    plt.plot(px, py, color="magenta")
 
 
 def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
