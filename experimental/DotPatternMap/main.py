@@ -55,7 +55,7 @@ class Map64:
             return min_distance, min_point
     
     @classmethod
-    def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
+    def poly_fit(cls,U: list[list[float]], degree: int = 1) -> list[float]:
         u1_values = np.array([i[1] for i in U])
         f_values = np.array([i[0] for i in U])
         W = np.vander(u1_values, degree + 1)
@@ -63,6 +63,7 @@ class Map64:
 
     @classmethod
     def basis_conversion(
+            cls,
             contour: list[list[int]],
             X: np.ndarray,
             center_x: float,
