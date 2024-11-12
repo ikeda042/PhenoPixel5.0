@@ -369,6 +369,9 @@ class Map64:
         )
 
 
+# clear directory
+for filename in os.listdir("experimental/DotPatternMap/images/map64"):
+    os.remove(os.path.join("experimental/DotPatternMap/images/map64", filename))
 cells: list[Cell] = database_parser("sk326Gen90min.db")
 map64 = Map64()
 
