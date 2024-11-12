@@ -7,6 +7,7 @@ from database_parser import database_parser, Cell
 from scipy.optimize import minimize
 from dataclasses import dataclass
 from tqdm import tqdm
+import os
 
 
 class Map64:
@@ -290,6 +291,57 @@ class Map64:
         cv2.imwrite(
             f"experimental/DotPatternMap/images/map64/{cell_id}.png",
             high_res_image,
+        )
+
+    @classmethod
+    def combine_images(cls):
+        images = []
+        for filename in os.listdir("experimental/DotPatternMap/images/map64"):
+            img = cv2.imread(f"experimental/DotPatternMap/images/map64/{filename}")
+            images.append(img)
+        # 元の画像をほとんど正方形に並べる(nマイの画像)
+        n = len(images)
+        row = int(np.sqrt(n))
+        col = n // row
+        if row * col < n:
+            col += 1
+        # 画像を結合
+        combined_image = np.zeros((64 * row, 64 * col), dtype=np.uint8)
+
+        for i, img in enumerate(images):
+            x = (i % col) * 64
+            y = (i // col) * 64
+            combined_image[y : y + 64, x : x + 64] = img
+        # 画像を保存
+        cv2.imwrite(
+            "experimental/DotPatternMap/images/combined_image.png", combined_image
+        )
+
+        images_box = []
+        for filename in os.listdir("experimental/DotPatternMap/images/points_box"):
+            img = cv2.imread(
+                f"experimental/DotPatternMap/images/points_box/{filename}",
+                cv2.IMREAD_COLOR,
+            )
+            images_box.append(img)
+        # 元の画像をほとんど正方形に並べる(nマイの画像)
+        n = len(images_box)
+        row = int(np.sqrt(n))
+        col = n // row
+        if row * col < n:
+            col += 1
+        # 画像を結合
+        combined_image_box = np.zeros((64 * row, 64 * col, 3), dtype=np.uint8)
+
+        for i, img in enumerate(images_box):
+            x = (i % col) * 64
+            y = (i // col) * 64
+            combined_image_box[y : y + 64, x : x + 64] = img
+
+        # 画像を保存
+        cv2.imwrite(
+            "experimental/DotPatternMap/images/combined_image_box.png",
+            combined_image_box,
         )
 
 
