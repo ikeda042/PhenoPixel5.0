@@ -67,7 +67,7 @@ def parse_image(cell: Cell) -> tuple:
 
 
 def database_parser(dbname: str)->tuple[bytes, bytes]:
-    dbpath = f"sqlite:///experimental/CharVectorMapping/{dbname}"
+    dbpath = f"sqlite:///experimental/DaoPatternMap/{dbname}"
     engine = create_engine(dbpath)
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
