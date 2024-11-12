@@ -3,6 +3,7 @@ from numpy.linalg import eig, inv
 import matplotlib.pyplot as plt
 import cv2
 import pickle
+from database_parser import database_parser, Cell
 
 
 def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
@@ -119,3 +120,6 @@ def replot(
         plt.tick_params(direction="in")
         plt.grid(True)
         plt.savefig("experimental/DotPatternMap/images/contour.png")
+
+cells: list[Cell] = database_parser("sk326Gen90min.db")
+print(cells[0].id)
