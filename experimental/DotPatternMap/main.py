@@ -395,3 +395,9 @@ def main(db: str) -> None:
         cell_id = cell.cell_id
         map64.extract_map(image_fluo_raw, contour_raw, 4, cell_id)
     map64.combine_images(out_name=db.replace(".db", ".png"))
+
+
+if __name__ == "__main__":
+    for i in os.listdir("experimental/DotPatternMap"):
+        if i.endswith(".db"):
+            main(i)
