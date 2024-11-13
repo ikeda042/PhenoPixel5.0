@@ -24,13 +24,13 @@ class Map64:
             G: float,
             sign: int,
         ) -> None:
-            self.p = p
-            self.q = q
-            self.u1 = u1
-            self.u2 = u2
-            self.dist = dist
-            self.G = G
-            self.sign = sign
+            self.p: float = p
+            self.q: float = q
+            self.u1: float = u1
+            self.u2: float = u2
+            self.dist: float = dist
+            self.G: float = G
+            self.sign: int = sign
 
         def __gt__(self, other) -> bool:
             return self.u1 > other.u1
