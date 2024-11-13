@@ -41,7 +41,7 @@ class Map64:
             return f"({self.u1},{self.G})"
 
     @classmethod
-    def flip_image_if_needed(cls, image):
+    def flip_image_if_needed(cls, image: np.ndarray) -> np.ndarray:
         # 画像がカラーの場合、グレースケールに変換
         if len(image.shape) == 3:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -59,7 +59,9 @@ class Map64:
         return image
 
     @classmethod
-    def find_minimum_distance_and_point(cls, coefficients, x_Q, y_Q):
+    def find_minimum_distance_and_point(
+        cls, coefficients: float, x_Q: float, y_Q: float
+    ) -> tuple[float, tuple[float, float]]:
         # 関数の定義
         def f_x(x):
             return sum(
