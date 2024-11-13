@@ -87,7 +87,7 @@ class Map64:
         return min_distance, min_point
 
     @classmethod
-    def poly_fit(cls, U: list[list[float]], degree: int = 1) -> list[float]:
+    def poly_fit(cls: Map64, U: list[list[float]], degree: int = 1) -> list[float]:
         u1_values = np.array([i[1] for i in U])
         f_values = np.array([i[0] for i in U])
         W = np.vander(u1_values, degree + 1)
@@ -95,7 +95,7 @@ class Map64:
 
     @classmethod
     def basis_conversion(
-        cls,
+        cls: Map64,
         contour: list[list[int]],
         X: np.ndarray,
         center_x: float,
@@ -131,11 +131,11 @@ class Map64:
 
     @classmethod
     def replot(
-        cls,
+        cls: Map64,
         image_fluo_raw: bytes,
         contour_raw: bytes,
         degree: int,
-    ):
+    ) -> None:
 
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
@@ -206,7 +206,7 @@ class Map64:
 
     @classmethod
     def extract_map(
-        cls,
+        cls: Map64,
         image_fluo_raw: bytes,
         contour_raw: bytes,
         degree: int,
@@ -317,7 +317,7 @@ class Map64:
         )
 
     @classmethod
-    def combine_images(cls, out_name: str = "combined_image.png"):
+    def combine_images(cls: Map64, out_name: str = "combined_image.png") -> None:
         map64_dir = "experimental/DotPatternMap/images/map64"
         points_box_dir = "experimental/DotPatternMap/images/points_box"
 
