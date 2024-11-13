@@ -374,7 +374,6 @@ class Map64:
 
 
 def main(db: str) -> None:
-    # clear directory
     for filename in [
         i
         for i in os.listdir("experimental/DotPatternMap/images/map64")
