@@ -388,7 +388,7 @@ def main(db: str) -> None:
         )
 
     cells: list[Cell] = database_parser(db)
-    map64 = Map64()
+    map64: Map64 = Map64()
     for cell in tqdm(cells):
         map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id)
     map64.combine_images(out_name=db.replace(".db", ".png"))
