@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 from numpy.linalg import eig, inv
 import matplotlib.pyplot as plt
@@ -41,7 +42,7 @@ class Map64:
             return f"({self.u1},{self.G})"
 
     @classmethod
-    def flip_image_if_needed(cls, image: np.ndarray) -> np.ndarray:
+    def flip_image_if_needed(cls: Map64, image: np.ndarray) -> np.ndarray:
         # 画像がカラーの場合、グレースケールに変換
         if len(image.shape) == 3:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
