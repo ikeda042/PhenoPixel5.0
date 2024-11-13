@@ -5,8 +5,6 @@ import asyncio
 
 os.chdir(os.path.dirname(os.path.abspath("..")))
 
-test_db_path: str = "../../databases"
-
 
 @pytest.mark.anyio
 async def test_database():
