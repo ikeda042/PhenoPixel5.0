@@ -272,7 +272,6 @@ class Map64:
         gs = [i.G for i in raw_points]
         min_p, max_p = min(ps), max(ps)
         min_dist, max_dist = min(dists), max(dists)
-        print(min_dist, max_dist)
         # gsを正規化する（最大を255に、最小を0にする）
         gs_norm = (
             (gs - min(gs)) / (max(gs) - min(gs)) * 255
