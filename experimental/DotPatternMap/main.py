@@ -461,7 +461,7 @@ class Map64:
         )
 
 
-def main(db: str) -> None:
+def main(db: str):
     for filename in [
         i
         for i in os.listdir("experimental/DotPatternMap/images/map64")
@@ -492,12 +492,15 @@ def main(db: str) -> None:
 
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
+    vectors = []
     for cell in tqdm(cells):
-        map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id)
+        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
     map64.combine_images(out_name=db.replace(".db", ".png"))
+    return vectors
 
 
 if __name__ == "__main__":
     for i in os.listdir("experimental/DotPatternMap"):
         if i.endswith(".db"):
-            main(i)
+            with open(f"experimental/DotPatternMap/{i}_vectors.txt", "wb") as f:
+                pickle.dump(main(i), f)
