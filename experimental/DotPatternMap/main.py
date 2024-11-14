@@ -204,14 +204,16 @@ class Map64:
         plt.tick_params(direction="in")
         plt.grid(True)
         plt.savefig("experimental/DotPatternMap/images/contour.png")
+        plt.close(fig)
 
     @classmethod
     def perform_pca_on_3d_point_cloud_and_save(
-        cls, high_res_image: np.ndarray, output_path: str
+        cls, high_res_image: np.ndarray, output_path_2d: str, output_path_1d: str
     ) -> None:
-
+        # 画像のサイズを取得
         height, width = high_res_image.shape
 
+        # 3次元空間の点群を作成 (x, y, intensity)
         points = []
         for y in range(height):
             for x in range(width):
@@ -220,13 +222,18 @@ class Map64:
 
         points = np.array(points)
 
-        pca = PCA(n_components=2)
-        transformed_points = pca.fit_transform(points)
+        # データの中心化
+        points_centered = points - np.mean(points, axis=0)
 
-        fig = plt.figure()
+        # PCAを適用し、2次元に次元削減
+        pca_2d = PCA(n_components=2)
+        transformed_points_2d = pca_2d.fit_transform(points_centered)
+
+        # 2次元PCA結果を可視化して保存
+        fig_2d = plt.figure()
         plt.scatter(
-            transformed_points[:, 0],
-            transformed_points[:, 1],
+            transformed_points_2d[:, 0],
+            transformed_points_2d[:, 1],
             c=points[:, 2],
             cmap="inferno",
             marker="o",
@@ -235,9 +242,20 @@ class Map64:
         plt.xlabel("Principal Component 1")
         plt.ylabel("Principal Component 2")
         plt.colorbar(label="Original Intensity")
+        fig_2d.savefig(output_path_2d)
+        plt.close(fig_2d)
 
-        fig.savefig(output_path)
-        plt.close(fig)
+        # PCAを適用し、1次元に次元削減
+        pca_1d = PCA(n_components=1)
+        transformed_points_1d = pca_1d.fit_transform(points_centered)
+
+        # 1次元PCA結果をボックスプロットで可視化して保存
+        fig_1d = plt.figure()
+        plt.boxplot(transformed_points_1d, vert=False)
+        plt.title("PCA - 1D Boxplot of the 3D point cloud")
+        plt.xlabel("Principal Component 1")
+        fig_1d.savefig(output_path_1d)
+        plt.close(fig_1d)
 
     @classmethod
     def extract_map(
@@ -350,7 +368,9 @@ class Map64:
             high_res_image,
         )
         cls.perform_pca_on_3d_point_cloud_and_save(
-            high_res_image, f"experimental/DotPatternMap/images/pca/{cell_id}.png"
+            high_res_image,
+            f"experimental/DotPatternMap/images/PCA_2D/{cell_id}.png",
+            f"experimental/DotPatternMap/images/PCA_1D/{cell_id}.png",
         )
 
     @classmethod
