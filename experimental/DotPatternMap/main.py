@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import cv2
 import pickle
 from database_parser import database_parser, Cell
+from sklearn.decomposition import PCA
 from scipy.optimize import minimize
 from dataclasses import dataclass
 from tqdm import tqdm
@@ -203,6 +204,40 @@ class Map64:
         plt.tick_params(direction="in")
         plt.grid(True)
         plt.savefig("experimental/DotPatternMap/images/contour.png")
+
+    @classmethod
+    def perform_pca_on_3d_point_cloud_and_save(
+        cls, high_res_image: np.ndarray, output_path: str
+    ) -> None:
+
+        height, width = high_res_image.shape
+
+        points = []
+        for y in range(height):
+            for x in range(width):
+                intensity = high_res_image[y, x]
+                points.append([x, y, intensity])
+
+        points = np.array(points)
+
+        pca = PCA(n_components=2)
+        transformed_points = pca.fit_transform(points)
+
+        fig = plt.figure()
+        plt.scatter(
+            transformed_points[:, 0],
+            transformed_points[:, 1],
+            c=points[:, 2],
+            cmap="inferno",
+            marker="o",
+        )
+        plt.title("PCA - 2D representation of the 3D point cloud")
+        plt.xlabel("Principal Component 1")
+        plt.ylabel("Principal Component 2")
+        plt.colorbar(label="Original Intensity")
+
+        fig.savefig(output_path)
+        plt.close(fig)
 
     @classmethod
     def extract_map(
