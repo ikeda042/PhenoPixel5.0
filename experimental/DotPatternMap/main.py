@@ -209,7 +209,7 @@ class Map64:
     @classmethod
     def perform_pca_on_3d_point_cloud_and_save(
         cls, high_res_image: np.ndarray, output_path_2d: str, output_path_1d: str
-    ) -> None:
+    ):
         # 画像のサイズを取得
         height, width = high_res_image.shape
 
@@ -256,6 +256,8 @@ class Map64:
         plt.xlabel("Principal Component 1")
         fig_1d.savefig(output_path_1d, bbox_inches="tight")
         plt.close(fig_1d)
+
+        return transformed_points_2d, transformed_points_1d
 
     @classmethod
     def extract_map(
@@ -367,10 +369,12 @@ class Map64:
             f"experimental/DotPatternMap/images/map64/{cell_id}.png",
             high_res_image,
         )
-        cls.perform_pca_on_3d_point_cloud_and_save(
-            high_res_image,
-            f"experimental/DotPatternMap/images/pca_2d/{cell_id}.png",
-            f"experimental/DotPatternMap/images/pca_1d/{cell_id}.png",
+        transformed_points_2d, transformed_points_1d = (
+            cls.perform_pca_on_3d_point_cloud_and_save(
+                high_res_image,
+                f"experimental/DotPatternMap/images/pca_2d/{cell_id}.png",
+                f"experimental/DotPatternMap/images/pca_1d/{cell_id}.png",
+            )
         )
 
     @classmethod
