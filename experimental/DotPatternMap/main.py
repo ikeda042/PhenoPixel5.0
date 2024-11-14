@@ -349,6 +349,9 @@ class Map64:
             f"experimental/DotPatternMap/images/map64/{cell_id}.png",
             high_res_image,
         )
+        cls.perform_pca_on_3d_point_cloud_and_save(
+            high_res_image, f"experimental/DotPatternMap/images/pca/{cell_id}.png"
+        )
 
     @classmethod
     def combine_images(cls: Map64, out_name: str = "combined_image.png") -> None:
