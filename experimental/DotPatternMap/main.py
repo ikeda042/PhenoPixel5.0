@@ -377,6 +377,8 @@ class Map64:
     def combine_images(cls: Map64, out_name: str = "combined_image.png") -> None:
         map64_dir = "experimental/DotPatternMap/images/map64"
         points_box_dir = "experimental/DotPatternMap/images/points_box"
+        pca_2d_dir = "experimental/DotPatternMap/images/pca_2d"
+        pca_1d_dir = "experimental/DotPatternMap/images/pca_1d"
 
         map64_images = [
             cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
@@ -390,12 +392,27 @@ class Map64:
             if cv2.imread(os.path.join(points_box_dir, filename), cv2.IMREAD_COLOR)
             is not None
         ]
+        pca_2d_images = [
+            cv2.imread(os.path.join(pca_2d_dir, filename), cv2.IMREAD_COLOR)
+            for filename in os.listdir(pca_2d_dir)
+            if cv2.imread(os.path.join(pca_2d_dir, filename), cv2.IMREAD_COLOR)
+            is not None
+        ]
+
+        pca_1d_images = [
+            cv2.imread(os.path.join(pca_1d_dir, filename), cv2.IMREAD_COLOR)
+            for filename in os.listdir(pca_1d_dir)
+            if cv2.imread(os.path.join(pca_1d_dir, filename), cv2.IMREAD_COLOR)
+            is not None
+        ]
 
         brightness = [np.sum(img) for img in map64_images]
 
         sorted_indices = np.argsort(brightness)[::-1]
         map64_images = [map64_images[i] for i in sorted_indices]
         points_box_images = [points_box_images[i] for i in sorted_indices]
+        pca_2d_images = [pca_2d_images[i] for i in sorted_indices]
+        pca_1d_images = [pca_1d_images[i] for i in sorted_indices]
 
         def calculate_grid_size(n):
             row = int(np.sqrt(n))
@@ -427,6 +444,18 @@ class Map64:
         cv2.imwrite(
             "experimental/DotPatternMap/images/combined_image_box.png",
             combined_points_box_image,
+        )
+
+        combined_pca_2d_image = combine_images_grid(pca_2d_images, 64, 3)
+        cv2.imwrite(
+            "experimental/DotPatternMap/images/combined_image_pca_2d.png",
+            combined_pca_2d_image,
+        )
+
+        combined_pca_1d_image = combine_images_grid(pca_1d_images, 64, 3)
+        cv2.imwrite(
+            "experimental/DotPatternMap/images/combined_image_pca_1d.png",
+            combined_pca_1d_image,
         )
 
 
