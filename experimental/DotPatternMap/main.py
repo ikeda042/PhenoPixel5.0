@@ -230,7 +230,7 @@ class Map64:
         transformed_points_2d = pca_2d.fit_transform(points_centered)
 
         # 2次元PCA結果を可視化して保存
-        fig_2d = plt.figure()
+        fig_2d = plt.figure(figsize=(6, 6))
         plt.scatter(
             transformed_points_2d[:, 0],
             transformed_points_2d[:, 1],
@@ -242,7 +242,7 @@ class Map64:
         plt.xlabel("Principal Component 1")
         plt.ylabel("Principal Component 2")
         plt.colorbar(label="Original Intensity")
-        fig_2d.savefig(output_path_2d)
+        fig_2d.savefig(output_path_2d, bbox_inches="tight")
         plt.close(fig_2d)
 
         # PCAを適用し、1次元に次元削減
@@ -250,11 +250,11 @@ class Map64:
         transformed_points_1d = pca_1d.fit_transform(points_centered)
 
         # 1次元PCA結果をボックスプロットで可視化して保存
-        fig_1d = plt.figure()
+        fig_1d = plt.figure(figsize=(6, 6))
         plt.boxplot(transformed_points_1d, vert=False)
         plt.title("PCA - 1D Boxplot of the 3D point cloud")
         plt.xlabel("Principal Component 1")
-        fig_1d.savefig(output_path_1d)
+        fig_1d.savefig(output_path_1d, bbox_inches="tight")
         plt.close(fig_1d)
 
     @classmethod
