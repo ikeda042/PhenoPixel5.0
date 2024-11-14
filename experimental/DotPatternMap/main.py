@@ -369,8 +369,8 @@ class Map64:
         )
         cls.perform_pca_on_3d_point_cloud_and_save(
             high_res_image,
-            f"experimental/DotPatternMap/images/PCA_2D/{cell_id}.png",
-            f"experimental/DotPatternMap/images/PCA_1D/{cell_id}.png",
+            f"experimental/DotPatternMap/images/pca_2d/{cell_id}.png",
+            f"experimental/DotPatternMap/images/pca_1d/{cell_id}.png",
         )
 
     @classmethod
@@ -445,6 +445,19 @@ def main(db: str) -> None:
         os.remove(
             os.path.join("experimental/DotPatternMap/images/points_box", filename)
         )
+    for filename in [
+        i
+        for i in os.listdir("experimental/DotPatternMap/images/pca_2d")
+        if i.endswith(".png")
+    ]:
+        os.remove(os.path.join("experimental/DotPatternMap/images/pca_2d", filename))
+
+    for filename in [
+        i
+        for i in os.listdir("experimental/DotPatternMap/images/pca_1d")
+        if i.endswith(".png")
+    ]:
+        os.remove(os.path.join("experimental/DotPatternMap/images/pca_1d", filename))
 
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
