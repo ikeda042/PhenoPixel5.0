@@ -502,5 +502,6 @@ def main(db: str):
 if __name__ == "__main__":
     for i in os.listdir("experimental/DotPatternMap"):
         if i.endswith(".db"):
-            with open(f"experimental/DotPatternMap/{i}_vectors.txt", "wb") as f:
-                pickle.dump(main(i), f)
+            with open(f"experimental/DotPatternMap/{i}_vectors.txt", "w") as f:
+                for vector in main(f"{i}"):
+                    f.write(f"{','.join(vector)}\n")
