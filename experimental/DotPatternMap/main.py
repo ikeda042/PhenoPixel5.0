@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import cv2
 import pickle
 from database_parser import database_parser, Cell
+from sklearn.decomposition import PCA
 from scipy.optimize import minimize
 from dataclasses import dataclass
 from tqdm import tqdm
@@ -203,6 +204,58 @@ class Map64:
         plt.tick_params(direction="in")
         plt.grid(True)
         plt.savefig("experimental/DotPatternMap/images/contour.png")
+        plt.close(fig)
+
+    @classmethod
+    def perform_pca_on_3d_point_cloud_and_save(
+        cls, high_res_image: np.ndarray, output_path_2d: str, output_path_1d: str
+    ) -> None:
+        # 画像のサイズを取得
+        height, width = high_res_image.shape
+
+        # 3次元空間の点群を作成 (x, y, intensity)
+        points = []
+        for y in range(height):
+            for x in range(width):
+                intensity = high_res_image[y, x]
+                points.append([x, y, intensity])
+
+        points = np.array(points)
+
+        # データの中心化
+        points_centered = points - np.mean(points, axis=0)
+
+        # PCAを適用し、2次元に次元削減
+        pca_2d = PCA(n_components=2)
+        transformed_points_2d = pca_2d.fit_transform(points_centered)
+
+        # 2次元PCA結果を可視化して保存
+        fig_2d = plt.figure(figsize=(6, 6))
+        plt.scatter(
+            transformed_points_2d[:, 0],
+            transformed_points_2d[:, 1],
+            c=points[:, 2],
+            cmap="inferno",
+            marker="o",
+        )
+        plt.title("PCA - 2D representation of the 3D point cloud")
+        plt.xlabel("Principal Component 1")
+        plt.ylabel("Principal Component 2")
+        plt.colorbar(label="Original Intensity")
+        fig_2d.savefig(output_path_2d, bbox_inches="tight")
+        plt.close(fig_2d)
+
+        # PCAを適用し、1次元に次元削減
+        pca_1d = PCA(n_components=1)
+        transformed_points_1d = pca_1d.fit_transform(points_centered)
+
+        # 1次元PCA結果をボックスプロットで可視化して保存
+        fig_1d = plt.figure(figsize=(6, 6))
+        plt.boxplot(transformed_points_1d, vert=False)
+        plt.title("PCA - 1D Boxplot of the 3D point cloud")
+        plt.xlabel("Principal Component 1")
+        fig_1d.savefig(output_path_1d, bbox_inches="tight")
+        plt.close(fig_1d)
 
     @classmethod
     def extract_map(
@@ -303,7 +356,7 @@ class Map64:
             p_scaled = int((p - min_p) * scale_factor)
             dist_scaled = int((dist - min_dist) * scale_factor)
             cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
-        # resize image to 28x28
+        # resize image to 64x64
         high_res_image = cv2.resize(
             high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST
         )
@@ -314,11 +367,18 @@ class Map64:
             f"experimental/DotPatternMap/images/map64/{cell_id}.png",
             high_res_image,
         )
+        cls.perform_pca_on_3d_point_cloud_and_save(
+            high_res_image,
+            f"experimental/DotPatternMap/images/pca_2d/{cell_id}.png",
+            f"experimental/DotPatternMap/images/pca_1d/{cell_id}.png",
+        )
 
     @classmethod
     def combine_images(cls: Map64, out_name: str = "combined_image.png") -> None:
         map64_dir = "experimental/DotPatternMap/images/map64"
         points_box_dir = "experimental/DotPatternMap/images/points_box"
+        pca_2d_dir = "experimental/DotPatternMap/images/pca_2d"
+        pca_1d_dir = "experimental/DotPatternMap/images/pca_1d"
 
         map64_images = [
             cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
@@ -332,12 +392,27 @@ class Map64:
             if cv2.imread(os.path.join(points_box_dir, filename), cv2.IMREAD_COLOR)
             is not None
         ]
+        pca_2d_images = [
+            cv2.imread(os.path.join(pca_2d_dir, filename), cv2.IMREAD_COLOR)
+            for filename in os.listdir(pca_2d_dir)
+            if cv2.imread(os.path.join(pca_2d_dir, filename), cv2.IMREAD_COLOR)
+            is not None
+        ]
+
+        pca_1d_images = [
+            cv2.imread(os.path.join(pca_1d_dir, filename), cv2.IMREAD_COLOR)
+            for filename in os.listdir(pca_1d_dir)
+            if cv2.imread(os.path.join(pca_1d_dir, filename), cv2.IMREAD_COLOR)
+            is not None
+        ]
 
         brightness = [np.sum(img) for img in map64_images]
 
         sorted_indices = np.argsort(brightness)[::-1]
         map64_images = [map64_images[i] for i in sorted_indices]
         points_box_images = [points_box_images[i] for i in sorted_indices]
+        pca_2d_images = [pca_2d_images[i] for i in sorted_indices]
+        pca_1d_images = [pca_1d_images[i] for i in sorted_indices]
 
         def calculate_grid_size(n):
             row = int(np.sqrt(n))
@@ -371,6 +446,18 @@ class Map64:
             combined_points_box_image,
         )
 
+        combined_pca_2d_image = combine_images_grid(pca_2d_images, 64, 3)
+        cv2.imwrite(
+            "experimental/DotPatternMap/images/combined_image_pca_2d.png",
+            combined_pca_2d_image,
+        )
+
+        combined_pca_1d_image = combine_images_grid(pca_1d_images, 64, 3)
+        cv2.imwrite(
+            "experimental/DotPatternMap/images/combined_image_pca_1d.png",
+            combined_pca_1d_image,
+        )
+
 
 def main(db: str) -> None:
     for filename in [
@@ -387,6 +474,19 @@ def main(db: str) -> None:
         os.remove(
             os.path.join("experimental/DotPatternMap/images/points_box", filename)
         )
+    for filename in [
+        i
+        for i in os.listdir("experimental/DotPatternMap/images/pca_2d")
+        if i.endswith(".png")
+    ]:
+        os.remove(os.path.join("experimental/DotPatternMap/images/pca_2d", filename))
+
+    for filename in [
+        i
+        for i in os.listdir("experimental/DotPatternMap/images/pca_1d")
+        if i.endswith(".png")
+    ]:
+        os.remove(os.path.join("experimental/DotPatternMap/images/pca_1d", filename))
 
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
