@@ -369,12 +369,10 @@ class Map64:
             f"experimental/DotPatternMap/images/map64/{cell_id}.png",
             high_res_image,
         )
-        transformed_points_2d, transformed_points_1d = (
-            cls.perform_pca_on_3d_point_cloud_and_save(
-                high_res_image,
-                f"experimental/DotPatternMap/images/pca_2d/{cell_id}.png",
-                f"experimental/DotPatternMap/images/pca_1d/{cell_id}.png",
-            )
+        return cls.perform_pca_on_3d_point_cloud_and_save(
+            high_res_image,
+            f"experimental/DotPatternMap/images/pca_2d/{cell_id}.png",
+            f"experimental/DotPatternMap/images/pca_1d/{cell_id}.png",
         )
 
     @classmethod
