@@ -302,7 +302,7 @@ class Map64:
             [unpickled_contour],
             isClosed=True,
             color=(0, 255, 0),
-            thickness=3,
+            thickness=2,
         )
         cv2.imwrite(
             f"experimental/DotPatternMap/images/fluo_raw/{cell_id}.png",
