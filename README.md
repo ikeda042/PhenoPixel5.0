@@ -494,7 +494,7 @@ $$
 u_{1_{\max}}^\star = \max \{ u_{1_i}^\star : u_{1_i}^\star \in u_1 \}
 $$
 
-- The vertical bounds (in the $$ \mathbf{L}(u_1) $ direction) are defined by:
+- The vertical bounds (in the $ \mathbf{L}(u_1) $ direction) are defined by:
 
 $$
 L_{\min} = \min \{ \mathbf{L}(u_{1_i}^\star) : u_{1_i}^\star \in u_1 \}
