@@ -641,7 +641,7 @@ Here is the example of the antibiotic treated population.
 
 <div align="center">
 
-![Start-up window](docs_images/boarder_rectangle_compined.png)
+![Start-up window](docs_images/boarder_rectangle_combined.png)
 </div>
 <p align="center">
 Fig. 10-1 Streched cells of the population with fluorescent information.
