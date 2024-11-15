@@ -530,7 +530,6 @@ Fig. 8-1 a raw fluo image of a curved cell with its contour(light green).
 
 Figure 8-2 shows the streched cell. 
 
-
 <div align="center">
 
 ![Start-up window](docs_images/stretch_fluo_box.png)
@@ -540,6 +539,34 @@ Figure 8-2 shows the streched cell.
 <p align="center">
 Fig. 8-2 the pixels within stretched cell.
 </p>
+
+Figure 8-3 shows the reconstructed cell image as n x m matrix.
+
+<div align="center">
+
+![Start-up window](docs_images/map64_raw.png)
+
+</div>
+
+<p align="center">
+Fig. 8-3 the reconstructed cell image as n x m matrix.
+</p>
+
+
+Figure 8-4 shows the map64 image of the cell. 
+
+<div align="center">
+
+![Start-up window](docs_images/map64.png)
+
+</div>
+
+<p align="center">
+Fig. 8-4 the map64 image of the cell. (64 x 64)
+</p>
+
+
+
 
 
 
