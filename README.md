@@ -466,7 +466,17 @@ Here, let $\mathbf{L}(u_1)$ be a function that calculates the arc length between
 
 $$\mathbf{C}^\star = \lbrace (u_{1_i}^\star,\mathbf{L}(u_{1_i}^\star))^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
 
-$\mathbf{C}^\star \leftarrow \emptyset$<br> for $i$ $\in$ $n$:<br>     Retrieve coordinates: $(u_{1_i}^\star, f(\hat{u_{1_i}^\star}))$ from $\mathbf{U}^\star$<br>     Calculate arc length:<br>         $L(u_{1_i}^\star) \leftarrow \int_{min(u_1)}^{u_{1_i}^\star} \sqrt{1 + \left(\frac{df}{du_1}\right)^2} , du_1$<br>     Create new coordinate:<br>         $(u_{1_i}^\star, L(u_{1_i}^\star))$<br>     Add new coordinate to $\mathbf{C}^\star$:<br>         $\mathbf{C}^\star \leftarrow \mathbf{C}^\star \cup {(u_{1_i}^\star, L(u_{1_i}^\star))}$<br> return $\mathbf{C}^\star$
+$\mathbf{C}^\star \leftarrow \emptyset$<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;for $i$ $\in$ $n$:<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Retrieve coordinates: $(u_{1_i}^\star, f(\hat{u_{1_i}^\star}))$ from $\mathbf{U}^\star$<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Calculate arc length:<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$L(u_{1_i}^\star) \leftarrow \int_{min(u_1)}^{u_{1_i}^\star} \sqrt{1 + \left(\frac{df}{du_1}\right)^2} , du_1$<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Create new coordinate:<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$(u_{1_i}^\star, L(u_{1_i}^\star))$<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Add new coordinate to $\mathbf{C}^\star$:<br>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$\mathbf{C}^\star \leftarrow \mathbf{C}^\star \cup {(u_{1_i}^\star, L(u_{1_i}^\star))}$<br>
+return $\mathbf{C}^\star$
+
 
 
 This set represents a collection of points in $\mathbb{R}^{2 \times n} $, where each point $(u_{1_i}^\star, \mathbf{L}(u_{1_i}^\star))^\mathrm{T} $ is constructed from the parameter $ u_{1_i}^\star $ and its corresponding function value $ \mathbf{L}(u_{1_i}^\star)$.
