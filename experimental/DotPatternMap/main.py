@@ -261,7 +261,7 @@ class Map64:
 
     @classmethod
     def extract_map(
-        cls: Map64,
+        cls,
         image_fluo_raw: bytes,
         contour_raw: bytes,
         degree: int,
