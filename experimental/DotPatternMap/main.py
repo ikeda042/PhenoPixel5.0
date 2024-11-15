@@ -472,7 +472,9 @@ class Map64:
             for i, img in enumerate(images):
                 x = (i % col) * image_size
                 y = (i // col) * image_size
-                img = cv2.resize(img, (image_size, image_size))
+                img = cv2.resize(
+                    img, (image_size, image_size), interpolation=cv2.INTER_LINEAR
+                )
                 if img.ndim == 2:
                     img = img[:, :, np.newaxis]
                 combined_image[y : y + image_size, x : x + image_size] = img
@@ -484,7 +486,7 @@ class Map64:
             combined_map64_image,
         )
 
-        combined_points_box_image = combine_images_grid(points_box_images, 64, 3)
+        combined_points_box_image = combine_images_grid(points_box_images, 256, 3)
         cv2.imwrite(
             "experimental/DotPatternMap/images/combined_image_box.png",
             combined_points_box_image,
