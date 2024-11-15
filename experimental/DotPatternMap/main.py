@@ -370,8 +370,8 @@ class Map64:
         )
 
         plt.scatter(ps, dists, s=100, c=gs_norm, cmap="inferno")
-        plt.xlabel("p")
-        plt.ylabel("dist")
+        plt.xlabel(r"$L(u_{1_i}^\star)$ (px)")
+        plt.ylabel(r"$\text{min\_dist}$ (px)")
         # 外接矩形の描画
         plt.plot([min_p, max_p], [min_dist, min_dist], color="red")
         plt.plot([min_p, max_p], [max_dist, max_dist], color="red")
