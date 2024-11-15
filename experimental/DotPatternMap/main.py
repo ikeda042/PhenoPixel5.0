@@ -7,6 +7,7 @@ import pickle
 from database_parser import database_parser, Cell
 from sklearn.decomposition import PCA
 from scipy.optimize import minimize
+from scipy.integrate import quad
 from dataclasses import dataclass
 from tqdm import tqdm
 import os
@@ -267,6 +268,19 @@ class Map64:
         degree: int,
         cell_id: str = "default_cell_id",
     ):
+        def calculate_arc_length(theta, x1, x_target):
+            # 多項式の導関数を取得
+            poly_derivative = np.polyder(theta)
+
+            # 弧長積分のための関数
+            def arc_length_function(x):
+                return np.sqrt(1 + (np.polyval(poly_derivative, x)) ** 2)
+
+            # x1からx_targetまでの弧長を計算
+            arc_length, _ = quad(arc_length_function, x1, x_target)
+
+            return arc_length
+
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
         )
@@ -314,7 +328,15 @@ class Map64:
             min_distance, min_point = cls.find_minimum_distance_and_point(theta, i, j)
             sign = 1 if j > min_point[1] else -1
             raw_points.append(
-                cls.Point(min_point[0], min_point[1], i, j, min_distance, p, sign)
+                cls.Point(
+                    calculate_arc_length(theta, min(u1), min_point[0]),
+                    min_point[1],
+                    i,
+                    j,
+                    min_distance,
+                    p,
+                    sign,
+                )
             )
         raw_points.sort()
 
