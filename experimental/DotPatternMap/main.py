@@ -369,7 +369,7 @@ class Map64:
             else [0] * len(gs)
         )
 
-        plt.scatter(ps, dists, s=100, c=gs_norm, cmap="inferno")
+        plt.scatter(ps, dists, s=10, c=gs_norm, cmap="jet")
         plt.xlabel(r"$L(u_{1_i}^\star)$ (px)")
         plt.ylabel(r"$\text{min\_dist}$ (px)")
         # 外接矩形の描画
@@ -378,7 +378,9 @@ class Map64:
         plt.plot([min_p, min_p], [min_dist, max_dist], color="red")
         plt.plot([max_p, max_p], [min_dist, max_dist], color="red")
 
-        fig.savefig(f"experimental/DotPatternMap/images/points_box/{cell_id}.png")
+        fig.savefig(
+            f"experimental/DotPatternMap/images/points_box/{cell_id}.png", dpi=300
+        )
         plt.close(fig)
         plt.clf()
 
