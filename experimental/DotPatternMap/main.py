@@ -510,41 +510,26 @@ class Map64:
         )
 
 
+def delete_pngs(dir: str) -> None:
+    for filename in [
+        i
+        for i in os.listdir(f"experimental/DotPatternMap/images/{dir}")
+        if i.endswith(".png")
+    ]:
+        os.remove(os.path.join(f"experimental/DotPatternMap/images/{dir}", filename))
+
+
 def main(db: str):
-    for filename in [
-        i
-        for i in os.listdir("experimental/DotPatternMap/images/map64")
-        if i.endswith(".png")
+    for i in [
+        "map64",
+        "points_box",
+        "pca_2d",
+        "pca_1d",
+        "fluo_raw",
+        "map64_jet",
+        "map64_raw",
     ]:
-        os.remove(os.path.join("experimental/DotPatternMap/images/map64", filename))
-    for filename in [
-        i
-        for i in os.listdir("experimental/DotPatternMap/images/points_box")
-        if i.endswith(".png")
-    ]:
-        os.remove(
-            os.path.join("experimental/DotPatternMap/images/points_box", filename)
-        )
-    for filename in [
-        i
-        for i in os.listdir("experimental/DotPatternMap/images/pca_2d")
-        if i.endswith(".png")
-    ]:
-        os.remove(os.path.join("experimental/DotPatternMap/images/pca_2d", filename))
-
-    for filename in [
-        i
-        for i in os.listdir("experimental/DotPatternMap/images/pca_1d")
-        if i.endswith(".png")
-    ]:
-        os.remove(os.path.join("experimental/DotPatternMap/images/pca_1d", filename))
-
-    for filename in [
-        i
-        for i in os.listdir("experimental/DotPatternMap/images/fluo_raw")
-        if i.endswith(".png")
-    ]:
-        os.remove(os.path.join("experimental/DotPatternMap/images/fluo_raw", filename))
+        delete_pngs(i)
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
     vectors = []
