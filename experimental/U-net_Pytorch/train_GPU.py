@@ -224,24 +224,3 @@ for cell in cells_with_label_1:
     cv2.imwrite(
         f"experimental/U-net_Pytorch/images/predicted/{cell.cell_id}.png", prediction
     )
-
-# combine all the raw ph images, in a square grid
-raw_images = []
-for cell in cells_with_label_1:
-    img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR)
-    raw_images.append(img_ph)
-raw_images = np.array(raw_images)
-raw_images = np.concatenate(raw_images, axis=1)
-cv2.imwrite("experimental/U-net_Pytorch/images/raw_images.png", raw_images)
-
-# combine all the predicted contours, in a square grid
-predicted_images = []
-for cell in cells_with_label_1:
-    prediction = cv2.imread(
-        f"experimental/U-net_Pytorch/images/predicted/{cell.cell_id}.png",
-        cv2.IMREAD_GRAYSCALE,
-    )
-    predicted_images.append(prediction)
-predicted_images = np.array(predicted_images)
-predicted_images = np.concatenate(predicted_images, axis=1)
-cv2.imwrite("experimental/U-net_Pytorch/images/predicted_images.png", predicted_images)
