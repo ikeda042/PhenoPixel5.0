@@ -466,7 +466,7 @@ Here, let $\mathbf{L}(u_1)$ be a function that calculates the arc length between
 
 $$\mathbf{C}^\star = \lbrace (u_{1_i}^\star,\mathbf{L}(u_{1_i}^\star))^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
 
-$\mathbf{C}^\star \leftarrow \emptyset$<br>
+> &nbsp;&nbsp;&nbsp; $\mathbf{C}^\star \leftarrow \emptyset$<br>
 > &nbsp;&nbsp;&nbsp;&nbsp;for $i$ $\in$ $n$:<br>
 > &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Retrieve coordinates: $(u_{1_i}^\star, f(\hat{u_{1_i}^\star}))$ from $\mathbf{U}^\star$<br>
 > &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Calculate arc length:<br>
