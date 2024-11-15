@@ -8,6 +8,9 @@ import pickle
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String, FLOAT, BLOB
+import math
+import os
+
 
 Base = declarative_base()
 
@@ -45,11 +48,31 @@ def parse_image(cell: Cell) -> tuple:
     cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
     masked = cv2.bitwise_and(img_ph, mask)
     masked[mask > 0] = 255
-    return img_ph, masked
+    return img_ph, masked, contour
 
 
 # Load data from database
-cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
+cells_with_label_1 = (
+    session.query(Cell).filter(Cell.manual_label == 1).order_by(Cell.cell_id).all()
+)
+
+
+# Define the function to combine images into a single image grid
+def combine_images_grid(images, grid_size):
+    img_height, img_width, _ = images[0].shape
+    combined_image = np.zeros(
+        (img_height * grid_size, img_width * grid_size, 3), dtype=np.uint8
+    )
+
+    for i, img in enumerate(images):
+        row = i // grid_size
+        col = i % grid_size
+        combined_image[
+            row * img_height : (row + 1) * img_height,
+            col * img_width : (col + 1) * img_width,
+        ] = img
+
+    return combined_image
 
 
 # Custom Dataset
@@ -224,3 +247,165 @@ for cell in cells_with_label_1:
     cv2.imwrite(
         f"experimental/U-net_Pytorch/images/predicted/{cell.cell_id}.png", prediction
     )
+
+"""
+Save image processing results to a single image grid
+"""
+
+# Load and parse images
+images = []
+for cell in cells_with_label_1:
+    img_ph, _, contour = parse_image(cell)
+    cv2.drawContours(img_ph, [contour], -1, (0, 255, 0), 2)
+    images.append(img_ph)
+
+# Determine grid size
+num_images = len(images)
+grid_size = math.ceil(math.sqrt(num_images))
+
+# Pad the images list to ensure it fills the grid completely
+while len(images) < grid_size * grid_size:
+    images.append(np.zeros_like(images[0]))  # Add blank images for padding if necessary
+
+# Combine images into a single grid
+combined_image = combine_images_grid(images, grid_size)
+
+# Save the final combined image
+output_path = "experimental/U-net_Pytorch/images/combined_ph_cells_label1.png"
+cv2.imwrite(output_path, combined_image)
+print(f"Combined image saved as {output_path}")
+
+# Path to the directory containing .png images
+images_path = "experimental/U-net_Pytorch/images/predicted"
+
+# Load all .png images from the directory
+image_files = sorted([f for f in os.listdir(images_path) if f.endswith(".png")])
+images = [cv2.imread(os.path.join(images_path, f)) for f in image_files]
+
+# Ensure all images are the same size, if necessary
+# You might need to resize them if they aren't uniform in size
+if images:
+    img_height, img_width, _ = images[0].shape
+    for i in range(len(images)):
+        if images[i].shape[:2] != (img_height, img_width):
+            images[i] = cv2.resize(images[i], (img_width, img_height))
+
+# Determine grid size
+num_images = len(images)
+grid_size = math.ceil(math.sqrt(num_images))
+
+# Pad the images list to ensure it fills the grid completely
+while len(images) < grid_size * grid_size:
+    images.append(
+        np.zeros((img_height, img_width, 3), dtype=np.uint8)
+    )  # Add blank images for padding
+
+
+# Function to combine images into a single image grid
+def combine_images_grid(images, grid_size):
+    combined_image = np.zeros(
+        (img_height * grid_size, img_width * grid_size, 3), dtype=np.uint8
+    )
+
+    for i, img in enumerate(images):
+        row = i // grid_size
+        col = i % grid_size
+        combined_image[
+            row * img_height : (row + 1) * img_height,
+            col * img_width : (col + 1) * img_width,
+        ] = img
+
+    return combined_image
+
+
+# Combine images into a single grid
+combined_image = combine_images_grid(images, grid_size)
+
+# Save the final combined image
+output_path = "experimental/U-net_Pytorch/images/combined_predicted_images.png"
+cv2.imwrite(output_path, combined_image)
+print(f"Combined image saved as {output_path}")
+
+
+# Path to the directory containing .png images
+images_path = "experimental/U-net_Pytorch/images/predicted"
+
+# Load all .png images from the directory
+image_files = sorted([f for f in os.listdir(images_path) if f.endswith(".png")])
+images = [cv2.imread(os.path.join(images_path, f)) for f in image_files]
+
+# Ensure all images are the same size, if necessary
+if images:
+    img_height, img_width, _ = images[0].shape
+    for i in range(len(images)):
+        if images[i].shape[:2] != (img_height, img_width):
+            images[i] = cv2.resize(images[i], (img_width, img_height))
+
+
+# Function to find the contour with the centroid closest to the image center
+def process_image(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    img_center = (img_width // 2, img_height // 2)
+    min_dist = float("inf")
+    closest_contour = None
+
+    for contour in contours:
+        M = cv2.moments(contour)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            dist = ((cx - img_center[0]) ** 2 + (cy - img_center[1]) ** 2) ** 0.5
+            if dist < min_dist:
+                min_dist = dist
+                closest_contour = contour
+
+    # Create mask and apply it to the image
+    mask = np.zeros_like(image)
+    if closest_contour is not None:
+        cv2.drawContours(mask, [closest_contour], -1, (255, 255, 255), -1)
+
+    masked_image = cv2.bitwise_and(image, mask)
+    masked_image[mask == 0] = 0
+
+    return masked_image
+
+
+# Process each image and save the processed versions
+processed_images = [process_image(img) for img in images]
+
+# Determine grid size for combining images
+num_images = len(processed_images)
+grid_size = math.ceil(math.sqrt(num_images))
+
+# Pad the images list to ensure it fills the grid completely
+while len(processed_images) < grid_size * grid_size:
+    processed_images.append(np.zeros((img_height, img_width, 3), dtype=np.uint8))
+
+
+# Function to combine images into a single image grid
+def combine_images_grid(images, grid_size):
+    combined_image = np.zeros(
+        (img_height * grid_size, img_width * grid_size, 3), dtype=np.uint8
+    )
+
+    for i, img in enumerate(images):
+        row = i // grid_size
+        col = i % grid_size
+        combined_image[
+            row * img_height : (row + 1) * img_height,
+            col * img_width : (col + 1) * img_width,
+        ] = img
+
+    return combined_image
+
+
+# Combine images into a single grid
+combined_image = combine_images_grid(processed_images, grid_size)
+
+# Save the final combined image
+output_path = "experimental/U-net_Pytorch/images/combined_predicted_images_masked.png"
+cv2.imwrite(output_path, combined_image)
+print(f"Combined image saved as {output_path}")
