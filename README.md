@@ -665,7 +665,7 @@ def predict_contour(model, img_ph):
 ![Start-up window](docs_images/unet-ph-combined.png)
 </div>
 <p align="center">
-Fig. 9-1 phase images of the cells with its contour detected with Canny algorithm in Opencv
+Fig. 11-1 phase images of the cells with its contour detected with Canny algorithm in Opencv
 </p>
 
 
@@ -675,7 +675,7 @@ Fig. 9-1 phase images of the cells with its contour detected with Canny algorith
 ![Start-up window](docs_images/unet-contour-predicted-raw.png)
 </div>
 <p align="center">
-Fig. 9-2 generated images from a phase image as an input with U-net model.
+Fig.11-2 generated images from a phase image as an input with U-net model.
 </p>
 
 <div align="center">
@@ -683,7 +683,7 @@ Fig. 9-2 generated images from a phase image as an input with U-net model.
 ![Start-up window](docs_images/unet-contour-predicted.png)
 </div>
 <p align="center">
-Fig. 9-3 masked cell images with the inferenced contours.
+Fig. 11-3 masked cell images with the inferenced contours.
 </p>
 
 
@@ -706,7 +706,7 @@ You can find the “Download Bulk” button after switching the morphoengine to 
 ![Start-up window](docs_images/stacked_heatmap_rel.png)
 </div>
 <p align="center">
-Fig. 9-1 staked heatmap with normalized cell lengths.
+Fig. 12-1 staked heatmap with normalized cell lengths.
 </p>
 
 Note that cell lengths are normalized to relative positions so you can focus on localization. However, if you also need to consider the absolute lengths of the cells, you can run the following.
@@ -719,7 +719,7 @@ Note that cell lengths are normalized to relative positions so you can focus on 
 </div>
 
 <p align="center">
-Fig. 9-2 staked heatmap with absolute cell lengths.(in pixel)
+Fig. 12-2 staked heatmap with absolute cell lengths.(in pixel)
 </p>
 
 
@@ -732,6 +732,6 @@ Fig. 9-2 staked heatmap with absolute cell lengths.(in pixel)
 </div>
 
 <p align="center">
-Fig. 9-3 staked heatmap with absolute cell lengths. (in µm)
+Fig. 12-3 staked heatmap with absolute cell lengths. (in µm)
 </p>
 
