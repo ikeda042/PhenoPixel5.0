@@ -631,6 +631,10 @@ Fig. 9-3 staked heatmap with absolute cell lengths. (in µm)
 
 # Phenotipic expression patterns with map64
 
+[Scripts for map64 normalization](experimental/DotPatternMap/main.py)
+
+
+
 With the Map64 normalization algorighms, cells' phenotipic GFP-expressions patterns. 
 
 Here is the example of the antibiotic treated population.
@@ -650,6 +654,7 @@ Fig. 10-1 Streched cells of the population with fluorescent information.
 <p align="center">
 Fig. 10-2 Map64 normalized cells of the population.
 </p>
+
 
 
 
