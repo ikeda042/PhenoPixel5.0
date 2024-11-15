@@ -395,6 +395,11 @@ class Map64:
             p_scaled = int((p - min_p) * scale_factor)
             dist_scaled = int((dist - min_dist) * scale_factor)
             cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
+        # リサイズ前の画像を保存
+        cv2.imwrite(
+            f"experimental/DotPatternMap/images/map64_raw/{cell_id}.png",
+            high_res_image,
+        )
         # resize image to 64x64
         high_res_image = cv2.resize(
             high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST
