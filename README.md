@@ -468,6 +468,53 @@ $$\mathbf{C}^\star = \lbrace (u_{1_i}^\star,\mathbf{L}(u_{1_i}^\star))^\mathrm{T
 
 $\mathbf{C}^\star \leftarrow \emptyset$<br> for $i$ $\in$ $n$:<br>     Retrieve coordinates: $(u_{1_i}^\star, f(\hat{u_{1_i}^\star}))$ from $\mathbf{U}^\star$<br>     Calculate arc length: <br>         $L(u_{1_i}^\star) \leftarrow \int_{min(u_1)}^{u_{1_i}^\star} \sqrt{1 + \left(\frac{df}{du_1}\right)^2} , du_1$<br>     Create new coordinate: <br>         $(u_{1_i}^\star, L(u_{1_i}^\star))$<br>     Add new coordinate to $\mathbf{C}^\star$:<br>         $\mathbf{C}^\star \leftarrow \mathbf{C}^\star \cup {(u_{1_i}^\star, L(u_{1_i}^\star))}$<br> return $\mathbf{C}^\star$
 
+
+This set represents a collection of points in $\mathbb{R}^{2 \times n} $, where each point $(u_{1_i}^\star, \mathbf{L}(u_{1_i}^\star))^\mathrm{T} $ is constructed from the parameter $ u_{1_i}^\star $ and its corresponding function value $ \mathbf{L}(u_{1_i}^\star)$.
+
+To mathematically express the bounding rectangle encompassing $ \mathbf{C}^\star $, we can define it as follows:
+
+- The horizontal bounds (in the $ u_1 $ direction) are defined by:
+
+$$
+u_{1_{\min}}^\star = \min \{ u_{1_i}^\star : u_{1_i}^\star \in u_1 \}
+$$
+
+$$
+u_{1_{\max}}^\star = \max \{ u_{1_i}^\star : u_{1_i}^\star \in u_1 \}
+$$
+
+- The vertical bounds (in the $$ \mathbf{L}(u_1) $ direction) are defined by:
+
+$$
+L_{\min} = \min \{ \mathbf{L}(u_{1_i}^\star) : u_{1_i}^\star \in u_1 \}
+$$
+
+$$
+L_{\max} = \max \{ \mathbf{L}(u_{1_i}^\star) : u_{1_i}^\star \in u_1 \}
+$$
+
+
+The bounding rectangle $ R $ that encompasses $ \mathbf{C}^\star $ can be expressed as:
+
+$$
+R = [u_{1_{\min}}^\star, u_{1_{\max}}^\star] \times [L_{\min}, L_{\max}]
+$$
+
+If we treat $ R $ as an image with dimensions $ m \times n $, resizing it to $ 64 \times 64 $ pixels using nearest-neighbor interpolation can be expressed mathematically as follows:
+
+
+**Original pixel positions**: $ (x, y) $ where $ x \in \{0, 1, \ldots, n-1\} $ and $ y \in \{0, 1, \ldots, m-1\} $ 
+
+**New pixel positions**: $ (x', y') $where $x' \in \{0, 1, \ldots, 63\} $ and $ y' \in \{0, 1, \ldots, 63\} $
+
+The mapping from the original image to the resized image is given by:
+
+$$
+x' = \left\lfloor \frac{x \cdot 64}{n} \right\rfloor, \quad y' = \left\lfloor \frac{y \cdot 64}{m} \right\rfloor
+$$
+
+where $ \lfloor \cdot \rfloor $ denotes the floor function, which truncates the value to the nearest integer. The interpolation method `cv2.INTER_NEAREST` ensures that the pixel value chosen for each $ (x', y') $ corresponds to the nearest pixel from the original image.
+
 ### Results:
 
 We applied the cell-streching algorithms for the cell shown in figure 8-1.
