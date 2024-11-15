@@ -472,6 +472,14 @@ $\mathbf{C}^\star \leftarrow \emptyset$<br> for $i$ $\in$ $n$:<br>     Retri
 
 We applied the cell-streching algorithms for the cell shown in figure 8-1.
 
+<div align="center">
+
+![Start-up window](docs_images/stretch_fluo_raw.png)
+</div>
+
+Figure 8-2 shows the streched cell. 
+
+
 
 
 
