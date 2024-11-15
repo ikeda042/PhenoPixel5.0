@@ -463,7 +463,7 @@ $$\mathbf{U}^\star = \lbrace (u_{1_i}^\star,f\hat{(u_{1_i}^\star)})^\mathrm{T} :
 
 ここで、 $f(\hat{u_1})$ 上において、$min(u_1)$ ともう一つの曲線上の任意の点 $(u_1,f(\hat{u_1}))$　との弧長を求める関数を $\mathbf{L}(u_1)$ とすると、”引き伸ばした"後の細胞情報は下記のように表すことができる。
 
-$$ \mathbf{C}^\star = \lbrace (u_{1_i}^\star,\mathbf{L}(u_{1_i}^\star))^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
+$$\mathbf{C}^\star = \lbrace (u_{1_i}^\star,\mathbf{L}(u_{1_i}^\star))^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
 
 
 
