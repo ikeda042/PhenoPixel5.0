@@ -555,7 +555,7 @@ Figure 8-3 shows the reconstructed cell image as n x m matrix.
 
 <div align="center">
 
-![Start-up window](docs_images/map64_raw.png)
+<img src="docs_images/map64_raw.png" width="800">
 
 </div>
 
@@ -568,7 +568,7 @@ Figure 8-4 shows the map64 image of the cell.
 
 <div align="center">
 
-![Start-up window](docs_images/map_64.png)
+<img src="docs_images/map_64.png" width="800">
 
 </div>
 
