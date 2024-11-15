@@ -481,6 +481,10 @@ Figure 8-2 shows the streched cell.
 
 
 
+<div align="center">
+
+![Start-up window](docs_images/stretch_fluo_box.png)
+</div>
 
 
 
