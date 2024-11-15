@@ -629,5 +629,10 @@ Fig. 9-3 staked heatmap with absolute cell lengths. (in µm)
 
 
 
-# U-net masking (experimental)
+# Phenotipic expression patterns with map64
+
+With the Map64 normalization algorighms, cells' phenotipic GFP-expressions patterns. 
+
+Here is the example of the antibiotic treated population.
+
 
