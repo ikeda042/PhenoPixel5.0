@@ -428,6 +428,7 @@ class Map64:
         points_box_dir = "experimental/DotPatternMap/images/points_box"
         pca_2d_dir = "experimental/DotPatternMap/images/pca_2d"
         pca_1d_dir = "experimental/DotPatternMap/images/pca_1d"
+        map64_jet_dir = "experimental/DotPatternMap/images/map64_jet"
 
         map64_images = [
             cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
@@ -455,6 +456,13 @@ class Map64:
             is not None
         ]
 
+        map64_jet_images = [
+            cv2.imread(os.path.join(map64_jet_dir, filename), cv2.IMREAD_COLOR)
+            for filename in os.listdir(map64_jet_dir)
+            if cv2.imread(os.path.join(map64_jet_dir, filename), cv2.IMREAD_COLOR)
+            is not None
+        ]
+
         brightness = [np.sum(img) for img in map64_images]
 
         sorted_indices = np.argsort(brightness)[::-1]
@@ -462,6 +470,7 @@ class Map64:
         points_box_images = [points_box_images[i] for i in sorted_indices]
         pca_2d_images = [pca_2d_images[i] for i in sorted_indices]
         pca_1d_images = [pca_1d_images[i] for i in sorted_indices]
+        map64_jet_images = [map64_jet_images[i] for i in sorted_indices]
 
         def calculate_grid_size(n):
             row = int(np.sqrt(n))
@@ -507,6 +516,12 @@ class Map64:
         cv2.imwrite(
             "experimental/DotPatternMap/images/combined_image_pca_1d.png",
             combined_pca_1d_image,
+        )
+
+        combined_map64_jet_image = combine_images_grid(map64_jet_images, 64, 3)
+        cv2.imwrite(
+            "experimental/DotPatternMap/images/combined_image_jet.png",
+            combined_map64_jet_image,
         )
 
 
