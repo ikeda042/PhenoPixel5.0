@@ -609,6 +609,52 @@ Fig. 10-2 Map64 normalized cells of the population.
 
 
 
+## Algorithm for Training a Contour Generation Model Using U-Net in PyTorch
+
+The proposed algorithm for generating cellular contours from phase contrast microscopy images involves the design and training of a U-Net-based deep learning model. The U-Net architecture is well-suited for image segmentation tasks, providing an efficient encoder-decoder framework that preserves spatial information for precise contour prediction. Below, we outline the steps involved in the training process:
+
+### 1. Data Preparation
+- **Input Data**: The dataset consists of phase contrast images and corresponding binary masks representing the contours of the cells.
+- **Preprocessing**: Images are resized and normalized to ensure consistency in model input dimensions (256x256 pixels) and numerical stability during training.
+- **DataLoader**: The dataset is encapsulated in a PyTorch `DataLoader` to facilitate mini-batch processing, shuffling, and parallel data loading.
+
+### 2. U-Net Architecture
+- The U-Net model comprises an encoder-decoder structure:
+  - **Encoder Path**: Sequential convolutional layers capture spatial features at multiple scales, each followed by a max-pooling operation to downsample the feature maps.
+  - **Bottleneck**: The central part of the network extracts deep representations of the input image.
+  - **Decoder Path**: Transposed convolution layers upsample the feature maps, concatenated with their corresponding encoder outputs to retain high-resolution features for precise segmentation.
+  - **Output Layer**: A final convolutional layer reduces the output channels to 1, followed by a `Sigmoid` activation to produce pixel-wise probabilities for binary classification.
+- **Activation Functions**: ReLU activations are used throughout the encoder and decoder paths to introduce non-linearity and enhance model capacity.
+
+### 3. Training Procedure
+- **Loss Function**: The model is trained using the Binary Cross Entropy Loss (`nn.BCELoss`), which is effective for binary segmentation tasks.
+- **Optimizer**: Adam optimizer with a learning rate of \(1 \times 10^{-4}\) is employed for efficient gradient-based optimization.
+- **Epochs and Mini-batches**: The model is trained over 20 epochs with a mini-batch size of 8. Each epoch iteratively processes batches from the training set, computes the loss, and updates the model weights.
+- **Device Utilization**: The training is performed using the Metal Performance Shaders (MPS) backend for efficient GPU computation on macOS.
+
+### 4. Prediction and Evaluation
+- **Inference**: The trained model is used for inference on new phase contrast images. Images are resized to 256x256 pixels, normalized, and passed through the model.
+- **Post-processing**: The model outputs a probability map, thresholded at 0.5 to create a binary mask representing the predicted cell contours.
+
+### 5. Saving the Model
+- The trained U-Net model is serialized and saved using PyTorch's `torch.save` method for future inference and fine-tuning.
+
+### 6. Example Code for Prediction
+A utility function `predict_contour()` is provided for single-image predictions. The function preprocesses the input image, feeds it through the model in evaluation mode, and returns the predicted contour as a binary mask.
+
+```python
+def predict_contour(model, img_ph):
+    model.eval()
+    img_resized = cv2.resize(img_ph, (256, 256)) / 255.0
+    img_resized = (
+        torch.tensor(img_resized.transpose(2, 0, 1), dtype=torch.float32)
+        .unsqueeze(0)
+        .to(device)
+    )
+    with torch.no_grad():
+        prediction = model(img_resized)
+    prediction = (prediction > 0.5).cpu().numpy().astype(np.uint8) * 255
+    return prediction[0][0]
 
 
 
