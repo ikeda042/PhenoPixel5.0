@@ -568,7 +568,7 @@ Figure 8-4 shows the map64 image of the cell.
 
 <div align="center">
 
-![Start-up window](docs_images/map64.png)
+![Start-up window](docs_images/map_64.png)
 
 </div>
 
