@@ -403,7 +403,8 @@ The algorithm proceeds as follows:
 > if maxVector $\neq \phi$ :<br>
 > &nbsp;&nbsp;&nbsp;&nbsp;Add maxVector to the result set
 
-### Result:
+### Results:
+
 We applied the aforementioned algorithm for the cell shown in figure 7-2.
 
 
@@ -466,6 +467,13 @@ Here, let $\mathbf{L}(u_1)$ be a function that calculates the arc length between
 $$\mathbf{C}^\star = \lbrace (u_{1_i}^\star,\mathbf{L}(u_{1_i}^\star))^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
 
 $\mathbf{C}^\star \leftarrow \emptyset$<br> for $i$ $\in$ $n$:<br>     Retrieve coordinates: $(u_{1_i}^\star, f(\hat{u_{1_i}^\star}))$ from $\mathbf{U}^\star$<br>     Calculate arc length: <br>         $L(u_{1_i}^\star) \leftarrow \int_{min(u_1)}^{u_{1_i}^\star} \sqrt{1 + \left(\frac{df}{du_1}\right)^2} , du_1$<br>     Create new coordinate: <br>         $(u_{1_i}^\star, L(u_{1_i}^\star))$<br>     Add new coordinate to $\mathbf{C}^\star$:<br>         $\mathbf{C}^\star \leftarrow \mathbf{C}^\star \cup {(u_{1_i}^\star, L(u_{1_i}^\star))}$<br> return $\mathbf{C}^\star$
+
+### Results:
+
+We applied the cell-streching algorithms for the cell shown in figure 8-1.
+
+
+
 
 
 # Fluorescence localization visualizer 
