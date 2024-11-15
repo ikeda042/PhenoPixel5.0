@@ -484,7 +484,7 @@ This set represents a collection of points in $\mathbb{R}^{2 \times n} $, where 
 
 To mathematically express the bounding rectangle encompassing $ \mathbf{C}^\star $, we can define it as follows:
 
-- The horizontal bounds (in the $ u_1 $ direction) are defined by:
+- The horizontal bounds (in the $u_1$ direction) are defined by:
 
 $$
 u_{1_{\min}}^\star = \min \{ u_{1_i}^\star : u_{1_i}^\star \in u_1 \}
