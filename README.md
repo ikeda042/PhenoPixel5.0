@@ -635,6 +635,22 @@ With the Map64 normalization algorighms, cells' phenotipic GFP-expressions patte
 
 Here is the example of the antibiotic treated population.
 
+<div align="center">
+
+![Start-up window](docs_images/boarder_rectangle_compined.png)
+</div>
+<p align="center">
+Fig. 10-1 Streched cells of the population with fluorescent information.
+</p>
+
+<div align="center">
+
+![Start-up window](docs_images/map_64_combined.png)
+</div>
+<p align="center">
+Fig. 10-2 Map64 normalized cells of the population.
+</p>
+
 
 
 
