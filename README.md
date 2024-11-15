@@ -451,7 +451,7 @@ Figure 7-5 describes the result of the peak-path finder algorithm.
 Fig.7-5: The estimated peak path by the algorithm.
 </p>
 
-# Normalization Based on the Major Axis of Cell Morphology
+# Normalization Based on the Major Axis of Cell Morphology (Map64)
 
 In the previous chapter, we analytically derived the centerline of the cell. Utilizing this, we attempted to "stretch" any curved cell along its major axis to create a straightened cell, thereby normalizing the fluorescence localization within the cell.
 
