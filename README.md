@@ -449,10 +449,11 @@ Figure 7-5 describes the result of the peak-path finder algorithm.
 Fig.7-5: The estimated peak path by the algorithm.
 </p>
 
-# Relative Position Analysis
+# 細胞形態の長軸ベースでの正規化
 
-前章で我々は細胞の中心曲線を解析的に求めることができた。そこで、これを活用して
+前章で我々は細胞の中心曲線を解析的に求めることができた。そこで、これを活用して、いかなる湾曲した細胞も長軸ベースで”引き伸ばして"まっすぐな細胞にすることで、細胞内の蛍光局在を正規化することを試みた。
 
+はじめに、$$(u_1,u_2)$$ 座標上の多項式で表される曲線を $$f(\hat{u_1})=\theta^\mathrm{T}\mathbf{U}$$ とする。
 
 
 
