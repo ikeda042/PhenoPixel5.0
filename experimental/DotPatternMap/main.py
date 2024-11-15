@@ -369,7 +369,7 @@ class Map64:
             else [0] * len(gs)
         )
 
-        plt.scatter(ps, dists, s=10, c=gs_norm, cmap="jet")
+        plt.scatter(ps, dists, s=80, c=gs_norm, cmap="jet")
         plt.xlabel(r"$L(u_{1_i}^\star)$ (px)")
         plt.ylabel(r"$\text{min\_dist}$ (px)")
         # 外接矩形の描画
