@@ -12,7 +12,6 @@ This version 5.0 inherits the deprecated version [PhenoPixel 4.0](https://github
 Available at : [Docs](Software_Docs.md)
 
 
-
 # Algorithms for morphological analyses 
 
 ## Cell Elongation Direction Determination Algorithm
