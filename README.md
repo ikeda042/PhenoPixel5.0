@@ -655,6 +655,37 @@ def predict_contour(model, img_ph):
         prediction = model(img_resized)
     prediction = (prediction > 0.5).cpu().numpy().astype(np.uint8) * 255
     return prediction[0][0]
+```
+
+## Results
+
+
+<div align="center">
+
+![Start-up window](docs_images/unet-ph-combined.png)
+</div>
+<p align="center">
+Fig. 9-1 phase images of the cells with its contour detected with Canny algorithm in Opencv
+</p>
+
+
+
+<div align="center">
+
+![Start-up window](docs_images/unet-contour-predicted-raw.png)
+</div>
+<p align="center">
+Fig. 9-2 generated images from a phase image as an input with U-net model.
+</p>
+
+<div align="center">
+
+![Start-up window](docs_images/unet-contour-predicted.png)
+</div>
+<p align="center">
+Fig. 9-3 masked cell images with the inferenced contours.
+</p>
+
 
 
 
