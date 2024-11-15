@@ -504,4 +504,4 @@ if __name__ == "__main__":
         if i.endswith(".db"):
             with open(f"experimental/DotPatternMap/images/{i}_vectors.txt", "w") as f:
                 for vector in main(f"{i}"):
-                    f.write(f"{','.join(vector)}\n")
+                    f.write(f"{','.join(map(str, vector))}\n")
