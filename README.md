@@ -511,7 +511,7 @@ $$
 R = [u_{1_{\min}}^\star, u_{1_{\max}}^\star] \times [L_{\min}, L_{\max}]
 $$
 
-If we treat $ R $ as an image with dimensions $ m \times n $, resizing it to $ 64 \times 64 $ pixels using nearest-neighbor interpolation can be expressed mathematically as follows:
+If we treat $R$ as an image with dimensions $m \times n$, resizing it to $64 \times 64$ pixels using nearest-neighbor interpolation can be expressed mathematically as follows:
 
 
 **Original pixel positions**: $ (x, y) $ where $ x \in \{0, 1, \ldots, n-1\} $ and $ y \in \{0, 1, \ldots, m-1\} $ 
