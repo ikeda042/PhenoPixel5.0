@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String, FLOAT, BLOB
 import math
+import os
 
 
 Base = declarative_base()
@@ -51,7 +52,9 @@ def parse_image(cell: Cell) -> tuple:
 
 
 # Load data from database
-cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
+cells_with_label_1 = (
+    session.query(Cell).filter(Cell.manual_label == 1).order_by(Cell.cell_id).all()
+)
 
 
 # Define the function to combine images into a single image grid
@@ -267,3 +270,55 @@ print(f"Combined image saved as {output_path}")
 #     cv2.imwrite(
 #         f"experimental/U-net_Pytorch/images/predicted/{cell.cell_id}.png", prediction
 #     )
+
+
+# Path to the directory containing .png images
+images_path = "experimental/U-net_Pytorch/images/predicted"
+
+# Load all .png images from the directory
+image_files = sorted([f for f in os.listdir(images_path) if f.endswith(".png")])
+images = [cv2.imread(os.path.join(images_path, f)) for f in image_files]
+
+# Ensure all images are the same size, if necessary
+# You might need to resize them if they aren't uniform in size
+if images:
+    img_height, img_width, _ = images[0].shape
+    for i in range(len(images)):
+        if images[i].shape[:2] != (img_height, img_width):
+            images[i] = cv2.resize(images[i], (img_width, img_height))
+
+# Determine grid size
+num_images = len(images)
+grid_size = math.ceil(math.sqrt(num_images))
+
+# Pad the images list to ensure it fills the grid completely
+while len(images) < grid_size * grid_size:
+    images.append(
+        np.zeros((img_height, img_width, 3), dtype=np.uint8)
+    )  # Add blank images for padding
+
+
+# Function to combine images into a single image grid
+def combine_images_grid(images, grid_size):
+    combined_image = np.zeros(
+        (img_height * grid_size, img_width * grid_size, 3), dtype=np.uint8
+    )
+
+    for i, img in enumerate(images):
+        row = i // grid_size
+        col = i % grid_size
+        combined_image[
+            row * img_height : (row + 1) * img_height,
+            col * img_width : (col + 1) * img_width,
+        ] = img
+
+    return combined_image
+
+
+# Combine images into a single grid
+combined_image = combine_images_grid(images, grid_size)
+
+# Save the final combined image
+output_path = "combined_predicted_images.png"
+cv2.imwrite(output_path, combined_image)
+print(f"Combined image saved as {output_path}")
