@@ -322,3 +322,92 @@ combined_image = combine_images_grid(images, grid_size)
 output_path = "experimental/U-net_Pytorch/images/combined_predicted_images.png"
 cv2.imwrite(output_path, combined_image)
 print(f"Combined image saved as {output_path}")
+
+
+import os
+import cv2
+import numpy as np
+import math
+
+# Path to the directory containing .png images
+images_path = "experimental/U-net_Pytorch/images/predicted"
+
+# Load all .png images from the directory
+image_files = sorted([f for f in os.listdir(images_path) if f.endswith(".png")])
+images = [cv2.imread(os.path.join(images_path, f)) for f in image_files]
+
+# Ensure all images are the same size, if necessary
+if images:
+    img_height, img_width, _ = images[0].shape
+    for i in range(len(images)):
+        if images[i].shape[:2] != (img_height, img_width):
+            images[i] = cv2.resize(images[i], (img_width, img_height))
+
+
+# Function to find the contour with the centroid closest to the image center
+def process_image(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    img_center = (img_width // 2, img_height // 2)
+    min_dist = float("inf")
+    closest_contour = None
+
+    for contour in contours:
+        M = cv2.moments(contour)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            dist = ((cx - img_center[0]) ** 2 + (cy - img_center[1]) ** 2) ** 0.5
+            if dist < min_dist:
+                min_dist = dist
+                closest_contour = contour
+
+    # Create mask and apply it to the image
+    mask = np.zeros_like(image)
+    if closest_contour is not None:
+        cv2.drawContours(mask, [closest_contour], -1, (255, 255, 255), -1)
+
+    masked_image = cv2.bitwise_and(image, mask)
+    masked_image[mask == 0] = 0
+
+    return masked_image
+
+
+# Process each image and save the processed versions
+processed_images = [process_image(img) for img in images]
+
+# Determine grid size for combining images
+num_images = len(processed_images)
+grid_size = math.ceil(math.sqrt(num_images))
+
+# Pad the images list to ensure it fills the grid completely
+while len(processed_images) < grid_size * grid_size:
+    processed_images.append(np.zeros((img_height, img_width, 3), dtype=np.uint8))
+
+
+# Function to combine images into a single image grid
+def combine_images_grid(images, grid_size):
+    combined_image = np.zeros(
+        (img_height * grid_size, img_width * grid_size, 3), dtype=np.uint8
+    )
+
+    for i, img in enumerate(images):
+        row = i // grid_size
+        col = i % grid_size
+        combined_image[
+            row * img_height : (row + 1) * img_height,
+            col * img_width : (col + 1) * img_width,
+        ] = img
+
+    return combined_image
+
+
+# Combine images into a single grid
+combined_image = combine_images_grid(processed_images, grid_size)
+
+# Save the final combined image
+output_path = "experimental/U-net_Pytorch/images/combined_predicted_images_masked.png"
+cv2.imwrite(output_path, combined_image)
+print(f"Combined image saved as {output_path}")
