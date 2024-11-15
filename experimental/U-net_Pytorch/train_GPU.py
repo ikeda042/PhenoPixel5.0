@@ -271,7 +271,9 @@ print(f"Combined image saved as {output_path}")
 #         f"experimental/U-net_Pytorch/images/predicted/{cell.cell_id}.png", prediction
 #     )
 
-
+"""
+Save image processing results to a single image grid
+"""
 # Path to the directory containing .png images
 images_path = "experimental/U-net_Pytorch/images/predicted"
 
@@ -323,11 +325,6 @@ output_path = "experimental/U-net_Pytorch/images/combined_predicted_images.png"
 cv2.imwrite(output_path, combined_image)
 print(f"Combined image saved as {output_path}")
 
-
-import os
-import cv2
-import numpy as np
-import math
 
 # Path to the directory containing .png images
 images_path = "experimental/U-net_Pytorch/images/predicted"
