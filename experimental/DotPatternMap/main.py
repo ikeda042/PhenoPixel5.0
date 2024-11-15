@@ -7,6 +7,7 @@ import pickle
 from database_parser import database_parser, Cell
 from sklearn.decomposition import PCA
 from scipy.optimize import minimize
+from scipy.integrate import quad
 from dataclasses import dataclass
 from tqdm import tqdm
 import os
@@ -261,12 +262,25 @@ class Map64:
 
     @classmethod
     def extract_map(
-        cls: Map64,
+        cls,
         image_fluo_raw: bytes,
         contour_raw: bytes,
         degree: int,
         cell_id: str = "default_cell_id",
     ):
+        def calculate_arc_length(theta, x1, x_target):
+            # 多項式の導関数を取得
+            poly_derivative = np.polyder(theta)
+
+            # 弧長積分のための関数
+            def arc_length_function(x):
+                return np.sqrt(1 + (np.polyval(poly_derivative, x)) ** 2)
+
+            # x1からx_targetまでの弧長を計算
+            arc_length, _ = quad(arc_length_function, x1, x_target)
+
+            return arc_length
+
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
         )
@@ -281,6 +295,19 @@ class Map64:
         points_inside_cell_1 = image_fluo_gray[
             coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
         ]
+
+        # write out the image fluo with contour
+        cv2.polylines(
+            image_fluo,
+            [unpickled_contour],
+            isClosed=True,
+            color=(0, 255, 0),
+            thickness=2,
+        )
+        cv2.imwrite(
+            f"experimental/DotPatternMap/images/fluo_raw/{cell_id}.png",
+            image_fluo,
+        )
 
         X = np.array(
             [
@@ -314,7 +341,15 @@ class Map64:
             min_distance, min_point = cls.find_minimum_distance_and_point(theta, i, j)
             sign = 1 if j > min_point[1] else -1
             raw_points.append(
-                cls.Point(min_point[0], min_point[1], i, j, min_distance, p, sign)
+                cls.Point(
+                    calculate_arc_length(theta, min(u1), min_point[0]),
+                    min_point[1],
+                    i,
+                    j,
+                    min_distance,
+                    p,
+                    sign,
+                )
             )
         raw_points.sort()
 
@@ -334,16 +369,18 @@ class Map64:
             else [0] * len(gs)
         )
 
-        plt.scatter(ps, dists, s=100, c=gs_norm, cmap="inferno")
-        plt.xlabel("p")
-        plt.ylabel("dist")
+        plt.scatter(ps, dists, s=10, c=gs_norm, cmap="jet")
+        plt.xlabel(r"$L(u_{1_i}^\star)$ (px)")
+        plt.ylabel(r"$\text{min\_dist}$ (px)")
         # 外接矩形の描画
         plt.plot([min_p, max_p], [min_dist, min_dist], color="red")
         plt.plot([min_p, max_p], [max_dist, max_dist], color="red")
         plt.plot([min_p, min_p], [min_dist, max_dist], color="red")
         plt.plot([max_p, max_p], [min_dist, max_dist], color="red")
 
-        fig.savefig(f"experimental/DotPatternMap/images/points_box/{cell_id}.png")
+        fig.savefig(
+            f"experimental/DotPatternMap/images/points_box/{cell_id}.png", dpi=300
+        )
         plt.close(fig)
         plt.clf()
 
@@ -358,6 +395,11 @@ class Map64:
             p_scaled = int((p - min_p) * scale_factor)
             dist_scaled = int((dist - min_dist) * scale_factor)
             cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
+        # リサイズ前の画像を保存
+        cv2.imwrite(
+            f"experimental/DotPatternMap/images/map64_raw/{cell_id}.png",
+            high_res_image,
+        )
         # resize image to 64x64
         high_res_image = cv2.resize(
             high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST
@@ -490,6 +532,12 @@ def main(db: str):
     ]:
         os.remove(os.path.join("experimental/DotPatternMap/images/pca_1d", filename))
 
+    for filename in [
+        i
+        for i in os.listdir("experimental/DotPatternMap/images/fluo_raw")
+        if i.endswith(".png")
+    ]:
+        os.remove(os.path.join("experimental/DotPatternMap/images/fluo_raw", filename))
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
     vectors = []
