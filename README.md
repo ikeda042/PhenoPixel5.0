@@ -450,18 +450,18 @@ Figure 7-5 describes the result of the peak-path finder algorithm.
 Fig.7-5: The estimated peak path by the algorithm.
 </p>
 
-# 細胞形態の長軸ベースでの正規化
+# Normalization Based on the Major Axis of Cell Morphology
 
-前章で我々は細胞の中心曲線を解析的に求めることができた。そこで、これを活用して、いかなる湾曲した細胞も長軸ベースで”引き伸ばして"まっすぐな細胞にすることで、細胞内の蛍光局在を正規化することを試みた。
+In the previous chapter, we analytically derived the centerline of the cell. Utilizing this, we attempted to "stretch" any curved cell along its major axis to create a straightened cell, thereby normalizing the fluorescence localization within the cell.
 
-はじめに、$$(u_1,u_2)$$ 座標上の多項式で表される曲線を $$f(\hat{u_1})=\theta^\mathrm{T}\mathbf{U}$$ とする。
+First, let a curve represented by a polynomial in $$(u_1,u_2)$$ coordinates be expressed as $$f(\hat{u_1})=\theta^\mathrm{T}\mathbf{U}$$ 
 
 
-この時、それぞれの細胞内のピクセルをこの曲線状に投影した時の座標は下記のように表される。
+At this point, the coordinates when projecting each pixel within the cell onto this curve can be expressed as follows:
 
 $$\mathbf{U}^\star = \lbrace (u_{1_i}^\star,f\hat{(u_{1_i}^\star)})^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
 
-ここで、 $f(\hat{u_1})$ 上において、$min(u_1)$ ともう一つの曲線上の任意の点 $(u_1,f(\hat{u_1}))$　との弧長を求める関数を $\mathbf{L}(u_1)$ とすると、”引き伸ばした"後の細胞情報は下記のように表すことができる。
+Here, let $\mathbf{L}(u_1)$ be a function that calculates the arc length between $min(u_1)$ and any point $(u_1, f(\hat{u_1}))$ on the curve. Then, the information of the "stretched" cell can be expressed as follows:
 
 $$\mathbf{C}^\star = \lbrace (u_{1_i}^\star,\mathbf{L}(u_{1_i}^\star))^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
 
