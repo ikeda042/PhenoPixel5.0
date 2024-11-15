@@ -513,11 +513,13 @@ $$
 
 If we treat $R$ as an image with dimensions $m \times n$, resizing it to $64 \times 64$ pixels using nearest-neighbor interpolation can be expressed mathematically as follows:
 
-**Original pixel positions**: $(x, y)$ where $x \in \{0, 1, \ldots, n-1\}$ and $y \in \{0, 1, \ldots, m-1\}$ 
 
-**New pixel positions**: $(x', y')$ where $x' \in \{0, 1, \ldots, 63\}$ and $y' \in \{0, 1, \ldots, 63\}$
+**Original pixel positions**: $ (x, y) $ where $ x \in \{0, 1, \ldots, n-1\} $ and $ y \in \{0, 1, \ldots, m-1\} $ 
+
+**New pixel positions**: $ (x', y') $where $x' \in \{0, 1, \ldots, 63\} $ and $ y' \in \{0, 1, \ldots, 63\} $
 
 The mapping from the original image to the resized image is given by:
+
 $$
 x' = \left\lfloor \frac{x \cdot 64}{n} \right\rfloor, \quad y' = \left\lfloor \frac{y \cdot 64}{m} \right\rfloor
 $$
