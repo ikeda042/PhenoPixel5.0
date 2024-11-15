@@ -302,7 +302,7 @@ class Map64:
             [unpickled_contour],
             isClosed=True,
             color=(0, 255, 0),
-            thickness=1,
+            thickness=3,
         )
         cv2.imwrite(
             f"experimental/DotPatternMap/images/fluo_raw/{cell_id}.png",
@@ -525,6 +525,12 @@ def main(db: str):
     ]:
         os.remove(os.path.join("experimental/DotPatternMap/images/pca_1d", filename))
 
+    for filename in [
+        i
+        for i in os.listdir("experimental/DotPatternMap/images/fluo_raw")
+        if i.endswith(".png")
+    ]:
+        os.remove(os.path.join("experimental/DotPatternMap/images/fluo_raw", filename))
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
     vectors = []
