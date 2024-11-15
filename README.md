@@ -466,16 +466,17 @@ Here, let $\mathbf{L}(u_1)$ be a function that calculates the arc length between
 
 $$\mathbf{C}^\star = \lbrace (u_{1_i}^\star,\mathbf{L}(u_{1_i}^\star))^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
 
-> &nbsp;&nbsp;&nbsp; $\mathbf{C}^\star \leftarrow \emptyset$<br>
-> &nbsp;&nbsp;&nbsp;&nbsp;for $i$ $\in$ $n$:<br>
-> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Retrieve coordinates: $(u_{1_i}^\star, f(\hat{u_{1_i}^\star}))$ from $\mathbf{U}^\star$<br>
-> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Calculate arc length:<br>
-> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$L(u_{1_i}^\star) \leftarrow \int_{min(u_1)}^{u_{1_i}^\star} \sqrt{1 + \left(\frac{df}{du_1}\right)^2} , du_1$<br>
-> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Create new coordinate:<br>
-> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$(u_{1_i}^\star, L(u_{1_i}^\star))$<br>
-> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Add new coordinate to $\mathbf{C}^\star$:<br>
-> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$\mathbf{C}^\star \leftarrow \mathbf{C}^\star \cup {(u_{1_i}^\star, L(u_{1_i}^\star))}$<br>
+> &nbsp;&nbsp;&nbsp; $\mathbf{C}^\star \leftarrow \emptyset$  
+> &nbsp;&nbsp;&nbsp;&nbsp; for $i$ $\in$ $n$:  
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Retrieve coordinates: $(u_{1_i}^\star, f(\hat{u_{1_i}^\star}))$ from $\mathbf{U}^\star$  
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Calculate arc length:  
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; $L(u_{1_i}^\star) \leftarrow \int_{min(u_1)}^{u_{1_i}^\star} \sqrt{1 + \left(\frac{df}{du_1}\right)^2} , du_1$  
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Create new coordinate:  
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; $(u_{1_i}^\star, L(u_{1_i}^\star))$  
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Add new coordinate to $\mathbf{C}^\star$:  
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; $\mathbf{C}^\star \leftarrow \mathbf{C}^\star \cup {(u_{1_i}^\star, L(u_{1_i}^\star))}$  
 return $\mathbf{C}^\star$
+
 
 
 
