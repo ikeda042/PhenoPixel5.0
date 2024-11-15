@@ -411,6 +411,11 @@ class Map64:
             f"experimental/DotPatternMap/images/map64/{cell_id}.png",
             high_res_image,
         )
+        high_res_image_colormap = cv2.applyColorMap(high_res_image, cv2.COLORMAP_JET)
+        cv2.imwrite(
+            f"experimental/DotPatternMap/images/map64_jet/{cell_id}.png",
+            high_res_image_colormap,
+        )
         return cls.perform_pca_on_3d_point_cloud_and_save(
             high_res_image,
             f"experimental/DotPatternMap/images/pca_2d/{cell_id}.png",
