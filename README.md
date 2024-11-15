@@ -467,7 +467,7 @@ You can find the “Download Bulk” button after switching the morphoengine to 
 ![Start-up window](docs_images/stacked_heatmap_rel.png)
 </div>
 <p align="center">
-Fig. 8-1 staked heatmap with normalized cell lengths.
+Fig. 9-1 staked heatmap with normalized cell lengths.
 </p>
 
 Note that cell lengths are normalized to relative positions so you can focus on localization. However, if you also need to consider the absolute lengths of the cells, you can run the following.
@@ -480,7 +480,7 @@ Note that cell lengths are normalized to relative positions so you can focus on 
 </div>
 
 <p align="center">
-Fig. 8-2 staked heatmap with absolute cell lengths.(in pixel)
+Fig. 9-2 staked heatmap with absolute cell lengths.(in pixel)
 </p>
 
 
@@ -493,7 +493,7 @@ Fig. 8-2 staked heatmap with absolute cell lengths.(in pixel)
 </div>
 
 <p align="center">
-Fig. 8-3 staked heatmap with absolute cell lengths. (in µm)
+Fig. 9-3 staked heatmap with absolute cell lengths. (in µm)
 </p>
 
 
