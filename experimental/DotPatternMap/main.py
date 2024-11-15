@@ -295,6 +295,11 @@ class Map64:
         points_inside_cell_1 = image_fluo_gray[
             coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
         ]
+        # write the masked fluo image
+        cv2.imwrite(
+            f"experimental/DotPatternMap/images/masked_fluo/{cell_id}.png",
+            cv2.bitwise_and(image_fluo, image_fluo, mask=mask),
+        )
 
         X = np.array(
             [
