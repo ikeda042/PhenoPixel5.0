@@ -319,6 +319,6 @@ def combine_images_grid(images, grid_size):
 combined_image = combine_images_grid(images, grid_size)
 
 # Save the final combined image
-output_path = "combined_predicted_images.png"
+output_path = "experimental/U-net_Pytorch/images/combined_predicted_images.png"
 cv2.imwrite(output_path, combined_image)
 print(f"Combined image saved as {output_path}")
