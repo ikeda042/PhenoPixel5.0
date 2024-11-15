@@ -75,29 +75,6 @@ def combine_images_grid(images, grid_size):
     return combined_image
 
 
-# Load and parse images
-images = []
-for cell in cells_with_label_1:
-    img_ph, _, contour = parse_image(cell)
-    cv2.drawContours(img_ph, [contour], -1, (0, 255, 0), 2)
-    images.append(img_ph)
-
-# Determine grid size
-num_images = len(images)
-grid_size = math.ceil(math.sqrt(num_images))
-
-# Pad the images list to ensure it fills the grid completely
-while len(images) < grid_size * grid_size:
-    images.append(np.zeros_like(images[0]))  # Add blank images for padding if necessary
-
-# Combine images into a single grid
-combined_image = combine_images_grid(images, grid_size)
-
-# Save the final combined image
-output_path = "experimental/U-net_Pytorch/images/combined_ph_cells_label1.png"
-cv2.imwrite(output_path, combined_image)
-print(f"Combined image saved as {output_path}")
-
 # # Custom Dataset
 # class CellDataset(Dataset):
 #     def __init__(self, cells):
@@ -274,6 +251,30 @@ print(f"Combined image saved as {output_path}")
 """
 Save image processing results to a single image grid
 """
+
+# Load and parse images
+images = []
+for cell in cells_with_label_1:
+    img_ph, _, contour = parse_image(cell)
+    cv2.drawContours(img_ph, [contour], -1, (0, 255, 0), 2)
+    images.append(img_ph)
+
+# Determine grid size
+num_images = len(images)
+grid_size = math.ceil(math.sqrt(num_images))
+
+# Pad the images list to ensure it fills the grid completely
+while len(images) < grid_size * grid_size:
+    images.append(np.zeros_like(images[0]))  # Add blank images for padding if necessary
+
+# Combine images into a single grid
+combined_image = combine_images_grid(images, grid_size)
+
+# Save the final combined image
+output_path = "experimental/U-net_Pytorch/images/combined_ph_cells_label1.png"
+cv2.imwrite(output_path, combined_image)
+print(f"Combined image saved as {output_path}")
+
 # Path to the directory containing .png images
 images_path = "experimental/U-net_Pytorch/images/predicted"
 
