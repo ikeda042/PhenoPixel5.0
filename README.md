@@ -361,6 +361,7 @@ $$\frac{d}{du_1}D_i = 0\:\forall i$$
 for each pixel  $(p_i,q_i)$. 
 
 Define the set of solution vectors as 
+
 $$\mathbf{U}^\star = \lbrace (u_{1_i}^\star,f\hat{(u_{1_i}^\star)})^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
 
 , where $f\hat{(u_{1_i}^\star)}$ denotes the correspoinding function value.
@@ -454,6 +455,15 @@ Fig.7-5: The estimated peak path by the algorithm.
 前章で我々は細胞の中心曲線を解析的に求めることができた。そこで、これを活用して、いかなる湾曲した細胞も長軸ベースで”引き伸ばして"まっすぐな細胞にすることで、細胞内の蛍光局在を正規化することを試みた。
 
 はじめに、$$(u_1,u_2)$$ 座標上の多項式で表される曲線を $$f(\hat{u_1})=\theta^\mathrm{T}\mathbf{U}$$ とする。
+
+
+この時、それぞれの細胞内のピクセルをこの曲線状に投影した時の座標は下記のように表される。
+
+$$\mathbf{U}^\star = \lbrace (u_{1_i}^\star,f\hat{(u_{1_i}^\star)})^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
+
+ここで、 $f(\hat{u_1})$ 上において、$min(u_1)$ ともう一つの曲線上の任意の点 $(u_1,f(\hat{u_1}))$　との弧長を求める関数を $\mathbf{L}(u_1)$ とすると、”引き伸ばした"後の細胞情報は下記のように表すことができる。
+
+$$ \mathbf{C}^\star = \lbrace (u_{1_i}^\star,\mathbf{L}(u_{1_i}^\star))^\mathrm{T} : u_{1_i}^\star \in u_1 \rbrace \in \mathbb{R}^{2\times n}$$
 
 
 
