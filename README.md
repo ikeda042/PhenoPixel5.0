@@ -479,8 +479,7 @@ return $\mathbf{C}^\star$
 
 
 
-
-This set represents a collection of points in $\mathbb{R}^{2 \times n} $, where each point $(u_{1_i}^\star, \mathbf{L}(u_{1_i}^\star))^\mathrm{T} $ is constructed from the parameter $ u_{1_i}^\star $ and its corresponding function value $ \mathbf{L}(u_{1_i}^\star)$.
+This set represents a collection of points in $\mathbb{R}^{2 \times n}$, where each point $(u_{1_i}^\star, \mathbf{L}(u_{1_i}^\star))^\mathrm{T}$ is constructed from the parameter $u_{1_i}^\star$ and its corresponding function value $\mathbf{L}(u_{1_i}^\star)$.
 
 To mathematically express the bounding rectangle encompassing $ \mathbf{C}^\star $, we can define it as follows:
 
@@ -514,17 +513,17 @@ $$
 If we treat $R$ as an image with dimensions $m \times n$, resizing it to $64 \times 64$ pixels using nearest-neighbor interpolation can be expressed mathematically as follows:
 
 
-**Original pixel positions**: $ (x, y) $ where $ x \in \{0, 1, \ldots, n-1\} $ and $ y \in \{0, 1, \ldots, m-1\} $ 
+**Original pixel positions**: \( (x, y) \) where \( x \in \{0, 1, \ldots, n-1\} \) and \( y \in \{0, 1, \ldots, m-1\} \)
 
-**New pixel positions**: $ (x', y') $where $x' \in \{0, 1, \ldots, 63\} $ and $ y' \in \{0, 1, \ldots, 63\} $
+**New pixel positions**: \( (x', y') \) where \( x' \in \{0, 1, \ldots, 63\} \) and \( y' \in \{0, 1, \ldots, 63\} \)
 
 The mapping from the original image to the resized image is given by:
 
-$$
-x' = \left\lfloor \frac{x \cdot 64}{n} \right\rfloor, \quad y' = \left\lfloor \frac{y \cdot 64}{m} \right\rfloor
-$$
+\[ 
+x' = \left\lfloor \frac{x \cdot 64}{n} \right\rfloor, \quad y' = \left\lfloor \frac{y \cdot 64}{m} \right\rfloor 
+\]
 
-where $ \lfloor \cdot \rfloor $ denotes the floor function, which truncates the value to the nearest integer. The interpolation method `cv2.INTER_NEAREST` ensures that the pixel value chosen for each $ (x', y') $ corresponds to the nearest pixel from the original image.
+where \( \lfloor \cdot \rfloor \) denotes the floor function, which truncates the value to the nearest integer. The interpolation method `cv2.INTER_NEAREST` ensures that the pixel value chosen for each \( (x', y') \) corresponds to the nearest pixel from the original image.
 
 ### Results:
 
