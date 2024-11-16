@@ -506,7 +506,7 @@ If we treat $R$ as an image with dimensions $m \times n$, resizing it to $64 \ti
 
 **Original pixel positions**: $(x, y)$ where $x \in \{0, 1, \ldots, n-1\}$ and $y \in \{0, 1, \ldots, m-1\}$ 
 
-**New pixel positions**: $(x', y') $ where $x' \in \{0, 1, \ldots, 63\}$ and $y' \in \{0, 1, \ldots, 63\}$
+**New pixel positions**: $(x', y')$ where $x' \in \{0, 1, \ldots, 63\}$ and $y' \in \{0, 1, \ldots, 63\}$
 
 The mapping from the original image to the resized image is given by:
 
