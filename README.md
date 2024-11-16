@@ -616,7 +616,7 @@ The proposed algorithm for generating cellular contours from phase contrast micr
 
 ### 3. Training Procedure
 - **Loss Function**: The model is trained using the Binary Cross Entropy Loss (`nn.BCELoss`), which is effective for binary segmentation tasks.
-- **Optimizer**: Adam optimizer with a learning rate of \(1 \times 10^{-4}\) is employed for efficient gradient-based optimization.
+- **Optimizer**: Adam optimizer with a learning rate of $1 \times 10^{-4}$ is employed for efficient gradient-based optimization.
 - **Epochs and Mini-batches**: The model is trained over 20 epochs with a mini-batch size of 8. Each epoch iteratively processes batches from the training set, computes the loss, and updates the model weights.
 - **Device Utilization**: The training is performed using the Metal Performance Shaders (MPS) backend for efficient GPU computation on macOS.
 
