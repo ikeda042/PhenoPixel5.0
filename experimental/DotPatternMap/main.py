@@ -502,25 +502,25 @@ class Map64:
 
         combined_points_box_image = combine_images_grid(points_box_images, 256, 3)
         cv2.imwrite(
-            "experimental/DotPatternMap/images/combined_image_box.png",
+            f"experimental/DotPatternMap/images/{out_name}_combined_image_box.png",
             combined_points_box_image,
         )
 
         combined_pca_2d_image = combine_images_grid(pca_2d_images, 64, 3)
         cv2.imwrite(
-            "experimental/DotPatternMap/images/combined_image_pca_2d.png",
+            f"experimental/DotPatternMap/images/{out_name}_combined_image_pca_2d.png",
             combined_pca_2d_image,
         )
 
         combined_pca_1d_image = combine_images_grid(pca_1d_images, 64, 3)
         cv2.imwrite(
-            "experimental/DotPatternMap/images/combined_image_pca_1d.png",
+            f"experimental/DotPatternMap/images/{out_name}_combined_image_pca_1d.png",
             combined_pca_1d_image,
         )
 
         combined_map64_jet_image = combine_images_grid(map64_jet_images, 64, 3)
         cv2.imwrite(
-            "experimental/DotPatternMap/images/combined_image_jet.png",
+            f"experimental/DotPatternMap/images/{out_name}_combined_image_jet.png",
             combined_map64_jet_image,
         )
 
