@@ -386,13 +386,13 @@ class Map64:
         plt.clf()
 
         # psとdistsを曲座標変換
-        ps_r = [np.sqrt(p**2 + dist**2) for p, dist in zip(ps, dists)]
-        dists_theta = [np.arctan2(dist, p) for p, dist in zip(ps, dists)]
+        r = [np.sqrt(p**2 + dist**2) for p, dist in zip(ps, dists)]
+        theta = [np.arctan2(dist, p) for p, dist in zip(ps, dists)]
 
         # プロット
         fig = plt.figure(figsize=(6, 6))
         plt.axis("equal")
-        plt.scatter(ps_r, dists_theta, s=80, c=gs_norm, cmap="jet")
+        plt.scatter(r, theta, s=80, c=gs_norm, cmap="jet")
         plt.xlabel(r"$r_i$ (px)")
         plt.ylabel(r"$\theta_i$ (rad)")
         fig.savefig(f"experimental/DotPatternMap/images/polar/{cell_id}.png", dpi=300)
