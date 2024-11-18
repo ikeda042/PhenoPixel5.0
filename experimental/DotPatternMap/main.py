@@ -389,12 +389,16 @@ class Map64:
         r = [np.sqrt(p**2 + dist**2) for p, dist in zip(ps, dists)]
         theta = [np.arctan2(dist, p) for p, dist in zip(ps, dists)]
 
+        # rとthetaを正規化(0-1)
+        r = (r - min(r)) / (max(r) - min(r))
+        theta = (theta - min(theta)) / (max(theta) - min(theta))
+
         # プロット
         fig = plt.figure(figsize=(6, 6))
         plt.axis("equal")
-        plt.scatter(r, theta, s=80, c=gs_norm, cmap="jet")
-        plt.xlabel(r"$r_i$ (px)")
-        plt.ylabel(r"$\theta_i$ (rad)")
+        plt.scatter(theta, gs, s=80, c=gs_norm, cmap="jet")
+        plt.ylabel(r"$r_i$ (px)")
+        plt.xlabel(r"$\theta_i$ (rad)")
         fig.savefig(f"experimental/DotPatternMap/images/polar/{cell_id}.png", dpi=300)
         plt.close(fig)
         plt.clf()
