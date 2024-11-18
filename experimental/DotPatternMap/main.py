@@ -381,6 +381,7 @@ class Map64:
         fig.savefig(
             f"experimental/DotPatternMap/images/points_box/{cell_id}.png", dpi=300
         )
+        fig.savefig(f"experimental/DotPatternMap/images/points_box.png", dpi=300)
         plt.close(fig)
         plt.clf()
 
