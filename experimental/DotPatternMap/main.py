@@ -356,18 +356,22 @@ class Map64:
         fig = plt.figure(figsize=(6, 6))
         plt.axis("equal")
 
-        ps = [i.p for i in raw_points]
-        qs = [i.q for i in raw_points]
-        dists = [i.dist * i.sign for i in raw_points]
-        gs = [i.G for i in raw_points]
-        min_p, max_p = min(ps), max(ps)
-        min_dist, max_dist = min(dists), max(dists)
+        ps = np.array([i.p for i in raw_points])
+        dists = np.array([i.dist * i.sign for i in raw_points])
+        gs = np.array([i.G for i in raw_points])
+        # ps を正規化する（最大を1に、最小を0にする）
+        ps = (ps - np.min(ps)) / (np.max(ps) - np.min(ps))
+        # dists を正規化する（最大を1に、最小を0にする）
+        dists = (dists - np.min(dists)) / (np.max(dists) - np.min(dists))
         # gsを正規化する（最大を255に、最小を0にする）
         gs_norm = (
-            (gs - min(gs)) / (max(gs) - min(gs)) * 255
-            if max(gs) > min(gs)
-            else [0] * len(gs)
+            (gs - np.min(gs)) / (np.max(gs) - np.min(gs)) * 255
+            if np.max(gs) > np.min(gs)
+            else np.zeros(len(gs))
         )
+
+        min_p, max_p = np.min(ps), np.max(ps)
+        min_dist, max_dist = np.min(dists), np.max(dists)
 
         plt.scatter(ps, dists, s=80, c=gs_norm, cmap="jet")
         plt.xlabel(r"$L(u_{1_i}^\star)$ (px)")
