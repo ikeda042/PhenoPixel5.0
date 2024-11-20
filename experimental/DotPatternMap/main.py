@@ -359,11 +359,6 @@ class Map64:
         ps = np.array([i.p for i in raw_points])
         dists = np.array([i.dist * i.sign for i in raw_points])
         gs = np.array([i.G for i in raw_points])
-        # ps を正規化する（最大を1に、最小を0にする）
-        ps = (ps - np.min(ps)) / (np.max(ps) - np.min(ps))
-        # dists を正規化する（最大を1に、最小を0にする）
-        dists = (dists - np.min(dists)) / (np.max(dists) - np.min(dists))
-        # gsを正規化する（最大を255に、最小を0にする）
         gs_norm = (
             (gs - np.min(gs)) / (np.max(gs) - np.min(gs)) * 255
             if np.max(gs) > np.min(gs)
