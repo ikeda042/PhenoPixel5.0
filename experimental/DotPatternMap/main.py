@@ -546,6 +546,40 @@ class Map64:
             combined_map64_jet_image,
         )
 
+    @classmethod
+    def extract_probability_map(cls) -> np.ndarray:
+        # 64x64の画像を左右反転、上下反転、回転させた画像を作成
+        def augment_image(image: np.ndarray) -> list[np.ndarray]:
+            augmented_images = []
+            augmented_images.append(image)
+            augmented_images.append(cv2.flip(image, 0))
+            augmented_images.append(cv2.flip(image, 1))
+            augmented_images.append(cv2.flip(image, -1))
+            for i in range(1, 4):
+                augmented_images.append(cv2.rotate(image, i))
+            return augmented_images
+
+        # /map64の画像を読み込む
+        map64_dir = "experimental/DotPatternMap/images/map64"
+        map64_images = [
+            cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
+            for filename in os.listdir(map64_dir)
+            if cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
+            is not None
+        ]
+
+        # 画像を左右反転、上下反転、回転させた画像を作成
+        augmented_images = []
+        for image in map64_images:
+            augmented_images.extend(augment_image(image))
+        # 画像を左右反転、上下反転、回転させた画像を全て重ねる(輝度を平均)
+        probability_map = np.mean(augmented_images, axis=0)
+        # 画像を保存
+        cv2.imwrite(
+            "experimental/DotPatternMap/images/probability_map.png", probability_map
+        )
+        return probability_map
+
 
 def delete_pngs(dir: str) -> None:
     for filename in [
