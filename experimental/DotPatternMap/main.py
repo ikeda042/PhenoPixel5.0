@@ -547,7 +547,7 @@ class Map64:
         )
 
     @classmethod
-    def extract_probability_map(cls) -> np.ndarray:
+    def extract_probability_map(cls, out_name: str) -> np.ndarray:
         # 64x64の画像を左右反転、上下反転、回転させた画像を作成
         def augment_image(image: np.ndarray) -> list[np.ndarray]:
             augmented_images = []
@@ -576,7 +576,8 @@ class Map64:
         probability_map = np.mean(augmented_images, axis=0)
         # 画像を保存
         cv2.imwrite(
-            "experimental/DotPatternMap/images/probability_map.png", probability_map
+            f"experimental/DotPatternMap/images/probability_map_{out_name}.png",
+            probability_map,
         )
         return probability_map
 
@@ -607,6 +608,7 @@ def main(db: str):
     for cell in tqdm(cells):
         vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
     map64.combine_images(out_name=db.replace(".db", ".png"))
+    map64.extract_probability_map(db.replace(".db", ""))
     return vectors
 
 
