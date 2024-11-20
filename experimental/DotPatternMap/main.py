@@ -579,6 +579,12 @@ class Map64:
             f"experimental/DotPatternMap/images/probability_map_{out_name}.png",
             probability_map,
         )
+        # 画像をviridis heatmapで保存
+        probability_map_jet = cv2.applyColorMap(probability_map, cv2.COLORMAP_VIRIDIS)
+        cv2.imwrite(
+            f"experimental/DotPatternMap/images/probability_map_{out_name}_jet.png",
+            probability_map_jet,
+        )
         return probability_map
 
 
