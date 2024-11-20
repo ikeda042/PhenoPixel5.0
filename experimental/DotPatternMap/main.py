@@ -573,7 +573,7 @@ class Map64:
         for image in map64_images:
             augmented_images.extend(augment_image(image))
         # 画像を左右反転、上下反転、回転させた画像を全て重ねる(輝度を平均)
-        probability_map = np.mean(augmented_images, axis=0)
+        probability_map = np.mean(augmented_images, axis=0).astype(np.uint8)
         # 画像を保存
         cv2.imwrite(
             f"experimental/DotPatternMap/images/probability_map_{out_name}.png",
