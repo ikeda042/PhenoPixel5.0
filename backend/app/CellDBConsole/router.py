@@ -283,11 +283,6 @@ async def download_db(db_name: str):
     file_path = os.path.join("databases", db_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
-    if "-completed" not in db_name:
-        raise HTTPException(
-            status_code=400,
-            detail="Please provide the name of the completed database.",
-        )
     return FileResponse(
         f"databases/{db_name.split('/')[-1]}",
     )
