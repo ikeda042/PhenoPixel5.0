@@ -4,7 +4,7 @@ import pandas as pd
 from fastapi import UploadFile
 from fastapi.responses import StreamingResponse
 import io
-from GraphEngine.crud import GraphEngineCrudBase, MCPROperation
+from GraphEngine.crud import GraphEngineCrudBase
 
 router_graphengine = APIRouter(prefix="/graph_engine", tags=["gragh_engine"])
 
@@ -29,15 +29,3 @@ async def create_heatmap_rel(file: UploadFile):
     return StreamingResponse(
         await GraphEngineCrudBase.process_heatmap_rel(data), media_type="image/png"
     )
-
-
-@router_graphengine.post("/mcpr_operations/")
-async def mcpr_operations(
-    file: UploadFile, blank_index: str = "", timespan_sec: int = 180
-):
-    file_content = await file.read()
-    image_buffers = await MCPROperation._draw_graph(
-        file_content, blank_index, timespan_sec
-    )
-    combined_image_buffer = await MCPROperation.combine_images(image_buffers, per_row=3)
-    return StreamingResponse(combined_image_buffer, media_type="image/png")
