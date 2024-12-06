@@ -4,6 +4,7 @@ import { settings } from "../settings";
 import { Breadcrumbs, Link } from "@mui/material";
 
 const url_prefix = settings.url_prefix;
+
 const GraphEngine: React.FC = () => {
     const [mode, setMode] = useState("heatmap_abs");
     const [file, setFile] = useState<File | null>(null);
@@ -32,7 +33,14 @@ const GraphEngine: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${url_prefix}/graph_engine/${mode}`, {
+            let requestUrl;
+            if (mode === "mcpr") {
+                requestUrl = `${url_prefix}/graph_engine/mcpr?blank_index=2&timespan_sec=180`;
+            } else {
+                requestUrl = `${url_prefix}/graph_engine/${mode}`;
+            }
+
+            const response = await fetch(requestUrl, {
                 method: "POST",
                 body: formData,
             });
@@ -71,6 +79,7 @@ const GraphEngine: React.FC = () => {
                 >
                     <MenuItem value="heatmap_abs">Heatmap abs.</MenuItem>
                     <MenuItem value="heatmap_rel">Heatmap rel.</MenuItem>
+                    <MenuItem value="mcpr">MCPR</MenuItem> 
                 </Select>
             </FormControl>
             <Box my={2}>
@@ -83,7 +92,7 @@ const GraphEngine: React.FC = () => {
                 disabled={isLoading}
                 style={{ opacity: isLoading ? 0.6 : 1 }}
             >
-                {isLoading ? <CircularProgress size={24} sx={{ color: '#000000' }} /> : "Generate Graph"}  {/* スピナーの色を黒に */}
+                {isLoading ? <CircularProgress size={24} sx={{ color: '#000000' }} /> : "Generate Graph"}
             </Button>
 
             {imageSrc && (
