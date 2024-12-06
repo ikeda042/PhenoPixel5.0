@@ -79,7 +79,7 @@ def _draw_graph_from_memory(
             plt.scatter(x, y, label=f"{key}", s=6)
         plt.legend(title="Series")
         buf = io.BytesIO()
-        fig.savefig(buf, dpi=500, format="png")
+        fig.savefig(buf, dpi=300, format="png")
         plt.close(fig)
         buf.seek(0)
         image_bytes_list.append(buf.read())
