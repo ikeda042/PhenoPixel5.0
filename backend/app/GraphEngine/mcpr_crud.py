@@ -17,17 +17,18 @@ import time
 app = FastAPI()
 
 
-async def _draw_graph_from_memory(
+def _draw_graph_from_memory(
     csv_file: UploadFile, blank_index: str, timespan_sec: int = 180
 ) -> List[bytes]:
     """
     CSVファイル(UploadFile)からDataFrameを読み込み、グラフを作成して
     各画像をPNG形式のバイナリデータ(bytes)としてリストで返します。
+    この関数は同期処理関数です。
     """
     # CSVをDataFrameに読み込み
+    csv_file.file.seek(0)  # ファイルポインタを先頭に戻すことを忘れずに
     df = pd.read_csv(csv_file.file, encoding="unicode_escape")
 
-    # 以下、元のロジック
     start_index = 0
     end_index = 0
     temp_detected = False
@@ -93,10 +94,6 @@ async def _draw_graph_from_memory(
 
 
 def _blocking_combine_images_in_memory(image_bytes: List[bytes], per_row: int) -> bytes:
-    """
-    メモリ上のPNGバイナリデータリストを結合して1枚の画像(bytes)として返す。
-    """
-    # PNGバイナリ -> numpy配列 (BGR画像) に変換
     images = []
     for img_data in image_bytes:
         arr = np.frombuffer(img_data, np.uint8)
@@ -119,7 +116,6 @@ def _blocking_combine_images_in_memory(image_bytes: List[bytes], per_row: int) -
         left = (i % per_row) * max_width
         final_image[top : top + img.shape[0], left : left + img.shape[1]] = img
 
-    # 結合画像をバイナリにエンコード
     _, encoded_img = cv2.imencode(".png", final_image)
     return encoded_img.tobytes()
 

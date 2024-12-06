@@ -35,15 +35,13 @@ async def create_heatmap_rel(file: UploadFile):
 
 
 @router_graphengine.post("/mcpr")
-async def mcpr(file: UploadFile, blank_index: str, timespan_sec: int = 180):
-    """
-    CSVファイルを受け取り、グラフ画像を生成・結合して返すエンドポイント
-    """
+async def mcpr(file: UploadFile, blank_index: str = "2", timespan_sec: int = 180):
+    # 非同期で同期処理をスレッドに回す
     image_list = await asyncio.to_thread(
         _draw_graph_from_memory, file, blank_index, timespan_sec
     )
-    per_row = 2 if len(image_list) < 3 else len(image_list) // 2
 
+    per_row = 2 if len(image_list) < 3 else len(image_list) // 2
     combined_image = await combine_images_in_memory(image_list, per_row)
 
     buf = io.BytesIO(combined_image)
