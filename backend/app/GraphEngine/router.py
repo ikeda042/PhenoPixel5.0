@@ -36,7 +36,6 @@ async def create_heatmap_rel(file: UploadFile):
 
 @router_graphengine.post("/mcpr")
 async def mcpr(file: UploadFile, blank_index: str = "2", timespan_sec: int = 180):
-    # 非同期で同期処理をスレッドに回す
     image_list = await asyncio.to_thread(
         _draw_graph_from_memory, file, blank_index, timespan_sec
     )
