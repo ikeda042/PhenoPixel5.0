@@ -6,7 +6,6 @@ from fastapi.responses import StreamingResponse
 import io
 from GraphEngine.crud import GraphEngineCrudBase
 from GraphEngine.mcpr_crud import _draw_graph_from_memory, combine_images_in_memory
-from fastapi.responses import FileResponse
 import asyncio
 
 router_graphengine = APIRouter(prefix="/graph_engine", tags=["gragh_engine"])
