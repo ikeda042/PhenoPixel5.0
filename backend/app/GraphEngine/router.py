@@ -39,10 +39,11 @@ async def mcpr(file: UploadFile, blank_index: str = "2", timespan_sec: int = 180
     image_list = await asyncio.to_thread(
         _draw_graph_from_memory, file, blank_index, timespan_sec
     )
-
     per_row = 2 if len(image_list) < 3 else len(image_list) // 2
     combined_image = await combine_images_in_memory(image_list, per_row)
 
     buf = io.BytesIO(combined_image)
     buf.seek(0)
-    return FileResponse(buf, media_type="image/png", filename="combined.png")
+
+    headers = {"Content-Disposition": f'inline; filename="combined.png"'}
+    return StreamingResponse(buf, media_type="image/png", headers=headers)

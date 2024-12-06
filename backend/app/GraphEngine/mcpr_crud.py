@@ -1,5 +1,5 @@
 from fastapi import FastAPI, UploadFile, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from typing import List
 import io
 import pandas as pd
@@ -20,13 +20,7 @@ app = FastAPI()
 def _draw_graph_from_memory(
     csv_file: UploadFile, blank_index: str, timespan_sec: int = 180
 ) -> List[bytes]:
-    """
-    CSVファイル(UploadFile)からDataFrameを読み込み、グラフを作成して
-    各画像をPNG形式のバイナリデータ(bytes)としてリストで返します。
-    この関数は同期処理関数です。
-    """
-    # CSVをDataFrameに読み込み
-    csv_file.file.seek(0)  # ファイルポインタを先頭に戻すことを忘れずに
+    csv_file.file.seek(0)
     df = pd.read_csv(csv_file.file, encoding="unicode_escape")
 
     start_index = 0
