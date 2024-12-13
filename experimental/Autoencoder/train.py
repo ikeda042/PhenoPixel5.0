@@ -41,17 +41,45 @@ session = Session()
 def parse_image(cell: Cell) -> tuple:
     img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR)
     contour = pickle.loads(cell.contour)
+    img_fluo1 = cv2.imdecode(np.frombuffer(cell.img_fluo1, np.uint8), cv2.IMREAD_COLOR)
     mask = np.zeros_like(img_ph)
     cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
-    masked = cv2.bitwise_and(img_ph, mask)
+    masked = cv2.bitwise_and(img_fluo1, mask)
     # maskedエリアを白(255)で塗りつぶす
     return img_ph, masked
 
 
+def combine_images_grid(images, grid_size):
+    img_height, img_width, _ = images[0].shape
+    combined_image = np.zeros(
+        (img_height * grid_size, img_width * grid_size, 3), dtype=np.uint8
+    )
+
+    for i, img in enumerate(images):
+        row = i // grid_size
+        col = i % grid_size
+        combined_image[
+            row * img_height : (row + 1) * img_height,
+            col * img_width : (col + 1) * img_width,
+        ] = img
+
+    return combined_image
+
+
 cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
+print(len(cells_with_label_1))
 for i, cell in enumerate(cells_with_label_1):
     _, masked = parse_image(cell)
     cv2.imwrite(f"experimental/Autoencoder/images/fluo/{cell.cell_id}.png", masked)
+
+
+images = [
+    cv2.imread(f"experimental/Autoencoder/images/fluo/{cell.cell_id}.png")
+    for cell in cells_with_label_1
+]
+combined_image = combine_images_grid(images, 8)
+
+cv2.imwrite("experimental/Autoencoder/images/combined.png", combined_image)
 
 
 # --- Datasetの定義 ---
