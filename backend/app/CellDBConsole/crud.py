@@ -1520,6 +1520,36 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
 
+    async def get_all_variance_normalized_fluo_intensities_csv(
+        self, label: str | None = None
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+
+        variance_intensities = await asyncio.gather(
+            *(
+                AsyncChores.calc_variance_normalized_fluo_intensity_inside_cell(
+                    cell.img_fluo1, cell.contour
+                )
+                for cell in cells
+            )
+        )
+
+        df = pd.DataFrame(
+            variance_intensities,
+            columns=[
+                f"Variance normalized fluorescence intensity {self.db_name} cells with label {label}"
+            ],
+        )
+
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
+
     async def heatmap_all_abs(self, label: str | None = None) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
