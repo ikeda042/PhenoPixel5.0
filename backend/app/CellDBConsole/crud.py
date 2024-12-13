@@ -190,6 +190,48 @@ class SyncChores:
         return buf
 
     @staticmethod
+    def create_histogram(
+        data: list[int],
+        num_bins: int = 256,
+        title: str = "Histogram",
+        xlabel: str = "Value",
+        ylabel: str = "Frequency",
+    ) -> io.BytesIO:
+        """
+        0-255の範囲で整数のリストからヒストグラムを作成し、バッファとして返す関数
+
+        Parameters:
+            data (list[int]): ヒストグラム化するデータ（0-255の整数）
+            num_bins (int): ビンの数（デフォルト: 256）
+            title (str): グラフのタイトル（デフォルト: "Histogram"）
+            xlabel (str): x軸のラベル（デフォルト: "Value"）
+            ylabel (str): y軸のラベル（デフォルト: "Frequency"）
+
+        Returns:
+            io.BytesIO: プロットを保存したバッファ
+        """
+        fig = plt.figure(figsize=(12, 6))
+
+        bins = np.linspace(0, 255, num_bins + 1)
+
+        plt.hist(data, bins=bins, range=(0, 255), edgecolor="black", color="skyblue")
+
+        plt.title(title, fontsize=12)
+        plt.xlabel(xlabel, fontsize=10)
+        plt.ylabel(ylabel, fontsize=10)
+        plt.grid(True, alpha=0.3)
+
+        plt.xlim(0, 255)
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=100)
+        buf.seek(0)
+
+        plt.close(fig)
+
+        return buf
+
+    @staticmethod
     def plot_paths(paths: list[float]) -> io.BytesIO:
         fig = plt.figure(figsize=(8, 6))
         relative_positions = range(len(paths))
