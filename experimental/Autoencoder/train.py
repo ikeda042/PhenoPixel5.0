@@ -9,9 +9,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String, Float, BLOB
 import os
+import shutil
 
-os.makedirs("experimental/Autoencoder/images/fluo/", exist_ok=True)
+# ディレクトリを空にする
+dir_path = "experimental/Autoencoder/images/fluo/"
+if os.path.exists(dir_path):
+    shutil.rmtree(dir_path)
 
+os.makedirs(dir_path, exist_ok=True)
 Base = declarative_base()
 
 
