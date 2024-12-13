@@ -151,7 +151,7 @@ async def get_cell_path(cell_id: str, db_name: str, degree: int = 3):
 @router_cell.get("/{db_name}/{label}/{cell_id}/mean_fluo_intensities")
 async def get_mean_fluo_intensities(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
-    ret: list[float] = await CellCrudBase(
+    ret: StreamingResponse = await CellCrudBase(
         db_name=db_name
     ).get_all_mean_normalized_fluo_intensities(
         label=label, cell_id=cell_id, y_label="Mean Normalized Fluorescence Intensity"
@@ -162,7 +162,7 @@ async def get_mean_fluo_intensities(db_name: str, label: str, cell_id: str):
 @router_cell.get("/{db_name}/{label}/{cell_id}/median_fluo_intensities")
 async def get_median_fluo_intensities(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
-    ret: list[float] = await CellCrudBase(
+    ret: StreamingResponse = await CellCrudBase(
         db_name=db_name
     ).get_all_median_normalized_fluo_intensities(
         label=label, cell_id=cell_id, y_label="Median Normalized Fluorescence Intensity"
