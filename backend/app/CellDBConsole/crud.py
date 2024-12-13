@@ -1133,6 +1133,17 @@ class AsyncChores:
         return buf
 
     @staticmethod
+    async def histogram(
+        values: list[float], y_label: str, cell_id: str, label: str
+    ) -> io.BytesIO:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as pool:
+            buf = await loop.run_in_executor(
+                pool, SyncChores.histogram, values, y_label, cell_id, label
+            )
+        return buf
+
+    @staticmethod
     async def heatmap_path(path: list[float]) -> io.BytesIO:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as pool:
