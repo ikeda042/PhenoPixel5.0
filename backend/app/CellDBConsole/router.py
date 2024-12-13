@@ -203,11 +203,13 @@ async def get_mean_fluo_intensities_csv(db_name: str, label: str):
     ).get_all_mean_normalized_fluo_intensities_csv(label=label)
 
 
-@router_cell.get("/{db_name}/{label}/distribution", response_class=StreamingResponse)
-async def get_fluo_distribution(db_name: str, label: str):
+@router_cell.get(
+    "/{db_name}/{label}/{cell_id}/distribution", response_class=StreamingResponse
+)
+async def get_fluo_distribution(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).extract_intensity_and_create_histogram(
-        label=label
+        label=label, cell_id=cell_id
     )
 
 
