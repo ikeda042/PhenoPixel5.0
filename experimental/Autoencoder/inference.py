@@ -97,25 +97,54 @@ def calculate_reconstruction_score(
     return mse, reconstructed
 
 
+def process_image_with_autoencoder(
+    image_path: str, model_path: str, device: str = "mps"
+) -> Tuple[float, str]:
+    """画像を読み込み、Autoencoderで処理して結果を保存する関数
+
+    Args:
+        image_path (str): 入力画像のパス
+        model_path (str): モデルの重みファイルのパス
+        device (str, optional): 使用するデバイス. Defaults to "mps".
+
+    Returns:
+        Tuple[float, str]: (MSEスコア, 保存された再構築画像のパス)
+    """
+    try:
+        # デバイスの設定
+        device = torch.device(device)
+
+        # モデルの初期化と重みの読み込み
+        model = Autoencoder().to(device)
+        model.load_state_dict(torch.load(model_path))
+
+        # スコアの計算
+        mse_score, reconstructed_image = calculate_reconstruction_score(
+            model, image_path, device
+        )
+
+        # 保存するファイル名の生成（元の画像名の末尾に_AEを追加）
+        base_name = image_path.rsplit(".", 1)[0]
+        save_path = f"{base_name}_AE.png"
+
+        # 再構築画像の保存
+        cv2.imwrite(save_path, reconstructed_image)
+
+        return mse_score, save_path
+
+    except Exception as e:
+        print(f"Error occurred while processing {image_path}: {str(e)}")
+        return None, None
+
+
 if __name__ == "__main__":
     model_path = "experimental/Autoencoder/AE.pth"
     image_path = "sample_image.jpg"
 
-    device = torch.device("mps")
+    mse_score, saved_path = process_image_with_autoencoder(
+        image_path=image_path, model_path=model_path
+    )
 
-    # モデルの初期化と重みの読み込み
-    model = Autoencoder().to(device)
-    model.load_state_dict(torch.load(model_path))
-
-    # スコアの計算
-    try:
-        mse_score, reconstructed_image = calculate_reconstruction_score(
-            model, image_path, device
-        )
+    if mse_score is not None:
         print(f"Reconstruction MSE Score: {mse_score:.6f}")
-
-        # 結果の可視化（保存）
-        cv2.imwrite("reconstructed_image.jpg", reconstructed_image)
-
-    except Exception as e:
-        print(f"Error occurred: {str(e)}")
+        print(f"Reconstructed image saved to: {saved_path}")
