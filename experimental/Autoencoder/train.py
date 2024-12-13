@@ -131,7 +131,7 @@ for epoch in range(epochs):
     print(f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.4f}")
 
 # 学習が完了したら、モデルを保存
-torch.save(model.state_dict(), "autoencoder.pth")
+torch.save(model.state_dict(), "AE.pth")
 
 
 # --- 異常判定フェーズ ---
