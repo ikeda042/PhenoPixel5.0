@@ -503,8 +503,8 @@ class AsyncChores:
         return round(float(np.var(normalized_points)), 2)
 
     @staticmethod
-    async def get_normalized_points_inside_cell(
-        image_fluo_raw: bytes, contour_raw: bytes
+    async def get_points_inside_cell(
+        image_fluo_raw: bytes, contour_raw: bytes, normalize: bool = False
     ) -> list[float]:
         loop = asyncio.get_event_loop()
         with ThreadPoolExecutor() as executor:
@@ -529,11 +529,11 @@ class AsyncChores:
                 coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
             ]
             points_inside_cell_1 = points_inside_cell_1.flatten()
-            max_val = np.max(points_inside_cell_1)
-
-            normalized_points = [i / max_val for i in points_inside_cell_1]
-
-        return normalized_points
+            if normalize:
+                max_val = np.max(points_inside_cell_1)
+                normalized_points = [i / max_val for i in points_inside_cell_1]
+                return normalized_points
+        return points_inside_cell_1
 
     @staticmethod
     async def draw_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
