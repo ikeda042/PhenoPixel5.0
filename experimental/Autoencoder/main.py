@@ -154,10 +154,6 @@ def infer_anomaly(img_path, model, threshold):
         print("Normal. MSE:", mse)
 
 
-# 上記thresholdは学習データのMSE分布を見て適宜決める。
-# 例：学習データ中の再構築誤差（MSE）を集計し、その平均+2σなどを閾値として用いる。
-
-# 閾値の決め方例（学習データ中で実行）
 model.eval()
 with torch.no_grad():
     mse_list = []
@@ -170,6 +166,6 @@ with torch.no_grad():
 threshold = np.mean(mse_list) + 2 * np.std(mse_list)
 print("Threshold:", threshold)
 
-# # テスト用画像で異常判定を行う
-# test_image_path = "path/to/your/test_image.png"
-# infer_anomaly(test_image_path, model, threshold)
+# テスト用画像で異常判定を行う
+test_image_path = "path/to/your/test_image.png"
+infer_anomaly(test_image_path, model, threshold)
