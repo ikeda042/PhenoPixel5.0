@@ -228,8 +228,10 @@ def process_image_with_autoencoder(
 
         # 保存するファイル名の生成（元の画像名の末尾に_AEを追加）
         base_name = image_path.rsplit(".", 1)[0]
+        print(base_name)
+        image_name = base_name.split("/")[-1]
         save_path = (
-            f"experimental/Autoencoder/images/infer_data_reconstructed/{base_name}.png"
+            f"experimental/Autoencoder/images/infer_data_reconstructed/{image_name}.png"
         )
 
         # 再構築画像の保存
@@ -251,3 +253,15 @@ if __name__ == "__main__":
         mse_score, save_path = process_image_with_autoencoder(image_path, model_path)
         print(f"{image_name}: MSE={mse_score:.4f}, saved as {save_path}")
         print("")
+    resonstructed_images = [
+        cv2.imread(
+            f"experimental/Autoencoder/images/infer_data_reconstructed/{image_name}"
+        )
+        for image_name in image_names
+    ]
+    combined_image = combine_images_grid(resonstructed_images, 10)
+    cv2.imwrite(
+        "experimental/Autoencoder/images/infer_reconstructed_combined.png",
+        combined_image,
+    )
+    print("Reconstructed images are saved as infer_reconstructed_combined.png")
