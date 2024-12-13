@@ -1592,7 +1592,7 @@ class CellCrudBase:
         normalized_values = [i / max_val for i in intensity_values]
 
         # ヒストグラム生成
-        return await CellCrudBase.histogram(normalized_values, y_label, cell_id, label)
+        return await AsyncChores.histogram(normalized_values, y_label, cell_id, label)
 
     @staticmethod
     async def _extract_intensity_values(
