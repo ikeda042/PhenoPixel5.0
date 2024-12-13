@@ -12,7 +12,7 @@ import os
 import shutil
 
 # ディレクトリを空にする
-dir_path = "experimental/Autoencoder/images/fluo/"
+dir_path = "experimental/Autoencoder/images/train_data/"
 if os.path.exists(dir_path):
     shutil.rmtree(dir_path)
 
@@ -75,15 +75,16 @@ cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
 print(len(cells_with_label_1))
 for i, cell in enumerate(cells_with_label_1):
     _, masked = parse_image(cell)
-    cv2.imwrite(f"experimental/Autoencoder/images/fluo/{cell.cell_id}.png", masked)
+    cv2.imwrite(
+        f"experimental/Autoencoder/images/train_data/{cell.cell_id}.png", masked
+    )
 
 
 images = [
-    cv2.imread(f"experimental/Autoencoder/images/fluo/{cell.cell_id}.png")
+    cv2.imread(f"experimental/Autoencoder/images/train_data/{cell.cell_id}.png")
     for cell in cells_with_label_1
 ]
 combined_image = combine_images_grid(images, 8)
-
 cv2.imwrite(
     "experimental/Autoencoder/images/train_dataset_combined.png", combined_image
 )
