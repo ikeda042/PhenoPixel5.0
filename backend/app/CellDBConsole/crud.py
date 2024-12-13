@@ -192,10 +192,10 @@ class SyncChores:
     @staticmethod
     def create_histogram(
         data: list[int],
-        num_bins: int = 256,
-        title: str = "Histogram",
-        xlabel: str = "Value",
-        ylabel: str = "Frequency",
+        num_bins: int,
+        title: str,
+        xlabel: str,
+        ylabel: str,
     ) -> io.BytesIO:
         """
         0-255の範囲で整数のリストからヒストグラムを作成し、バッファとして返す関数
@@ -1172,7 +1172,7 @@ class AsyncChores:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as pool:
             buf = await loop.run_in_executor(
-                pool, SyncChores.histogram, values, y_label, cell_id, label
+                pool, SyncChores.create_histogram, values, 256, y_label, cell_id, label
             )
         return buf
 
@@ -1611,7 +1611,10 @@ class CellCrudBase:
 
         # ヒストグラム生成
         ret = await AsyncChores.histogram(
-            normalized_intensity_values, "Count", cell_id, label
+            values=normalized_intensity_values,
+            y_label="count",
+            cell_id=cell_id,
+            label=label,
         )
         return StreamingResponse(ret, media_type="image/png")
 
