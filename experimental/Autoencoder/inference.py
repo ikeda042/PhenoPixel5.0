@@ -21,6 +21,11 @@ dir_path = "experimental/Autoencoder/images/infer_data/"
 if os.path.exists(dir_path):
     shutil.rmtree(dir_path)
 
+reconstructed_save_path = "experimental/Autoencoder/images/infer_data_reconstructed/"
+if os.path.exists(reconstructed_save_path):
+    shutil.rmtree(reconstructed_save_path)
+
+os.makedirs(reconstructed_save_path, exist_ok=True)
 os.makedirs(dir_path, exist_ok=True)
 Base = declarative_base()
 
@@ -238,13 +243,9 @@ def process_image_with_autoencoder(
 if __name__ == "__main__":
     model_path = "experimental/Autoencoder/AE.pth"
     image_names = os.listdir("experimental/Autoencoder/images/infer_data/")
-    image_path = f"experimental/Autoencoder/images/infer_data/{image_names[0]}"
-    print(f"Processing image: {image_path}")
 
-    mse_score, saved_path = process_image_with_autoencoder(
-        image_path=image_path, model_path=model_path
-    )
-
-    if mse_score is not None:
-        print(f"Reconstruction MSE Score: {mse_score:.6f}")
-        print(f"Reconstructed image saved to: {saved_path}")
+    for image_name in image_names:
+        image_path = f"experimental/Autoencoder/images/infer_data/{image_name}"
+        mse_score, save_path = process_image_with_autoencoder(image_path, model_path)
+        print(f"{image_name}: MSE={mse_score:.4f}, saved as {save_path}")
+        print("")
