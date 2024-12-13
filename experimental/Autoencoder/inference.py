@@ -243,11 +243,12 @@ def process_image_with_autoencoder(
 if __name__ == "__main__":
     model_path = "experimental/Autoencoder/AE.pth"
     image_names = sorted(os.listdir("experimental/Autoencoder/images/infer_data/"))
-
+    scores = []
     for image_name in image_names:
         image_path = f"experimental/Autoencoder/images/infer_data/{image_name}"
         mse_score, save_path = process_image_with_autoencoder(image_path, model_path)
         print(f"{image_name}: MSE={mse_score:.4f}, saved as {save_path}")
+        scores.append(mse_score)
         print("")
     resonstructed_images = [
         cv2.imread(
@@ -261,3 +262,21 @@ if __name__ == "__main__":
         combined_image,
     )
     print("Reconstructed images are saved as infer_reconstructed_combined.png")
+
+    # トレーニングデータの再構築スコアを取得
+    train_data_path = "experimental/Autoencoder/images/train_data/"
+    train_data_names = sorted(os.listdir(train_data_path))
+    train_data_scores = []
+    for train_data_name in train_data_names:
+        train_data_path = (
+            f"experimental/Autoencoder/images/train_data/{train_data_name}"
+        )
+        mse_score, _ = process_image_with_autoencoder(train_data_path, model_path)
+        train_data_scores.append(mse_score)
+        print(f"{train_data_name}: MSE={mse_score:.4f}")
+        print("")
+    print("Mean MSE score of training data:", np.mean(train_data_scores))
+    print("Mean MSE score of inference data:", np.mean(scores))
+    print("Inference data MSE scores:", scores)
+    print("Training data MSE scores:", train_data_scores)
+    print("Done")
