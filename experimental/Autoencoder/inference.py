@@ -303,6 +303,19 @@ if __name__ == "__main__":
     print("Mean MSE score of inference data:", np.mean(scores))
     print("Inference data MSE scores:", scores)
     print("Training data MSE scores:", train_data_scores)
+    # train data reconstruction images
+    train_reconstructed_images = [
+        cv2.imread(
+            f"experimental/Autoencoder/images/infer_data_reconstructed/{train_data_name}"
+        )
+        for train_data_name in train_data_names
+    ]
+    combined_image = combine_images_grid(train_reconstructed_images, 8)
+
+    cv2.imwrite(
+        "experimental/Autoencoder/images/train_reconstructed_combined.png",
+        combined_image,
+    )
     print("Done")
 
     data = [train_data_scores, scores]
