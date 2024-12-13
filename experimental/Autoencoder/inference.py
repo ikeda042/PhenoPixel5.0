@@ -98,10 +98,9 @@ def calculate_reconstruction_score(
 
 
 if __name__ == "__main__":
-    model_path = "AE.pth"
-    image_path = "sample_image.jpg"  # テスト用画像パス
+    model_path = "experimental/Autoencoder/AE.pth"
+    image_path = "sample_image.jpg"
 
-    # デバイスの設定
     device = torch.device("mps")
 
     # モデルの初期化と重みの読み込み
@@ -115,12 +114,8 @@ if __name__ == "__main__":
         )
         print(f"Reconstruction MSE Score: {mse_score:.6f}")
 
-        # 結果の可視化（オプション）
-        original_image = cv2.imread(image_path)
-        cv2.imshow("Original", original_image)
-        cv2.imshow("Reconstructed", reconstructed_image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # 結果の可視化（保存）
+        cv2.imwrite("reconstructed_image.jpg", reconstructed_image)
 
     except Exception as e:
         print(f"Error occurred: {str(e)}")
