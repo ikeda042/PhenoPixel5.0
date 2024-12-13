@@ -1580,7 +1580,7 @@ class CellCrudBase:
             label: ヒストグラムのラベル
 
         Returns:
-            io.BytesIO: ヒストグラムの画像データ
+            StreamResponse: ヒストグラムのバイトデータ
         """
         # 輝度データの抽出
         intensity_values = await CellCrudBase._extract_intensity_values(
@@ -1592,7 +1592,8 @@ class CellCrudBase:
         normalized_values = [i / max_val for i in intensity_values]
 
         # ヒストグラム生成
-        return await AsyncChores.histogram(normalized_values, y_label, cell_id, label)
+        ret = await AsyncChores.histogram(normalized_values, y_label, cell_id, label)
+        return StreamingResponse(ret, media_type="image/png")
 
     @staticmethod
     async def _extract_intensity_values(
