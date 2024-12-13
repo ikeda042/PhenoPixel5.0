@@ -75,7 +75,7 @@ def box_plot_function(
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.grid(True)
-    fig.savefig(f"{save_name}.png", dpi=500)
+    fig.savefig(f"experimental/Autoencoder/{save_name}.png", dpi=500)
 
 
 def parse_image(cell: Cell) -> tuple:
