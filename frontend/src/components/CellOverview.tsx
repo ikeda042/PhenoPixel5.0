@@ -39,6 +39,7 @@ type ImageState = {
     ph: string;
     fluo?: string | null;
     replot?: string;
+    distribution?: string;
     path?: string;
     prediction?: string;
     cloud_points?: string;
@@ -223,6 +224,16 @@ const CellImageGrid: React.FC = () => {
     }, [drawMode, cellIds, currentIndex, fitDegree]);
 
     useEffect(() => {
+        if (drawMode === "distribution" && cellIds.length > 0) {
+            const cellId = cellIds[currentIndex];
+            if (!images[cellId]?.distribution) {
+                fetchDistributionImage(cellId, db_name, selectedLabel);
+            }
+        }
+    }
+    , [drawMode, cellIds, currentIndex, selectedLabel]);
+
+    useEffect(() => {
         if (drawMode === "path" && cellIds.length > 0) {
             const cellId = cellIds[currentIndex];
             if (!images[cellId]?.path) {
@@ -362,6 +373,25 @@ const CellImageGrid: React.FC = () => {
             }));
         } catch (error) {
             console.error("Error fetching prediction image:", error);
+        }
+    };
+
+    const fetchDistributionImage = async (cellId: string, dbName: string, label: string) => {
+        try {
+            const response = await axios.get(
+                `${url_prefix}/cells/${dbName}/${cellId}/distribution`, 
+                { responseType: 'blob' }
+            );
+            const distributionImageUrl = URL.createObjectURL(response.data);
+            setImages((prevImages) => ({
+                ...prevImages,
+                [cellId]: { 
+                    ...prevImages[cellId], 
+                    distribution: distributionImageUrl 
+                }
+            }));
+        } catch (error) {
+            console.error("Error fetching distribution image:", error);
         }
     };
 
@@ -559,6 +589,30 @@ const CellImageGrid: React.FC = () => {
                     </Grid>
                 </Box>
                 <Box sx={{ width: 420, height: 420, marginLeft: 2 }}>
+                    {drawMode === "distribution" && (
+                        <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                                <FormControl fullWidth>
+                                    <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                                    <Select
+                                        labelId="draw-mode-select-label"
+                                        value={drawMode}
+                                        onChange={handleDrawModeChange}
+                                        displayEmpty
+                                    >
+                                        <MenuItem value="light">Light</MenuItem>
+                                        <MenuItem value="replot">Replot</MenuItem>
+                                        <MenuItem value="distribution">Distribution</MenuItem>
+                                        <MenuItem value="path">Peak-path</MenuItem>
+                                        <MenuItem value="t1contour">Light+Model T1</MenuItem>
+                                        <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
+                                        <MenuItem value="cloud_points">3D Fluo</MenuItem>
+                                        <MenuItem value="cloud_points_ph">3D PH</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                        </Grid>
+                    )}
                     {drawMode === "replot" && (
                         <Grid container spacing={2}>
                             <Grid item xs={8}>
@@ -572,8 +626,12 @@ const CellImageGrid: React.FC = () => {
                                     >
                                         <MenuItem value="light">Light</MenuItem>
                                         <MenuItem value="replot">Replot</MenuItem>
+                                        <MenuItem value="distribution">Distribution</MenuItem>
                                         <MenuItem value="path">Peak-path</MenuItem>
-                                        <MenuItem value="prediction"></MenuItem>
+                                        <MenuItem value="t1contour">Light+Model T1</MenuItem>
+                                        <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
+                                        <MenuItem value="cloud_points">3D Fluo</MenuItem>
+                                        <MenuItem value="cloud_points_ph">3D PH</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Grid>
@@ -603,6 +661,7 @@ const CellImageGrid: React.FC = () => {
                             >
                                 <MenuItem value="light">Light</MenuItem>
                                 <MenuItem value="replot">Replot</MenuItem>
+                                <MenuItem value="distribution">Distribution</MenuItem>
                                 <MenuItem value="path">Peak-path</MenuItem>
                                 <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                 <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
@@ -626,6 +685,7 @@ const CellImageGrid: React.FC = () => {
                                     >
                                         <MenuItem value="light">Light</MenuItem>
                                         <MenuItem value="replot">Replot</MenuItem>
+                                        <MenuItem value="distribution">Distribution</MenuItem>
                                         <MenuItem value="path">Peak-path</MenuItem>
                                         <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                         <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
@@ -663,6 +723,7 @@ const CellImageGrid: React.FC = () => {
                                         >
                                             <MenuItem value="light">Light</MenuItem>
                                             <MenuItem value="replot">Replot</MenuItem>
+                                            <MenuItem value="distribution">Distribution</MenuItem>
                                             <MenuItem value="path">Peak-path</MenuItem>
                                             <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                             <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
@@ -688,6 +749,7 @@ const CellImageGrid: React.FC = () => {
                                         >
                                             <MenuItem value="light">Light</MenuItem>
                                             <MenuItem value="replot">Replot</MenuItem>
+                                            <MenuItem value="distribution">Distribution</MenuItem>
                                             <MenuItem value="path">Peak-path</MenuItem>
                                             <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                             <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
@@ -713,6 +775,7 @@ const CellImageGrid: React.FC = () => {
                                         >
                                             <MenuItem value="light">Light</MenuItem>
                                             <MenuItem value="replot">Replot</MenuItem>
+                                            <MenuItem value="distribution">Distribution</MenuItem>
                                             <MenuItem value="path">Peak-path</MenuItem>
                                             <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                             <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
@@ -738,6 +801,7 @@ const CellImageGrid: React.FC = () => {
                                         >
                                             <MenuItem value="light">Light</MenuItem>
                                             <MenuItem value="replot">Replot</MenuItem>
+                                            <MenuItem value="distribution">Distribution</MenuItem>
                                             <MenuItem value="path">Peak-path</MenuItem>
                                             <MenuItem value="t1contour">Light+Model T1</MenuItem>
                                             <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
@@ -749,11 +813,15 @@ const CellImageGrid: React.FC = () => {
                             </Grid>
                         )
                     }
+
                     <Box mt={2}>
                         {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
                         {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
                             <img src={images[cellIds[currentIndex]]?.replot} alt={`Cell ${cellIds[currentIndex]} Replot`} style={{ width: "100%" }} />
                         )}
+                         {drawMode === "distribution" && images[cellIds[currentIndex]]?.distribution && (
+                        <img src={images[cellIds[currentIndex]]?.distribution} alt={`Cell ${cellIds[currentIndex]} Distribution`} style={{ width: "100%" }} />
+                         )}
                         {drawMode === "path" && isLoading ? (
                             <Box display="flex" justifyContent="center" alignItems="center" style={{ height: 400 }}>
                                 <Spinner />

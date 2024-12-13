@@ -190,6 +190,48 @@ class SyncChores:
         return buf
 
     @staticmethod
+    def create_histogram(
+        data: list[int],
+        num_bins: int,
+        title: str,
+        xlabel: str,
+        ylabel: str,
+    ) -> io.BytesIO:
+        """
+        0-255の範囲で整数のリストからヒストグラムを作成し、バッファとして返す関数
+
+        Parameters:
+            data (list[int]): ヒストグラム化するデータ（0-255の整数）
+            num_bins (int): ビンの数（デフォルト: 256）
+            title (str): グラフのタイトル（デフォルト: "Histogram"）
+            xlabel (str): x軸のラベル（デフォルト: "Value"）
+            ylabel (str): y軸のラベル（デフォルト: "Frequency"）
+
+        Returns:
+            io.BytesIO: プロットを保存したバッファ
+        """
+        fig = plt.figure(figsize=(6, 6))
+
+        bins = np.linspace(0, 255, num_bins + 1)
+
+        plt.hist(data, bins=bins, range=(0, 255), edgecolor="black", color="skyblue")
+
+        plt.title(title, fontsize=12)
+        plt.xlabel(f"cell id : {xlabel}", fontsize=10)
+        plt.ylabel("Count", fontsize=10)
+        plt.grid(True, alpha=0.3)
+
+        plt.xlim(0, 255)
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=200)
+        buf.seek(0)
+
+        plt.close(fig)
+
+        return buf
+
+    @staticmethod
     def plot_paths(paths: list[float]) -> io.BytesIO:
         fig = plt.figure(figsize=(8, 6))
         relative_positions = range(len(paths))
@@ -459,6 +501,39 @@ class AsyncChores:
             normalized_points = [i / max_val for i in points_inside_cell_1]
 
         return round(float(np.var(normalized_points)), 2)
+
+    @staticmethod
+    async def get_points_inside_cell(
+        image_fluo_raw: bytes, contour_raw: bytes, normalize: bool = False
+    ) -> list[float]:
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            image_fluo = await loop.run_in_executor(
+                executor,
+                cv2.imdecode,
+                np.frombuffer(image_fluo_raw, np.uint8),
+                cv2.IMREAD_COLOR,
+            )
+            image_fluo_gray = await loop.run_in_executor(
+                executor, cv2.cvtColor, image_fluo, cv2.COLOR_BGR2GRAY
+            )
+
+            mask = np.zeros_like(image_fluo_gray)
+            unpickled_contour = pickle.loads(contour_raw)
+            await loop.run_in_executor(
+                executor, cv2.fillPoly, mask, [unpickled_contour], 255
+            )
+
+            coords_inside_cell_1 = np.column_stack(np.where(mask))
+            points_inside_cell_1 = image_fluo_gray[
+                coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
+            ]
+            points_inside_cell_1 = points_inside_cell_1.flatten()
+            if normalize:
+                max_val = np.max(points_inside_cell_1)
+                normalized_points = [i / max_val for i in points_inside_cell_1]
+                return normalized_points
+        return points_inside_cell_1
 
     @staticmethod
     async def draw_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
@@ -1091,6 +1166,17 @@ class AsyncChores:
         return buf
 
     @staticmethod
+    async def histogram(
+        values: list[float], y_label: str, cell_id: str, label: str
+    ) -> io.BytesIO:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as pool:
+            buf = await loop.run_in_executor(
+                pool, SyncChores.create_histogram, values, 256, y_label, cell_id, label
+            )
+        return buf
+
+    @staticmethod
     async def heatmap_path(path: list[float]) -> io.BytesIO:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as pool:
@@ -1506,6 +1592,28 @@ class CellCrudBase:
             label=None,
         )
 
+        return StreamingResponse(ret, media_type="image/png")
+
+    async def extract_intensity_and_create_histogram(
+        self,
+        cell_id: str,
+        label: str,
+    ) -> io.BytesIO:
+        # 輝度データの抽出
+        cell = await self.read_cell(cell_id)
+
+        # 細胞内の輝度値を取得
+        normalized_intensity_values = await AsyncChores.get_points_inside_cell(
+            cell.img_fluo1, cell.contour
+        )
+
+        # ヒストグラム生成
+        ret = await AsyncChores.histogram(
+            values=normalized_intensity_values,
+            y_label="count",
+            cell_id=cell_id,
+            label=label,
+        )
         return StreamingResponse(ret, media_type="image/png")
 
     async def get_all_mean_normalized_fluo_intensities_csv(

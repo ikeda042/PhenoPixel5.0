@@ -221,6 +221,14 @@ async def get_heatmap(db_name: str, label: str, cell_id: str):
     return await CellCrudBase(db_name=db_name).heatmap_path(cell_id=cell_id, degree=4)
 
 
+@router_cell.get("/{db_name}/{cell_id}/distribution", response_class=StreamingResponse)
+async def get_fluo_distribution(db_name: str, cell_id: str):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).extract_intensity_and_create_histogram(
+        label="", cell_id=cell_id
+    )
+
+
 @router_cell.get(
     "/{db_name}/{label}/{cell_id}/heatmap_all_abs", response_class=StreamingResponse
 )
