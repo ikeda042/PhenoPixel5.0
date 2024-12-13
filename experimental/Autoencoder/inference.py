@@ -103,7 +103,7 @@ if __name__ == "__main__":
     image_path = "sample_image.jpg"  # テスト用画像パス
 
     # デバイスの設定
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("mps")
 
     # モデルの初期化と重みの読み込み
     model = Autoencoder().to(device)
