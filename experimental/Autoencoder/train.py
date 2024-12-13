@@ -112,7 +112,7 @@ criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 # --- 学習ループ ---
-epochs = 10  # 適宜変更
+epochs = 15  # 適宜変更
 model.train()
 for epoch in range(epochs):
     running_loss = 0.0
