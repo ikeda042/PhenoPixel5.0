@@ -78,7 +78,7 @@ def combine_images_grid(images, grid_size):
     return combined_image
 
 
-cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
+cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == "1").all()
 print(len(cells_with_label_1))
 for i, cell in enumerate(cells_with_label_1):
     _, masked = parse_image(cell)
