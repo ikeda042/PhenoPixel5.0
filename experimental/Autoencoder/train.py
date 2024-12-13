@@ -45,7 +45,6 @@ def parse_image(cell: Cell) -> tuple:
     cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
     masked = cv2.bitwise_and(img_ph, mask)
     # maskedエリアを白(255)で塗りつぶす
-    masked[mask > 0] = 255
     return img_ph, masked
 
 
