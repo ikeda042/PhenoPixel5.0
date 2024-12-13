@@ -1432,7 +1432,7 @@ class CellCrudBase:
             target_val=target_val,
             y_label=y_label,
             cell_id=cell_id,
-            label=label,
+            label=None,
         )
         return StreamingResponse(ret, media_type="image/png")
 
@@ -1503,6 +1503,7 @@ class CellCrudBase:
             target_val=target_val,
             y_label=y_label,
             cell_id=cell_id,
+            label=None,
         )
 
         return StreamingResponse(ret, media_type="image/png")
