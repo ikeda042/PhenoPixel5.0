@@ -13,6 +13,7 @@ import { useSearchParams } from 'react-router-dom';
 import MedianEngine from "./MedianEngine";
 import MeanEngine from "./MeanEngine";
 import HeatmapEngine from "./HeatmapEngine";
+import VarEngine from "./VarEngine"; 
 
 import {
     Chart as ChartJS,
