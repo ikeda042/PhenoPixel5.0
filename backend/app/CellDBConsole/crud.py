@@ -1561,6 +1561,84 @@ class CellCrudBase:
 
         return StreamingResponse(ret, media_type="image/png")
 
+    @staticmethod
+    async def extract_intensity_and_create_histogram(
+        image_fluo_raw: bytes,
+        contour_raw: bytes,
+        y_label: str,
+        cell_id: str,
+        label: str,
+    ) -> io.BytesIO:
+        """
+        細胞内の輝度データを抽出し、ヒストグラムを生成する関数
+
+        Args:
+            image_fluo_raw: 蛍光画像のバイトデータ
+            contour_raw: 細胞輪郭のバイトデータ
+            y_label: ヒストグラムのy軸ラベル
+            cell_id: 細胞ID
+            label: ヒストグラムのラベル
+
+        Returns:
+            io.BytesIO: ヒストグラムの画像データ
+        """
+        # 輝度データの抽出
+        intensity_values = await CellCrudBase._extract_intensity_values(
+            image_fluo_raw, contour_raw
+        )
+
+        # 正規化された輝度値のリストを作成
+        max_val = np.max(intensity_values)
+        normalized_values = [i / max_val for i in intensity_values]
+
+        # ヒストグラム生成
+        return await CellCrudBase.histogram(normalized_values, y_label, cell_id, label)
+
+    @staticmethod
+    async def _extract_intensity_values(
+        image_fluo_raw: bytes, contour_raw: bytes
+    ) -> np.ndarray:
+        """
+        画像から細胞内の輝度値を抽出する関数
+
+        Args:
+            image_fluo_raw: 蛍光画像のバイトデータ
+            contour_raw: 細胞輪郭のバイトデータ
+
+        Returns:
+            np.ndarray: 細胞内の輝度値の配列
+        """
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            # 画像のデコードとグレースケール変換
+            image_fluo = await loop.run_in_executor(
+                executor,
+                cv2.imdecode,
+                np.frombuffer(image_fluo_raw, np.uint8),
+                cv2.IMREAD_COLOR,
+            )
+            image_fluo_gray = await loop.run_in_executor(
+                executor, cv2.cvtColor, image_fluo, cv2.COLOR_BGR2GRAY
+            )
+
+            # マスクの作成
+            mask = np.zeros_like(image_fluo_gray)
+            unpickled_contour = pickle.loads(contour_raw)
+            await loop.run_in_executor(
+                executor, cv2.fillPoly, mask, [unpickled_contour], 255
+            )
+
+            # 細胞内の座標を取得
+            coords_inside_cell = np.column_stack(np.where(mask))
+
+            # 細胞内の輝度値を取得
+            intensity_values = image_fluo_gray[
+                coords_inside_cell[:, 0], coords_inside_cell[:, 1]
+            ]
+
+            # 1次元配列に変換
+            return intensity_values.flatten()
+
     async def get_all_mean_normalized_fluo_intensities_csv(
         self, label: str | None = None
     ) -> StreamingResponse:
