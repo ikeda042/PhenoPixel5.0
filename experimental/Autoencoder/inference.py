@@ -15,6 +15,11 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String, Float, BLOB
 import os
 import shutil
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+sns.set()
 
 # ディレクトリを空にする
 dir_path = "experimental/Autoencoder/images/infer_data/"
@@ -52,6 +57,25 @@ engine = create_engine(dbpath)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 session = Session()
+
+
+def box_plot_function(
+    data: list[np.ndarray] | list[float | int],
+    labels: list[str],
+    xlabel: str,
+    ylabel: str,
+    save_name: str,
+) -> None:
+    fig = plt.figure(figsize=[10, 7])
+    plt.boxplot(data, sym="")
+    for i, d in enumerate(data, start=1):
+        x = np.random.normal(i, 0.04, size=len(d))
+        plt.plot(x, d, "o", alpha=0.5)
+    plt.xticks([i + 1 for i in range(len(data))], [f"{i}" for i in labels])
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(True)
+    fig.savefig(f"{save_name}.png", dpi=500)
 
 
 def parse_image(cell: Cell) -> tuple:
@@ -280,3 +304,10 @@ if __name__ == "__main__":
     print("Inference data MSE scores:", scores)
     print("Training data MSE scores:", train_data_scores)
     print("Done")
+
+    data = [train_data_scores, scores]
+    labels = ["Training data", "Inference data"]
+    xlabel = "Data type"
+    ylabel = "MSE"
+    save_name = "result"
+    box_plot_function(data, labels, xlabel, ylabel, save_name)
