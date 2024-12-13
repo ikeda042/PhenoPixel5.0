@@ -306,7 +306,11 @@ const CellImageGrid: React.FC = () => {
         };
     }, [cellIds, currentIndex]);  // cellIds と currentIndex を依存に追加
 
-    type EngineName = 'None' | 'MorphoEngine 2.0' | 'MorphoEngine 3.0' | 'MorphoEngine 4.0' | 'HeatmapEngine';
+    const handleEngineModeChange = (event: SelectChangeEvent<string>) => {
+        setEngineMode(event.target.value);
+    };
+
+    type EngineName = 'None' | 'MorphoEngine 2.0' | 'MorphoEngine 3.0' | 'MorphoEngine 4.0' | 'HeatmapEngine' | 'VarEngine';
 
     const engineLogos: Record<EngineName, string> = {
         None: 'path_to_none_logo.png',
@@ -314,10 +318,7 @@ const CellImageGrid: React.FC = () => {
         'MorphoEngine 3.0': '/logo_dots.png',
         'MorphoEngine 4.0': '/logo_circular.png',
         'HeatmapEngine': '/logo_heatmap.png',
-    };
-
-    const handleEngineModeChange = (event: SelectChangeEvent<string>) => {
-        setEngineMode(event.target.value);
+        'VarEngine': '/logo_variance.png',
     };
 
     useEffect(() => {
