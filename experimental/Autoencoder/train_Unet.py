@@ -140,34 +140,35 @@ class UNet(nn.Module):
         return out
 
 
-cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
-dataset = MaskedCellDataset(cells_with_label_1)
-dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
+if __name__ == "__main__":
+    cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
+    dataset = MaskedCellDataset(cells_with_label_1)
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = UNet().to(device)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = UNet().to(device)
 
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-# --- 学習ループ ---
-epochs = 15  # 適宜変更
-model.train()
-for epoch in range(epochs):
-    print(f"Epoch [{epoch+1}/{epochs}]")
-    running_loss = 0.0
-    for inputs, targets in dataloader:
-        inputs = inputs.to(device)
-        targets = targets.to(device)
+    # --- 学習ループ ---
+    epochs = 15  # 適宜変更
+    model.train()
+    for epoch in range(epochs):
+        print(f"Epoch [{epoch+1}/{epochs}]")
+        running_loss = 0.0
+        for inputs, targets in dataloader:
+            inputs = inputs.to(device)
+            targets = targets.to(device)
 
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
 
-        running_loss += loss.item() * inputs.size(0)
-    epoch_loss = running_loss / len(dataset)
-    print(f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.4f}")
+            running_loss += loss.item() * inputs.size(0)
+        epoch_loss = running_loss / len(dataset)
+        print(f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.4f}")
 
-torch.save(model.state_dict(), "experimental/Autoencoder/UNet.pth")
+    torch.save(model.state_dict(), "experimental/Autoencoder/UNet.pth")
