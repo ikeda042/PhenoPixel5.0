@@ -50,13 +50,14 @@ session = Session()
 
 
 def parse_image(cell: Cell) -> tuple:
-    img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR)
+    img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_GRAYSCALE)
     contour = pickle.loads(cell.contour)
-    img_fluo1 = cv2.imdecode(np.frombuffer(cell.img_fluo1, np.uint8), cv2.IMREAD_COLOR)
+    img_fluo1 = cv2.imdecode(
+        np.frombuffer(cell.img_fluo1, np.uint8), cv2.IMREAD_GRAYSCALE
+    )
     mask = np.zeros_like(img_ph)
-    cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
+    cv2.drawContours(mask, [contour], -1, 255, -1)
     masked = cv2.bitwise_and(img_fluo1, mask)
-    # maskedエリアを白(255)で塗りつぶす
     return img_ph, masked
 
 
@@ -104,7 +105,7 @@ class Autoencoder(nn.Module):
     def __init__(self):
         super(Autoencoder, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Conv2d(3, 16, 3, stride=2, padding=1),
+            nn.Conv2d(1, 16, 3, stride=2, padding=1),
             nn.ReLU(True),
             nn.Conv2d(16, 32, 3, stride=2, padding=1),
             nn.ReLU(True),
@@ -116,8 +117,8 @@ class Autoencoder(nn.Module):
             nn.ReLU(True),
             nn.ConvTranspose2d(32, 16, 3, stride=2, padding=1, output_padding=1),
             nn.ReLU(True),
-            nn.ConvTranspose2d(16, 3, 3, stride=2, padding=1, output_padding=1),
-            nn.Sigmoid(),
+            nn.ConvTranspose2d(16, 1, 3, stride=2, padding=1, output_padding=1),
+            nn.Sigmoid(),  # 出力を0~1に抑える
         )
 
     def forward(self, x):

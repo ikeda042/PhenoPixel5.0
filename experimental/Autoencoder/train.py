@@ -44,13 +44,14 @@ session = Session()
 
 
 def parse_image(cell: Cell) -> tuple:
-    img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_COLOR)
+    img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_GRAYSCALE)
     contour = pickle.loads(cell.contour)
-    img_fluo1 = cv2.imdecode(np.frombuffer(cell.img_fluo1, np.uint8), cv2.IMREAD_COLOR)
+    img_fluo1 = cv2.imdecode(
+        np.frombuffer(cell.img_fluo1, np.uint8), cv2.IMREAD_GRAYSCALE
+    )
     mask = np.zeros_like(img_ph)
-    cv2.drawContours(mask, [contour], -1, (255, 255, 255), -1)
+    cv2.drawContours(mask, [contour], -1, 255, -1)
     masked = cv2.bitwise_and(img_fluo1, mask)
-    # maskedエリアを白(255)で塗りつぶす
     return img_ph, masked
 
 
@@ -90,18 +91,14 @@ cv2.imwrite(
 )
 
 
-# --- Datasetの定義 ---
 class MaskedCellDataset(Dataset):
     def __init__(self, cells):
         self.cells = cells
         self.data = []
         for cell in self.cells:
             _, masked = parse_image(cell)
-            # モデルに渡すための前処理
-            # 例：RGBを[0,1]に正規化してCHWにtranspose
-            masked = cv2.cvtColor(masked, cv2.COLOR_BGR2RGB)
-            masked = masked.astype(np.float32) / 255.0
-            masked = np.transpose(masked, (2, 0, 1))  # CxHxW
+            masked = masked.astype(np.float32) / 255.0  # 正規化
+            masked = np.expand_dims(masked, axis=0)  # チャンネル次元を追加
             self.data.append(masked)
 
     def __len__(self):
@@ -109,22 +106,18 @@ class MaskedCellDataset(Dataset):
 
     def __getitem__(self, idx):
         x = self.data[idx]
-        return x, x  # 入力と出力は同じ(自己再構築)
+        return x, x
 
 
 dataset = MaskedCellDataset(cells_with_label_1)
 dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
 
 
-# --- Autoencoderモデル定義例 ---
 class Autoencoder(nn.Module):
     def __init__(self):
         super(Autoencoder, self).__init__()
-        # ここでは簡易的なConv Autoencoder
-        # 入力：3xHxW（カラー画像）
-        # 適宜画像サイズに応じてConv層を定義
         self.encoder = nn.Sequential(
-            nn.Conv2d(3, 16, 3, stride=2, padding=1),
+            nn.Conv2d(1, 16, 3, stride=2, padding=1),
             nn.ReLU(True),
             nn.Conv2d(16, 32, 3, stride=2, padding=1),
             nn.ReLU(True),
@@ -136,7 +129,7 @@ class Autoencoder(nn.Module):
             nn.ReLU(True),
             nn.ConvTranspose2d(32, 16, 3, stride=2, padding=1, output_padding=1),
             nn.ReLU(True),
-            nn.ConvTranspose2d(16, 3, 3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(16, 1, 3, stride=2, padding=1, output_padding=1),
             nn.Sigmoid(),  # 出力を0~1に抑える
         )
 
