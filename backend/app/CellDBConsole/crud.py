@@ -429,6 +429,38 @@ class AsyncChores:
         return round(np.median([i / max_val for i in points_inside_cell_1]), 2)
 
     @staticmethod
+    async def calc_variance_normalized_fluo_intensity_inside_cell(
+        image_fluo_raw: bytes, contour_raw: bytes
+    ) -> float:
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            image_fluo = await loop.run_in_executor(
+                executor,
+                cv2.imdecode,
+                np.frombuffer(image_fluo_raw, np.uint8),
+                cv2.IMREAD_COLOR,
+            )
+            image_fluo_gray = await loop.run_in_executor(
+                executor, cv2.cvtColor, image_fluo, cv2.COLOR_BGR2GRAY
+            )
+
+            mask = np.zeros_like(image_fluo_gray)
+            unpickled_contour = pickle.loads(contour_raw)
+            await loop.run_in_executor(
+                executor, cv2.fillPoly, mask, [unpickled_contour], 255
+            )
+            coords_inside_cell_1 = np.column_stack(np.where(mask))
+            points_inside_cell_1 = image_fluo_gray[
+                coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
+            ]
+            points_inside_cell_1 = points_inside_cell_1.flatten()
+            max_val = np.max(points_inside_cell_1)
+
+            normalized_points = [i / max_val for i in points_inside_cell_1]
+
+        return round(float(np.var(normalized_points)), 2)
+
+    @staticmethod
     async def draw_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
         """
         Draw a contour on an image.
