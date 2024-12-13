@@ -210,21 +210,21 @@ class SyncChores:
         Returns:
             io.BytesIO: プロットを保存したバッファ
         """
-        fig = plt.figure(figsize=(12, 6))
+        fig = plt.figure(figsize=(6, 6))
 
         bins = np.linspace(0, 255, num_bins + 1)
 
         plt.hist(data, bins=bins, range=(0, 255), edgecolor="black", color="skyblue")
 
         plt.title(title, fontsize=12)
-        plt.xlabel(xlabel, fontsize=10)
-        plt.ylabel(ylabel, fontsize=10)
+        plt.xlabel(f"cell id : {xlabel}", fontsize=10)
+        plt.ylabel("Count", fontsize=10)
         plt.grid(True, alpha=0.3)
 
         plt.xlim(0, 255)
 
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=100)
+        plt.savefig(buf, format="png", dpi=200)
         buf.seek(0)
 
         plt.close(fig)
