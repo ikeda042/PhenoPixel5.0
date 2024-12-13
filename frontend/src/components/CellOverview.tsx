@@ -365,6 +365,25 @@ const CellImageGrid: React.FC = () => {
         }
     };
 
+    const fetchDistributionImage = async (cellId: string, dbName: string, label: string) => {
+        try {
+            const response = await axios.get(
+                `${url_prefix}/cell/${dbName}/${label}/${cellId}/distribution`, 
+                { responseType: 'blob' }
+            );
+            const distributionImageUrl = URL.createObjectURL(response.data);
+            setImages((prevImages) => ({
+                ...prevImages,
+                [cellId]: { 
+                    ...prevImages[cellId], 
+                    distribution: distributionImageUrl 
+                }
+            }));
+        } catch (error) {
+            console.error("Error fetching distribution image:", error);
+        }
+    };
+
     useEffect(() => {
         if (drawMode === "prediction" && cellIds.length > 0) {
             const cellId = cellIds[currentIndex];
