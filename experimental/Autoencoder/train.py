@@ -166,4 +166,4 @@ for epoch in range(epochs):
     print(f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss:.4f}")
 
 
-torch.save(model.state_dict(), "experimental/Autoencoder/AE.pth")
+torch.save(model.state_dict(), "experimental/Autoencoder/AE2.pth")

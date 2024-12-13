@@ -91,14 +91,10 @@ for i, cell in enumerate(cells_with_label_1):
         f"experimental/Autoencoder/images/infer_data/{cell.cell_id}.png", masked
     )
 
-
+cell_ids = sorted([cell.cell_id for cell in cells_with_label_1])
 images = [
-    img
-    for img in (
-        cv2.imread(f"experimental/Autoencoder/images/infer_data/{cell.cell_id}.png")
-        for cell in cells_with_label_1
-    )
-    if img is not None
+    cv2.imread(f"experimental/Autoencoder/images/infer_data/{cell_id}.png")
+    for cell_id in cell_ids
 ]
 combined_image = combine_images_grid(images, 10)
 cv2.imwrite(
@@ -246,7 +242,7 @@ def process_image_with_autoencoder(
 
 if __name__ == "__main__":
     model_path = "experimental/Autoencoder/AE.pth"
-    image_names = os.listdir("experimental/Autoencoder/images/infer_data/")
+    image_names = sorted(os.listdir("experimental/Autoencoder/images/infer_data/"))
 
     for image_name in image_names:
         image_path = f"experimental/Autoencoder/images/infer_data/{image_name}"
