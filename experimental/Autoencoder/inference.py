@@ -136,8 +136,10 @@ def preprocess_image(image: np.ndarray) -> torch.Tensor:
     Returns:
         torch.Tensor: 前処理済みの画像テンソル (1, C, H, W)
     """
-    # BGRからRGBに変換
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # グレースケールに変換
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # [H, W] -> [H, W, 1]に変換
+    image = np.expand_dims(image, axis=-1)
     # [0,1]に正規化
     image = image.astype(np.float32) / 255.0
     # CHWに変換
