@@ -11,6 +11,28 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, BLOB
 from sqlalchemy.orm import declarative_base, sessionmaker
 import pickle
 from train_Unet import UNet
+import seaborn as sns
+
+sns.set()
+
+
+def box_plot_function(
+    data: list[np.ndarray] | list[float | int],
+    labels: list[str],
+    xlabel: str,
+    ylabel: str,
+    save_name: str,
+) -> None:
+    fig = plt.figure(figsize=[10, 7])
+    plt.boxplot(data, sym="")
+    for i, d in enumerate(data, start=1):
+        x = np.random.normal(i, 0.04, size=len(d))
+        plt.plot(x, d, "o", alpha=0.5)
+    plt.xticks([i + 1 for i in range(len(data))], [f"{i}" for i in labels])
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(True)
+    fig.savefig(f"experimental/Autoencoder/{save_name}.png", dpi=500)
 
 
 sns.set()
@@ -48,6 +70,23 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 
+def combine_images_grid(images, grid_size):
+    img_height, img_width, _ = images[0].shape
+    combined_image = np.zeros(
+        (img_height * grid_size, img_width * grid_size, 3), dtype=np.uint8
+    )
+
+    for i, img in enumerate(images):
+        row = i // grid_size
+        col = i % grid_size
+        combined_image[
+            row * img_height : (row + 1) * img_height,
+            col * img_width : (col + 1) * img_width,
+        ] = img
+
+    return combined_image
+
+
 def parse_image(cell: Cell) -> Tuple[np.ndarray, np.ndarray]:
     img_ph = cv2.imdecode(np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_GRAYSCALE)
     contour = pickle.loads(cell.contour)
@@ -73,7 +112,7 @@ def calculate_reconstruction_score(
     model: nn.Module, image: Union[str, np.ndarray], device: torch.device = None
 ) -> Tuple[float, np.ndarray]:
     if device is None:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device("mps")
 
     if isinstance(image, str):
         image = cv2.imread(image)
@@ -93,7 +132,7 @@ def calculate_reconstruction_score(
 
 
 def process_image_with_unet(
-    image_path: str, model_path: str, device: str = "cuda"
+    image_path: str, model_path: str, device: str = "mps"
 ) -> Tuple[float, str]:
     device = torch.device(device)
     model = UNet().to(device)

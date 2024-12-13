@@ -145,7 +145,8 @@ if __name__ == "__main__":
     dataset = MaskedCellDataset(cells_with_label_1)
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # M1 mac gpt
+    device = torch.device("mps")
     model = UNet().to(device)
 
     criterion = nn.MSELoss()
