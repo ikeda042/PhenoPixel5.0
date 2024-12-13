@@ -170,6 +170,6 @@ with torch.no_grad():
 threshold = np.mean(mse_list) + 2 * np.std(mse_list)
 print("Threshold:", threshold)
 
-# テスト用画像で異常判定を行う
-test_image_path = "path/to/your/test_image.png"
-infer_anomaly(test_image_path, model, threshold)
+# # テスト用画像で異常判定を行う
+# test_image_path = "path/to/your/test_image.png"
+# infer_anomaly(test_image_path, model, threshold)
