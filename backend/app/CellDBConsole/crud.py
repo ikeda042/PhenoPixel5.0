@@ -1428,7 +1428,11 @@ class CellCrudBase:
             )
         )
         ret = await AsyncChores.box_plot(
-            mean_intensities, target_val=target_val, y_label=y_label, cell_id=cell_id
+            mean_intensities,
+            target_val=target_val,
+            y_label=y_label,
+            cell_id=cell_id,
+            label=label,
         )
         return StreamingResponse(ret, media_type="image/png")
 
