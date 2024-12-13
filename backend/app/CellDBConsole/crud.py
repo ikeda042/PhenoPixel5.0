@@ -215,7 +215,9 @@ class SyncChores:
         bins = np.linspace(0, 255, num_bins + 1)
 
         plt.hist(data, bins=bins, range=(0, 255), edgecolor="black", color="skyblue")
-        plt.xlabel(f"cell id : {xlabel}", fontsize=10)
+
+        plt.title(f"cell id : {xlabel}", fontsize=10)
+        plt.xlabel(f"Fluo. intensity", fontsize=10)
         plt.ylabel("Count", fontsize=10)
         plt.grid(True, alpha=0.3)
 
