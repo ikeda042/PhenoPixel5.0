@@ -98,7 +98,6 @@ def calculate_reconstruction_score(
 
 
 if __name__ == "__main__":
-    # モデルの読み込みと使用例
     model_path = "AE.pth"
     image_path = "sample_image.jpg"  # テスト用画像パス
 
