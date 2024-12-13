@@ -80,10 +80,11 @@ for i, cell in enumerate(cells_with_label_1):
         f"experimental/Autoencoder/images/train_data/{cell.cell_id}.png", masked
     )
 
+cell_ids = sorted([cell.cell_id for cell in cells_with_label_1])
 
 images = [
-    cv2.imread(f"experimental/Autoencoder/images/train_data/{cell.cell_id}.png")
-    for cell in cells_with_label_1
+    cv2.imread(f"experimental/Autoencoder/images/train_data/{cell_id}.png")
+    for cell_id in cell_ids
 ]
 combined_image = combine_images_grid(images, 8)
 cv2.imwrite(
