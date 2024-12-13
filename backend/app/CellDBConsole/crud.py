@@ -1603,10 +1603,8 @@ class CellCrudBase:
         cell = await self.read_cell(cell_id)
 
         # 細胞内の輝度値を取得
-        normalized_intensity_values = (
-            await AsyncChores.get_normalized_points_inside_cell(
-                cell.img_fluo1, cell.contour
-            )
+        normalized_intensity_values = await AsyncChores.get_points_inside_cell(
+            cell.img_fluo1, cell.contour
         )
 
         # ヒストグラム生成
