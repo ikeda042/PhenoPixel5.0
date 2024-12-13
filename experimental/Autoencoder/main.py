@@ -47,22 +47,4 @@ def parse_image(cell: Cell) -> tuple:
 
 cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
 
-
-class CellDataset(Dataset):
-    def __init__(self, cells):
-        self.cells = cells
-
-    def __len__(self):
-        return len(self.cells)
-
-    def __getitem__(self, idx):
-        cell = self.cells[idx]
-        img_ph, masked = parse_image(cell)
-        img_ph = cv2.resize(img_ph, (256, 256)) / 255.0
-        masked = cv2.resize(masked, (256, 256)) / 255.0
-        img_ph = torch.tensor(img_ph.transpose(2, 0, 1), dtype=torch.float32)
-        masked = torch.tensor(masked[:, :, 0], dtype=torch.float32).unsqueeze(0)
-        return img_ph, masked
-
-
 print(cells_with_label_1)
