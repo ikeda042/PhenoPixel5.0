@@ -8,6 +8,9 @@ import pickle
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String, Float, BLOB
+import os
+
+os.makedirs("experimental/Autoencoder/images/fluo/", exist_ok=True)
 
 Base = declarative_base()
 
@@ -47,6 +50,9 @@ def parse_image(cell: Cell) -> tuple:
 
 
 cells_with_label_1 = session.query(Cell).filter(Cell.manual_label == 1).all()
+for i, cell in enumerate(cells_with_label_1):
+    _, masked = parse_image(cell)
+    cv2.imwrite(f"experimental/Autoencoder/images/fluo/{cell.cell_id}.png", masked)
 
 
 # --- Datasetの定義 ---
