@@ -228,7 +228,9 @@ def process_image_with_autoencoder(
 
         # 保存するファイル名の生成（元の画像名の末尾に_AEを追加）
         base_name = image_path.rsplit(".", 1)[0]
-        save_path = f"{base_name}_AE.png"
+        save_path = (
+            f"experimental/Autoencoder/images/infer_data_reconstructed/{base_name}.png"
+        )
 
         # 再構築画像の保存
         cv2.imwrite(save_path, reconstructed_image)
