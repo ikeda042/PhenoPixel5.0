@@ -310,15 +310,15 @@ const CellImageGrid: React.FC = () => {
         setEngineMode(event.target.value);
     };
 
-    type EngineName = 'None' | 'MorphoEngine 2.0' | 'MorphoEngine 3.0' | 'MorphoEngine 4.0' | 'HeatmapEngine' | 'VarEngine';
+    type EngineName = 'None' | 'MorphoEngine 2.0' | 'MedianEngine' | 'MeanEngine' | 'HeatmapEngine' | 'VarEngine';
 
     const engineLogos: Record<EngineName, string> = {
         None: 'path_to_none_logo.png',
         'MorphoEngine 2.0': '/logo_tp.png',
-        'MorphoEngine 3.0': '/logo_dots.png',
-        'MorphoEngine 4.0': '/logo_circular.png',
+        'MedianEngine': '/logo_dots.png',
+        'MeanEngine': '/logo_circular.png',
+        'VarEngine': '/var_logo.png',
         'HeatmapEngine': '/logo_heatmap.png',
-        'VarEngine': '/logo_variance.png',
     };
 
     useEffect(() => {
@@ -789,9 +789,9 @@ const CellImageGrid: React.FC = () => {
                                     let displayText: string = engineName;
                                     if (engineName === 'MorphoEngine 2.0') {
                                         displayText = engineName;
-                                    } else if (engineName === 'MorphoEngine 3.0') {
+                                    } else if (engineName === 'MedianEngine') {
                                         displayText = "MedianEngine";
-                                    } else if (engineName === 'MorphoEngine 4.0') {
+                                    } else if (engineName === 'MeanEngine') {
                                         displayText = "MeanEngine";
                                     }
                                     return (
@@ -803,15 +803,11 @@ const CellImageGrid: React.FC = () => {
                                 }
                             }}
                         >
-                            {Object.entries(engineLogos).map(([engine, logoPath]) => (
+                           {Object.entries(engineLogos).map(([engine, logoPath]) => (
                                 <MenuItem key={engine} value={engine}>
                                     <Box display="flex" alignItems="center">
                                         {engine !== 'None' && <img src={logoPath} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />}
-                                        {engine === 'None' && <span>None</span>}
-                                        {engine === 'MorphoEngine 2.0' && <span>{engine}</span>}
-                                        {engine === 'MorphoEngine 3.0' && <span>MedianEngine</span>}
-                                        {engine === 'MorphoEngine 4.0' && <span>MeanEngine</span>}
-                                        {engine === 'HeatmapEngine' && <span>HeatmapEngine</span>}
+                                        {engine}
                                     </Box>
                                 </MenuItem>
                             ))}
@@ -830,22 +826,28 @@ const CellImageGrid: React.FC = () => {
                             <img src="/logo_tp.png" alt="Morpho Engine is off" style={{ maxWidth: '15%', maxHeight: '15%' }} />
                         </Box>
                     )}
-                    {engineMode === "MorphoEngine 2.0" && (
+                   {engineMode === "MorphoEngine 2.0" && (
                         <Box mt={2}>
                             <CellMorphologyTable cellId={cellIds[currentIndex]} db_name={db_name} polyfitDegree={fitDegree} />
                         </Box>)}
-                    {engineMode === "MorphoEngine 3.0" && (
+                    {engineMode === "MedianEngine" && (
                         <Box mt={6}>
                             <MedianEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} />
                         </Box>)}
-                    {engineMode === "MorphoEngine 4.0" && (
+                    {engineMode === "MeanEngine" && (
                         <Box mt={6}>
                             <MeanEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} />
                         </Box>)}
+                    {engineMode === "VarEngine" && (
+                        <Box mt={6}>
+                            <VarEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} />
+                        </Box>
+                    )}
                     {engineMode === "HeatmapEngine" && (
                         <Box mt={6}>
                             <HeatmapEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} degree={fitDegree} />
                         </Box>)}
+                  
                 </Box>
             </Stack>
         </>
