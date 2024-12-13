@@ -84,7 +84,9 @@ images = [
 ]
 combined_image = combine_images_grid(images, 8)
 
-cv2.imwrite("experimental/Autoencoder/images/combined.png", combined_image)
+cv2.imwrite(
+    "experimental/Autoencoder/images/train_dataset_combined.png", combined_image
+)
 
 
 # --- Datasetの定義 ---
