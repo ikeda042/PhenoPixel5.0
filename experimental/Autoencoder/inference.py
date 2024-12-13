@@ -94,7 +94,7 @@ images = [
     )
     if img is not None
 ]
-combined_image = combine_images_grid(images, 8)
+combined_image = combine_images_grid(images, 10)
 cv2.imwrite(
     "experimental/Autoencoder/images/infer_dataset_combined.png", combined_image
 )
