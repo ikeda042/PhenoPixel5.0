@@ -1468,6 +1468,41 @@ class CellCrudBase:
         )
         return StreamingResponse(buf, media_type="image/png")
 
+    async def get_all_variance_normalized_fluo_intensities(
+        self, cell_id: str, y_label: str, label: str | None = None
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+
+        target_cell = await self.read_cell(cell_id=cell_id)
+
+        target_val = (
+            await AsyncChores.calc_variance_normalized_fluo_intensity_inside_cell(
+                target_cell.img_fluo1, target_cell.contour
+            )
+        )
+
+        variance_intensities = await asyncio.gather(
+            *(
+                AsyncChores.calc_variance_normalized_fluo_intensity_inside_cell(
+                    cell.img_fluo1, cell.contour
+                )
+                for cell in cells
+            )
+        )
+
+        ret = await AsyncChores.box_plot(
+            variance_intensities,
+            target_val=target_val,
+            y_label=y_label,
+            cell_id=cell_id,
+        )
+
+        return StreamingResponse(ret, media_type="image/png")
+
     async def get_all_mean_normalized_fluo_intensities_csv(
         self, label: str | None = None
     ) -> StreamingResponse:
