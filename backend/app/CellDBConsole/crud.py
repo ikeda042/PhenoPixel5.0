@@ -496,13 +496,11 @@ class AsyncChores:
                 coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
             ]
             points_inside_cell_1 = points_inside_cell_1.flatten()
-            # max_val = np.max(points_inside_cell_1)
+            max_val = np.max(points_inside_cell_1)
 
-            # normalized_points = [i / max_val for i in points_inside_cell_1]
+            normalized_points = [i / max_val for i in points_inside_cell_1]
 
-        # calc coeff of variance
-        cof = np.std(points_inside_cell_1) / np.mean(points_inside_cell_1)
-        return round(cof, 2)
+        return round(np.var(normalized_points), 2)
 
     @staticmethod
     async def get_points_inside_cell(
