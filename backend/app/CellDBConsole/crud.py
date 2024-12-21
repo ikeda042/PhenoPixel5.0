@@ -12,7 +12,6 @@ import os
 import pandas as pd
 import pickle
 import re
-import scipy
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -21,6 +20,7 @@ from fastapi import UploadFile
 from fastapi.responses import StreamingResponse
 from matplotlib.figure import Figure
 from numpy.linalg import eig, inv
+from scipy.integrate import quad  # ← 変更: scipy 全体ではなく integrate のみ
 from scipy.optimize import minimize
 from sqlalchemy import update
 from sqlalchemy.future import select
@@ -53,45 +53,56 @@ class Point:
 class SyncChores:
     @staticmethod
     def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
+        """
+        与えられた (f, u1) データから多項式近似係数を計算する関数。
+        """
         u1_values = np.array([i[1] for i in U])
         f_values = np.array([i[0] for i in U])
         W = np.vander(u1_values, degree + 1)
-
         return inv(W.T @ W) @ W.T @ f_values
 
     @staticmethod
     def calc_arc_length(theta: list[float], u_1_1: float, u_1_2: float) -> float:
-        fx = lambda x: np.sqrt(
-            1
-            + sum(i * j * x ** (i - 1) for i, j in enumerate(theta[::-1][1:], start=1))
-            ** 2
-        )
-        arc_length, _ = scipy.integrate.quad(fx, u_1_1, u_1_2, epsabs=1e-01)
+        """
+        与えられた多項式係数 theta の関数 f(x) の弧長を数値積分で計算する関数。
+        """
+
+        def fx(x):
+            # f'(x) = sum(i * j * x^(i-1) for i, j in enumerate(theta[::-1][1:], start=1))
+            # 1 + [f'(x)]^2 の平方根を返す
+            return np.sqrt(
+                1
+                + sum(
+                    i * j * x ** (i - 1) for i, j in enumerate(theta[::-1][1:], start=1)
+                )
+                ** 2
+            )
+
+        arc_length, _ = quad(fx, u_1_1, u_1_2, epsabs=1e-01)
         return arc_length
 
     @staticmethod
     def find_minimum_distance_and_point(coefficients, x_Q, y_Q):
-        # 関数の定義
+        """
+        与えられた多項式係数と点 Q (x_Q, y_Q) 間の最短距離を求め、その点を返す関数。
+        """
+
         def f_x(x):
             return sum(
                 coefficient * x**i for i, coefficient in enumerate(coefficients[::-1])
             )
 
-        # 点Qから関数上の点までの距離 D の定義
         def distance(x):
             return np.sqrt((x - x_Q) ** 2 + (f_x(x) - y_Q) ** 2)
 
-        # scipyのminimize関数を使用して最短距離を見つける
-        # 初期値は0とし、精度は低く設定して計算速度を向上させる
+        # Nelder-Mead 法で最適化 (精度は下げて高速化)
         result = minimize(
             distance, 0, method="Nelder-Mead", options={"xatol": 1e-4, "fatol": 1e-2}
         )
 
-        # 最短距離とその時の関数上の点
         x_min = result.x[0]
         min_distance = distance(x_min)
         min_point = (x_min, f_x(x_min))
-
         return min_distance, min_point
 
     @staticmethod
@@ -102,8 +113,14 @@ class SyncChores:
         center_y: float,
         coordinates_incide_cell: list[list[int]],
     ) -> list[list[float]]:
+        """
+        X = [ [x1, x2, ...], [y1, y2, ...] ] 形式の配列に対して
+        共分散行列から主成分を計算し、その基底に変換する関数。
+        """
         Sigma = np.cov(X)
         eigenvalues, eigenvectors = eig(Sigma)
+
+        # 大きい固有値の成分を u1 ( = 主軸 ) としている
         if eigenvalues[1] < eigenvalues[0]:
             Q = np.array([eigenvectors[1], eigenvectors[0]])
             U = [Q.transpose() @ np.array([i, j]) for i, j in coordinates_incide_cell]
@@ -133,6 +150,9 @@ class SyncChores:
     def calculate_volume_and_widths(
         u1_adj: list[float], u2_adj: list[float], split_num: int, deltaL: float
     ) -> tuple[float, list[float]]:
+        """
+        セルを複数区画に分割し、円柱断面積近似で体積を求めるサンプル実装。
+        """
         volume = 0
         widths = []
         y_mean = 0
@@ -154,6 +174,9 @@ class SyncChores:
         cell_id: str,
         label: str | None = None,
     ) -> io.BytesIO:
+        """
+        与えられた values に対して box プロットを行い、target_val を強調表示する。
+        """
         fig = plt.figure(figsize=(8, 6))
         closest_point = min(values, key=lambda x: abs(x - target_val))
         if abs(closest_point - target_val) <= 0.001:
@@ -198,41 +221,29 @@ class SyncChores:
         ylabel: str,
     ) -> io.BytesIO:
         """
-        0-255の範囲で整数のリストからヒストグラムを作成し、バッファとして返す関数
-
-        Parameters:
-            data (list[int]): ヒストグラム化するデータ（0-255の整数）
-            num_bins (int): ビンの数（デフォルト: 256）
-            title (str): グラフのタイトル（デフォルト: "Histogram"）
-            xlabel (str): x軸のラベル（デフォルト: "Value"）
-            ylabel (str): y軸のラベル（デフォルト: "Frequency"）
-
-        Returns:
-            io.BytesIO: プロットを保存したバッファ
+        0-255の範囲で整数のリストからヒストグラムを作成し、バッファとして返す。
         """
         fig = plt.figure(figsize=(6, 6))
-
         bins = np.linspace(0, 255, num_bins + 1)
-
         plt.hist(data, bins=bins, range=(0, 255), edgecolor="black", color="skyblue")
-
         plt.title(f"cell id : {xlabel}", fontsize=10)
-        plt.xlabel(f"Fluo. intensity", fontsize=10)
+        plt.xlabel("Fluo. intensity", fontsize=10)
         plt.ylabel("Count", fontsize=10)
         plt.grid(True, alpha=0.3)
-
         plt.xlim(0, 255)
 
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=200)
         buf.seek(0)
-
         plt.close(fig)
 
         return buf
 
     @staticmethod
     def plot_paths(paths: list[float]) -> io.BytesIO:
+        """
+        渡されたパスリストの強度変化を折れ線グラフで表示する。
+        """
         fig = plt.figure(figsize=(8, 6))
         relative_positions = range(len(paths))
         plt.plot(relative_positions, paths, label="Path")
@@ -246,15 +257,14 @@ class SyncChores:
 
     @staticmethod
     def heatmap_path(paths: list[list[float]]) -> io.BytesIO:
-
+        """
+        1次元データを縦に並べたヒートマップを描画する。
+        """
         paths = [i[1] for i in paths]
-        data = np.array(paths)
-
-        data = data.reshape(-1, 1)
+        data = np.array(paths).reshape(-1, 1)
 
         fig, ax = plt.subplots(figsize=(8, 6))
         cax = ax.imshow(data, cmap="inferno", interpolation="nearest", aspect="auto")
-
         fig.colorbar(cax)
         plt.ylabel("Relative position")
         buf = io.BytesIO()
@@ -267,6 +277,9 @@ class SyncChores:
     async def heatmap_all_abs(
         u1s: list[list[float]], Gs: list[list[float]], label: str = "1"
     ) -> io.BytesIO:
+        """
+        複数の細胞パスを積み上げたヒートマップのサンプル（再描画用）。
+        """
 
         @dataclass
         class HeatMapVector:
@@ -275,12 +288,11 @@ class SyncChores:
             G: list[float]
             length: float
 
-            def __repr__(self) -> str:
-                return f"u1: {self.u1}\nG: {self.G}"
-
             def __gt__(self, other):
                 return sum(self.G) > sum(other.G)
 
+        # ダミーとして外部呼び出しになっている AsyncChores.find_path_return_list(...) は
+        # 通常は別途実装や入力値を取得してくる想定
         u1, G, *_ = await AsyncChores.find_path_return_list(label)
 
         heatmap_vectors = sorted(
@@ -307,7 +319,6 @@ class SyncChores:
             u1 = vec.u1
             G_normalized = (np.array(vec.G) - min(vec.G)) / (max(vec.G) - min(vec.G))
             colors = cmap(G_normalized)
-
             offset = len(heatmap_vectors) - idx - 1
             for i in range(len(u1) - 1):
                 ax.plot([offset, offset], u1[i : i + 2], color=colors[i], lw=10)
@@ -331,10 +342,7 @@ class AsyncChores:
     @staticmethod
     async def upload_file_chunked(data: UploadFile) -> None:
         """
-        Upload a file in chunks.
-
-        Parameters:
-        - data: File data to upload.
+        100MB 単位で分割アップロードするサンプル実装。
         """
         chunk_size = 1024 * 1024 * 100  # 100MB
         save_name = (
@@ -351,10 +359,7 @@ class AsyncChores:
     @staticmethod
     async def get_database_names() -> ListDBresponse:
         """
-        Get the names of all databases.
-
-        Returns:
-        - List of database names.
+        databases/ ディレクトリ下の .db ファイル一覧を取得。
         """
         loop = asyncio.get_running_loop()
         names = await loop.run_in_executor(None, os.listdir, "databases/")
@@ -363,10 +368,7 @@ class AsyncChores:
     @staticmethod
     async def validate_database_name(db_name: str) -> None:
         """
-        Validate the database name.
-
-        Parameters:
-        - db_name: Name of the database to validate.
+        db_name が実際に存在するか確認。
         """
         res = await AsyncChores.get_database_names()
         databases = res.databases
@@ -376,13 +378,7 @@ class AsyncChores:
     @staticmethod
     async def async_imdecode(data: bytes) -> np.ndarray:
         """
-        Decode an image from bytes.
-
-        Parameters:
-        - data: Image data in bytes.
-
-        Returns:
-        - Image in numpy array format.
+        画像バイト列を非同期で OpenCV 形式にデコード。
         """
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -394,119 +390,66 @@ class AsyncChores:
     @staticmethod
     async def async_cv2_imencode(img) -> tuple[bool, np.ndarray]:
         """
-        Encode an image to PNG format.
-
-        Parameters:
-        - img: Image to encode.
-
-        Returns:
-        - Tuple containing success status and image buffer.
+        画像を PNG 形式に非同期でエンコード。
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             success, buffer = await loop.run_in_executor(
                 executor, lambda: cv2.imencode(".png", img)
             )
         return success, buffer
 
+    #
+    # ▼ 以下、重複処理を削除し get_points_inside_cell を使った実装に変更
+    #
     @staticmethod
     async def calc_mean_normalized_fluo_intensity_incide_cell(
         image_fluo_raw: bytes, contour_raw: bytes
     ) -> float:
-        loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor() as executor:
-            image_fluo = await loop.run_in_executor(
-                executor,
-                cv2.imdecode,
-                np.frombuffer(image_fluo_raw, np.uint8),
-                cv2.IMREAD_COLOR,
-            )
-            image_fluo_gray = await loop.run_in_executor(
-                executor, cv2.cvtColor, image_fluo, cv2.COLOR_BGR2GRAY
-            )
-
-            mask = np.zeros_like(image_fluo_gray)
-            unpickled_contour = pickle.loads(contour_raw)
-            await loop.run_in_executor(
-                executor, cv2.fillPoly, mask, [unpickled_contour], 255
-            )
-
-            coords_inside_cell_1 = np.column_stack(np.where(mask))
-            points_inside_cell_1 = image_fluo_gray[
-                coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
-            ]
-
-        return round(np.mean([i / 255 for i in points_inside_cell_1]), 2)
+        """
+        細胞領域の画素値を 0~255 で正規化したときの平均値を計算。
+        """
+        points = await AsyncChores.get_points_inside_cell(
+            image_fluo_raw, contour_raw, normalize=False
+        )
+        # 0~255正規化
+        return round(np.mean([p / 255 for p in points]), 2)
 
     @staticmethod
     async def calc_median_normalized_fluo_intensity_inside_cell(
         image_fluo_raw: bytes, contour_raw: bytes
     ) -> float:
-        loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor() as executor:
-            image_fluo = await loop.run_in_executor(
-                executor,
-                cv2.imdecode,
-                np.frombuffer(image_fluo_raw, np.uint8),
-                cv2.IMREAD_COLOR,
-            )
-            image_fluo_gray = await loop.run_in_executor(
-                executor, cv2.cvtColor, image_fluo, cv2.COLOR_BGR2GRAY
-            )
-
-            mask = np.zeros_like(image_fluo_gray)
-            unpickled_contour = pickle.loads(contour_raw)
-            await loop.run_in_executor(
-                executor, cv2.fillPoly, mask, [unpickled_contour], 255
-            )
-
-            coords_inside_cell_1 = np.column_stack(np.where(mask))
-            points_inside_cell_1 = image_fluo_gray[
-                coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
-            ]
-            # flatten points_inside_cell_1
-            points_inside_cell_1 = points_inside_cell_1.flatten()
-            max_val = np.max(points_inside_cell_1)
-
-        return round(np.median([i / max_val for i in points_inside_cell_1]), 2)
+        """
+        細胞領域の画素値を最大値で正規化したときの中央値を計算。
+        """
+        points = await AsyncChores.get_points_inside_cell(
+            image_fluo_raw, contour_raw, normalize=False
+        )
+        max_val = np.max(points) if len(points) else 1
+        return round(np.median([p / max_val for p in points]), 2)
 
     @staticmethod
     async def calc_variance_normalized_fluo_intensity_inside_cell(
         image_fluo_raw: bytes, contour_raw: bytes
     ) -> float:
-        loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor() as executor:
-            image_fluo = await loop.run_in_executor(
-                executor,
-                cv2.imdecode,
-                np.frombuffer(image_fluo_raw, np.uint8),
-                cv2.IMREAD_COLOR,
-            )
-            image_fluo_gray = await loop.run_in_executor(
-                executor, cv2.cvtColor, image_fluo, cv2.COLOR_BGR2GRAY
-            )
-
-            mask = np.zeros_like(image_fluo_gray)
-            unpickled_contour = pickle.loads(contour_raw)
-            await loop.run_in_executor(
-                executor, cv2.fillPoly, mask, [unpickled_contour], 255
-            )
-            coords_inside_cell_1 = np.column_stack(np.where(mask))
-            points_inside_cell_1 = image_fluo_gray[
-                coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
-            ]
-            points_inside_cell_1 = points_inside_cell_1.flatten()
-            max_val = np.max(points_inside_cell_1)
-
-            normalized_points = [i / max_val for i in points_inside_cell_1]
-
-        return round(np.var(normalized_points), 2)
+        """
+        細胞領域の画素値を最大値で正規化したときの分散を計算。
+        """
+        points = await AsyncChores.get_points_inside_cell(
+            image_fluo_raw, contour_raw, normalize=False
+        )
+        max_val = np.max(points) if len(points) else 1
+        return round(np.var([p / max_val for p in points]), 2)
 
     @staticmethod
     async def get_points_inside_cell(
         image_fluo_raw: bytes, contour_raw: bytes, normalize: bool = False
     ) -> list[float]:
-        loop = asyncio.get_event_loop()
+        """
+        細胞内の画素値を返す。
+        normalize=True で最大値(255ではなく)で正規化。
+        """
+        loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as executor:
             image_fluo = await loop.run_in_executor(
                 executor,
@@ -529,25 +472,20 @@ class AsyncChores:
                 coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
             ]
             points_inside_cell_1 = points_inside_cell_1.flatten()
-            if normalize:
+
+            if normalize and len(points_inside_cell_1) > 0:
                 max_val = np.max(points_inside_cell_1)
                 normalized_points = [i / max_val for i in points_inside_cell_1]
                 return normalized_points
+
         return points_inside_cell_1
 
     @staticmethod
     async def draw_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
         """
-        Draw a contour on an image.
-
-        Parameters:
-        - image: Image on which to draw the contour.
-        - contour: Contour data in bytes.
-
-        Returns:
-        - Image with the contour drawn on it.
+        輪郭を画像上に描画。
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             contour = pickle.loads(contour)
             image = await loop.run_in_executor(
@@ -559,20 +497,11 @@ class AsyncChores:
     @staticmethod
     async def draw_scale_bar_with_centered_text(image_ph) -> np.ndarray:
         """
-        Draws a 5 um white scale bar on the lower right corner of the image with "5 um" text centered under it.
-        Assumes 1 pixel = 0.0625 um.
-
-        Parameters:
-        - image_ph: Input image on which the scale bar and text will be drawn.
-
-        Returns:
-        - Modified image with the scale bar and text.
+        1 pixel = 0.0625 um 前提で、5um のスケールバーを右下に描画。
         """
         pixels_per_um = 1 / 0.0625
         scale_bar_um = 5
-
         scale_bar_length_px = int(scale_bar_um * pixels_per_um)
-
         scale_bar_thickness = 2
         scale_bar_color = (255, 255, 255)
 
@@ -605,19 +534,18 @@ class AsyncChores:
             text_color,
             text_thickness,
         )
-
         return image_ph
 
     @staticmethod
     async def async_eig(Sigma: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             eigenvalues, eigenvectors = await loop.run_in_executor(executor, eig, Sigma)
         return eigenvalues, eigenvectors
 
     @staticmethod
     async def async_pickle_loads(data: bytes) -> list[list[float]]:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(executor, pickle.loads, data)
         return result
@@ -626,7 +554,7 @@ class AsyncChores:
     async def calculate_volume_and_widths(
         u1_adj: list[float], u2_adj: list[float], split_num: int, deltaL: float
     ) -> tuple[float, list[float]]:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(
                 executor,
@@ -640,7 +568,7 @@ class AsyncChores:
 
     @staticmethod
     async def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(
                 executor, SyncChores.poly_fit, U, degree
@@ -649,7 +577,7 @@ class AsyncChores:
 
     @staticmethod
     async def calc_arc_length(theta: list[float], u_1_1: float, u_1_2: float) -> float:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(
                 executor, SyncChores.calc_arc_length, theta, u_1_1, u_1_2
@@ -660,7 +588,7 @@ class AsyncChores:
     async def find_minimum_distance_and_point(
         coefficients, x_Q, y_Q
     ) -> tuple[float, tuple[float, float]]:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(
                 executor,
@@ -675,22 +603,11 @@ class AsyncChores:
     async def get_contour(contour: bytes) -> np.ndarray:
         contour_unpickled = await AsyncChores.async_pickle_loads(contour)
         contour = np.array([[i, j] for i, j in [i[0] for i in contour_unpickled]])
-        # X = np.array(
-        #     [
-        #         [i[1] for i in contour],
-        #         [i[0] for i in contour],
-        #     ]
-        # )
-
-        # # 基底変換関数を呼び出して必要な変数を取得
-        # u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U = (
-        #     SyncChores.basis_conversion(contour, X, img_size / 2, img_size / 2, contour)
-        # )
         return {"raw": contour, "converted": contour}
 
     @staticmethod
     async def save_fig_async(fig: Figure, filename: str) -> None:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             await loop.run_in_executor(executor, fig.savefig, filename)
             plt.close(fig)
@@ -699,6 +616,10 @@ class AsyncChores:
     async def morpho_analysis(
         image_ph: bytes, image_fluo_raw: bytes, contour_raw: bytes, degree: int
     ) -> np.ndarray:
+        """
+        位相差画像 (image_ph), 蛍光画像 (image_fluo_raw), 輪郭データ (contour_raw) を用いて
+        細胞の面積, 体積, 幅, 長さ, 画素値の平均/中央値などを計算するサンプル。
+        """
         loop = asyncio.get_event_loop()
         with ThreadPoolExecutor() as executor:
             image_fluo = await loop.run_in_executor(
@@ -731,7 +652,6 @@ class AsyncChores:
         points_inside_cell_1 = image_fluo_gray[
             coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
         ]
-
         ph_points_inside_cell_1 = image_ph_gray[
             coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
         ]
@@ -762,32 +682,7 @@ class AsyncChores:
             coords_inside_cell_1,
         )
 
-        # for testing purposes
-        if False:
-            fig = plt.figure(figsize=(6, 6))
-            plt.scatter(u1, u2, s=5)
-            plt.scatter(u1_c, u2_c, color="red", s=100)
-            plt.axis("equal")
-            margin_width = 50
-            margin_height = 50
-            plt.scatter(
-                [i[1] for i in U],
-                [i[0] for i in U],
-                points_inside_cell_1,
-                c=points_inside_cell_1,
-                cmap="inferno",
-                marker="o",
-            )
-            plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
-            plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
-            x = np.linspace(min_u1, max_u1, 1000)
-            theta = await AsyncChores.poly_fit(U, degree=degree)
-            y = np.polyval(theta, x)
-            plt.plot(x, y, color="red")
-            plt.scatter(u1_contour, u2_contour, color="lime", s=3)
-            fig.savefig("test.png")
-
-        # 中心座標(u1_c, u2_c)が(0,0)になるように補正
+        # 中心を (0,0) に移動
         u1_adj = u1 - u1_c
         u2_adj = u2 - u2_c
         cell_length = max(u1_adj) - min(u1_adj)
@@ -803,7 +698,9 @@ class AsyncChores:
         else:
             theta = await AsyncChores.poly_fit(np.array([u2, u1]).T, degree=degree)
             y = np.polyval(theta, np.linspace(min(u1_adj), max(u1_adj), 1000))
+            # 弧長を計算する場合は任意の実装
             cell_length = await AsyncChores.calc_arc_length(theta, min(u1), max(u1))
+
             split_num = 20
             deltaL = cell_length / split_num
             raw_points = []
@@ -818,36 +715,51 @@ class AsyncChores:
             volume = 0
             widths = []
             y_mean = 0
-            for i in range(20):
+            for i in range(split_num):
                 x_0 = i * deltaL
                 x_1 = (i + 1) * deltaL
                 points = [p for p in raw_points if x_0 <= p[0] <= x_1]
                 if points:
-                    y_mean = sum([i[1] for i in points]) / len(points)
+                    y_mean = sum([pt[1] for pt in points]) / len(points)
                 volume += y_mean**2 * np.pi * deltaL
                 widths.append(y_mean)
             width = sum(sorted(widths, reverse=True)[:3]) * 2 / 3
 
         return CellMorhology(
             area=round(area * 0.0625 * 0.0625, 2),
-            volume=round(volume * 0.0625 * 0.0625 * 0.0625, 2),
+            volume=round(volume * 0.0625**3, 2),
             width=round(width * 0.0625, 2),
             length=round(cell_length * 0.0625, 2),
             mean_fluo_intensity=round(np.mean(points_inside_cell_1), 2),
             mean_ph_intensity=round(np.mean(ph_points_inside_cell_1), 2),
-            mean_fluo_intensity_normalized=round(
-                np.mean(points_inside_cell_1) / np.max(points_inside_cell_1), 2
+            mean_fluo_intensity_normalized=(
+                round(np.mean(points_inside_cell_1) / np.max(points_inside_cell_1), 2)
+                if np.max(points_inside_cell_1) != 0
+                else 0
             ),
-            mean_ph_intensity_normalized=round(
-                np.mean(ph_points_inside_cell_1) / np.max(ph_points_inside_cell_1), 2
+            mean_ph_intensity_normalized=(
+                round(
+                    np.mean(ph_points_inside_cell_1) / np.max(ph_points_inside_cell_1),
+                    2,
+                )
+                if np.max(ph_points_inside_cell_1) != 0
+                else 0
             ),
             median_fluo_intensity=round(np.median(points_inside_cell_1), 2),
             median_ph_intensity=round(np.median(ph_points_inside_cell_1), 2),
-            median_fluo_intensity_normalized=round(
-                np.median(points_inside_cell_1) / np.max(points_inside_cell_1), 2
+            median_fluo_intensity_normalized=(
+                round(np.median(points_inside_cell_1) / np.max(points_inside_cell_1), 2)
+                if np.max(points_inside_cell_1) != 0
+                else 0
             ),
-            median_ph_intensity_normalized=round(
-                np.median(ph_points_inside_cell_1) / np.max(ph_points_inside_cell_1), 2
+            median_ph_intensity_normalized=(
+                round(
+                    np.median(ph_points_inside_cell_1)
+                    / np.max(ph_points_inside_cell_1),
+                    2,
+                )
+                if np.max(ph_points_inside_cell_1) != 0
+                else 0
             ),
         )
 
@@ -855,14 +767,16 @@ class AsyncChores:
     async def find_path(
         image_fluo_raw: bytes, contour_raw: bytes, degree: int
     ) -> io.BytesIO:
-
+        """
+        細胞断面から得た (u1, u2, 輝度) データ全体を散布図化し、
+        区画ごとに輝度の最大値を結んだパスを重ね描きするサンプル。
+        """
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
         )
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
 
         mask = np.zeros_like(image_fluo_gray)
-
         unpickled_contour = pickle.loads(contour_raw)
         cv2.fillPoly(mask, [unpickled_contour], 255)
 
@@ -898,7 +812,6 @@ class AsyncChores:
         )
 
         theta = await AsyncChores.poly_fit(U, degree=degree)
-        ### projection
         raw_points: list[Point] = []
         for i, j, p in zip(u1, u2, points_inside_cell_1):
             min_distance, min_point = await AsyncChores.find_minimum_distance_and_point(
@@ -907,11 +820,8 @@ class AsyncChores:
             raw_points.append(Point(min_point[0], p))
         raw_points.sort()
 
-        ### peak-path finder
-        ### Meta parameters
         split_num: int = 35
         delta_L: float = (max(u1) - min(u1)) / split_num
-
         first_point: Point = raw_points[0]
         last_point: Point = raw_points[-1]
         path: list[Point] = [first_point]
@@ -924,33 +834,22 @@ class AsyncChores:
             point = max(points, key=lambda x: x.G)
             path.append(point)
         path.append(last_point)
+
         fig = plt.figure(figsize=(6, 6))
         plt.axis("equal")
         x = [i.u1 for i in raw_points]
         y = [i.G for i in raw_points]
-        plt.scatter(
-            x,
-            y,
-            s=10,
-            cmap="jet",
-            c=[i.G for i in raw_points],
-        )
+        plt.scatter(x, y, s=10, cmap="jet", c=y)
         px, py = [i.u1 for i in path], [i.G for i in path]
-        plt.scatter(
-            px,
-            py,
-            s=50,
-            color="magenta",
-            zorder=100,
-        )
+        plt.scatter(px, py, s=50, color="magenta", zorder=100)
         plt.xlim(min(px) - 10, max(px) + 10)
         plt.plot(px, py, color="magenta")
+
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=100)
         buf.seek(0)
         plt.close(fig)
         return buf
-        # return path
 
     @staticmethod
     async def replot(
@@ -958,14 +857,15 @@ class AsyncChores:
         contour_raw: bytes,
         degree: int,
     ) -> io.BytesIO:
-
+        """
+        (u1,u2) 平面に生データを散布し、多項式近似した曲線と輪郭を表示。
+        """
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
         )
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
 
         mask = np.zeros_like(image_fluo_gray)
-
         unpickled_contour = pickle.loads(contour_raw)
         cv2.fillPoly(mask, [unpickled_contour], 255)
 
@@ -1017,45 +917,37 @@ class AsyncChores:
         plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
         plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
 
-        max_val = np.max(points_inside_cell_1)
+        max_val = np.max(points_inside_cell_1) if len(points_inside_cell_1) else 1
         normalized_points = [i / max_val for i in points_inside_cell_1]
-        # plt text of median of points inside cell
+
         plt.text(
             0.5,
             0.2,
-            f"Median: {np.median(points_inside_cell_1)}",
+            f"Median: {np.median(points_inside_cell_1):.2f}",
             horizontalalignment="center",
             verticalalignment="center",
             transform=plt.gca().transAxes,
         )
-
-        normalized_median = round(np.median(normalized_points), 2)
-        # plt text of normalized median of points inside cell
         plt.text(
             0.5,
             0.1,
-            f"Normalized median: {normalized_median}",
+            f"Normalized median: {np.median(normalized_points):.2f}",
             horizontalalignment="center",
             verticalalignment="center",
             transform=plt.gca().transAxes,
         )
-
-        # plt text of mean of points inside cell
         plt.text(
             0.5,
             0.15,
-            f"Mean: {round(np.mean(points_inside_cell_1),2)}",
+            f"Mean: {np.mean(points_inside_cell_1):.2f}",
             horizontalalignment="center",
             verticalalignment="center",
             transform=plt.gca().transAxes,
         )
-
-        normalized_mean = round(np.mean(normalized_points), 2)
-        # plt text of normalized mean of points inside cell
         plt.text(
             0.5,
             0.05,
-            f"Normalized mean: {normalized_mean}",
+            f"Normalized mean: {np.mean(normalized_points):.2f}",
             horizontalalignment="center",
             verticalalignment="center",
             transform=plt.gca().transAxes,
@@ -1068,6 +960,7 @@ class AsyncChores:
         plt.scatter(u1_contour, u2_contour, color="lime", s=3)
         plt.tick_params(direction="in")
         plt.grid(True)
+
         buf = io.BytesIO()
         plt.savefig(buf, format="png")
         buf.seek(0)
@@ -1078,14 +971,15 @@ class AsyncChores:
     async def find_path_return_list(
         image_fluo_raw: bytes, contour_raw: bytes, degree: int
     ) -> list[float]:
-
+        """
+        find_path() と同様のロジックでパスの (u1, G) リストを返す。
+        """
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
         )
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
 
         mask = np.zeros_like(image_fluo_gray)
-
         unpickled_contour = pickle.loads(contour_raw)
         cv2.fillPoly(mask, [unpickled_contour], 255)
 
@@ -1121,7 +1015,6 @@ class AsyncChores:
         )
 
         theta = await AsyncChores.poly_fit(U, degree=degree)
-        ### projection
         raw_points: list[Point] = []
         for i, j, p in zip(u1, u2, points_inside_cell_1):
             min_distance, min_point = await AsyncChores.find_minimum_distance_and_point(
@@ -1130,8 +1023,6 @@ class AsyncChores:
             raw_points.append(Point(min_point[0], p))
         raw_points.sort()
 
-        ### peak-path finder
-        ### Meta parameters
         split_num: int = 35
         delta_L: float = (max(u1) - min(u1)) / split_num
 
@@ -1201,12 +1092,6 @@ class CellCrudBase:
         self.db_name: str = db_name
 
     async def delete_database(self) -> None:
-        """
-        Delete a database.
-
-        Parameters:
-        - db_name: Name of the database to delete.
-        """
         await aiofiles.os.remove(f"databases/{self.db_name}")
 
     @staticmethod
@@ -1216,17 +1101,6 @@ class CellCrudBase:
         scale_bar: bool = False,
         brightness_factor: float = 1.0,
     ) -> StreamingResponse:
-        """
-        Parse the image data and return a StreamingResponse object.
-
-        Parameters:
-        - data: Image data in bytes.
-        - contour: Contour data in bytes.
-        - scale_bar: Whether to draw a scale bar on the image.
-
-        Returns:
-        - StreamingResponse object with the image data.
-        """
         img = await AsyncChores.async_imdecode(data)
         if contour:
             img = await AsyncChores.draw_contour(img, contour)
@@ -1244,32 +1118,14 @@ class CellCrudBase:
         scale_bar: bool = False,
         brightness_factor: float = 1.0,
     ) -> bytes:
-        """
-        Parse the image data and return the image as bytes.
-
-        Parameters:
-        - data: Image data in bytes.
-        - contour: Contour data in bytes (optional).
-        - scale_bar: Whether to draw a scale bar on the image.
-        - brightness_factor: Factor by which to adjust the brightness of the image.
-
-        Returns:
-        - Image data as bytes.
-        """
-
         img = await AsyncChores.async_imdecode(data)
-
         if contour:
             img = await AsyncChores.draw_contour(img, contour)
-
         if brightness_factor != 1.0:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
-
         if scale_bar:
             img = await AsyncChores.draw_scale_bar_with_centered_text(img)
-
         success, buffer = await AsyncChores.async_cv2_imencode(img)
-
         if success:
             return buffer.tobytes()
         else:
@@ -1277,13 +1133,7 @@ class CellCrudBase:
 
     async def read_cell_ids(self, label: str | None = None) -> list[CellId]:
         """
-        Read all cell IDs from the database.
-
-        Parameters:
-        - label: Optional label to filter cells by.
-
-        Returns:
-        - List of CellId objects.
+        DB からセルID一覧を取得し、F{frame}C{cell} 形式でソートして返す。
         """
 
         def sort_key(cell_id: str) -> tuple[int, int]:
@@ -1304,15 +1154,6 @@ class CellCrudBase:
         return [CellId(cell_id=cell.cell_id) for cell in sorted_cells]
 
     async def read_cell_label(self, cell_id: str) -> str:
-        """
-        Read the label of a cell.
-
-        Parameters:
-        - cell_id: ID of the cell to fetch the label for.
-
-        Returns:
-        - Label of the cell.
-        """
         stmt = select(Cell).where(Cell.cell_id == cell_id)
         async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
@@ -1321,13 +1162,6 @@ class CellCrudBase:
         return cell.manual_label if not cell.manual_label == "N/A" else "1000"
 
     async def update_label(self, cell_id: str, label: str) -> None:
-        """
-        Update the label of a cell.
-
-        Parameters:
-        - cell_id: ID of the cell to update.
-        - label: New label for the cell.
-        """
         stmt = update(Cell).where(Cell.cell_id == cell_id).values(manual_label=label)
         async for session in get_session(dbname=self.db_name):
             await session.execute(stmt)
@@ -1335,27 +1169,9 @@ class CellCrudBase:
         await session.close()
 
     async def read_cell_ids_count(self, label: str | None = None) -> int:
-        """
-        Read the number of cell IDs from the database.
-
-        Parameters:
-        - label: Optional label to filter cells by.
-
-        Returns:
-        - Number of cell IDs with respect to the label.
-        """
         return len(await self.read_cell_ids(label))
 
     async def read_cell(self, cell_id: str) -> Cell:
-        """
-        Read a cell by its ID.
-
-        Parameters:
-        - cell_id: ID of the cell to fetch.
-
-        Returns:
-        - Cell object with the given ID.
-        """
         stmt = select(Cell).where(Cell.cell_id == cell_id)
         async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
@@ -1366,12 +1182,6 @@ class CellCrudBase:
         return cell
 
     async def update_all_cells_metadata(self, metadata: str) -> None:
-        """
-        Update the "label_experiment" field of all cells.
-
-        Parameters:
-        - metadata: New metadata for all cells.
-        """
         stmt = update(Cell).values(label_experiment=metadata)
         async for session in get_session(dbname=self.db_name):
             await session.execute(stmt)
@@ -1379,12 +1189,6 @@ class CellCrudBase:
         await session.close()
 
     async def get_metadata(self) -> str:
-        """
-        Get the metadata of the experiment.
-
-        Returns:
-        - Metadata of the experiment from the first record.
-        """
         stmt = select(Cell).limit(1)
         async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
@@ -1395,17 +1199,6 @@ class CellCrudBase:
     async def get_cell_ph(
         self, cell_id: str, draw_contour: bool = False, draw_scale_bar: bool = False
     ) -> StreamingResponse:
-        """
-        Get the phase contrast images for a cell by its ID.
-
-        Parameters:
-        - cell_id: ID of the cell to fetch images for.
-        - draw_contour: Whether to draw the contour on the image.
-        - draw_scale_bar: Whether to draw the scale bar on the image.
-
-        Returns:
-        - StreamingResponse object with the phase contrast image data.
-        """
         cell = await self.read_cell(cell_id)
         if draw_contour:
             return await self.parse_image(
@@ -1420,18 +1213,6 @@ class CellCrudBase:
         draw_scale_bar: bool = False,
         brightness_factor: float = 1.0,
     ) -> StreamingResponse:
-        """
-        Get the fluorescence images for a cell by its ID.
-
-        Parameters:
-        - cell_id: ID of the cell to fetch images for.
-        - draw_contour: Whether to draw the contour on the image.
-        - draw_scale_bar: Whether to draw the scale bar on the image.
-        - brightness_factor: Brightness factor to apply to the image.
-
-        Returns:
-        - StreamingResponse object with the fluorescence image data.
-        """
         cell = await self.read_cell(cell_id)
         if draw_contour:
             return await self.parse_image(
@@ -1455,32 +1236,12 @@ class CellCrudBase:
         return await AsyncChores.get_contour(cell.contour)
 
     async def morpho_analysis(self, cell_id: str, polyfit_degree: int) -> CellMorhology:
-        """
-        Perform morphological analysis on a cell by its ID.
-
-        Parameters:
-        - cell_id: ID of the cell to perform analysis on.
-        - polyfit_degree: Degree of the polynomial to fit the cell boundary.
-
-        Returns:
-        - Tuple containing the area, volume, width, and cell length of the cell.
-        """
         cell = await self.read_cell(cell_id)
         return await AsyncChores.morpho_analysis(
             cell.img_ph, cell.img_fluo1, cell.contour, polyfit_degree
         )
 
     async def replot(self, cell_id: str, degree: int) -> StreamingResponse:
-        """
-        Replot the cell boundary with the given polynomial degree.
-
-        Parameters:
-        - cell_id: ID of the cell to replot.
-        - degree: Degree of the polynomial to fit the cell boundary.
-
-        Returns:
-        - StreamingResponse object with the replot image data.
-        """
         cell = await self.read_cell(cell_id)
         return StreamingResponse(
             await AsyncChores.replot(cell.img_fluo1, cell.contour, degree),
@@ -1562,19 +1323,15 @@ class CellCrudBase:
         self, cell_id: str, y_label: str, label: str | None = None
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
-
         cells = await asyncio.gather(
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
         )
-
         target_cell = await self.read_cell(cell_id=cell_id)
-
         target_val = (
             await AsyncChores.calc_variance_normalized_fluo_intensity_inside_cell(
                 target_cell.img_fluo1, target_cell.contour
             )
         )
-
         variance_intensities = await asyncio.gather(
             *(
                 AsyncChores.calc_variance_normalized_fluo_intensity_inside_cell(
@@ -1583,7 +1340,6 @@ class CellCrudBase:
                 for cell in cells
             )
         )
-
         ret = await AsyncChores.box_plot(
             variance_intensities,
             target_val=target_val,
@@ -1591,7 +1347,6 @@ class CellCrudBase:
             cell_id=cell_id,
             label=None,
         )
-
         return StreamingResponse(ret, media_type="image/png")
 
     async def extract_intensity_and_create_histogram(
@@ -1599,15 +1354,10 @@ class CellCrudBase:
         cell_id: str,
         label: str,
     ) -> io.BytesIO:
-        # 輝度データの抽出
         cell = await self.read_cell(cell_id)
-
-        # 細胞内の輝度値を取得
         normalized_intensity_values = await AsyncChores.get_points_inside_cell(
             cell.img_fluo1, cell.contour
         )
-
-        # ヒストグラム生成
         ret = await AsyncChores.histogram(
             values=normalized_intensity_values,
             y_label="count",
@@ -1672,11 +1422,9 @@ class CellCrudBase:
         self, label: str | None = None
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
-
         cells = await asyncio.gather(
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
         )
-
         variance_intensities = await asyncio.gather(
             *(
                 AsyncChores.calc_variance_normalized_fluo_intensity_inside_cell(
@@ -1685,14 +1433,12 @@ class CellCrudBase:
                 for cell in cells
             )
         )
-
         df = pd.DataFrame(
             variance_intensities,
             columns=[
                 f"Variance normalized fluorescence intensity {self.db_name} cells with label {label}"
             ],
         )
-
         buf = io.BytesIO()
         df.to_csv(buf, index=False)
         buf.seek(0)
@@ -1741,9 +1487,7 @@ class CellCrudBase:
         cell_ids = await self.read_cell_ids(label="1")
         cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
 
-        # 各細胞のu1とGを交互に格納するリスト
         combined_paths = []
-
         for cell in cells:
             print(cell.cell_id)
             path = await AsyncChores.find_path_return_list(
@@ -1755,7 +1499,6 @@ class CellCrudBase:
             combined_paths.append(G_values)
 
         df = pd.DataFrame(combined_paths)
-
         buf = io.BytesIO()
         df.to_csv(buf, index=False, header=False)
         buf.seek(0)
@@ -1788,7 +1531,6 @@ class CellCrudBase:
         return StreamingResponse(buf, media_type="image/png")
 
     async def rename_database_to_completed(self):
-        print(self.db_name)
         if "-uploaded" not in self.db_name:
             return False
         dbname_cleaned = self.db_name.split("/")[-1]
@@ -1890,26 +1632,23 @@ class CellCrudBase:
         cell = await self.read_cell(cell_id)
         if mode == "fluo":
             image = np.frombuffer(cell.img_fluo1, dtype=np.uint8)
-        elif mode == "ph":
+        else:
             image = np.frombuffer(cell.img_ph, dtype=np.uint8)
-        image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
 
+        image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
         height, width = image.shape
 
         point_cloud = []
-
-        # 画像からポイントクラウドを生成
         for y in range(height):
             for x in range(width):
                 z = image[y, x]
-                if z > 0:  # 輝度値が15以上の点のみを使用
+                if z > 0:
                     point_cloud.append([x, y, z])
 
         point_cloud = np.array(point_cloud)
 
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(111, projection="3d")
-
         ax.scatter(
             point_cloud[:, 0],
             point_cloud[:, 1],
@@ -1923,17 +1662,13 @@ class CellCrudBase:
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_zlabel("G")
-
         ax.set_ylim(height, 0)
         ax.set_xlim(0, width)
-
         ax.view_init(elev=30, azim=angle)
-
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=90, bbox_inches="tight")
         buf.seek(0)
         plt.close(fig)
-
         return buf
