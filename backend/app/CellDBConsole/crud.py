@@ -1062,12 +1062,23 @@ class AsyncChores:
 
     @staticmethod
     async def histogram(
-        values: list[float], y_label: str, cell_id: str, label: str
+        values: list[float],
+        y_label: str,
+        cell_id: str,
+        label: str,
+        bin_scale: Literal["normalized", "default"] = "default",
     ) -> io.BytesIO:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as pool:
             buf = await loop.run_in_executor(
-                pool, SyncChores.create_histogram, values, 256, y_label, cell_id, label
+                pool,
+                SyncChores.create_histogram,
+                values,
+                256,
+                y_label,
+                cell_id,
+                label,
+                bin_scale,
             )
         return buf
 
