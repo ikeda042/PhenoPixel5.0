@@ -222,25 +222,71 @@ class SyncChores:
         bin_scale: Literal["default", "normalized"],
     ) -> io.BytesIO:
         """
-        0-255の範囲で整数のリストからヒストグラムを作成し、バッファとして返す。
+        0-255の範囲で整数のリスト、または0-1で正規化されたリストからヒストグラムを作成し、バッファとして返す。
+
+        Parameters
+        ----------
+        data : list[int]
+            ヒストグラム化したいデータのリスト。
+            bin_scale="default" の場合は 0-255 の整数値を想定。
+            bin_scale="normalized" の場合は 0-1 に正規化された値を想定。
+        num_bins : int
+            ヒストグラムのビン数。
+        title : str
+            グラフのタイトル（今回は使用していないが、拡張の可能性あり）。
+        xlabel : str
+            x 軸のラベル（ここでは「cell id : {xlabel}」の形でタイトルに使用）。
+        ylabel : str
+            y 軸のラベル（例: "Count"など）。
+        bin_scale : Literal["default", "normalized"]
+            "default" の場合 0-255 でヒストグラムを作成。
+            "normalized" の場合 0-1 でヒストグラムを作成。
+
+        Returns
+        -------
+        io.BytesIO
+            作成したヒストグラムの画像データを格納したバッファ。
         """
+
+        # Figure を6x6インチで作成
         fig = plt.figure(figsize=(6, 6))
+
+        # bin_scale によってヒストグラムのビンの取り方や表示範囲を変える
         if bin_scale == "normalized":
             print("normalized")
+            # 0-1 の範囲で num_bins 個のビンを作成
             bins = np.linspace(0, 1, num_bins + 1)
+            # ヒストグラムの描画(range=(0,1) で0-1に収める)
+            plt.hist(data, bins=bins, range=(0, 1), edgecolor="black", color="skyblue")
+            # x 軸の表示範囲も 0-1 に設定
+            plt.xlim(0, 1)
         else:
             print("default")
+            # 0-255 の範囲で num_bins 個のビンを作成
             bins = np.linspace(0, 255, num_bins + 1)
-        plt.hist(data, bins=bins, range=(0, 255), edgecolor="black", color="skyblue")
-        plt.title(f"cell id : {xlabel}", fontsize=10)
-        plt.xlabel("Fluo. intensity", fontsize=10)
-        plt.ylabel("Count", fontsize=10)
-        plt.grid(True, alpha=0.3)
-        plt.xlim(0, 255)
+            # ヒストグラムの描画(range=(0,255) で0-255に収める)
+            plt.hist(
+                data, bins=bins, range=(0, 255), edgecolor="black", color="skyblue"
+            )
+            # x 軸の表示範囲を 0-255 に設定
+            plt.xlim(0, 255)
 
+        # タイトルの設定：cell id : {xlabel}
+        plt.title(f"cell id : {xlabel}", fontsize=10)
+        # x 軸ラベル（今回は「Fluo. intensity」）
+        plt.xlabel("Fluo. intensity", fontsize=10)
+        # y 軸ラベル
+        plt.ylabel(ylabel, fontsize=10)
+        # グリッドを薄めに表示
+        plt.grid(True, alpha=0.3)
+
+        # バッファにプロットを書き出し
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=200)
+        # バッファのポインタを先頭に戻す
         buf.seek(0)
+
+        # plt.close() でメモリ解放
         plt.close(fig)
 
         return buf
