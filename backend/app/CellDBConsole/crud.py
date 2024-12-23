@@ -1378,6 +1378,7 @@ class CellCrudBase:
             y_label="count",
             cell_id=cell_id,
             label=label,
+            bin_scale="default",
         )
         return StreamingResponse(ret, media_type="image/png")
 
@@ -1397,6 +1398,7 @@ class CellCrudBase:
             y_label="count",
             cell_id=cell_id,
             label=label,
+            bin_scale="normalized",
         )
         return StreamingResponse(ret, media_type="image/png")
 
