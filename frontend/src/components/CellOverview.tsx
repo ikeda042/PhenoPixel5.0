@@ -302,7 +302,7 @@ const CellImageGrid: React.FC = () => {
             // 例えば "74" 等を使う or " " を指定するなど、要件に応じて切り替えてください。
             // ここではひとまず selectedLabel を使用してみます。
             const response = await axios.get(
-              `${url_prefix}/cells/${db_name}/${selectedLabel}/${cellId}/distribution/normalized`,
+              `${url_prefix}/cells/${db_name}/${selectedLabel}/${cellId}/distribution_normalized`,
               { responseType: "blob" }
             );
             const url = URL.createObjectURL(response.data);
