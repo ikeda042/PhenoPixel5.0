@@ -235,9 +235,9 @@ async def get_fluo_distribution(db_name: str, cell_id: str):
 )
 async def get_fluo_distribution_normalized(db_name: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
-    return await CellCrudBase(db_name=db_name).extract_intensity_and_create_histogram(
-        label="", cell_id=cell_id
-    )
+    return await CellCrudBase(
+        db_name=db_name
+    ).extract_normalized_intensity_and_create_histogram(label="", cell_id=cell_id)
 
 
 @router_cell.get(
