@@ -274,7 +274,14 @@ class SyncChores:
         # タイトルの設定：cell id : {xlabel}
         plt.title(f"cell id : {xlabel}", fontsize=10)
         # x 軸ラベル（今回は「Fluo. intensity」）
-        plt.xlabel("Fluo. intensity", fontsize=10)
+        plt.xlabel(
+            (
+                "Fluo. intensity"
+                if bin_scale == "default"
+                else "Fluo. intensity(normalized)"
+            ),
+            fontsize=10,
+        )
         # y 軸ラベル
         plt.ylabel(ylabel, fontsize=10)
         # グリッドを薄めに表示
