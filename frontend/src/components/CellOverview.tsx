@@ -44,15 +44,15 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 // 型定義
 //-----------------------------------
 type ImageState = {
-  ph: string;               // 位相差画像URL
-  fluo?: string | null;     // 蛍光画像URL
-  replot?: string;          // 再プロット画像URL
-  distribution?: string;    // 分布図画像URL (非正規化)
-  distribution_normalized?: string; // 分布図画像URL (正規化)
-  path?: string;            // Peak-path画像URL
-  prediction?: string;      // T1推定画像URL
-  cloud_points?: string;    // 3D蛍光点群画像URL
-  cloud_points_ph?: string; // 3D位相差点群画像URL
+  ph: string;                         // 位相差画像URL
+  fluo?: string | null;               // 蛍光画像URL
+  replot?: string;                    // 再プロット画像URL
+  distribution?: string;              // 分布図画像URL (非正規化)
+  distribution_normalized?: string;   // 分布図画像URL (正規化)
+  path?: string;                      // Peak-path画像URL
+  prediction?: string;                // T1推定画像URL
+  cloud_points?: string;              // 3D蛍光点群画像URL
+  cloud_points_ph?: string;           // 3D位相差点群画像URL
 };
 
 // 「どのモードにするか」を列挙型的に管理する
@@ -94,8 +94,8 @@ const url_prefix = settings.url_prefix;
 // DrawModeごとに、表示名や「Polyfit Degree入力が必要かどうか」をまとめた設定
 const DRAW_MODES: {
   value: DrawModeType;
-  label: string;              // セレクトボックスで表示するラベル
-  needsPolyfit?: boolean;     // Polyfit Degreeを入力させたい場合はtrue
+  label: string;          // セレクトボックスで表示するラベル
+  needsPolyfit?: boolean; // Polyfit Degreeを入力させたい場合はtrue
 }[] = [
   { value: "light", label: "Light" },
   { value: "replot", label: "Replot", needsPolyfit: true },
@@ -590,6 +590,12 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
+  // PolyFitDegreeが必要かどうかの判定
+  //------------------------------------
+  const selectedDrawModeConfig = DRAW_MODES.find((m) => m.value === drawMode);
+  const isPolyFitMode = selectedDrawModeConfig?.needsPolyfit === true;
+
+  //------------------------------------
   // 実際の描画部分
   //------------------------------------
   return (
@@ -746,40 +752,68 @@ const CellImageGrid: React.FC = () => {
 
         {/* 中央カラム: DrawModeごとの追加表示 */}
         <Box sx={{ width: 420, height: 420, marginLeft: 2 }}>
-          {/* DrawMode セレクトと、モードによって必要な入力コンポーネント */}
-          <FormControl fullWidth>
-            <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
-            <Select labelId="draw-mode-select-label" value={drawMode} onChange={handleDrawModeChange}>
-              {DRAW_MODES.map((mode) => (
-                <MenuItem key={mode.value} value={mode.value}>
-                  {mode.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {/* --- DrawMode セレクト & PolyFitDegree 入力欄の表示を切り替える --- */}
+          <Grid container spacing={2}>
+            {isPolyFitMode ? (
+              // needsPolyfit === true の場合 → 8:4に分割
+              <>
+                <Grid item xs={8}>
+                  <FormControl fullWidth>
+                    <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                    <Select
+                      labelId="draw-mode-select-label"
+                      value={drawMode}
+                      onChange={handleDrawModeChange}
+                    >
+                      {DRAW_MODES.map((mode) => (
+                        <MenuItem key={mode.value} value={mode.value}>
+                          {mode.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    label="Polyfit Degree"
+                    type="number"
+                    value={fitDegree}
+                    onChange={handleFitDegreeChange}
+                    InputProps={{
+                      inputProps: { min: 0, step: 1 },
+                      onWheel: handleWheel,
+                      autoComplete: "off",
+                    }}
+                  />
+                </Grid>
+              </>
+            ) : (
+              // needsPolyfit === false の場合 → 横幅いっぱい
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                  <Select
+                    labelId="draw-mode-select-label"
+                    value={drawMode}
+                    onChange={handleDrawModeChange}
+                  >
+                    {DRAW_MODES.map((mode) => (
+                      <MenuItem key={mode.value} value={mode.value}>
+                        {mode.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+          </Grid>
 
-          {/* Polyfit Degree が必要なモードの場合のみ表示 */}
-          {DRAW_MODES.find((m) => m.value === drawMode)?.needsPolyfit && (
-            <Box mt={2}>
-              <TextField
-                label="Polyfit Degree"
-                type="number"
-                value={fitDegree}
-                onChange={handleFitDegreeChange}
-                InputProps={{
-                  inputProps: { min: 0, step: 1 },
-                  onWheel: handleWheel,
-                  autoComplete: "off",
-                }}
-              />
-            </Box>
-          )}
-
-          {/* モード別の画像 or 図表を描画 */}
+          {/* --- モード別の画像 or 図表を描画 --- */}
           <Box mt={2}>
             {/* light or t1contour → Scatterで輪郭表示 */}
-            {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
-            {drawMode === "t1contour" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
+            {(drawMode === "light" || drawMode === "t1contour") && (
+              <Scatter data={contourPlotData} options={contourPlotOptions} />
+            )}
 
             {/* replot画像 */}
             {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
@@ -867,7 +901,6 @@ const CellImageGrid: React.FC = () => {
                   return "None";
                 } else {
                   const engineName = selected as EngineName;
-                  let displayText: string = engineName;
                   return (
                     <Box display="flex" alignItems="center">
                       {engineName !== "None" && (
@@ -877,7 +910,7 @@ const CellImageGrid: React.FC = () => {
                           style={{ width: 24, height: 24, marginRight: 8 }}
                         />
                       )}
-                      {displayText}
+                      {engineName}
                     </Box>
                   );
                 }
