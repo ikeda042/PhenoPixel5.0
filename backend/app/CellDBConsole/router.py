@@ -230,7 +230,7 @@ async def get_fluo_distribution(db_name: str, cell_id: str):
 
 
 @router_cell.get(
-    "/{db_name}/{label}/{cell_id}/distribution/normalized",
+    "/{db_name}/{label}/{cell_id}/distribution_normalized",
     response_class=StreamingResponse,
 )
 async def get_fluo_distribution_normalized(db_name: str, cell_id: str):
