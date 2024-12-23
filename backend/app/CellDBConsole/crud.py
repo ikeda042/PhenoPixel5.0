@@ -1366,6 +1366,25 @@ class CellCrudBase:
         )
         return StreamingResponse(ret, media_type="image/png")
 
+    async def extract_normalized_intensity_and_create_histogram(
+        self,
+        cell_id: str,
+        label: str,
+    ) -> io.BytesIO:
+        cell = await self.read_cell(cell_id)
+        intensity_values = await AsyncChores.get_points_inside_cell(
+            cell.img_fluo1, cell.contour
+        )
+        max_val = np.max(intensity_values) if len(intensity_values) else 1
+        normalized_values = [i / max_val for i in intensity_values]
+        ret = await AsyncChores.histogram(
+            values=normalized_values,
+            y_label="count",
+            cell_id=cell_id,
+            label=label,
+        )
+        return StreamingResponse(ret, media_type="image/png")
+
     async def get_all_mean_normalized_fluo_intensities_csv(
         self, label: str | None = None
     ) -> StreamingResponse:
