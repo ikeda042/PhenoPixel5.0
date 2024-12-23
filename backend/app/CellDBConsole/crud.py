@@ -1355,11 +1355,11 @@ class CellCrudBase:
         label: str,
     ) -> io.BytesIO:
         cell = await self.read_cell(cell_id)
-        normalized_intensity_values = await AsyncChores.get_points_inside_cell(
+        intensity_values = await AsyncChores.get_points_inside_cell(
             cell.img_fluo1, cell.contour
         )
         ret = await AsyncChores.histogram(
-            values=normalized_intensity_values,
+            values=intensity_values,
             y_label="count",
             cell_id=cell_id,
             label=label,
