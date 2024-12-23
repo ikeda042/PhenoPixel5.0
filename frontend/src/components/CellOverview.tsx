@@ -47,7 +47,8 @@ type ImageState = {
   ph: string;               // 位相差画像URL
   fluo?: string | null;     // 蛍光画像URL
   replot?: string;          // 再プロット画像URL
-  distribution?: string;    // 分布図画像URL
+  distribution?: string;    // 分布図画像URL (非正規化)
+  distribution_normalized?: string; // 分布図画像URL (正規化)
   path?: string;            // Peak-path画像URL
   prediction?: string;      // T1推定画像URL
   cloud_points?: string;    // 3D蛍光点群画像URL
@@ -59,6 +60,7 @@ type DrawModeType =
   | "light"
   | "replot"
   | "distribution"
+  | "distribution_normalized" // ★ 追加
   | "path"
   | "t1contour"
   | "prediction"
@@ -98,6 +100,8 @@ const DRAW_MODES: {
   { value: "light", label: "Light" },
   { value: "replot", label: "Replot", needsPolyfit: true },
   { value: "distribution", label: "Distribution" },
+  // ★ Normalized 分布のモードを追加
+  { value: "distribution_normalized", label: "Distribution (Normalized)" },
   { value: "path", label: "Peak-path", needsPolyfit: true },
   { value: "t1contour", label: "Light+Model T1" },
   { value: "prediction", label: "Model T1(Torch GPU)" },
@@ -204,8 +208,7 @@ const CellImageGrid: React.FC = () => {
           fluo: fluoUrl,
         },
       }));
-      // 画像サイズを保存
-      // (PH画像をとりあえず基準にする)
+      // 画像サイズを保存 (PH画像を基準)
       const dim = await getImageDimensions(phUrl);
       setImageDimensions(dim);
     } catch (error) {
@@ -253,7 +256,9 @@ const CellImageGrid: React.FC = () => {
   const fetchAdditionalImage = async (mode: DrawModeType, cellId: string) => {
     try {
       switch (mode) {
+        //----------------------------------------
         // Replot
+        //----------------------------------------
         case "replot": {
           if (!images[cellId]?.replot) {
             const response = await axios.get(
@@ -269,7 +274,9 @@ const CellImageGrid: React.FC = () => {
           break;
         }
 
-        // Distribution
+        //----------------------------------------
+        // Distribution (非正規化)
+        //----------------------------------------
         case "distribution": {
           if (!images[cellId]?.distribution) {
             const response = await axios.get(
@@ -285,7 +292,31 @@ const CellImageGrid: React.FC = () => {
           break;
         }
 
+        //----------------------------------------
+        // Distribution (正規化) ★ 追加分 ★
+        //----------------------------------------
+        case "distribution_normalized": {
+          if (!images[cellId]?.distribution_normalized) {
+            // labelは selectedLabel でもよいが、
+            // APIパスに書かれている {label} は空文字以外のラベルを想定しているなら、
+            // 例えば "74" 等を使う or " " を指定するなど、要件に応じて切り替えてください。
+            // ここではひとまず selectedLabel を使用してみます。
+            const response = await axios.get(
+              `${url_prefix}/cells/${db_name}/${selectedLabel}/${cellId}/distribution/normalized`,
+              { responseType: "blob" }
+            );
+            const url = URL.createObjectURL(response.data);
+            setImages((prev) => ({
+              ...prev,
+              [cellId]: { ...prev[cellId], distribution_normalized: url },
+            }));
+          }
+          break;
+        }
+
+        //----------------------------------------
         // Path
+        //----------------------------------------
         case "path": {
           if (!images[cellId]?.path) {
             setIsLoading(true);
@@ -303,7 +334,9 @@ const CellImageGrid: React.FC = () => {
           break;
         }
 
+        //----------------------------------------
         // Torch GPU Prediction
+        //----------------------------------------
         case "prediction": {
           if (!images[cellId]?.prediction) {
             const response = await axios.get(
@@ -319,7 +352,9 @@ const CellImageGrid: React.FC = () => {
           break;
         }
 
+        //----------------------------------------
         // 3D Fluo
+        //----------------------------------------
         case "cloud_points": {
           if (!images[cellId]?.cloud_points) {
             const response = await axios.get(
@@ -335,7 +370,9 @@ const CellImageGrid: React.FC = () => {
           break;
         }
 
+        //----------------------------------------
         // 3D PH
+        //----------------------------------------
         case "cloud_points_ph": {
           if (!images[cellId]?.cloud_points_ph) {
             const response = await axios.get(
@@ -351,7 +388,9 @@ const CellImageGrid: React.FC = () => {
           break;
         }
 
-        // t1contour は画像フェッチが不要（Scatterで描画するだけ）
+        //----------------------------------------
+        // T1 Contour (Scatter で描画するので画像不要)
+        //----------------------------------------
         case "t1contour":
         default:
           break;
@@ -751,11 +790,20 @@ const CellImageGrid: React.FC = () => {
               />
             )}
 
-            {/* distribution画像 */}
+            {/* distribution画像 (非正規化) */}
             {drawMode === "distribution" && images[cellIds[currentIndex]]?.distribution && (
               <img
                 src={images[cellIds[currentIndex]]?.distribution}
                 alt={`Cell ${cellIds[currentIndex]} Distribution`}
+                style={{ width: "100%" }}
+              />
+            )}
+
+            {/* distribution (正規化) → distribution_normalized */}
+            {drawMode === "distribution_normalized" && images[cellIds[currentIndex]]?.distribution_normalized && (
+              <img
+                src={images[cellIds[currentIndex]]?.distribution_normalized}
+                alt={`Cell ${cellIds[currentIndex]} Distribution (Normalized)`}
                 style={{ width: "100%" }}
               />
             )}

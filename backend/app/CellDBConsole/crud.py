@@ -219,15 +219,17 @@ class SyncChores:
         title: str,
         xlabel: str,
         ylabel: str,
-        bin_scale: Literal["default", "normalized"] = "default",
+        bin_scale: Literal["default", "normalized"],
     ) -> io.BytesIO:
         """
         0-255の範囲で整数のリストからヒストグラムを作成し、バッファとして返す。
         """
         fig = plt.figure(figsize=(6, 6))
         if bin_scale == "normalized":
+            print("normalized")
             bins = np.linspace(0, 1, num_bins + 1)
         else:
+            print("default")
             bins = np.linspace(0, 255, num_bins + 1)
         plt.hist(data, bins=bins, range=(0, 255), edgecolor="black", color="skyblue")
         plt.title(f"cell id : {xlabel}", fontsize=10)
