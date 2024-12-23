@@ -593,7 +593,7 @@ const CellImageGrid: React.FC = () => {
         // 画像やチャートなど、drawMode に応じて表示を切り替える
         switch (drawMode) {
             case "light":
-                // PH輪郭 + (必要なら) T1輪郭は含まない
+                // PH輪郭 (T1は表示しない)
                 return <Scatter data={contourPlotData} options={contourPlotOptions} />;
 
             case "replot":
@@ -688,6 +688,9 @@ const CellImageGrid: React.FC = () => {
                 return <div>No draw mode selected</div>;
         }
     };
+
+    // 「replot」「path」のいずれかの場合はPolyFitDegreeが必要
+    const isPolyFitMode = ["replot", "path"].includes(drawMode);
 
     return (
         <>
@@ -871,41 +874,62 @@ const CellImageGrid: React.FC = () => {
                 <Box sx={{ width: 420, height: 420, marginLeft: 2 }}>
                     {/* ◆◆◆ ここが drawMode 選択をまとめたブロック ◆◆◆ */}
                     <Grid container spacing={2}>
-                        <Grid item xs={8}>
-                            {/* drawMode セレクトボックス (重複していた箇所を1箇所に統合) */}
-                            <FormControl fullWidth>
-                                <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
-                                <Select
-                                    labelId="draw-mode-select-label"
-                                    value={drawMode}
-                                    onChange={handleDrawModeChange}
-                                    displayEmpty
-                                >
-                                    <MenuItem value="light">Light</MenuItem>
-                                    <MenuItem value="replot">Replot</MenuItem>
-                                    <MenuItem value="distribution">Distribution</MenuItem>
-                                    <MenuItem value="path">Peak-path</MenuItem>
-                                    <MenuItem value="t1contour">Light+Model T1</MenuItem>
-                                    <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
-                                    <MenuItem value="cloud_points">3D Fluo</MenuItem>
-                                    <MenuItem value="cloud_points_ph">3D PH</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        {/* replotやpathのときだけポリフィット degree 入力を表示する */}
-                        {["replot", "path"].includes(drawMode) && (
-                            <Grid item xs={4}>
-                                <TextField
-                                    label="Polyfit Degree"
-                                    type="number"
-                                    value={fitDegree}
-                                    onChange={handleFitDegreeChange}
-                                    InputProps={{
-                                        inputProps: { min: 0, step: 1 },
-                                        onWheel: handleWheel,
-                                        autoComplete: "off"
-                                    }}
-                                />
+                        {isPolyFitMode ? (
+                            // replot や path の場合: 8:4 で分割
+                            <>
+                                <Grid item xs={8}>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                                        <Select
+                                            labelId="draw-mode-select-label"
+                                            value={drawMode}
+                                            onChange={handleDrawModeChange}
+                                        >
+                                            <MenuItem value="light">Light</MenuItem>
+                                            <MenuItem value="replot">Replot</MenuItem>
+                                            <MenuItem value="distribution">Distribution</MenuItem>
+                                            <MenuItem value="path">Peak-path</MenuItem>
+                                            <MenuItem value="t1contour">Light+Model T1</MenuItem>
+                                            <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
+                                            <MenuItem value="cloud_points">3D Fluo</MenuItem>
+                                            <MenuItem value="cloud_points_ph">3D PH</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <TextField
+                                        label="Polyfit Degree"
+                                        type="number"
+                                        value={fitDegree}
+                                        onChange={handleFitDegreeChange}
+                                        InputProps={{
+                                            inputProps: { min: 0, step: 1 },
+                                            onWheel: handleWheel,
+                                            autoComplete: "off"
+                                        }}
+                                    />
+                                </Grid>
+                            </>
+                        ) : (
+                            // それ以外のモード: 横幅いっぱい (xs={12}) でプルダウンを表示
+                            <Grid item xs={12}>
+                                <FormControl fullWidth>
+                                    <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                                    <Select
+                                        labelId="draw-mode-select-label"
+                                        value={drawMode}
+                                        onChange={handleDrawModeChange}
+                                    >
+                                        <MenuItem value="light">Light</MenuItem>
+                                        <MenuItem value="replot">Replot</MenuItem>
+                                        <MenuItem value="distribution">Distribution</MenuItem>
+                                        <MenuItem value="path">Peak-path</MenuItem>
+                                        <MenuItem value="t1contour">Light+Model T1</MenuItem>
+                                        <MenuItem value="prediction">Model T1(Torch GPU)</MenuItem>
+                                        <MenuItem value="cloud_points">3D Fluo</MenuItem>
+                                        <MenuItem value="cloud_points_ph">3D PH</MenuItem>
+                                    </Select>
+                                </FormControl>
                             </Grid>
                         )}
                     </Grid>
