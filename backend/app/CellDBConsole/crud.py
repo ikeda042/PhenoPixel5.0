@@ -253,7 +253,6 @@ class SyncChores:
 
         # bin_scale によってヒストグラムのビンの取り方や表示範囲を変える
         if bin_scale == "normalized":
-            print("normalized")
             # 0-1 の範囲で num_bins 個のビンを作成
             bins = np.linspace(0, 1, num_bins + 1)
             # ヒストグラムの描画(range=(0,1) で0-1に収める)
@@ -261,7 +260,6 @@ class SyncChores:
             # x 軸の表示範囲も 0-1 に設定
             plt.xlim(0, 1)
         else:
-            print("default")
             # 0-255 の範囲で num_bins 個のビンを作成
             bins = np.linspace(0, 255, num_bins + 1)
             # ヒストグラムの描画(range=(0,255) で0-255に収める)
@@ -283,7 +281,7 @@ class SyncChores:
             fontsize=10,
         )
         # y 軸ラベル
-        plt.ylabel(ylabel, fontsize=10)
+        plt.ylabel("Count", fontsize=10)
         # グリッドを薄めに表示
         plt.grid(True, alpha=0.3)
 
