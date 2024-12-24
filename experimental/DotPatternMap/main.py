@@ -11,6 +11,87 @@ from scipy.integrate import quad
 from dataclasses import dataclass
 from tqdm import tqdm
 import os
+import os
+
+
+def ensure_dirs():
+    """
+    必要なディレクトリが存在しなければ作成する関数。
+    実験用のDotPatternMap配下のimagesディレクトリ、およびサブディレクトリを生成。
+    """
+    # ベースとなるディレクトリ
+    base_dir = "experimental/DotPatternMap/images"
+
+    # サブディレクトリの一覧
+    subdirs = [
+        "map64",
+        "points_box",
+        "pca_2d",
+        "pca_1d",
+        "fluo_raw",
+        "map64_jet",
+        "map64_raw",
+        "polar",
+    ]
+
+    # ベースディレクトリが存在しない場合は作成
+    if not os.path.exists(base_dir):
+        os.makedirs(base_dir)
+
+    # サブディレクトリが存在しない場合は作成
+    for subdir in subdirs:
+        target_path = os.path.join(base_dir, subdir)
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
+
+
+def delete_pngs(dir: str) -> None:
+    """
+    指定されたディレクトリ配下のPNGファイルを削除する関数。
+    """
+    for filename in [
+        i
+        for i in os.listdir(f"experimental/DotPatternMap/images/{dir}")
+        if i.endswith(".png")
+    ]:
+        os.remove(os.path.join(f"experimental/DotPatternMap/images/{dir}", filename))
+
+
+def main(db: str):
+    """
+    メイン関数。
+    データベースを読み込み、各処理(extract_map等)を行い、結果ファイルを出力する。
+    """
+    # 必要なディレクトリを生成
+    ensure_dirs()
+
+    # いったん各フォルダ内のPNGを削除する
+    for i in [
+        "map64",
+        "points_box",
+        "pca_2d",
+        "pca_1d",
+        "fluo_raw",
+        "map64_jet",
+        "map64_raw",
+    ]:
+        delete_pngs(i)
+
+    # データベースパースやMap64クラスの利用
+    cells: list[Cell] = database_parser(db)
+    map64: Map64 = Map64()
+    vectors = []
+    for cell in tqdm(cells):
+        # map64.extract_map で処理を行い、その結果を vectors に格納
+        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
+
+    # map64.combine_images で各画像をまとめたものを出力
+    map64.combine_images(out_name=db.replace(".db", ".png"))
+
+    # map64.extract_probability_map で確率マップ(probability map)を出力
+    map64.extract_probability_map(db.replace(".db", ""))
+
+    return vectors
 
 
 class Map64:
@@ -619,6 +700,7 @@ def main(db: str):
 
 
 if __name__ == "__main__":
+    ensure_dirs()
     for i in os.listdir("experimental/DotPatternMap"):
         if i.endswith(".db"):
             with open(f"experimental/DotPatternMap/images/{i}_vectors.txt", "w") as f:
