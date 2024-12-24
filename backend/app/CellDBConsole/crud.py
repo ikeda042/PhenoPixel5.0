@@ -20,7 +20,7 @@ from fastapi import UploadFile
 from fastapi.responses import StreamingResponse
 from matplotlib.figure import Figure
 from numpy.linalg import eig, inv
-from scipy.integrate import quad  # ← 変更: scipy 全体ではなく integrate のみ
+from scipy.integrate import quad
 from scipy.optimize import minimize
 from sqlalchemy import update
 from sqlalchemy.future import select
@@ -32,36 +32,6 @@ from database import get_session, Cell
 from exceptions import CellNotFoundError
 
 matplotlib.use("Agg")
-
-
-@dataclass
-class Map64Point:
-    def __init__(
-        self,
-        p: float,
-        q: float,
-        u1: float,
-        u2: float,
-        dist: float,
-        G: float,
-        sign: int,
-    ) -> None:
-        self.p: float = p
-        self.q: float = q
-        self.u1: float = u1
-        self.u2: float = u2
-        self.dist: float = dist
-        self.G: float = G
-        self.sign: int = sign
-
-    def __gt__(self, other) -> bool:
-        return self.u1 > other.u1
-
-    def __lt__(self, other) -> bool:
-        return self.u1 < other.u1
-
-    def __repr__(self) -> str:
-        return f"({self.u1},{self.G})"
 
 
 @dataclass
