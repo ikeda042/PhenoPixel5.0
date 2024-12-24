@@ -35,6 +35,36 @@ matplotlib.use("Agg")
 
 
 @dataclass
+class Map64Point:
+    def __init__(
+        self,
+        p: float,
+        q: float,
+        u1: float,
+        u2: float,
+        dist: float,
+        G: float,
+        sign: int,
+    ) -> None:
+        self.p: float = p
+        self.q: float = q
+        self.u1: float = u1
+        self.u2: float = u2
+        self.dist: float = dist
+        self.G: float = G
+        self.sign: int = sign
+
+    def __gt__(self, other) -> bool:
+        return self.u1 > other.u1
+
+    def __lt__(self, other) -> bool:
+        return self.u1 < other.u1
+
+    def __repr__(self) -> str:
+        return f"({self.u1},{self.G})"
+
+
+@dataclass
 class Point:
     def __init__(self, u1: float, G: float) -> None:
         self.u1 = u1
