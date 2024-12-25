@@ -11,7 +11,6 @@ from scipy.integrate import quad
 from dataclasses import dataclass
 from tqdm import tqdm
 import os
-import os
 
 
 def ensure_dirs():
