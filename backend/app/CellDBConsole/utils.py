@@ -22,7 +22,6 @@ import os
 class SyncChores:
     @classmethod
     def flip_image_if_needed(cls: Map64, image: np.ndarray) -> np.ndarray:
-        # 画像がカラーの場合、グレースケールに変換
         if len(image.shape) == 3:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -34,7 +33,6 @@ class SyncChores:
         right_brightness = np.mean(right_half)
 
         if right_brightness > left_brightness:
-            # 右の輝度が高い場合は左右反転
             image = cv2.flip(image, 1)
         return image
 
