@@ -539,7 +539,7 @@ class AsyncChores:
 
     @staticmethod
     async def draw_contour(
-        image: np.ndarray, contour: bytes, thickness: int = 2
+        image: np.ndarray, contour: bytes, thickness: int = 1
     ) -> np.ndarray:
         """
         輪郭を画像上に描画。
@@ -1187,10 +1187,11 @@ class CellCrudBase:
         contour: bytes | None = None,
         scale_bar: bool = False,
         brightness_factor: float = 1.0,
+        thickness: int = 2,
     ) -> bytes:
         img = await AsyncChores.async_imdecode(data)
         if contour:
-            img = await AsyncChores.draw_contour(img, contour)
+            img = await AsyncChores.draw_contour(img, contour, thickness=thickness)
         if brightness_factor != 1.0:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
         if scale_bar:
@@ -1710,13 +1711,16 @@ class CellCrudBase:
                     elif mode == "ph_contour":
                         await f.write(
                             await CellCrudBase.parse_image_to_bytes(
-                                cell.img_ph, cell.contour, scale_bar=False
+                                cell.img_ph, cell.contour, scale_bar=False, thickness=3
                             )
                         )
                     elif mode == "fluo_contour":
                         await f.write(
                             await CellCrudBase.parse_image_to_bytes(
-                                cell.img_fluo1, cell.contour, scale_bar=False
+                                cell.img_fluo1,
+                                cell.contour,
+                                scale_bar=False,
+                                thickness=3,
                             )
                         )
 
