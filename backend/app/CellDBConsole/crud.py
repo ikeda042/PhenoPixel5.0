@@ -538,7 +538,9 @@ class AsyncChores:
         return points_inside_cell_1
 
     @staticmethod
-    async def draw_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
+    async def draw_contour(
+        image: np.ndarray, contour: bytes, thickness: int = 2
+    ) -> np.ndarray:
         """
         輪郭を画像上に描画。
         """
@@ -547,7 +549,7 @@ class AsyncChores:
             contour = pickle.loads(contour)
             image = await loop.run_in_executor(
                 executor,
-                lambda: cv2.drawContours(image, contour, -1, (0, 255, 0), 1),
+                lambda: cv2.drawContours(image, contour, -1, (0, 255, 0), thickness),
             )
         return image
 
@@ -1657,7 +1659,7 @@ class CellCrudBase:
     async def get_cell_images_combined(
         self,
         label: str = "1",
-        image_size: int = 128,
+        image_size: int = 200,
         mode: Literal["fluo", "ph", "ph_conotour", "fluo_contour"] = "fluo",
     ):
         async def combine_images_from_folder(
