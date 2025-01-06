@@ -20,7 +20,7 @@ from fastapi import UploadFile
 from fastapi.responses import StreamingResponse
 from matplotlib.figure import Figure
 from numpy.linalg import eig, inv
-from scipy.integrate import quad  # ← 変更: scipy 全体ではなく integrate のみ
+from scipy.integrate import quad
 from scipy.optimize import minimize
 from sqlalchemy import update
 from sqlalchemy.future import select
