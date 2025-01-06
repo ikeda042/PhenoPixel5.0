@@ -1573,26 +1573,40 @@ class CellCrudBase:
     async def get_peak_paths_csv(
         self, degree: int = 4, label: str = "1"
     ) -> StreamingResponse:
-        cell_ids = await self.read_cell_ids(label="1")
-        cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
+        # 1. 指定ラベルの cell_ids を取得
+        cell_ids = await self.read_cell_ids(label=label)
 
-        combined_paths = []
-        for cell in cells:
-            print(cell.cell_id)
-            path = await AsyncChores.find_path_return_list(
-                cell.img_fluo1, cell.contour, degree
+        # 2. DB から対応する Cell レコードを並列取得
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+
+        # 3. find_path_return_list も並列で実行
+        #    （各セルの img_fluo1, contour をもとにピークパスを計算）
+        paths_list = await asyncio.gather(
+            *(
+                AsyncChores.find_path_return_list(cell.img_fluo1, cell.contour, degree)
+                for cell in cells
             )
+        )
+
+        # 4. 複数セル分の (u1, G) を一つのリストへ
+        combined_paths = []
+        for path in paths_list:
             u1_values = [p[0] for p in path]
             G_values = [p[1] for p in path]
             combined_paths.append(u1_values)
             combined_paths.append(G_values)
 
+        # 5. CSV に書き出し
         df = pd.DataFrame(combined_paths)
         buf = io.BytesIO()
         df.to_csv(buf, index=False, header=False)
         buf.seek(0)
+
         csv_content = buf.getvalue().decode("utf-8")
 
+        # もしローカルにファイル保存したい場合は aiofiles で非同期書き込み
         async with aiofiles.open(f"results/peak_paths_{self.db_name}.csv", "w") as f:
             await f.write(csv_content)
 
