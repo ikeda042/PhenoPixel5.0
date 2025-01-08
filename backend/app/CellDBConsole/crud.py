@@ -1787,8 +1787,13 @@ class CellCrudBase:
     ) -> None:
         """
         予測した輪郭(new_contour)を pickle 化して DB を更新するメソッド。
+        従来の get_contour() が想定する形式 (N,1,2) をそのまま pickle 化して保存する。
         """
-        pickled_contour = pickle.dumps([[[x, y]] for [x, y] in new_contour])
+        # まず Nx1x2 の配列に変換
+        contour_array = np.array(new_contour, dtype=np.int32).reshape(-1, 1, 2)
+
+        # ここで “リストで包む” をやめる
+        pickled_contour = pickle.dumps(contour_array)
 
         stmt = (
             update(Cell).where(Cell.cell_id == cell_id).values(contour=pickled_contour)
