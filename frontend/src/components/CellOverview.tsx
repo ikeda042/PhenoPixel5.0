@@ -605,7 +605,7 @@ const CellImageGrid: React.FC = () => {
   }, [currentIndex]);
 
   //------------------------------------
-  // 実際の描画部分
+  // 実際の描画部分 (レスポンシブ対応)
   //------------------------------------
   return (
     <>
@@ -622,13 +622,11 @@ const CellImageGrid: React.FC = () => {
         </Breadcrumbs>
       </Box>
 
-      <Stack direction="row" spacing={2} sx={{ marginTop: 8 }}>
-        {/* 左カラム: PH/Fluoや、Prev/Nextなど */}
-        <Box sx={{ width: 580, height: 420, marginLeft: 2 }}>
-          {/* 
-            Label選択 と Detect Mode選択 + Detectボタン を同じ <Grid container> にまとめ、
-            同じ行に表示させるように変更
-          */}
+      {/* 全体レイアウトをGridに変えてレスポンシブ対応 */}
+      <Grid container spacing={3} marginTop={2}>
+        {/* ----- 左カラム: PH/Fluoや、Prev/Nextなど ----- */}
+        <Grid item xs={12} lg={5}>
+          {/* Label選択 & Detect Mode選択 + Detectボタン */}
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={6}>
               <FormControl fullWidth variant="outlined">
@@ -648,7 +646,6 @@ const CellImageGrid: React.FC = () => {
               </FormControl>
             </Grid>
 
-            {/* Detect Mode 選択と Detectボタンを同じ行に配置 */}
             <Grid item container xs={6} spacing={2} alignItems="center">
               <Grid item xs>
                 <FormControl fullWidth variant="outlined">
@@ -665,8 +662,6 @@ const CellImageGrid: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-
-              {/* T1(U-net) のときだけ Detectボタンを右側に表示 */}
               {detectMode === "T1(U-net)" && (
                 <Grid item>
                   <Button variant="contained" color="secondary" onClick={handleT1Detect}>
@@ -731,6 +726,7 @@ const CellImageGrid: React.FC = () => {
                     onWheel: handleWheel,
                     autoComplete: "off",
                   }}
+                  fullWidth
                 />
               </Grid>
               <Grid item xs={3}>
@@ -804,23 +800,23 @@ const CellImageGrid: React.FC = () => {
 
           {/* PH / Fluo画像 */}
           <Grid container spacing={2} style={{ marginTop: 20 }}>
-            <Grid item xs={6}>
+            <Grid item xs={12} md={6}>
               {images[cellIds[currentIndex]] ? (
                 <img
                   src={images[cellIds[currentIndex]].ph}
                   alt={`Cell ${cellIds[currentIndex]} PH`}
-                  style={{ width: "100%" }}
+                  style={{ width: "100%", height: "auto" }}
                 />
               ) : (
                 <div>Loading PH...</div>
               )}
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} md={6}>
               {images[cellIds[currentIndex]] && images[cellIds[currentIndex]].fluo ? (
                 <img
                   src={images[cellIds[currentIndex]].fluo as string}
                   alt={`Cell ${cellIds[currentIndex]} Fluo`}
-                  style={{ width: "100%" }}
+                  style={{ width: "100%", height: "auto" }}
                 />
               ) : db_name.includes("single_layer") ? (
                 <Box
@@ -843,11 +839,11 @@ const CellImageGrid: React.FC = () => {
               )}
             </Grid>
           </Grid>
-        </Box>
+        </Grid>
 
-        {/* 中央カラム: DrawModeごとの追加表示 */}
-        <Box sx={{ width: 420, height: 420, marginLeft: 2 }}>
-          {/* DrawMode セレクトと、モードによって必要な入力コンポーネント */}
+        {/* ----- 中央カラム: DrawModeごとの追加表示 ----- */}
+        <Grid item xs={12} md={6} lg={4}>
+          {/* DrawMode セレクト + Polyfit Degree */}
           <FormControl fullWidth variant="outlined">
             <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
             <Select
@@ -864,7 +860,6 @@ const CellImageGrid: React.FC = () => {
             </Select>
           </FormControl>
 
-          {/* Polyfit Degree が必要なモードの場合のみ表示 */}
           {DRAW_MODES.find((m) => m.value === drawMode)?.needsPolyfit && (
             <Box mt={2}>
               <TextField
@@ -878,12 +873,13 @@ const CellImageGrid: React.FC = () => {
                   onWheel: handleWheel,
                   autoComplete: "off",
                 }}
+                fullWidth
               />
             </Box>
           )}
 
-          {/* モード別の画像 or 図表を描画 */}
           <Box mt={2}>
+            {/* モード別の表示 */}
             {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
             {drawMode === "t1contour" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
 
@@ -950,10 +946,10 @@ const CellImageGrid: React.FC = () => {
               />
             )}
           </Box>
-        </Box>
+        </Grid>
 
-        {/* 右カラム: MorphoEngine (None, Median, Mean, Var, Heatmap) */}
-        <Box sx={{ width: 350, height: 420, marginLeft: 2 }}>
+        {/* ----- 右カラム: MorphoEngine (None, Median, Mean, Var, Heatmap) ----- */}
+        <Grid item xs={12} md={6} lg={3}>
           <FormControl fullWidth variant="outlined">
             <InputLabel id="engine-select-label">MorphoEngine</InputLabel>
             <Select
@@ -1007,13 +1003,14 @@ const CellImageGrid: React.FC = () => {
                 justifyContent: "center",
                 alignItems: "center",
                 height: "100%",
+                marginTop: 3,
               }}
             >
               <Typography variant="h5">MorphoEngine is off.</Typography>
               <img
                 src="/logo_tp.png"
                 alt="Morpho Engine is off"
-                style={{ maxWidth: "15%", maxHeight: "15%" }}
+                style={{ maxWidth: "15%", maxHeight: "15%", marginLeft: 8 }}
               />
             </Box>
           )}
@@ -1068,8 +1065,8 @@ const CellImageGrid: React.FC = () => {
               />
             </Box>
           )}
-        </Box>
-      </Stack>
+        </Grid>
+      </Grid>
     </>
   );
 };
