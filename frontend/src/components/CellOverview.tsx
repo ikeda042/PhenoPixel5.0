@@ -126,6 +126,9 @@ const CellImageGrid: React.FC = () => {
   const [manualLabel, setManualLabel] = useState<string>("");
   const [currentIndex, setCurrentIndex] = useState<number>(parseInt(cell_number) - 1);
 
+  // 追加: 「今テキストボックスに入力しているインデックス」
+  const [inputIndex, setInputIndex] = useState<string>((parseInt(cell_number)).toString());
+
   // 各種スイッチ・入力
   const [drawContour, setDrawContour] = useState<boolean>(true);
   const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
@@ -297,10 +300,6 @@ const CellImageGrid: React.FC = () => {
         //----------------------------------------
         case "distribution_normalized": {
           if (!images[cellId]?.distribution_normalized) {
-            // labelは selectedLabel でもよいが、
-            // APIパスに書かれている {label} は空文字以外のラベルを想定しているなら、
-            // 例えば "74" 等を使う or " " を指定するなど、要件に応じて切り替えてください。
-            // ここではひとまず selectedLabel を使用してみます。
             const response = await axios.get(
               `${url_prefix}/cells/${db_name}/${selectedLabel}/${cellId}/distribution_normalized`,
               { responseType: "blob" }
@@ -590,6 +589,26 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
+  // 「テキスト入力からインデックスをジャンプ」するハンドラ
+  //------------------------------------
+  const handleIndexJump = () => {
+    // テキストを数値に変換し、1-based から 0-based に直す
+    const newIndex = parseInt(inputIndex, 10) - 1;
+    // バリデーション
+    if (!isNaN(newIndex) && newIndex >= 0 && newIndex < cellIds.length) {
+      setCurrentIndex(newIndex);
+    } else {
+      // 範囲外などは適当にエラーメッセージ or 無視
+      console.warn("Invalid index:", newIndex);
+    }
+  };
+
+  // currentIndex が変わったら、テキスト入力も追随しておく
+  useEffect(() => {
+    setInputIndex((currentIndex + 1).toString());
+  }, [currentIndex]);
+
+  //------------------------------------
   // 実際の描画部分
   //------------------------------------
   return (
@@ -684,12 +703,34 @@ const CellImageGrid: React.FC = () => {
             >
               Prev
             </Button>
-            <Typography variant="h6">
-              {cellIds.length > 0
-                ? `Cell ${currentIndex + 1} of ${cellIds.length}`
-                : `Cell ${currentIndex} of ${cellIds.length}`}{" "}
-              / ({cellIds[currentIndex]})
-            </Typography>
+
+            {/* ここをテキストボックスに変更し、入力値でジャンプできるようにする */}
+            <Box display="flex" alignItems="center" gap={1}>
+              <Typography variant="h6" component="span">
+                Cell
+              </Typography>
+              <TextField
+                type="number"
+                variant="outlined"
+                size="small"
+                value={inputIndex}
+                onChange={(e) => setInputIndex(e.target.value)}
+                onBlur={handleIndexJump} // フォーカスが外れたらジャンプ
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleIndexJump();
+                  }
+                }}
+                style={{ width: 60 }}
+              />
+              <Typography variant="h6" component="span">
+                of {cellIds.length}
+              </Typography>
+              <Typography variant="h6" component="span">
+                / {cellIds[currentIndex]}
+              </Typography>
+            </Box>
+
             <Button
               variant="contained"
               color="primary"
