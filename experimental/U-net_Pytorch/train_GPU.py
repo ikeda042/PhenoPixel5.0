@@ -85,7 +85,7 @@ class CellDataset(Dataset):
 
     def __getitem__(self, idx):
         cell = self.cells[idx]
-        img_ph, masked = parse_image(cell)
+        img_ph, masked, _ = parse_image(cell)
         img_ph = cv2.resize(img_ph, (256, 256)) / 255.0
         masked = cv2.resize(masked, (256, 256)) / 255.0
         img_ph = torch.tensor(img_ph.transpose(2, 0, 1), dtype=torch.float32)

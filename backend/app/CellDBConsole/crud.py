@@ -538,7 +538,9 @@ class AsyncChores:
         return points_inside_cell_1
 
     @staticmethod
-    async def draw_contour(image: np.ndarray, contour: bytes) -> np.ndarray:
+    async def draw_contour(
+        image: np.ndarray, contour: bytes, thickness: int = 1
+    ) -> np.ndarray:
         """
         輪郭を画像上に描画。
         """
@@ -547,7 +549,7 @@ class AsyncChores:
             contour = pickle.loads(contour)
             image = await loop.run_in_executor(
                 executor,
-                lambda: cv2.drawContours(image, contour, -1, (0, 255, 0), 1),
+                lambda: cv2.drawContours(image, contour, -1, (0, 255, 0), thickness),
             )
         return image
 
@@ -1185,10 +1187,11 @@ class CellCrudBase:
         contour: bytes | None = None,
         scale_bar: bool = False,
         brightness_factor: float = 1.0,
+        thickness: int = 2,
     ) -> bytes:
         img = await AsyncChores.async_imdecode(data)
         if contour:
-            img = await AsyncChores.draw_contour(img, contour)
+            img = await AsyncChores.draw_contour(img, contour, thickness=thickness)
         if brightness_factor != 1.0:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
         if scale_bar:
@@ -1573,26 +1576,40 @@ class CellCrudBase:
     async def get_peak_paths_csv(
         self, degree: int = 4, label: str = "1"
     ) -> StreamingResponse:
-        cell_ids = await self.read_cell_ids(label="1")
-        cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
+        # 1. 指定ラベルの cell_ids を取得
+        cell_ids = await self.read_cell_ids(label=label)
 
-        combined_paths = []
-        for cell in cells:
-            print(cell.cell_id)
-            path = await AsyncChores.find_path_return_list(
-                cell.img_fluo1, cell.contour, degree
+        # 2. DB から対応する Cell レコードを並列取得
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+
+        # 3. find_path_return_list も並列で実行
+        #    （各セルの img_fluo1, contour をもとにピークパスを計算）
+        paths_list = await asyncio.gather(
+            *(
+                AsyncChores.find_path_return_list(cell.img_fluo1, cell.contour, degree)
+                for cell in cells
             )
+        )
+
+        # 4. 複数セル分の (u1, G) を一つのリストへ
+        combined_paths = []
+        for path in paths_list:
             u1_values = [p[0] for p in path]
             G_values = [p[1] for p in path]
             combined_paths.append(u1_values)
             combined_paths.append(G_values)
 
+        # 5. CSV に書き出し
         df = pd.DataFrame(combined_paths)
         buf = io.BytesIO()
         df.to_csv(buf, index=False, header=False)
         buf.seek(0)
+
         csv_content = buf.getvalue().decode("utf-8")
 
+        # もしローカルにファイル保存したい場合は aiofiles で非同期書き込み
         async with aiofiles.open(f"results/peak_paths_{self.db_name}.csv", "w") as f:
             await f.write(csv_content)
 
@@ -1643,7 +1660,7 @@ class CellCrudBase:
     async def get_cell_images_combined(
         self,
         label: str = "1",
-        image_size: int = 128,
+        image_size: int = 200,
         mode: Literal["fluo", "ph", "ph_conotour", "fluo_contour"] = "fluo",
     ):
         async def combine_images_from_folder(
@@ -1694,13 +1711,16 @@ class CellCrudBase:
                     elif mode == "ph_contour":
                         await f.write(
                             await CellCrudBase.parse_image_to_bytes(
-                                cell.img_ph, cell.contour, scale_bar=False
+                                cell.img_ph, cell.contour, scale_bar=False, thickness=3
                             )
                         )
                     elif mode == "fluo_contour":
                         await f.write(
                             await CellCrudBase.parse_image_to_bytes(
-                                cell.img_fluo1, cell.contour, scale_bar=False
+                                cell.img_fluo1,
+                                cell.contour,
+                                scale_bar=False,
+                                thickness=3,
                             )
                         )
 

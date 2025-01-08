@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import io
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
 
 import cv2
 import numpy as np
