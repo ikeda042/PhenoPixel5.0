@@ -1781,3 +1781,25 @@ class CellCrudBase:
         buf.seek(0)
         plt.close(fig)
         return buf
+
+    async def update_contour(
+        self, cell_id: str, new_contour: list[list[float]]
+    ) -> None:
+        """
+        予測した輪郭(new_contour)を pickle 化して DB を更新するメソッド。
+        従来の get_contour() が想定する形式 (N,1,2) をそのまま pickle 化して保存する。
+        """
+        # まず Nx1x2 の配列に変換
+        contour_array = np.array(new_contour, dtype=np.int32).reshape(-1, 1, 2)
+
+        # ここで “リストで包む” をやめる
+        pickled_contour = pickle.dumps(contour_array)
+
+        stmt = (
+            update(Cell).where(Cell.cell_id == cell_id).values(contour=pickled_contour)
+        )
+
+        async for session in get_session(dbname=self.db_name):
+            await session.execute(stmt)
+            await session.commit()
+        await session.close()

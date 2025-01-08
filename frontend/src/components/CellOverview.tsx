@@ -44,15 +44,15 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 // 型定義
 //-----------------------------------
 type ImageState = {
-  ph: string;               // 位相差画像URL
-  fluo?: string | null;     // 蛍光画像URL
-  replot?: string;          // 再プロット画像URL
-  distribution?: string;    // 分布図画像URL (非正規化)
-  distribution_normalized?: string; // 分布図画像URL (正規化)
-  path?: string;            // Peak-path画像URL
-  prediction?: string;      // T1推定画像URL
-  cloud_points?: string;    // 3D蛍光点群画像URL
-  cloud_points_ph?: string; // 3D位相差点群画像URL
+  ph: string;               
+  fluo?: string | null;     
+  replot?: string;          
+  distribution?: string;    
+  distribution_normalized?: string; 
+  path?: string;            
+  prediction?: string;      
+  cloud_points?: string;    
+  cloud_points_ph?: string;
 };
 
 // 「どのモードにするか」を列挙型的に管理する
@@ -60,7 +60,7 @@ type DrawModeType =
   | "light"
   | "replot"
   | "distribution"
-  | "distribution_normalized" // ★ 追加
+  | "distribution_normalized"
   | "path"
   | "t1contour"
   | "prediction"
@@ -87,6 +87,11 @@ const engineLogos: Record<EngineName, string> = {
 };
 
 //-----------------------------------
+// DetectMode用の型定義
+//-----------------------------------
+type DetectModeType = "None" | "T1(U-net)" | "Canny";
+
+//-----------------------------------
 // まとめて管理したい設定たち
 //-----------------------------------
 const url_prefix = settings.url_prefix;
@@ -94,13 +99,12 @@ const url_prefix = settings.url_prefix;
 // DrawModeごとに、表示名や「Polyfit Degree入力が必要かどうか」をまとめた設定
 const DRAW_MODES: {
   value: DrawModeType;
-  label: string;              // セレクトボックスで表示するラベル
-  needsPolyfit?: boolean;     // Polyfit Degreeを入力させたい場合はtrue
+  label: string;
+  needsPolyfit?: boolean;
 }[] = [
   { value: "light", label: "Light" },
   { value: "replot", label: "Replot", needsPolyfit: true },
   { value: "distribution", label: "Distribution" },
-  // ★ Normalized 分布のモードを追加
   { value: "distribution_normalized", label: "Distribution (Normalized)" },
   { value: "path", label: "Peak-path", needsPolyfit: true },
   { value: "t1contour", label: "Light+Model T1" },
@@ -126,6 +130,9 @@ const CellImageGrid: React.FC = () => {
   const [manualLabel, setManualLabel] = useState<string>("");
   const [currentIndex, setCurrentIndex] = useState<number>(parseInt(cell_number) - 1);
 
+  // 追加: 「今テキストボックスに入力しているインデックス」
+  const [inputIndex, setInputIndex] = useState<string>(parseInt(cell_number).toString());
+
   // 各種スイッチ・入力
   const [drawContour, setDrawContour] = useState<boolean>(true);
   const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
@@ -134,6 +141,9 @@ const CellImageGrid: React.FC = () => {
   const [drawMode, setDrawMode] = useState<DrawModeType>(init_draw_mode);
   const [fitDegree, setFitDegree] = useState<number>(4);
   const [engineMode, setEngineMode] = useState<EngineName>("None");
+
+  // DetectMode用の state
+  const [detectMode, setDetectMode] = useState<DetectModeType>("None");
 
   // 読み込み状態や輪郭データなど
   const [isLoading, setIsLoading] = useState(false);
@@ -190,7 +200,6 @@ const CellImageGrid: React.FC = () => {
   // 画像の一括フェッチ用: PH, Fluo
   //------------------------------------
   const fetchStandardImages = async (cellId: string) => {
-    // ※ 「PH画像」「蛍光画像」など、ほぼ常に表示する可能性があるものはここでまとめて取得
     try {
       // PH画像取得
       const phUrl = await fetchImage("ph_image", cellId, db_name);
@@ -199,15 +208,17 @@ const CellImageGrid: React.FC = () => {
       if (!db_name.includes("single_layer")) {
         fluoUrl = await fetchImage("fluo_image", cellId, db_name, brightnessFactor);
       }
+
       // ステート更新
       setImages((prev) => ({
         ...prev,
-        [cellId]: { 
-          ...prev[cellId], 
-          ph: phUrl, 
+        [cellId]: {
+          ...prev[cellId],
+          ph: phUrl,
           fluo: fluoUrl,
         },
       }));
+
       // 画像サイズを保存 (PH画像を基準)
       const dim = await getImageDimensions(phUrl);
       setImageDimensions(dim);
@@ -251,18 +262,14 @@ const CellImageGrid: React.FC = () => {
 
   //------------------------------------
   // drawModeの追加画像を取得
-  // （replot, path, distribution, prediction, cloud_pointsなど）
   //------------------------------------
   const fetchAdditionalImage = async (mode: DrawModeType, cellId: string) => {
     try {
       switch (mode) {
-        //----------------------------------------
-        // Replot
-        //----------------------------------------
         case "replot": {
           if (!images[cellId]?.replot) {
             const response = await axios.get(
-              `${url_prefix}/cells/${cellId}/${db_name}/replot?degree=${fitDegree}`, 
+              `${url_prefix}/cells/${cellId}/${db_name}/replot?degree=${fitDegree}`,
               { responseType: "blob" }
             );
             const url = URL.createObjectURL(response.data);
@@ -273,14 +280,10 @@ const CellImageGrid: React.FC = () => {
           }
           break;
         }
-
-        //----------------------------------------
-        // Distribution (非正規化)
-        //----------------------------------------
         case "distribution": {
           if (!images[cellId]?.distribution) {
             const response = await axios.get(
-              `${url_prefix}/cells/${db_name}/${cellId}/distribution`, 
+              `${url_prefix}/cells/${db_name}/${cellId}/distribution`,
               { responseType: "blob" }
             );
             const url = URL.createObjectURL(response.data);
@@ -291,16 +294,8 @@ const CellImageGrid: React.FC = () => {
           }
           break;
         }
-
-        //----------------------------------------
-        // Distribution (正規化) ★ 追加分 ★
-        //----------------------------------------
         case "distribution_normalized": {
           if (!images[cellId]?.distribution_normalized) {
-            // labelは selectedLabel でもよいが、
-            // APIパスに書かれている {label} は空文字以外のラベルを想定しているなら、
-            // 例えば "74" 等を使う or " " を指定するなど、要件に応じて切り替えてください。
-            // ここではひとまず selectedLabel を使用してみます。
             const response = await axios.get(
               `${url_prefix}/cells/${db_name}/${selectedLabel}/${cellId}/distribution_normalized`,
               { responseType: "blob" }
@@ -313,10 +308,6 @@ const CellImageGrid: React.FC = () => {
           }
           break;
         }
-
-        //----------------------------------------
-        // Path
-        //----------------------------------------
         case "path": {
           if (!images[cellId]?.path) {
             setIsLoading(true);
@@ -333,10 +324,6 @@ const CellImageGrid: React.FC = () => {
           }
           break;
         }
-
-        //----------------------------------------
-        // Torch GPU Prediction
-        //----------------------------------------
         case "prediction": {
           if (!images[cellId]?.prediction) {
             const response = await axios.get(
@@ -351,10 +338,6 @@ const CellImageGrid: React.FC = () => {
           }
           break;
         }
-
-        //----------------------------------------
-        // 3D Fluo
-        //----------------------------------------
         case "cloud_points": {
           if (!images[cellId]?.cloud_points) {
             const response = await axios.get(
@@ -369,10 +352,6 @@ const CellImageGrid: React.FC = () => {
           }
           break;
         }
-
-        //----------------------------------------
-        // 3D PH
-        //----------------------------------------
         case "cloud_points_ph": {
           if (!images[cellId]?.cloud_points_ph) {
             const response = await axios.get(
@@ -387,10 +366,6 @@ const CellImageGrid: React.FC = () => {
           }
           break;
         }
-
-        //----------------------------------------
-        // T1 Contour (Scatter で描画するので画像不要)
-        //----------------------------------------
         case "t1contour":
         default:
           break;
@@ -403,12 +378,10 @@ const CellImageGrid: React.FC = () => {
 
   //------------------------------------
   // セルを切り替えたときのメイン処理
-  // （PH画像、Fluo画像、輪郭データなどを取得）
   //------------------------------------
   useEffect(() => {
     if (cellIds.length === 0) return;
     const cellId = cellIds[currentIndex];
-    // まずは基本画像(PH,Fluo)や輪郭をまとめて取得
     fetchStandardImages(cellId);
     fetchContour(cellId);
     fetchContourT1(cellId);
@@ -425,7 +398,6 @@ const CellImageGrid: React.FC = () => {
 
   //------------------------------------
   // 現在のセルIDに対応した初期ラベルを取得
-  // （ページ切り替えやロード時の一度きり）
   //------------------------------------
   useEffect(() => {
     const fetchInitialLabel = async () => {
@@ -455,7 +427,6 @@ const CellImageGrid: React.FC = () => {
     setCurrentIndex((prevIndex) => (prevIndex - 1 + cellIds.length) % cellIds.length);
   };
 
-  // AutoPlay
   useEffect(() => {
     let autoNextInterval: NodeJS.Timeout | undefined;
     if (autoPlay) {
@@ -487,6 +458,36 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
+  // Detect Modeセレクト変更
+  //------------------------------------
+  const handleDetectModeChange = (event: SelectChangeEvent<string>) => {
+    setDetectMode(event.target.value as DetectModeType);
+  };
+
+  //------------------------------------
+  // Detectボタン押下時のハンドラ
+  //------------------------------------
+  const handleT1Detect = async () => {
+    if (cellIds.length === 0) return;
+    const cellId = cellIds[currentIndex];
+
+    try {
+      // 新APIをコール
+      const patchUrl = `${url_prefix}/cells/redetect_contour_t1/${db_name}/${cellId}`;
+      console.log("Calling patch:", patchUrl);
+      await axios.patch(patchUrl);
+
+      // 成功したら輪郭を再取得
+      await fetchContour(cellId);
+      await fetchContourT1(cellId);
+      alert("T1 Detect 成功。輪郭を更新しました。");
+    } catch (err) {
+      console.error("Error calling T1 detect:", err);
+      alert("T1 Detectに失敗しました。コンソールを確認してください。");
+    }
+  };
+
+  //------------------------------------
   // その他ハンドラ
   //------------------------------------
   const handleContourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -502,7 +503,6 @@ const CellImageGrid: React.FC = () => {
     setBrightnessFactor(parseFloat(e.target.value));
   };
   const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    // 数値入力でスクロールが効いてしまうのを抑制
     event.currentTarget.blur();
     event.preventDefault();
   };
@@ -517,14 +517,12 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
-  // キーボードイベント
-  // Enterキー: Next
-  // 1,2,3,n キー: ラベル変更
+  // キーボードイベント (EnterキーでNextなど)
   //------------------------------------
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Enter") {
-        handleNext(); // EnterキーでNextを押す
+        handleNext();
       } else if (["1", "2", "3", "n"].includes(event.key)) {
         let newLabel = event.key;
         if (newLabel === "n") {
@@ -590,6 +588,23 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
+  // 「テキスト入力からインデックスをジャンプ」するハンドラ
+  //------------------------------------
+  const handleIndexJump = () => {
+    const newIndex = parseInt(inputIndex, 10) - 1;
+    if (!isNaN(newIndex) && newIndex >= 0 && newIndex < cellIds.length) {
+      setCurrentIndex(newIndex);
+    } else {
+      console.warn("Invalid index:", newIndex);
+    }
+  };
+
+  // currentIndex が変わったら、テキスト入力も追随しておく
+  useEffect(() => {
+    setInputIndex((currentIndex + 1).toString());
+  }, [currentIndex]);
+
+  //------------------------------------
   // 実際の描画部分
   //------------------------------------
   return (
@@ -610,38 +625,96 @@ const CellImageGrid: React.FC = () => {
       <Stack direction="row" spacing={2} sx={{ marginTop: 8 }}>
         {/* 左カラム: PH/Fluoや、Prev/Nextなど */}
         <Box sx={{ width: 580, height: 420, marginLeft: 2 }}>
-          {/* ラベル選択 */}
-          <FormControl fullWidth>
-            <InputLabel id="label-select-label">Label</InputLabel>
-            <Select labelId="label-select-label" value={selectedLabel} onChange={handleLabelChange}>
-              <MenuItem value="74">All</MenuItem>
-              <MenuItem value="1000">N/A</MenuItem>
-              <MenuItem value="1">1</MenuItem>
-              <MenuItem value="2">2</MenuItem>
-              <MenuItem value="3">3</MenuItem>
-            </Select>
-          </FormControl>
+          {/* 
+            Label選択 と Detect Mode選択 + Detectボタン を同じ <Grid container> にまとめ、
+            同じ行に表示させるように変更
+          */}
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={6}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="label-select-label">Label</InputLabel>
+                <Select
+                  labelId="label-select-label"
+                  label="Label"
+                  value={selectedLabel}
+                  onChange={handleLabelChange}
+                >
+                  <MenuItem value="74">All</MenuItem>
+                  <MenuItem value="1000">N/A</MenuItem>
+                  <MenuItem value="1">1</MenuItem>
+                  <MenuItem value="2">2</MenuItem>
+                  <MenuItem value="3">3</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Detect Mode 選択と Detectボタンを同じ行に配置 */}
+            <Grid item container xs={6} spacing={2} alignItems="center">
+              <Grid item xs>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
+                  <Select
+                    labelId="detect-mode-select-label"
+                    label="Detect Mode"
+                    value={detectMode}
+                    onChange={handleDetectModeChange}
+                  >
+                    <MenuItem value="None">None</MenuItem>
+                    <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
+                    <MenuItem value="Canny">Canny</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* T1(U-net) のときだけ Detectボタンを右側に表示 */}
+              {detectMode === "T1(U-net)" && (
+                <Grid item>
+                  <Button variant="contained" color="secondary" onClick={handleT1Detect}>
+                    Detect
+                  </Button>
+                </Grid>
+              )}
+            </Grid>
+          </Grid>
 
           {/* チェックボックス類 */}
           <Box mt={2}>
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={2}>
                 <FormControlLabel
-                  control={<Checkbox checked={drawContour} onChange={handleContourChange} style={{ color: "black" }} />}
+                  control={
+                    <Checkbox
+                      checked={drawContour}
+                      onChange={handleContourChange}
+                      style={{ color: "black" }}
+                    />
+                  }
                   label="Contour"
                   style={{ color: "black" }}
                 />
               </Grid>
               <Grid item xs={2}>
                 <FormControlLabel
-                  control={<Checkbox checked={drawScaleBar} onChange={handleScaleBarChange} style={{ color: "black" }} />}
+                  control={
+                    <Checkbox
+                      checked={drawScaleBar}
+                      onChange={handleScaleBarChange}
+                      style={{ color: "black" }}
+                    />
+                  }
                   label="Scale"
                   style={{ color: "black" }}
                 />
               </Grid>
               <Grid item xs={2}>
                 <FormControlLabel
-                  control={<Checkbox checked={autoPlay} onChange={handleAutoPlayChange} style={{ color: "black" }} />}
+                  control={
+                    <Checkbox
+                      checked={autoPlay}
+                      onChange={handleAutoPlayChange}
+                      style={{ color: "black" }}
+                    />
+                  }
                   label="Auto"
                   style={{ color: "black" }}
                 />
@@ -649,6 +722,7 @@ const CellImageGrid: React.FC = () => {
               <Grid item xs={3}>
                 <TextField
                   label="Brightness Factor"
+                  variant="outlined"
                   type="number"
                   value={brightnessFactor}
                   onChange={handleBrightnessChange}
@@ -660,9 +734,14 @@ const CellImageGrid: React.FC = () => {
                 />
               </Grid>
               <Grid item xs={3}>
-                <FormControl fullWidth>
+                <FormControl fullWidth variant="outlined">
                   <InputLabel id="manual-label-select-label">Manual Label</InputLabel>
-                  <Select labelId="manual-label-select-label" value={manualLabel} onChange={handleCellLabelChange}>
+                  <Select
+                    labelId="manual-label-select-label"
+                    label="Manual Label"
+                    value={manualLabel}
+                    onChange={handleCellLabelChange}
+                  >
                     <MenuItem value="1000">N/A</MenuItem>
                     <MenuItem value="1">1</MenuItem>
                     <MenuItem value="2">2</MenuItem>
@@ -684,12 +763,34 @@ const CellImageGrid: React.FC = () => {
             >
               Prev
             </Button>
-            <Typography variant="h6">
-              {cellIds.length > 0
-                ? `Cell ${currentIndex + 1} of ${cellIds.length}`
-                : `Cell ${currentIndex} of ${cellIds.length}`}{" "}
-              / ({cellIds[currentIndex]})
-            </Typography>
+
+            {/* テキストボックスに入力してセル番号ジャンプ */}
+            <Box display="flex" alignItems="center" gap={1}>
+              <Typography variant="h6" component="span">
+                Cell
+              </Typography>
+              <TextField
+                type="number"
+                variant="outlined"
+                size="small"
+                value={inputIndex}
+                onChange={(e) => setInputIndex(e.target.value)}
+                onBlur={handleIndexJump}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleIndexJump();
+                  }
+                }}
+                style={{ width: 60 }}
+              />
+              <Typography variant="h6" component="span">
+                of {cellIds.length}
+              </Typography>
+              <Typography variant="h6" component="span">
+                / {cellIds[currentIndex]}
+              </Typography>
+            </Box>
+
             <Button
               variant="contained"
               color="primary"
@@ -747,9 +848,14 @@ const CellImageGrid: React.FC = () => {
         {/* 中央カラム: DrawModeごとの追加表示 */}
         <Box sx={{ width: 420, height: 420, marginLeft: 2 }}>
           {/* DrawMode セレクトと、モードによって必要な入力コンポーネント */}
-          <FormControl fullWidth>
+          <FormControl fullWidth variant="outlined">
             <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
-            <Select labelId="draw-mode-select-label" value={drawMode} onChange={handleDrawModeChange}>
+            <Select
+              labelId="draw-mode-select-label"
+              label="Draw Mode"
+              value={drawMode}
+              onChange={handleDrawModeChange}
+            >
               {DRAW_MODES.map((mode) => (
                 <MenuItem key={mode.value} value={mode.value}>
                   {mode.label}
@@ -763,6 +869,7 @@ const CellImageGrid: React.FC = () => {
             <Box mt={2}>
               <TextField
                 label="Polyfit Degree"
+                variant="outlined"
                 type="number"
                 value={fitDegree}
                 onChange={handleFitDegreeChange}
@@ -777,11 +884,9 @@ const CellImageGrid: React.FC = () => {
 
           {/* モード別の画像 or 図表を描画 */}
           <Box mt={2}>
-            {/* light or t1contour → Scatterで輪郭表示 */}
             {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
             {drawMode === "t1contour" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
 
-            {/* replot画像 */}
             {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
               <img
                 src={images[cellIds[currentIndex]]?.replot}
@@ -790,7 +895,6 @@ const CellImageGrid: React.FC = () => {
               />
             )}
 
-            {/* distribution画像 (非正規化) */}
             {drawMode === "distribution" && images[cellIds[currentIndex]]?.distribution && (
               <img
                 src={images[cellIds[currentIndex]]?.distribution}
@@ -799,7 +903,6 @@ const CellImageGrid: React.FC = () => {
               />
             )}
 
-            {/* distribution (正規化) → distribution_normalized */}
             {drawMode === "distribution_normalized" && images[cellIds[currentIndex]]?.distribution_normalized && (
               <img
                 src={images[cellIds[currentIndex]]?.distribution_normalized}
@@ -808,7 +911,6 @@ const CellImageGrid: React.FC = () => {
               />
             )}
 
-            {/* peak-path画像 */}
             {drawMode === "path" && isLoading ? (
               <Box display="flex" justifyContent="center" alignItems="center" style={{ height: 400 }}>
                 <Spinner />
@@ -824,7 +926,6 @@ const CellImageGrid: React.FC = () => {
               )
             )}
 
-            {/* prediction画像 */}
             {drawMode === "prediction" && images[cellIds[currentIndex]]?.prediction && (
               <img
                 src={images[cellIds[currentIndex]]?.prediction}
@@ -833,7 +934,6 @@ const CellImageGrid: React.FC = () => {
               />
             )}
 
-            {/* 3D Fluo */}
             {drawMode === "cloud_points" && images[cellIds[currentIndex]]?.cloud_points && (
               <img
                 src={images[cellIds[currentIndex]]?.cloud_points}
@@ -842,7 +942,6 @@ const CellImageGrid: React.FC = () => {
               />
             )}
 
-            {/* 3D PH */}
             {drawMode === "cloud_points_ph" && images[cellIds[currentIndex]]?.cloud_points_ph && (
               <img
                 src={images[cellIds[currentIndex]]?.cloud_points_ph}
@@ -853,12 +952,13 @@ const CellImageGrid: React.FC = () => {
           </Box>
         </Box>
 
-        {/* 右カラム: MorphoEngine (None, Median, Mean など) */}
+        {/* 右カラム: MorphoEngine (None, Median, Mean, Var, Heatmap) */}
         <Box sx={{ width: 350, height: 420, marginLeft: 2 }}>
-          <FormControl fullWidth>
+          <FormControl fullWidth variant="outlined">
             <InputLabel id="engine-select-label">MorphoEngine</InputLabel>
             <Select
               labelId="engine-select-label"
+              label="MorphoEngine"
               id="engine-select"
               value={engineMode}
               onChange={handleEngineModeChange}
@@ -887,7 +987,11 @@ const CellImageGrid: React.FC = () => {
                 <MenuItem key={engine} value={engine}>
                   <Box display="flex" alignItems="center">
                     {engine !== "None" && (
-                      <img src={logoPath} alt="" style={{ width: 24, height: 24, marginRight: 8 }} />
+                      <img
+                        src={logoPath}
+                        alt=""
+                        style={{ width: 24, height: 24, marginRight: 8 }}
+                      />
                     )}
                     {engine}
                   </Box>
@@ -896,7 +1000,6 @@ const CellImageGrid: React.FC = () => {
             </Select>
           </FormControl>
 
-          {/* Noneのとき → ロゴ表示 */}
           {engineMode === "None" && (
             <Box
               sx={{
@@ -907,11 +1010,14 @@ const CellImageGrid: React.FC = () => {
               }}
             >
               <Typography variant="h5">MorphoEngine is off.</Typography>
-              <img src="/logo_tp.png" alt="Morpho Engine is off" style={{ maxWidth: "15%", maxHeight: "15%" }} />
+              <img
+                src="/logo_tp.png"
+                alt="Morpho Engine is off"
+                style={{ maxWidth: "15%", maxHeight: "15%" }}
+              />
             </Box>
           )}
 
-          {/* MorphoEngine 2.0 */}
           {engineMode === "MorphoEngine 2.0" && (
             <Box mt={2}>
               <CellMorphologyTable
@@ -922,28 +1028,36 @@ const CellImageGrid: React.FC = () => {
             </Box>
           )}
 
-          {/* MedianEngine */}
           {engineMode === "MedianEngine" && (
             <Box mt={6}>
-              <MedianEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} />
+              <MedianEngine
+                dbName={db_name}
+                label={selectedLabel}
+                cellId={cellIds[currentIndex]}
+              />
             </Box>
           )}
 
-          {/* MeanEngine */}
           {engineMode === "MeanEngine" && (
             <Box mt={6}>
-              <MeanEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} />
+              <MeanEngine
+                dbName={db_name}
+                label={selectedLabel}
+                cellId={cellIds[currentIndex]}
+              />
             </Box>
           )}
 
-          {/* VarEngine */}
           {engineMode === "VarEngine" && (
             <Box mt={6}>
-              <VarEngine dbName={db_name} label={selectedLabel} cellId={cellIds[currentIndex]} />
+              <VarEngine
+                dbName={db_name}
+                label={selectedLabel}
+                cellId={cellIds[currentIndex]}
+              />
             </Box>
           )}
 
-          {/* HeatmapEngine */}
           {engineMode === "HeatmapEngine" && (
             <Box mt={6}>
               <HeatmapEngine
