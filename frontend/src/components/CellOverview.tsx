@@ -465,7 +465,7 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
-  // ▼ 追加: Detectボタン押下時のハンドラ
+  // Detectボタン押下時のハンドラ
   //------------------------------------
   const handleT1Detect = async () => {
     if (cellIds.length === 0) return;
@@ -486,7 +486,6 @@ const CellImageGrid: React.FC = () => {
       alert("T1 Detectに失敗しました。コンソールを確認してください。");
     }
   };
-  //------------------------------------
 
   //------------------------------------
   // その他ハンドラ
@@ -626,8 +625,11 @@ const CellImageGrid: React.FC = () => {
       <Stack direction="row" spacing={2} sx={{ marginTop: 8 }}>
         {/* 左カラム: PH/Fluoや、Prev/Nextなど */}
         <Box sx={{ width: 580, height: 420, marginLeft: 2 }}>
-          {/* ラベル選択 + Detect Mode選択を横並びに配置 */}
-          <Grid container spacing={2}>
+          {/* 
+            Label選択 と Detect Mode選択 + Detectボタン を同じ <Grid container> にまとめ、
+            同じ行に表示させるように変更
+          */}
+          <Grid container spacing={2} alignItems="center">
             <Grid item xs={6}>
               <FormControl fullWidth variant="outlined">
                 <InputLabel id="label-select-label">Label</InputLabel>
@@ -645,33 +647,35 @@ const CellImageGrid: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            {/* Detect Mode 選択 */}
-            <Grid item xs={6}>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
-                <Select
-                  labelId="detect-mode-select-label"
-                  label="Detect Mode"
-                  value={detectMode}
-                  onChange={handleDetectModeChange}
-                >
-                  <MenuItem value="None">None</MenuItem>
-                  <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
-                  <MenuItem value="Canny">Canny</MenuItem>
-                </Select>
-              </FormControl>
+
+            {/* Detect Mode 選択と Detectボタンを同じ行に配置 */}
+            <Grid item container xs={6} spacing={2} alignItems="center">
+              <Grid item xs>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
+                  <Select
+                    labelId="detect-mode-select-label"
+                    label="Detect Mode"
+                    value={detectMode}
+                    onChange={handleDetectModeChange}
+                  >
+                    <MenuItem value="None">None</MenuItem>
+                    <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
+                    <MenuItem value="Canny">Canny</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* T1(U-net) のときだけ Detectボタンを右側に表示 */}
+              {detectMode === "T1(U-net)" && (
+                <Grid item>
+                  <Button variant="contained" color="secondary" onClick={handleT1Detect}>
+                    Detect
+                  </Button>
+                </Grid>
+              )}
             </Grid>
           </Grid>
-
-          {/* ▼ Detect Mode が T1(U-net) のときだけ Detectボタンを表示 */}
-          {detectMode === "T1(U-net)" && (
-            <Box mt={2}>
-              <Button variant="contained" color="secondary" onClick={handleT1Detect}>
-                Detect
-              </Button>
-            </Box>
-          )}
-          {/* ▲ ここまで追加 */}
 
           {/* チェックボックス類 */}
           <Box mt={2}>
