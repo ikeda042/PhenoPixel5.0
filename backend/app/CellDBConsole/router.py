@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from CellDBConsole.crud import AsyncChores, CellCrudBase
 from CellDBConsole.schemas import CellMorhology, MetadataUpdateRequest
+from CellAI.crud import CellAiCrudBase
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 router_database = APIRouter(prefix="/databases", tags=["databases"])
@@ -287,6 +288,29 @@ async def get_3d_plot(db_name: str, cell_id: str):
         cell_id=cell_id, mode="ph"
     )
     return StreamingResponse(image_buf, media_type="image/png")
+
+
+@router_cell.patch("/{db_name}/{cell_id}/redetect_contour_t1")
+async def patch_cell_contour_t1(
+    db_name: str,
+    cell_id: str,
+    model: Literal["T1"] = "T1",
+):
+    """
+    PATCH: あるDBのあるcell_idの輪郭データを、predict_contour_draw() で算出したものに置き換える
+    """
+
+    predicted_contour = await CellAiCrudBase(
+        db_name, model_path=model
+    ).predict_contour_draw(cell_id)
+
+    await CellCrudBase(db_name).update_contour(cell_id, predicted_contour)
+
+    return {
+        "status": "success",
+        "updated_cell_id": cell_id,
+        "predicted_contour": predicted_contour,
+    }
 
 
 @router_database.post("/upload")
