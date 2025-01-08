@@ -44,15 +44,15 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 // 型定義
 //-----------------------------------
 type ImageState = {
-  ph: string;               // 位相差画像URL
-  fluo?: string | null;     // 蛍光画像URL
-  replot?: string;          // 再プロット画像URL
-  distribution?: string;    // 分布図画像URL (非正規化)
-  distribution_normalized?: string; // 分布図画像URL (正規化)
-  path?: string;            // Peak-path画像URL
-  prediction?: string;      // T1推定画像URL
-  cloud_points?: string;    // 3D蛍光点群画像URL
-  cloud_points_ph?: string; // 3D位相差点群画像URL
+  ph: string;               
+  fluo?: string | null;     
+  replot?: string;          
+  distribution?: string;    
+  distribution_normalized?: string; 
+  path?: string;            
+  prediction?: string;      
+  cloud_points?: string;    
+  cloud_points_ph?: string;
 };
 
 // 「どのモードにするか」を列挙型的に管理する
@@ -465,6 +465,30 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
+  // ▼ 追加: Detectボタン押下時のハンドラ
+  //------------------------------------
+  const handleT1Detect = async () => {
+    if (cellIds.length === 0) return;
+    const cellId = cellIds[currentIndex];
+
+    try {
+      // 新APIをコール
+      const patchUrl = `${url_prefix}/cells/redetect_contour_t1/${db_name}/${cellId}`;
+      console.log("Calling patch:", patchUrl);
+      await axios.patch(patchUrl);
+
+      // 成功したら輪郭を再取得
+      await fetchContour(cellId);
+      await fetchContourT1(cellId);
+      alert("T1 Detect 成功。輪郭を更新しました。");
+    } catch (err) {
+      console.error("Error calling T1 detect:", err);
+      alert("T1 Detectに失敗しました。コンソールを確認してください。");
+    }
+  };
+  //------------------------------------
+
+  //------------------------------------
   // その他ハンドラ
   //------------------------------------
   const handleContourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -638,6 +662,16 @@ const CellImageGrid: React.FC = () => {
               </FormControl>
             </Grid>
           </Grid>
+
+          {/* ▼ Detect Mode が T1(U-net) のときだけ Detectボタンを表示 */}
+          {detectMode === "T1(U-net)" && (
+            <Box mt={2}>
+              <Button variant="contained" color="secondary" onClick={handleT1Detect}>
+                Detect
+              </Button>
+            </Box>
+          )}
+          {/* ▲ ここまで追加 */}
 
           {/* チェックボックス類 */}
           <Box mt={2}>
