@@ -80,7 +80,7 @@ function App() {
             <Route
               path="/"
               element={
-                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
+                <Box component="main" sx={{ p: 1 }}> 
                   <TopPage />
                 </Box>
               }
@@ -88,7 +88,7 @@ function App() {
             <Route
               path="/dbconsole"
               element={
-                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
+                <Box component="main" sx={{ p: 1 }}> 
                   <Databases />
                 </Box>
               }
@@ -96,7 +96,7 @@ function App() {
             <Route
               path="/databases"
               element={
-                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
+                <Box component="main" sx={{ p: 1 }}> 
                   <CellImageGrid />
                 </Box>
               }
@@ -104,7 +104,7 @@ function App() {
             <Route
               path="/nd2files"
               element={
-                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
+                <Box component="main" sx={{ p: 1 }}> 
                   <Nd2Files />
                 </Box>
               }
@@ -112,7 +112,7 @@ function App() {
             <Route
               path="/cellextraction"
               element={
-                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
+                <Box component="main" sx={{ p: 1 }}> 
                   <CellExtraction />
                 </Box>
               }
