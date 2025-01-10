@@ -110,7 +110,7 @@ class CellAiCrudBase:
         - cell_id: ID of the cell to predict.
 
         Returns:
-        - Predicted contour image as a StreamingResponse.
+        - Contour of the cell.
         """
         cell = await CellCrudBase(self.db_name).read_cell(cell_id)
         img = await AsyncChores.async_imdecode(cell.img_ph)
