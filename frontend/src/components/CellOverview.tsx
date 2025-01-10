@@ -651,7 +651,7 @@ const CellImageGrid: React.FC = () => {
         <Grid item xs={12} lg={5}>
           {/* 
             Label / DetectMode / (CannyThresh2) / Detect ボタン
-            を全て同じ行 (Grid container) にまとめる 
+            を同じ行に表示しつつ、DetectModeが None のときは余白を埋める 
           */}
           <Grid container spacing={2} alignItems="center">
             {/* Label選択 */}
@@ -673,65 +673,90 @@ const CellImageGrid: React.FC = () => {
               </FormControl>
             </Grid>
 
-            {/* Detect Mode選択 */}
-            <Grid item xs={3}>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
-                <Select
-                  labelId="detect-mode-select-label"
-                  label="Detect Mode"
-                  value={detectMode}
-                  onChange={handleDetectModeChange}
-                >
-                  <MenuItem value="None">None</MenuItem>
-                  <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
-                  <MenuItem value="Canny">Canny</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* detectMode が "Canny" のときのみ、閾値入力欄を表示 */}
-            {detectMode === "Canny" && (
-              <Grid item xs={3}>
-                <TextField
-                  label="Canny Th2"
-                  variant="outlined"
-                  type="number"
-                  size="small"
-                  value={cannyThresh2}
-                  onChange={(e) => setCannyThresh2(parseInt(e.target.value, 10))}
-                  InputProps={{
-                    onWheel: handleWheel,
-                  }}
-                  fullWidth
-                />
-              </Grid>
-            )}
-
-            {/* detectMode が "T1(U-net)" or "Canny" のときにDetectボタンを表示 */}
-            {detectMode !== "None" && (
-              <Grid item xs={detectMode === "Canny" ? 3 : 6}>
-                {detectMode === "T1(U-net)" && (
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    onClick={handleT1Detect}
-                    fullWidth
+            {/* DetectMode が None のときは xs=9 を割り当て、そうでなければ xs=3 */}
+            {detectMode === "None" ? (
+              <Grid item xs={9}>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
+                  <Select
+                    labelId="detect-mode-select-label"
+                    label="Detect Mode"
+                    value={detectMode}
+                    onChange={handleDetectModeChange}
                   >
-                    Detect
-                  </Button>
-                )}
+                    <MenuItem value="None">None</MenuItem>
+                    <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
+                    <MenuItem value="Canny">Canny</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            ) : (
+              <>
+                {/* DetectMode が None 以外の場合は xs=3 */}
+                <Grid item xs={3}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
+                    <Select
+                      labelId="detect-mode-select-label"
+                      label="Detect Mode"
+                      value={detectMode}
+                      onChange={handleDetectModeChange}
+                    >
+                      <MenuItem value="None">None</MenuItem>
+                      <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
+                      <MenuItem value="Canny">Canny</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                {/* detectMode が "Canny" の場合だけ CannyThresh2 を表示 */}
                 {detectMode === "Canny" && (
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    onClick={handleCannyDetect}
-                    fullWidth
-                  >
-                    Detect
-                  </Button>
+                  <Grid item xs={3}>
+                    <TextField
+                      label="Canny Th2"
+                      variant="outlined"
+                      type="number"
+                      size="small"
+                      value={cannyThresh2}
+                      onChange={(e) => setCannyThresh2(parseInt(e.target.value, 10))}
+                      InputProps={{
+                        onWheel: handleWheel,
+                      }}
+                      fullWidth
+                    />
+                  </Grid>
                 )}
-              </Grid>
+
+                {/* Detect ボタン:
+                    detectMode が "T1(U-net)" のとき → T1Detect,
+                    detectMode が "Canny" のとき → CannyDetect
+                */}
+                <Grid
+                  item
+                  xs={detectMode === "Canny" ? 3 : 6}
+                >
+                  {detectMode === "T1(U-net)" && (
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={handleT1Detect}
+                      fullWidth
+                    >
+                      Detect
+                    </Button>
+                  )}
+                  {detectMode === "Canny" && (
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={handleCannyDetect}
+                      fullWidth
+                    >
+                      Detect
+                    </Button>
+                  )}
+                </Grid>
+              </>
             )}
           </Grid>
 
