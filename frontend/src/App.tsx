@@ -1,35 +1,49 @@
-import './App.css';
-import Nav from './components/Nav';
-import { Box } from '@mui/system';
-import Grid from '@mui/material/Unstable_Grid2';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import CellImageGrid from './components/CellOverview';
-import Databases from './components/Databases';
-import TopPage from './components/TopPage';
-import Nd2Files from './components/Nd2files';
-import CellExtraction from './components/CellExtraction';
-import GraphEngine from './components/GraphEngine';
-import TimelapseNd2List from './components/TimelapseNd2List';
-import TimelapseParser from './components/TimelapseParser';
-import ResultsConsole from './components/ResultsConsole';
-import React, { useState } from 'react';
+import "./App.css";
+import React, { useState } from "react";
+import { Box } from "@mui/system";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Nav from "./components/Nav";
 
-const PasswordProtect: React.FC<{ setIsAuthenticated: (isAuthenticated: boolean) => void }> = ({ setIsAuthenticated }) => {
-  const [password, setPassword] = useState('');
+import CellImageGrid from "./components/CellOverview";
+import Databases from "./components/Databases";
+import TopPage from "./components/TopPage";
+import Nd2Files from "./components/Nd2files";
+import CellExtraction from "./components/CellExtraction";
+import GraphEngine from "./components/GraphEngine";
+import TimelapseNd2List from "./components/TimelapseNd2List";
+import TimelapseParser from "./components/TimelapseParser";
+import ResultsConsole from "./components/ResultsConsole";
+// ↑ 必要なコンポーネントをインポート
 
-  const correctPassword = 'llama2';
+/* --------------------------------
+ *  PasswordProtect component
+ * --------------------------------*/
+const PasswordProtect: React.FC<{
+  setIsAuthenticated: (isAuthenticated: boolean) => void;
+}> = ({ setIsAuthenticated }) => {
+  const [password, setPassword] = useState("");
+
+  const correctPassword = "llama2";
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === correctPassword) {
       setIsAuthenticated(true);
     } else {
-      alert('Invalid password');
+      alert("Invalid password");
     }
   };
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
       <form onSubmit={handlePasswordSubmit}>
         <h2>Protected</h2>
         <input
@@ -37,99 +51,108 @@ const PasswordProtect: React.FC<{ setIsAuthenticated: (isAuthenticated: boolean)
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="enter password"
-          style={{ padding: '8px', margin: '8px', borderRadius: '4px' }}
+          style={{ padding: "8px", margin: "8px", borderRadius: "4px" }}
         />
-        <button type="submit" style={{ padding: '8px 16px' }}>authorize</button>
+        <button type="submit" style={{ padding: "8px 16px" }}>
+          authorize
+        </button>
       </form>
     </Box>
   );
 };
 
+/* --------------------------------
+ *  App component
+ * --------------------------------*/
 function App() {
+  // パスワード認証の管理
   const [isAuthenticated, setIsAuthenticated] = useState(
-    !(window.location.hostname === '10.32.17.73' && window.location.port === '3000')
+    !(window.location.hostname === "10.32.17.73" && window.location.port === "3000")
   );
 
   return (
-    <Box sx={{ bgcolor: "000", color: 'black', minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: "#fff", color: "black", minHeight: "100vh" }}>
       {isAuthenticated ? (
         <Router>
+          {/* ルーティングの外側に Nav を配置し、常時表示しておく */}
+          <Nav title="PhenoPixel5.0" />
           <Routes>
-            <Route path="/" element={
-              <>
-                <Nav title={`PhenoPixel5.0`} />
-                <Grid container spacing={4} margin={5} mt={-20}>
+            <Route
+              path="/"
+              element={
+                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
                   <TopPage />
-                </Grid>
-              </>
-            } />
-            <Route path="/dbconsole" element={
-              <>
-                <Nav title='PhenoPixel5.0' />
-                <Grid container spacing={4} margin={5} mt={-4}>
+                </Box>
+              }
+            />
+            <Route
+              path="/dbconsole"
+              element={
+                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
                   <Databases />
-                </Grid>
-              </>
-            } />
-            <Route path="/databases" element={
-              <>
-                <Nav title='PhenoPixel5.0' />
-                <Grid container spacing={1} margin={3} mt={-4}>
+                </Box>
+              }
+            />
+            <Route
+              path="/databases"
+              element={
+                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
                   <CellImageGrid />
-                </Grid>
-              </>
-            } />
-            <Route path="/nd2files" element={
-              <>
-                <Nav title='PhenoPixel5.0' />
-                <Grid container spacing={1} margin={3} mt={-4}>
+                </Box>
+              }
+            />
+            <Route
+              path="/nd2files"
+              element={
+                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
                   <Nd2Files />
-                </Grid>
-              </>
-            } />
-            <Route path="/cellextraction" element={
-              <>
-                <Nav title='PhenoPixel5.0' />
-                <Grid container spacing={1} margin={3} mt={-4}>
+                </Box>
+              }
+            />
+            <Route
+              path="/cellextraction"
+              element={
+                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
                   <CellExtraction />
-                </Grid>
-              </>
-            } />
-            <Route path="/graphengine" element={
-              <>
-                <Nav title='PhenoPixel5.0' />
-                <Grid container spacing={1} margin={3} mt={-4}>
+                </Box>
+              }
+            />
+            <Route
+              path="/graphengine"
+              element={
+                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
                   <GraphEngine />
-                </Grid>
-              </>
-            } />
-            <Route path="/tl-engine" element={
-              <>
-                <Nav title='PhenoPixel5.0' />
-                <Grid container spacing={1} margin={3} mt={-4}>
+                </Box>
+              }
+            />
+            <Route
+              path="/tl-engine"
+              element={
+                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
                   <TimelapseNd2List />
-                </Grid>
-              </>
-            } />
-            <Route path="/tlparser" element={
-              <>
-                <Nav title='PhenoPixel5.0' />
-                <Grid container spacing={1} margin={3} mt={-4}>
+                </Box>
+              }
+            />
+            <Route
+              path="/tlparser"
+              element={
+                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
                   <TimelapseParser />
-                </Grid>
-              </>
-            } />
-            <Route path="/results" element={
-              <>
-                <Nav title='PhenoPixel5.0' />
-                <Grid container spacing={1} margin={3} mt={-4}>
+                </Box>
+              }
+            />
+            <Route
+              path="/results"
+              element={
+                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
                   <ResultsConsole />
-                </Grid>
-              </>
-            } />
+                </Box>
+              }
+            />
           </Routes>
         </Router>
       ) : (
+        // パスワード保護
         <PasswordProtect setIsAuthenticated={setIsAuthenticated} />
       )}
     </Box>
