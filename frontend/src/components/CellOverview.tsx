@@ -473,18 +473,19 @@ const CellImageGrid: React.FC = () => {
     const cellId = cellIds[currentIndex];
 
     try {
-      // 新APIをコール
+      // PATCHリクエスト送信
       const patchUrl = `${url_prefix}/cells/redetect_contour_t1/${db_name}/${cellId}`;
       console.log("Calling patch:", patchUrl);
       await axios.patch(patchUrl);
 
-      // 成功したら輪郭を再取得
+      // 成功したら輪郭・画像を再取得
       await fetchContour(cellId);
       await fetchContourT1(cellId);
-      alert("T1 Detect 成功。輪郭を更新しました。");
+      await fetchStandardImages(cellId);  // ← PH / Fluo の再取得
     } catch (err) {
       console.error("Error calling T1 detect:", err);
-      alert("T1 Detectに失敗しました。コンソールを確認してください。");
+      // 必要ならエラー時のみ alert を出す
+      // alert("T1 Detectに失敗しました。コンソールを確認してください。");
     }
   };
 
@@ -496,17 +497,18 @@ const CellImageGrid: React.FC = () => {
     const cellId = cellIds[currentIndex];
 
     try {
-      // redetect_contour_canny エンドポイントをコール（クエリに canny_thresh2 を付与）
+      // PATCHリクエスト送信（クエリに canny_thresh2 を付与）
       const patchUrl = `${url_prefix}/cells/redetect_contour_canny/${db_name}/${cellId}?canny_thresh2=${cannyThresh2}`;
       console.log("Calling patch:", patchUrl);
       await axios.patch(patchUrl);
 
-      // 成功したら輪郭を再取得
+      // 成功したら輪郭・画像を再取得
       await fetchContour(cellId);
-      alert("Canny Detect 成功。輪郭を更新しました。");
+      await fetchStandardImages(cellId);  // ← PH / Fluo の再取得
     } catch (err) {
       console.error("Error calling Canny detect:", err);
-      alert("Canny Detectに失敗しました。コンソールを確認してください。");
+      // 必要ならエラー時のみ alert を出す
+      // alert("Canny Detectに失敗しました。コンソールを確認してください。");
     }
   };
 
