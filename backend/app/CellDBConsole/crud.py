@@ -1783,7 +1783,7 @@ class CellCrudBase:
         return buf
 
     async def get_contour_canny_draw(
-        self, cell_id: str, canny_thresh1: int = 0, canny_thresh2: int = 100
+        self, cell_id: str, canny_thresh2: int = 100
     ) -> list[list[float]]:
         """
         Read an image from the database by cell_id, apply Canny edge detection using the given
@@ -1814,10 +1814,12 @@ class CellCrudBase:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # Cannyエッジ検出
-        edges = cv2.Canny(gray, canny_thresh1, canny_thresh2)
-
-        # 輪郭抽出
-        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        # ２値化を行う
+        ret, thresh = cv2.threshold(gray, canny_thresh2, 255, cv2.THRESH_BINARY)
+        img_canny = cv2.Canny(thresh, 0, 130)
+        contours, hierarchy = cv2.findContours(
+            img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+        )
         if not contours:
             raise ValueError("No contours found")
 
