@@ -141,8 +141,10 @@ const CellImageGrid: React.FC = () => {
   const [fitDegree, setFitDegree] = useState<number>(4);
   const [engineMode, setEngineMode] = useState<EngineName>("None");
 
-  // DetectMode用の state
+  // DetectMode 用の state
   const [detectMode, setDetectMode] = useState<DetectModeType>("None");
+  // 追加: Canny の閾値を入力するための state（例: Threshold2）
+  const [cannyThresh2, setCannyThresh2] = useState<number>(100);
 
   // 読み込み状態や輪郭データなど
   const [isLoading, setIsLoading] = useState(false);
@@ -464,7 +466,7 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
-  // Detectボタン押下時のハンドラ
+  // T1(U-net) Detectボタン押下時のハンドラ
   //------------------------------------
   const handleT1Detect = async () => {
     if (cellIds.length === 0) return;
@@ -483,6 +485,28 @@ const CellImageGrid: React.FC = () => {
     } catch (err) {
       console.error("Error calling T1 detect:", err);
       alert("T1 Detectに失敗しました。コンソールを確認してください。");
+    }
+  };
+
+  //------------------------------------
+  // Canny Detectボタン押下時のハンドラ
+  //------------------------------------
+  const handleCannyDetect = async () => {
+    if (cellIds.length === 0) return;
+    const cellId = cellIds[currentIndex];
+
+    try {
+      // redetect_contour_canny エンドポイントをコール（クエリに canny_thresh2 を付与）
+      const patchUrl = `${url_prefix}/cells/redetect_contour_canny/${db_name}/${cellId}?canny_thresh2=${cannyThresh2}`;
+      console.log("Calling patch:", patchUrl);
+      await axios.patch(patchUrl);
+
+      // 成功したら輪郭を再取得
+      await fetchContour(cellId);
+      alert("Canny Detect 成功。輪郭を更新しました。");
+    } catch (err) {
+      console.error("Error calling Canny detect:", err);
+      alert("Canny Detectに失敗しました。コンソールを確認してください。");
     }
   };
 
@@ -625,9 +649,13 @@ const CellImageGrid: React.FC = () => {
       <Grid container spacing={3} marginTop={2}>
         {/* ----- 左カラム: PH/Fluoや、Prev/Nextなど ----- */}
         <Grid item xs={12} lg={5}>
-          {/* Label選択 & Detect Mode選択 + Detectボタン */}
+          {/* 
+            Label / DetectMode / (CannyThresh2) / Detect ボタン
+            を同じ行に表示しつつ、DetectModeが None のときは余白を埋める 
+          */}
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={6}>
+            {/* Label選択 */}
+            <Grid item xs={3}>
               <FormControl fullWidth variant="outlined">
                 <InputLabel id="label-select-label">Label</InputLabel>
                 <Select
@@ -645,8 +673,9 @@ const CellImageGrid: React.FC = () => {
               </FormControl>
             </Grid>
 
-            <Grid item container xs={6} spacing={2} alignItems="center">
-              <Grid item xs>
+            {/* DetectMode が None のときは xs=9 を割り当て、そうでなければ xs=3 */}
+            {detectMode === "None" ? (
+              <Grid item xs={9}>
                 <FormControl fullWidth variant="outlined">
                   <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
                   <Select
@@ -661,14 +690,74 @@ const CellImageGrid: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              {detectMode === "T1(U-net)" && (
-                <Grid item>
-                  <Button variant="contained" color="secondary" onClick={handleT1Detect}>
-                    Detect
-                  </Button>
+            ) : (
+              <>
+                {/* DetectMode が None 以外の場合は xs=3 */}
+                <Grid item xs={3}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
+                    <Select
+                      labelId="detect-mode-select-label"
+                      label="Detect Mode"
+                      value={detectMode}
+                      onChange={handleDetectModeChange}
+                    >
+                      <MenuItem value="None">None</MenuItem>
+                      <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
+                      <MenuItem value="Canny">Canny</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Grid>
-              )}
-            </Grid>
+
+                {/* detectMode が "Canny" の場合だけ CannyThresh2 を表示 */}
+                {detectMode === "Canny" && (
+                  <Grid item xs={3}>
+                    <TextField
+                      label="Canny Th2"
+                      variant="outlined"
+                      type="number"
+                      size="small"
+                      value={cannyThresh2}
+                      onChange={(e) => setCannyThresh2(parseInt(e.target.value, 10))}
+                      InputProps={{
+                        onWheel: handleWheel,
+                      }}
+                      fullWidth
+                    />
+                  </Grid>
+                )}
+
+                {/* Detect ボタン:
+                    detectMode が "T1(U-net)" のとき → T1Detect,
+                    detectMode が "Canny" のとき → CannyDetect
+                */}
+                <Grid
+                  item
+                  xs={detectMode === "Canny" ? 3 : 6}
+                >
+                  {detectMode === "T1(U-net)" && (
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={handleT1Detect}
+                      fullWidth
+                    >
+                      Detect
+                    </Button>
+                  )}
+                  {detectMode === "Canny" && (
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={handleCannyDetect}
+                      fullWidth
+                    >
+                      Detect
+                    </Button>
+                  )}
+                </Grid>
+              </>
+            )}
           </Grid>
 
           {/* チェックボックス類 */}
@@ -715,7 +804,7 @@ const CellImageGrid: React.FC = () => {
               </Grid>
               <Grid item xs={3}>
                 <TextField
-                  label="Brightness Factor"
+                  label="Brightness"
                   variant="outlined"
                   type="number"
                   value={brightnessFactor}

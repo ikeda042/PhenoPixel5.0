@@ -13,7 +13,12 @@ import {
   Backdrop,
   CircularProgress,
   Breadcrumbs,
-  Link
+  Link,
+  Paper,
+  Card,
+  CardContent,
+  CardActions,
+  Divider
 } from "@mui/material";
 import { styled } from "@mui/system";
 import axios from "axios";
@@ -85,7 +90,6 @@ const Extraction: React.FC = () => {
 
   /**
    * param1, imageSize の入力中の先頭0を除去するためのハンドラ
-   * - React.FocusEvent<HTMLInputElement | HTMLTextAreaElement> に変更
    */
   const handleBlurNumericInput = (
     e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -122,7 +126,9 @@ const Extraction: React.FC = () => {
       const ulid = extractRes.data.ulid;
       setSessionUlid(ulid);
 
-      const countRes = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${ulid}/count`);
+      const countRes = await axios.get(
+        `${url_prefix}/cell_extraction/ph_contours/${ulid}/count`
+      );
       const totalImages = countRes.data.count;
       setNumImages(totalImages);
 
@@ -137,9 +143,12 @@ const Extraction: React.FC = () => {
 
   const fetchImage = async (frameNum: number, ulid: string) => {
     try {
-      const res = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${ulid}/${frameNum}`, {
-        responseType: "blob",
-      });
+      const res = await axios.get(
+        `${url_prefix}/cell_extraction/ph_contours/${ulid}/${frameNum}`,
+        {
+          responseType: "blob",
+        }
+      );
       const imageUrl = URL.createObjectURL(res.data);
       setCurrentImageUrl(imageUrl);
     } catch (error) {
@@ -166,7 +175,9 @@ const Extraction: React.FC = () => {
   const handleGoToDatabases = async () => {
     if (sessionUlid) {
       try {
-        await axios.delete(`${url_prefix}/cell_extraction/ph_contours_delete/${sessionUlid}`);
+        await axios.delete(
+          `${url_prefix}/cell_extraction/ph_contours_delete/${sessionUlid}`
+        );
         console.log("Files deleted successfully");
       } catch (error) {
         console.error("Failed to delete files", error);
@@ -199,20 +210,45 @@ const Extraction: React.FC = () => {
           <Typography color="text.primary">Cell extraction</Typography>
         </Breadcrumbs>
       </Box>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={4} style={{ display: "flex", justifyContent: "center" }}>
-          <Box width="100%">
-            <Typography variant="body1">nd2 filename : {fileName}</Typography>
+
+      {/* タイトルセクション */}
+      <Box mb={3}>
+        <Typography variant="h4" fontWeight="bold">
+          Cell Extraction
+        </Typography>
+        <Typography variant="body2" color="text.secondary" mt={1}>
+          Extract cells from ND2 files and preview the results.
+        </Typography>
+      </Box>
+
+      <Grid container spacing={3}>
+        {/* 左カラム: フォーム部分 */}
+        <Grid item xs={12} md={4}>
+          <Paper elevation={3} sx={{ p: 2 }}>
+            <Typography variant="h6" fontWeight="bold" mb={2}>
+              Extraction Settings
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Typography variant="body1" mb={1}>
+              ND2 filename: {fileName}
+            </Typography>
             <FormControl fullWidth margin="normal">
               <InputLabel>Mode</InputLabel>
-              <Select value={mode} onChange={(e) => setMode(e.target.value)}>
+              <Select
+                value={mode}
+                onChange={(e) => setMode(e.target.value)}
+                label="Mode"
+              >
                 <MenuItem value="single_layer">Single Layer</MenuItem>
                 <MenuItem value="dual_layer">Dual Layer</MenuItem>
-                <MenuItem value="dual_layer_reversed">Dual Layer (Reversed)</MenuItem>
+                <MenuItem value="dual_layer_reversed">
+                  Dual Layer (Reversed)
+                </MenuItem>
                 <MenuItem value="triple_layer">Triple Layer</MenuItem>
               </Select>
             </FormControl>
-            <TextField
+
+            <CustomTextField
               label="Param1"
               type="number"
               placeholder="1-255"
@@ -237,56 +273,72 @@ const Extraction: React.FC = () => {
               fullWidth
               margin="normal"
             />
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              onClick={handleExtractCells}
-              disabled={isLoading}
-              sx={{
-                backgroundColor: "black",
-                color: "white",
-                height: "56px",
-                textTransform: "none",
-                "&:hover": {
-                  backgroundColor: "grey",
-                },
-              }}
-            >
-              {numImages > 0 ? "Re-extract Cells" : "Extract Cells"}
-            </Button>
-            {numImages > 0 && (
+
+            <Box mt={3}>
               <Button
                 variant="contained"
-                color="secondary"
                 fullWidth
-                onClick={handleGoToDatabases}
+                onClick={handleExtractCells}
+                disabled={isLoading}
                 sx={{
-                  marginTop: 2,
                   backgroundColor: "black",
-                  textTransform: "none",
                   color: "white",
                   height: "56px",
+                  textTransform: "none",
                   "&:hover": {
                     backgroundColor: "grey",
                   },
                 }}
               >
-                Go to Databases
+                {numImages > 0 ? "Re-extract Cells" : "Extract Cells"}
               </Button>
+            </Box>
+            {numImages > 0 && (
+              <Box mt={2}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={handleGoToDatabases}
+                  sx={{
+                    backgroundColor: "black",
+                    color: "white",
+                    height: "56px",
+                    textTransform: "none",
+                    "&:hover": {
+                      backgroundColor: "grey",
+                    },
+                  }}
+                >
+                  Go to Databases
+                </Button>
+              </Box>
             )}
-          </Box>
+          </Paper>
         </Grid>
+
+        {/* 右カラム: 画像部分 */}
         {currentImageUrl && (
           <Grid item xs={12} md={8}>
-            <Box display="flex" flexDirection="column" alignItems="center" mt={5}>
-              <Box
-                component="img"
-                src={currentImageUrl}
-                alt={`Extracted cell ${currentImage}`}
-                sx={{ width: "400px", height: "400px", objectFit: "contain" }}
-              />
-              <Box display="flex" justifyContent="space-between" width="400px" mt={2}>
+            <Card sx={{ display: "flex", flexDirection: "column" }}>
+              <CardContent
+                sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+              >
+                <Box
+                  component="img"
+                  src={currentImageUrl}
+                  alt={`Extracted cell ${currentImage}`}
+                  sx={{ width: "100%", maxWidth: 400, height: 400, objectFit: "contain" }}
+                />
+              </CardContent>
+              <CardActions
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  px: 2,
+                  pb: 2
+                }}
+              >
                 <Button
                   variant="contained"
                   onClick={handlePreviousImage}
@@ -322,8 +374,8 @@ const Extraction: React.FC = () => {
                 >
                   Next
                 </Button>
-              </Box>
-            </Box>
+              </CardActions>
+            </Card>
           </Grid>
         )}
       </Grid>

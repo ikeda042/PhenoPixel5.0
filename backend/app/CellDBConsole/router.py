@@ -34,6 +34,27 @@ async def patch_cell_contour_t1(
     }
 
 
+@router_cell.patch("/redetect_contour_canny/{db_name}/{cell_id}")
+async def patch_cell_contour_canny(
+    db_name: str,
+    cell_id: str,
+    canny_thresh2: int = 100,
+):
+    """
+    PATCH: あるDBのあるcell_idの輪郭データを、predict_contour_canny() で算出したものに置き換える
+    """
+    canny_contour = await CellCrudBase(db_name).get_contour_canny_draw(
+        cell_id, canny_thresh2
+    )
+    await CellCrudBase(db_name).update_contour(cell_id, canny_contour)
+
+    return {
+        "status": "success",
+        "updated_cell_id": cell_id,
+        "predicted_contour": canny_contour,
+    }
+
+
 @router_cell.get("/database/healthcheck")
 async def db_healthcheck():
     return await CellCrudBase(db_name="test_database.db").get_cell_ph(

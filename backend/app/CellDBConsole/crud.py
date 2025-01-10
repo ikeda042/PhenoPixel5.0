@@ -1782,6 +1782,71 @@ class CellCrudBase:
         plt.close(fig)
         return buf
 
+    async def get_contour_canny_draw(
+        self, cell_id: str, canny_thresh2: int = 100
+    ) -> list[list[float]]:
+        """
+        Read an image from the database by cell_id, apply Canny edge detection using the given
+        thresholds, and return a single contour (as a list of [x, y] coordinates).
+        The chosen contour is the one whose centroid is closest to the image center.
+
+        Parameters:
+        - cell_id: str
+            ID of the cell to retrieve from the database.
+        - canny_thresh1: int
+            First threshold for the hysteresis procedure in the Canny edge detector.
+        - canny_thresh2: int
+            Second threshold for the hysteresis procedure in the Canny edge detector.
+
+        Returns:
+        - best_contour: list[list[float]]
+            The coordinates of the contour with the centroid closest to the image center,
+            formatted as [[x0, y0], [x1, y1], ...].
+        """
+
+        # セル情報（画像バイナリなど）を取得
+        cell = await CellCrudBase(self.db_name).read_cell(cell_id)
+
+        # 画像バイナリから OpenCV 画像オブジェクトを作成
+        img = await AsyncChores.async_imdecode(cell.img_ph)
+
+        # グレースケール変換
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Cannyエッジ検出
+        # ２値化を行う
+        ret, thresh = cv2.threshold(gray, canny_thresh2, 255, cv2.THRESH_BINARY)
+        img_canny = cv2.Canny(thresh, 0, 130)
+        contours, hierarchy = cv2.findContours(
+            img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+        )
+        if not contours:
+            raise ValueError("No contours found")
+
+        # 画像の中心座標
+        image_center = (img.shape[1] // 2, img.shape[0] // 2)
+
+        min_distance = float("inf")
+        best_contour = None
+
+        # すべての輪郭について重心を求め、画像の中心に最も近いものを選ぶ
+        for contour in contours:
+            M = cv2.moments(contour)
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                distance = np.sqrt(
+                    (cx - image_center[0]) ** 2 + (cy - image_center[1]) ** 2
+                )
+                if distance < min_distance:
+                    min_distance = distance
+                    best_contour = contour
+
+        if best_contour is None:
+            raise ValueError("No valid contours found")
+
+        return best_contour.squeeze().tolist()
+
     async def update_contour(
         self, cell_id: str, new_contour: list[list[float]]
     ) -> None:
