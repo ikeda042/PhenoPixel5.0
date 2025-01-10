@@ -44,7 +44,7 @@ async def patch_cell_contour_canny(
     PATCH: あるDBのあるcell_idの輪郭データを、predict_contour_canny() で算出したものに置き換える
     """
     canny_contour = await CellCrudBase(db_name).get_contour_canny_draw(
-        cell_id, canny_thresh2
+        cell_id, 0, canny_thresh2
     )
     await CellCrudBase(db_name).update_contour(cell_id, canny_contour)
 
