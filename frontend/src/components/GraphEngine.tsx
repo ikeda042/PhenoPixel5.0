@@ -79,9 +79,10 @@ const GraphEngine: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      {/* パンくずリスト */}
-      <Box mb={3}>
+    // Containerの上下パディングを少なめに設定
+    <Container maxWidth="md" sx={{ py: 2 }}>
+      {/* パンくずリストをNavBarのすぐ下に表示する */}
+      <Box mb={2}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link underline="hover" color="inherit" href="/">
             Top

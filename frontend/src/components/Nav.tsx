@@ -124,7 +124,9 @@ export default function Nav(props: Props) {
             >
                 {drawer}
             </Drawer>
-            <Box component="main" sx={{ p: 3 }}>
+
+            {/* NavBarの下にコンテンツを表示するために Toolbar() を配置 */}
+            <Box component="main" sx={{ p: 1 }}>
                 <Toolbar />
             </Box>
         </Box>

@@ -76,11 +76,13 @@ function App() {
         <Router>
           {/* ルーティングの外側に Nav を配置し、常時表示しておく */}
           <Nav title="PhenoPixel5.0" />
+
+          {/* ここからルーティング */}
           <Routes>
             <Route
               path="/"
               element={
-                <Box component="main" sx={{ p: 1 }}> 
+                <Box component="main" sx={{ p: 1 }}>
                   <TopPage />
                 </Box>
               }
@@ -88,7 +90,7 @@ function App() {
             <Route
               path="/dbconsole"
               element={
-                <Box component="main" sx={{ p: 1 }}> 
+                <Box component="main" sx={{ p: 1 }}>
                   <Databases />
                 </Box>
               }
@@ -96,7 +98,7 @@ function App() {
             <Route
               path="/databases"
               element={
-                <Box component="main" sx={{ p: 1 }}> 
+                <Box component="main" sx={{ p: 1 }}>
                   <CellImageGrid />
                 </Box>
               }
@@ -104,7 +106,7 @@ function App() {
             <Route
               path="/nd2files"
               element={
-                <Box component="main" sx={{ p: 1 }}> 
+                <Box component="main" sx={{ p: 1 }}>
                   <Nd2Files />
                 </Box>
               }
@@ -112,7 +114,7 @@ function App() {
             <Route
               path="/cellextraction"
               element={
-                <Box component="main" sx={{ p: 1 }}> 
+                <Box component="main" sx={{ p: 1 }}>
                   <CellExtraction />
                 </Box>
               }
@@ -120,7 +122,8 @@ function App() {
             <Route
               path="/graphengine"
               element={
-                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
+                // Navが確保した余白をさらに詰めるなら p:1 など少なめに設定
+                <Box component="main" sx={{ p: 1 }}>
                   <GraphEngine />
                 </Box>
               }
@@ -128,7 +131,7 @@ function App() {
             <Route
               path="/tl-engine"
               element={
-                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
+                <Box component="main" sx={{ p: 1 }}>
                   <TimelapseNd2List />
                 </Box>
               }
@@ -136,7 +139,7 @@ function App() {
             <Route
               path="/tlparser"
               element={
-                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
+                <Box component="main" sx={{ p: 1 }}>
                   <TimelapseParser />
                 </Box>
               }
@@ -144,7 +147,7 @@ function App() {
             <Route
               path="/results"
               element={
-                <Box component="main" sx={{ p: { xs: 2, md: 4 } }}>
+                <Box component="main" sx={{ p: 1 }}>
                   <ResultsConsole />
                 </Box>
               }
