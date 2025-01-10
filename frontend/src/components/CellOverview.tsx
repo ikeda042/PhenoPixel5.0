@@ -141,8 +141,10 @@ const CellImageGrid: React.FC = () => {
   const [fitDegree, setFitDegree] = useState<number>(4);
   const [engineMode, setEngineMode] = useState<EngineName>("None");
 
-  // DetectMode用の state
+  // DetectMode 用の state
   const [detectMode, setDetectMode] = useState<DetectModeType>("None");
+  // 追加: Canny の閾値を入力するための state（例: Threshold2）
+  const [cannyThresh2, setCannyThresh2] = useState<number>(100);
 
   // 読み込み状態や輪郭データなど
   const [isLoading, setIsLoading] = useState(false);
@@ -464,7 +466,7 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
-  // Detectボタン押下時のハンドラ
+  // T1(U-net) Detectボタン押下時のハンドラ
   //------------------------------------
   const handleT1Detect = async () => {
     if (cellIds.length === 0) return;
@@ -483,6 +485,28 @@ const CellImageGrid: React.FC = () => {
     } catch (err) {
       console.error("Error calling T1 detect:", err);
       alert("T1 Detectに失敗しました。コンソールを確認してください。");
+    }
+  };
+
+  //------------------------------------
+  // Canny Detectボタン押下時のハンドラ
+  //------------------------------------
+  const handleCannyDetect = async () => {
+    if (cellIds.length === 0) return;
+    const cellId = cellIds[currentIndex];
+
+    try {
+      // redetect_contour_canny エンドポイントをコール（クエリに canny_thresh2 を付与）
+      const patchUrl = `${url_prefix}/cells/redetect_contour_canny/${db_name}/${cellId}?canny_thresh2=${cannyThresh2}`;
+      console.log("Calling patch:", patchUrl);
+      await axios.patch(patchUrl);
+
+      // 成功したら輪郭を再取得
+      await fetchContour(cellId);
+      alert("Canny Detect 成功。輪郭を更新しました。");
+    } catch (err) {
+      console.error("Error calling Canny detect:", err);
+      alert("Canny Detectに失敗しました。コンソールを確認してください。");
     }
   };
 
@@ -661,11 +685,35 @@ const CellImageGrid: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
+
+              {/* Detectボタンや設定を表示 */}
               {detectMode === "T1(U-net)" && (
                 <Grid item>
                   <Button variant="contained" color="secondary" onClick={handleT1Detect}>
                     Detect
                   </Button>
+                </Grid>
+              )}
+
+              {detectMode === "Canny" && (
+                <Grid item>
+                  {/* Canny用の閾値入力欄とDetectボタン */}
+                  <Box display="flex" flexDirection="column" gap={1}>
+                    <TextField
+                      label="Canny Thresh2"
+                      variant="outlined"
+                      type="number"
+                      size="small"
+                      value={cannyThresh2}
+                      onChange={(e) => setCannyThresh2(parseInt(e.target.value, 10))}
+                      InputProps={{
+                        onWheel: handleWheel,
+                      }}
+                    />
+                    <Button variant="contained" color="secondary" onClick={handleCannyDetect}>
+                      Detect
+                    </Button>
+                  </Box>
                 </Grid>
               )}
             </Grid>
