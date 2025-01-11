@@ -5,46 +5,81 @@ import nd2reader
 from PIL import Image
 import cv2
 import numpy as np
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from fastapi.responses import JSONResponse
 
 
 class SyncChores:
-    # ---- 高速化策：ORB と BFMatcher をクラスレベルで生成して使い回す ----
-    orb = cv2.ORB_create()
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    # ---- 高速化策 1: ORB と BFMatcher のインスタンス使い回し + パラメータ最適化 ----
+    # nfeatures を減らし、計算量を抑える
+    orb = cv2.ORB_create(nfeatures=500)
+    # FLANNベースのバイナリ特徴量用IndexParams
+    # BFMatcherから FLANNベースに変更する例 (必要がなければBFMatcherのままでもOK)
+    index_params = dict(
+        algorithm=6, table_number=6, key_size=12, multi_probe_level=1  # FLANN_INDEX_LSH
+    )
+    search_params = dict(checks=50)
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
 
     @classmethod
-    def correct_drift(cls, reference_image, target_image):
-        kp1, des1 = cls.orb.detectAndCompute(reference_image, None)
-        kp2, des2 = cls.orb.detectAndCompute(target_image, None)
+    def correct_drift(cls, reference_image, target_image, scale=0.5):
+        """
+        画像を scale 倍にリサイズしてからORB特徴抽出 & マッチングし、
+        求めたアフィン変換をオリジナルサイズに適用する。
+        """
+        # まずはリサイズ（整数にしないとcv2.resizeでエラーになることがあるので注意）
+        new_h = int(reference_image.shape[0] * scale)
+        new_w = int(reference_image.shape[1] * scale)
+        if new_h < 2 or new_w < 2:
+            # あまりに小さくなるなら、補正を諦めてそのまま返す
+            return target_image
+
+        ref_small = cv2.resize(
+            reference_image, (new_w, new_h), interpolation=cv2.INTER_AREA
+        )
+        tgt_small = cv2.resize(
+            target_image, (new_w, new_h), interpolation=cv2.INTER_AREA
+        )
+
+        kp1, des1 = cls.orb.detectAndCompute(ref_small, None)
+        kp2, des2 = cls.orb.detectAndCompute(tgt_small, None)
 
         if des1 is None or des2 is None:
             print("Descriptor is None, skipping drift correction.")
             return target_image
 
-        matches = cls.bf.match(des1, des2)
+        # ---- 高速化策2: FLANNベースに変更 (BFMatcherのままでもOK) ----
+        # matches = cls.bf.match(des1, des2)
+        matches = cls.flann.match(des1, des2)
+
         if len(matches) < 10:  # マッチングが少なすぎる場合、補正を行わない
             print("Insufficient matches, skipping drift correction.")
             return target_image
 
-        # 特徴点の座標を取得し、x軸とy軸を反転
+        # 特徴点の座標を取得
         src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
-        height = reference_image.shape[0]
-        width = reference_image.shape[1]
-        src_pts[:, :, 0] = width - src_pts[:, :, 0]  # x座標を反転
-        src_pts[:, :, 1] = height - src_pts[:, :, 1]  # y座標を反転
-        dst_pts[:, :, 0] = width - dst_pts[:, :, 0]  # x座標を反転
-        dst_pts[:, :, 1] = height - dst_pts[:, :, 1]  # y座標を反転
 
+        # RANSACで部分アフィン行列を推定
         matrix, mask = cv2.estimateAffinePartial2D(
             src_pts, dst_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0
         )
         if matrix is not None:
+            # 求めた変換行列をオリジナルサイズに合わせる
+            # 例: 平行移動成分に scale の逆数をかける
+            #     拡大縮小のスケールも戻す（warpAffineに与えるときはフルサイズにするため）
+            scale_matrix = np.array(
+                [[1 / scale, 0, 0], [0, 1 / scale, 0]], dtype=np.float32
+            )
+            # 2x3のアフィン行列同士の乗算
+            full_matrix = scale_matrix @ np.vstack([matrix, [0, 0, 1]])
+
+            # オリジナルサイズで変換
             aligned_image = cv2.warpAffine(
-                target_image, matrix, (target_image.shape[1], target_image.shape[0])
+                target_image,
+                full_matrix[:2, :],
+                (target_image.shape[1], target_image.shape[0]),
             )
             return aligned_image
         else:
@@ -70,6 +105,7 @@ class SyncChores:
     def extract_timelapse_nd2(cls, file_name: str):
         """
         タイムラプスnd2ファイルをフレームごとにTIFF形式で保存する。(チャンネル0がFluo画像、チャンネル1がPH画像)
+        高速化策 3: ThreadPoolExecutorを使った並列処理(読み込み＆ドリフト補正など)の例。
         """
         base_output_dir = "uploaded_files/"
         os.makedirs("TimelapseParserTemp", exist_ok=True)
@@ -79,9 +115,7 @@ class SyncChores:
             print(f"Available axes: {images.axes}")
             print(f"Sizes: {images.sizes}")
 
-            # 必要であれば設定する（ただし iter_axes は変更しない方がわかりやすいことが多い）
             images.bundle_axes = "cyx" if "c" in images.axes else "yx"
-            # images.iter_axes = "v"  # ← 外しておく
 
             num_fields = images.sizes.get("v", 1)
             num_channels = images.sizes.get("c", 1)
@@ -100,62 +134,108 @@ class SyncChores:
                 reference_image_ph = None
                 reference_image_fluo = None
 
-                for channel_idx in range(num_channels):
-                    for time_idx in range(num_timepoints):
-                        # ここを get_frame_2D(...) で直接指定する
-                        image_data = images.get_frame_2D(
-                            v=field_idx, c=channel_idx, t=time_idx
-                        )
-
-                        # 以下は元の処理と同じ
-                        if len(image_data.shape) == 3:
-                            for i in range(image_data.shape[0]):
-                                channel_image = cls.process_image(image_data[i])
-
-                                if i == 1:  # 位相差画像 (ph)
-                                    if time_idx == 0:
-                                        reference_image_ph = channel_image
-                                    if reference_image_ph is not None and time_idx > 0:
-                                        channel_image = cls.correct_drift(
-                                            reference_image_ph, channel_image
-                                        )
-                                    tiff_filename = os.path.join(
-                                        base_output_subdir_ph,
-                                        f"time_{time_idx + 1}_channel_{i}.tif",
-                                    )
-                                else:  # 蛍光画像 (fluo)
-                                    if time_idx == 0:
-                                        reference_image_fluo = channel_image
-                                    if (
-                                        reference_image_fluo is not None
-                                        and time_idx > 0
-                                    ):
-                                        channel_image = cls.correct_drift(
-                                            reference_image_fluo, channel_image
-                                        )
-                                    tiff_filename = os.path.join(
-                                        base_output_subdir_fluo,
-                                        f"time_{time_idx + 1}_channel_{i}.tif",
-                                    )
-
-                                img = Image.fromarray(channel_image)
-                                img.save(tiff_filename)
-                                print(f"Saved: {tiff_filename}")
-                        else:
-                            # 2D の場合
-                            image_data = cls.process_image(image_data)
-                            if time_idx == 0:
-                                reference_image_ph = image_data
-                            else:
-                                image_data = cls.correct_drift(
-                                    reference_image_ph, image_data
-                                )
-                            tiff_filename = os.path.join(
-                                field_folder, f"time_{time_idx + 1}.tif"
+                # ---- 並列化のためのリストを用意 ----
+                tasks = []
+                with ThreadPoolExecutor() as executor:
+                    for channel_idx in range(num_channels):
+                        for time_idx in range(num_timepoints):
+                            # Frame取得
+                            image_data = images.get_frame_2D(
+                                v=field_idx, c=channel_idx, t=time_idx
                             )
-                            img = Image.fromarray(image_data)
-                            img.save(tiff_filename)
-                            print(f"Saved: {tiff_filename}")
+
+                            if len(image_data.shape) == 3:
+                                # 3D（Zスタックなど）の場合
+                                for i in range(image_data.shape[0]):
+                                    channel_image = cls.process_image(image_data[i])
+                                    # ドリフト補正を並列で実行するタスクを追加
+                                    if i == 1:  # PH
+                                        if time_idx == 0:
+                                            reference_image_ph = channel_image
+                                            # time=0のものはそのまま保存
+                                            tiff_filename = os.path.join(
+                                                base_output_subdir_ph,
+                                                f"time_{time_idx + 1}_channel_{i}.tif",
+                                            )
+                                            Image.fromarray(channel_image).save(
+                                                tiff_filename
+                                            )
+                                            print(f"Saved: {tiff_filename}")
+                                        else:
+                                            # 並列タスクに登録
+                                            tasks.append(
+                                                executor.submit(
+                                                    cls._drift_and_save,
+                                                    reference_image_ph,
+                                                    channel_image,
+                                                    os.path.join(
+                                                        base_output_subdir_ph,
+                                                        f"time_{time_idx + 1}_channel_{i}.tif",
+                                                    ),
+                                                )
+                                            )
+                                    else:  # fluo
+                                        if time_idx == 0:
+                                            reference_image_fluo = channel_image
+                                            tiff_filename = os.path.join(
+                                                base_output_subdir_fluo,
+                                                f"time_{time_idx + 1}_channel_{i}.tif",
+                                            )
+                                            Image.fromarray(channel_image).save(
+                                                tiff_filename
+                                            )
+                                            print(f"Saved: {tiff_filename}")
+                                        else:
+                                            tasks.append(
+                                                executor.submit(
+                                                    cls._drift_and_save,
+                                                    reference_image_fluo,
+                                                    channel_image,
+                                                    os.path.join(
+                                                        base_output_subdir_fluo,
+                                                        f"time_{time_idx + 1}_channel_{i}.tif",
+                                                    ),
+                                                )
+                                            )
+                            else:
+                                # 2D の場合
+                                channel_image = cls.process_image(image_data)
+                                if time_idx == 0:
+                                    reference_image_ph = channel_image
+                                    tiff_filename = os.path.join(
+                                        field_folder, f"time_{time_idx + 1}.tif"
+                                    )
+                                    Image.fromarray(channel_image).save(tiff_filename)
+                                    print(f"Saved: {tiff_filename}")
+                                else:
+                                    # 並列タスクに登録
+                                    tasks.append(
+                                        executor.submit(
+                                            cls._drift_and_save,
+                                            reference_image_ph,
+                                            channel_image,
+                                            os.path.join(
+                                                field_folder, f"time_{time_idx + 1}.tif"
+                                            ),
+                                        )
+                                    )
+
+                    # ---- 並列タスクを完了させる ----
+                    for future in as_completed(tasks):
+                        try:
+                            saved_path = future.result()
+                            print(f"Saved (parallel): {saved_path}")
+                        except Exception as e:
+                            print(f"Error in parallel task: {e}")
+
+    @classmethod
+    def _drift_and_save(cls, reference_image, target_image, save_path):
+        """
+        並列用: ドリフト補正して保存する小分け関数
+        """
+        corrected = cls.correct_drift(reference_image, target_image, scale=0.5)
+        Image.fromarray(corrected).save(save_path)
+        return save_path
 
     @classmethod
     def create_combined_gif(
@@ -201,7 +281,6 @@ class SyncChores:
             combined_img.paste(fluo_img_resized, (ph_img_resized.width, 0))
             combined_images.append(combined_img)
 
-        # --- 修正点: combined_images が空でないかチェック ---
         if not combined_images:
             raise ValueError(
                 "No images found to create combined GIF. Check ph/fluo folders."
@@ -285,7 +364,6 @@ class TimelapseEngineCrudBase:
         if not os.path.exists(nd2_fullpath):
             return []
 
-        # nd2reader で 'v' 軸のサイズを参照
         with nd2reader.ND2Reader(nd2_fullpath) as images:
             num_fields = images.sizes.get("v", 1)
             return [f"Field_{i+1}" for i in range(num_fields)]
