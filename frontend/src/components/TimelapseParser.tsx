@@ -205,7 +205,7 @@ const TimelapseParser: React.FC = () => {
                     sx={{ height: "100%", minHeight: 200 }}
                   >
                     <Typography variant="body2" color="text.secondary">
-                      GIF が表示されるまでお待ちください
+                      Please wait for parsing ND2 file and select a field
                     </Typography>
                   </Box>
                 )}
