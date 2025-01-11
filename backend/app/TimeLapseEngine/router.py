@@ -1,17 +1,22 @@
 from fastapi import APIRouter, UploadFile, HTTPException
-from TimeLapseEngine.crud import TimelapseEngineCrudBase
 from fastapi.responses import JSONResponse, StreamingResponse
 import os
 import aiofiles
 
-router_tl_engine = APIRouter(prefix="/tl-engine_x100", tags=["tl_engine_x100"])
+# 上で定義した TimelapseEngineCrudBase をインポート
+from .crud import TimelapseEngineCrudBase
+
+router_tl_engine = APIRouter(prefix="/tlengine", tags=["tlengine"])
 
 
 @router_tl_engine.post("/nd2_files")
 async def upload_nd2_file(file: UploadFile):
     """
-    ND2ファイルをアップロードして保存するエンドポイント。
+    ND2ファイルをアップロードして保存するエンドポイント
     """
+    if not file.filename.endswith(".nd2"):
+        raise HTTPException(status_code=400, detail="Only .nd2 files are accepted")
+
     filename = file.filename.split(".")[0]
     ext = file.filename.split(".")[1]
     file_path = filename + "_timelapse." + ext
@@ -40,8 +45,19 @@ async def get_nd2_files():
 async def parse_timelapse_nd2(file_name: str):
     """
     タイムラプスND2ファイルを解析し、TIFF形式に分割保存するエンドポイント。
+    解析が終わったら {"message": "Timelapse extracted"} を返す。
     """
     return await TimelapseEngineCrudBase(file_name).main()
+
+
+@router_tl_engine.get("/nd2_files/{file_name}/fields")
+async def get_fields_of_nd2_file(file_name: str):
+    """
+    ND2ファイルからFieldの一覧を取得するエンドポイント。
+    例：{"fields": ["Field_1", "Field_2", ...]}
+    """
+    fields = await TimelapseEngineCrudBase(file_name).get_fields_of_nd2()
+    return JSONResponse(content={"fields": fields})
 
 
 @router_tl_engine.get("/nd2_files/{file_name}/gif/{Field}")
@@ -61,7 +77,7 @@ async def download_combined_gif(file_name: str, Field: str):
 async def delete_nd2_file(file_path: str):
     """
     指定したND2ファイルを削除するエンドポイント。
-    例）/tl-engine_x100/nd2_files?file_path=uploaded_files/xxx_timelapse.nd2
+    例）/tlengine/nd2_files?file_path=uploaded_files/xxx_timelapse.nd2
     """
     await TimelapseEngineCrudBase("").delete_nd2_file(file_path)
     return JSONResponse(content={"detail": f"{file_path} deleted successfully."})
