@@ -181,7 +181,7 @@ const TimelapseParser: React.FC = () => {
                     sx={{ mt: isSmallScreen ? 2 : 0 }}
                   >
                     <Typography variant="body1" mb={2}>
-                      Selected Field: {selectedField}
+                    <b>{selectedField}</b>
                     </Typography>
                     <Box
                       component="img"
