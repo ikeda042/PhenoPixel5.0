@@ -16,7 +16,6 @@ import {
   SelectChangeEvent,
   Card,
   CardContent,
-  Container,
   useMediaQuery,
   useTheme
 } from "@mui/material";
@@ -102,27 +101,35 @@ const TimelapseParser: React.FC = () => {
         <CircularProgress color="inherit" />
       </Backdrop>
 
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      {/* 全画面を覆うレイアウトコンテナ */}
+      <Box
+        sx={{
+          width: "100%",
+          minHeight: "100vh",
+          boxSizing: "border-box",
+          p: 4
+        }}
+      >
         {/* パンくずリスト */}
         <Box mb={2}>
           <Breadcrumbs aria-label="breadcrumb">
             <Link underline="hover" color="inherit" href="/">
               Top
             </Link>
-            <Link underline="hover" color="inherit" href="/tlengine">
+            <Link underline="hover" color="inherit" href="/tl-engine">
               Timelapse ND2 files
             </Link>
             <Typography color="text.primary">ND2 parse</Typography>
           </Breadcrumbs>
         </Box>
 
-        <Card>
+        <Card sx={{ height: "100%" }}>
           <CardContent>
-            <Grid container spacing={3}>
+            <Grid container spacing={3} sx={{ height: "100%" }}>
               {/* 左サイド：ファイル名と操作ボタン */}
               <Grid item xs={12} md={4}>
-                <Typography 
-                  variant={isSmallScreen ? "body1" : "h6"} 
+                <Typography
+                  variant={isSmallScreen ? "body1" : "h6"}
                   mb={2}
                   sx={{ fontWeight: 600 }}
                 >
@@ -206,7 +213,7 @@ const TimelapseParser: React.FC = () => {
             </Grid>
           </CardContent>
         </Card>
-      </Container>
+      </Box>
     </>
   );
 };
