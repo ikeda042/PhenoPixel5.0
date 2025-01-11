@@ -13,7 +13,8 @@ import {
     Backdrop,
     CircularProgress,
     Breadcrumbs,
-    Link
+    Link,
+    SelectChangeEvent  // ここを追加
 } from "@mui/material";
 import { styled } from '@mui/system';
 import axios from "axios";
@@ -77,7 +78,6 @@ const TimelapseParser: React.FC = () => {
         const reverseLayers = mode === "dual_layer_reversed";
         try {
             // 1) タイムラプスND2ファイルの解析を実行
-            //    (サーバー側で解析が終わったら、fieldsの一覧を返すようにしている想定)
             const parseResponse = await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}`, {
                 params: {
                     param1,
@@ -140,7 +140,8 @@ const TimelapseParser: React.FC = () => {
     };
 
     // 視野(Field)が選択されたとき
-    const handleFieldChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    // ★ ここで引数の型を SelectChangeEvent<string> に変更
+    const handleFieldChange = (event: SelectChangeEvent<string>) => {
         const newField = event.target.value as string;
         setSelectedField(newField);
         // Field 選択時にGIFを取得
