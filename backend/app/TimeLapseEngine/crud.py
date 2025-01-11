@@ -161,9 +161,6 @@ class SyncChores:
     def create_combined_gif(
         cls, field_folder: str, resize_factor: float = 0.5
     ) -> io.BytesIO:
-        """
-        Field_{n} の ph と fluo 画像を左右に並べて時系列順にGIFを作成し、バイトバッファとして返す。
-        """
         ph_folder = os.path.join(field_folder, "ph")
         fluo_folder = os.path.join(field_folder, "fluo")
 
@@ -203,6 +200,12 @@ class SyncChores:
             combined_img.paste(ph_img_resized, (0, 0))
             combined_img.paste(fluo_img_resized, (ph_img_resized.width, 0))
             combined_images.append(combined_img)
+
+        # --- 修正点: combined_images が空でないかチェック ---
+        if not combined_images:
+            raise ValueError(
+                "No images found to create combined GIF. Check ph/fluo folders."
+            )
 
         gif_buffer = io.BytesIO()
         combined_images[0].save(
