@@ -11,14 +11,20 @@ import io
 
 
 class SyncChores:
-    @staticmethod
-    def correct_drift(reference_image, target_image):
-        orb = cv2.ORB_create()
-        kp1, des1 = orb.detectAndCompute(reference_image, None)
-        kp2, des2 = orb.detectAndCompute(target_image, None)
+    # ---- 高速化策：ORB と BFMatcher をクラスレベルで生成して使い回す ----
+    orb = cv2.ORB_create()
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        matches = bf.match(des1, des2)
+    @classmethod
+    def correct_drift(cls, reference_image, target_image):
+        kp1, des1 = cls.orb.detectAndCompute(reference_image, None)
+        kp2, des2 = cls.orb.detectAndCompute(target_image, None)
+
+        if des1 is None or des2 is None:
+            print("Descriptor is None, skipping drift correction.")
+            return target_image
+
+        matches = cls.bf.match(des1, des2)
 
         if len(matches) < 10:  # マッチングが少なすぎる場合、補正を行わない
             print("Insufficient matches, skipping drift correction.")
@@ -52,19 +58,26 @@ class SyncChores:
             print("Matrix estimation failed, skipping drift correction.")
             return target_image
 
-    @staticmethod
-    def process_image(array):
+    @classmethod
+    def process_image(cls, array):
         """
         画像処理関数：正規化とスケーリングを行う。
         """
         array = array.astype(np.float32)  # Convert to float
-        array -= array.min()  # Normalize to 0
-        array /= array.max()  # Normalize to 1
+        array_min = array.min()
+        array_max = array.max()
+
+        # array が全画素同じ値などの場合のガード
+        if array_max - array_min == 0:
+            return (array * 0).astype(np.uint8)
+
+        array -= array_min  # Normalize to 0
+        array /= array_max - array_min  # Normalize to 1
         array *= 255  # Scale to 0-255
         return array.astype(np.uint8)
 
-    @staticmethod
-    def extract_timelapse_nd2(file_name: str):
+    @classmethod
+    def extract_timelapse_nd2(cls, file_name: str):
         """
         タイムラプスnd2ファイルをフレームごとにTIFF形式で保存する。(チャンネル0がFluo画像、チャンネル1がPH画像)
         """
@@ -103,7 +116,7 @@ class SyncChores:
 
                         if len(image_data.shape) == 3:
                             for i in range(image_data.shape[0]):
-                                channel_image = SyncChores.process_image(image_data[i])
+                                channel_image = cls.process_image(image_data[i])
 
                                 if i == 1:  # 位相差画像 (ph)
                                     if time_idx == 0:
@@ -111,7 +124,7 @@ class SyncChores:
                                             channel_image  # 基準フレーム設定
                                         )
                                     if reference_image_ph is not None and time_idx > 0:
-                                        channel_image = SyncChores.correct_drift(
+                                        channel_image = cls.correct_drift(
                                             reference_image_ph, channel_image
                                         )  # ドリフト補正
 
@@ -129,7 +142,7 @@ class SyncChores:
                                         reference_image_fluo is not None
                                         and time_idx > 0
                                     ):
-                                        channel_image = SyncChores.correct_drift(
+                                        channel_image = cls.correct_drift(
                                             reference_image_fluo, channel_image
                                         )  # ドリフト補正
 
@@ -142,7 +155,7 @@ class SyncChores:
                                 img.save(tiff_filename)
                                 print(f"Saved: {tiff_filename}")
                         else:
-                            image_data = SyncChores.process_image(image_data)
+                            image_data = cls.process_image(image_data)
 
                             if time_idx == 0:
                                 reference_image_ph = (
@@ -150,7 +163,7 @@ class SyncChores:
                                 )
 
                             if reference_image_ph is not None and time_idx > 0:
-                                image_data = SyncChores.correct_drift(
+                                image_data = cls.correct_drift(
                                     reference_image_ph, image_data
                                 )  # ドリフト補正
 
@@ -161,9 +174,9 @@ class SyncChores:
                             img.save(tiff_filename)
                             print(f"Saved: {tiff_filename}")
 
-    @staticmethod
+    @classmethod
     def create_combined_gif(
-        field_folder: str, resize_factor: float = 0.5
+        cls, field_folder: str, resize_factor: float = 0.5
     ) -> io.BytesIO:
         """
         Field1のphとfluo画像を左右に並べて時系列順にGIFを作成し、バイトバッファとして返す。
@@ -195,7 +208,6 @@ class SyncChores:
         ph_images = [Image.open(img_file) for img_file in ph_image_files]
         fluo_images = [Image.open(img_file) for img_file in fluo_image_files]
 
-        # 画像をリサイズして左右に並べる
         combined_images = []
         print("####################GIF####################")
         for ph_img, fluo_img in zip(ph_images, fluo_images):
@@ -229,9 +241,7 @@ class SyncChores:
             loop=0,  # 無限ループ
         )
 
-        # バッファの位置を先頭に戻す
         gif_buffer.seek(0)
-
         return gif_buffer
 
 
@@ -292,7 +302,8 @@ class TimelapseEngineCrudBase:
         return [i for i in os.listdir("uploaded_files") if i.endswith("_timelapse.nd2")]
 
     async def delete_nd2_file(self, file_path: str):
-        filename = filename.split("/")[-1]
+        # file_path → filename への修正
+        filename = file_path.split("/")[-1]
         await asyncio.to_thread(os.remove, f"uploaded_files/{filename}")
         return True
 
