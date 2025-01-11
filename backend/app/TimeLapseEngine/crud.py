@@ -73,12 +73,15 @@ class SyncChores:
         """
         base_output_dir = "uploaded_files/"
         os.makedirs("TimelapseParserTemp", exist_ok=True)
-        with nd2reader.ND2Reader(base_output_dir + file_name) as images:
+
+        nd2_fullpath = os.path.join(base_output_dir, file_name)
+        with nd2reader.ND2Reader(nd2_fullpath) as images:
             print(f"Available axes: {images.axes}")
             print(f"Sizes: {images.sizes}")
 
+            # 必要であれば設定する（ただし iter_axes は変更しない方がわかりやすいことが多い）
             images.bundle_axes = "cyx" if "c" in images.axes else "yx"
-            images.iter_axes = "v"
+            # images.iter_axes = "v"  # ← 外しておく
 
             num_fields = images.sizes.get("v", 1)
             num_channels = images.sizes.get("c", 1)
@@ -86,11 +89,11 @@ class SyncChores:
 
             for field_idx in range(num_fields):
                 field_folder = os.path.join(
-                    "TimelapseParserTemp/", f"Field_{field_idx + 1}"
+                    "TimelapseParserTemp", f"Field_{field_idx + 1}"
                 )
                 os.makedirs(field_folder, exist_ok=True)
-                base_output_subdir_ph = field_folder + "/ph"
-                base_output_subdir_fluo = field_folder + "/fluo"
+                base_output_subdir_ph = os.path.join(field_folder, "ph")
+                base_output_subdir_fluo = os.path.join(field_folder, "fluo")
                 os.makedirs(base_output_subdir_ph, exist_ok=True)
                 os.makedirs(base_output_subdir_fluo, exist_ok=True)
 
@@ -99,11 +102,12 @@ class SyncChores:
 
                 for channel_idx in range(num_channels):
                     for time_idx in range(num_timepoints):
-                        images.default_coords.update(
-                            {"v": field_idx, "c": channel_idx, "t": time_idx}
+                        # ここを get_frame_2D(...) で直接指定する
+                        image_data = images.get_frame_2D(
+                            v=field_idx, c=channel_idx, t=time_idx
                         )
-                        image_data = images[0]
 
+                        # 以下は元の処理と同じ
                         if len(image_data.shape) == 3:
                             for i in range(image_data.shape[0]):
                                 channel_image = cls.process_image(image_data[i])
@@ -138,10 +142,11 @@ class SyncChores:
                                 img.save(tiff_filename)
                                 print(f"Saved: {tiff_filename}")
                         else:
+                            # 2D の場合
                             image_data = cls.process_image(image_data)
                             if time_idx == 0:
                                 reference_image_ph = image_data
-                            if reference_image_ph is not None and time_idx > 0:
+                            else:
                                 image_data = cls.correct_drift(
                                     reference_image_ph, image_data
                                 )
