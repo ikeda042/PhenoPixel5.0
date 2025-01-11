@@ -37,21 +37,29 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 //-----------------------------------
 // 型定義
 //-----------------------------------
 type ImageState = {
-  ph: string;               
-  fluo?: string | null;     
-  replot?: string;          
-  distribution?: string;    
-  distribution_normalized?: string; 
-  path?: string;            
-  prediction?: string;      
-  cloud_points?: string;    
-  cloud_points_ph?: string;
+  ph: string; // PH画像
+  fluo?: string | null; // 蛍光画像 (single_layer系ではnull)
+  replot?: string; // Replotグラフ画像
+  distribution?: string; // Distribution画像
+  distribution_normalized?: string; // Distribution Normalized画像
+  path?: string; // Path画像
+  prediction?: string; // AI推論画像
+  cloud_points?: string; // 3D表示
+  cloud_points_ph?: string; // 3D PH表示
 };
 
 // 「どのモードにするか」を列挙型的に管理する
@@ -327,10 +335,9 @@ const CellImageGrid: React.FC = () => {
         }
         case "prediction": {
           if (!images[cellId]?.prediction) {
-            const response = await axios.get(
-              `${url_prefix}/cell_ai/${db_name}/${cellId}`,
-              { responseType: "blob" }
-            );
+            const response = await axios.get(`${url_prefix}/cell_ai/${db_name}/${cellId}`, {
+              responseType: "blob",
+            });
             const url = URL.createObjectURL(response.data);
             setImages((prev) => ({
               ...prev,
@@ -386,6 +393,7 @@ const CellImageGrid: React.FC = () => {
     fetchStandardImages(cellId);
     fetchContour(cellId);
     fetchContourT1(cellId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cellIds, currentIndex, db_name, drawContour, drawScaleBar, brightnessFactor]);
 
   //------------------------------------
@@ -395,6 +403,7 @@ const CellImageGrid: React.FC = () => {
     if (cellIds.length === 0) return;
     const cellId = cellIds[currentIndex];
     fetchAdditionalImage(drawMode, cellId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawMode, cellIds, currentIndex, fitDegree]);
 
   //------------------------------------
@@ -436,7 +445,7 @@ const CellImageGrid: React.FC = () => {
     return () => {
       if (autoNextInterval) clearInterval(autoNextInterval);
     };
-  }, [autoPlay]);
+  }, [autoPlay, handleNext]);
 
   //------------------------------------
   // Labelセレクト変更
@@ -481,11 +490,9 @@ const CellImageGrid: React.FC = () => {
       // 成功したら輪郭・画像を再取得
       await fetchContour(cellId);
       await fetchContourT1(cellId);
-      await fetchStandardImages(cellId);  // ← PH / Fluo の再取得
+      await fetchStandardImages(cellId); // ← PH / Fluo の再取得
     } catch (err) {
       console.error("Error calling T1 detect:", err);
-      // 必要ならエラー時のみ alert を出す
-      // alert("T1 Detectに失敗しました。コンソールを確認してください。");
     }
   };
 
@@ -504,11 +511,9 @@ const CellImageGrid: React.FC = () => {
 
       // 成功したら輪郭・画像を再取得
       await fetchContour(cellId);
-      await fetchStandardImages(cellId);  // ← PH / Fluo の再取得
+      await fetchStandardImages(cellId); // ← PH / Fluo の再取得
     } catch (err) {
       console.error("Error calling Canny detect:", err);
-      // 必要ならエラー時のみ alert を出す
-      // alert("Canny Detectに失敗しました。コンソールを確認してください。");
     }
   };
 
@@ -561,6 +566,7 @@ const CellImageGrid: React.FC = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cellIds, currentIndex]);
 
   //------------------------------------
@@ -630,12 +636,12 @@ const CellImageGrid: React.FC = () => {
   }, [currentIndex]);
 
   //------------------------------------
-  // 実際の描画部分 (レスポンシブ対応)
+  // 実際の描画部分
   //------------------------------------
   return (
-    <>
+    <Box sx={{ p: { xs: 2, md: 3 }, width: "100%" }}>
       {/* パンくずリスト */}
-      <Box>
+      <Box mb={2}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link underline="hover" color="inherit" href="/">
             Top
@@ -648,54 +654,37 @@ const CellImageGrid: React.FC = () => {
       </Box>
 
       {/* 全体レイアウトをGridに変えてレスポンシブ対応 */}
-      <Grid container spacing={3} marginTop={2}>
+      <Grid container spacing={3}>
         {/* ----- 左カラム: PH/Fluoや、Prev/Nextなど ----- */}
         <Grid item xs={12} lg={5}>
-          {/* 
-            Label / DetectMode / (CannyThresh2) / Detect ボタン
-            を同じ行に表示しつつ、DetectModeが None のときは余白を埋める 
-          */}
-          <Grid container spacing={2} alignItems="center">
-            {/* Label選択 */}
-            <Grid item xs={3}>
-              <FormControl fullWidth variant="outlined">
-                <InputLabel id="label-select-label">Label</InputLabel>
-                <Select
-                  labelId="label-select-label"
-                  label="Label"
-                  value={selectedLabel}
-                  onChange={handleLabelChange}
-                >
-                  <MenuItem value="74">All</MenuItem>
-                  <MenuItem value="1000">N/A</MenuItem>
-                  <MenuItem value="1">1</MenuItem>
-                  <MenuItem value="2">2</MenuItem>
-                  <MenuItem value="3">3</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* DetectMode が None のときは xs=9 を割り当て、そうでなければ xs=3 */}
-            {detectMode === "None" ? (
-              <Grid item xs={9}>
+          <Box sx={{ mb: 3 }}>
+            {/* 
+              Label / DetectMode / (CannyThresh2) / Detect ボタン
+              を同じ行に表示しつつ、DetectModeが None のときは余白を埋める 
+            */}
+            <Grid container spacing={2} alignItems="center">
+              {/* Label選択 */}
+              <Grid item xs={3}>
                 <FormControl fullWidth variant="outlined">
-                  <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
+                  <InputLabel id="label-select-label">Label</InputLabel>
                   <Select
-                    labelId="detect-mode-select-label"
-                    label="Detect Mode"
-                    value={detectMode}
-                    onChange={handleDetectModeChange}
+                    labelId="label-select-label"
+                    label="Label"
+                    value={selectedLabel}
+                    onChange={handleLabelChange}
                   >
-                    <MenuItem value="None">None</MenuItem>
-                    <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
-                    <MenuItem value="Canny">Canny</MenuItem>
+                    <MenuItem value="74">All</MenuItem>
+                    <MenuItem value="1000">N/A</MenuItem>
+                    <MenuItem value="1">1</MenuItem>
+                    <MenuItem value="2">2</MenuItem>
+                    <MenuItem value="3">3</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-            ) : (
-              <>
-                {/* DetectMode が None 以外の場合は xs=3 */}
-                <Grid item xs={3}>
+
+              {/* DetectMode が None のときは xs=9 を割り当て、そうでなければ xs=3 */}
+              {detectMode === "None" ? (
+                <Grid item xs={9}>
                   <FormControl fullWidth variant="outlined">
                     <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
                     <Select
@@ -710,60 +699,79 @@ const CellImageGrid: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-
-                {/* detectMode が "Canny" の場合だけ CannyThresh2 を表示 */}
-                {detectMode === "Canny" && (
+              ) : (
+                <>
+                  {/* DetectMode が None 以外の場合は xs=3 */}
                   <Grid item xs={3}>
-                    <TextField
-                      label="Canny Th2"
-                      variant="outlined"
-                      type="number"
-                      size="small"
-                      value={cannyThresh2}
-                      onChange={(e) => setCannyThresh2(parseInt(e.target.value, 10))}
-                      InputProps={{
-                        onWheel: handleWheel,
-                      }}
-                      fullWidth
-                    />
+                    <FormControl fullWidth variant="outlined">
+                      <InputLabel id="detect-mode-select-label">Detect Mode</InputLabel>
+                      <Select
+                        labelId="detect-mode-select-label"
+                        label="Detect Mode"
+                        value={detectMode}
+                        onChange={handleDetectModeChange}
+                      >
+                        <MenuItem value="None">None</MenuItem>
+                        <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
+                        <MenuItem value="Canny">Canny</MenuItem>
+                      </Select>
+                    </FormControl>
                   </Grid>
-                )}
 
-                {/* Detect ボタン:
-                    detectMode が "T1(U-net)" のとき → T1Detect,
-                    detectMode が "Canny" のとき → CannyDetect
-                */}
-                <Grid
-                  item
-                  xs={detectMode === "Canny" ? 3 : 6}
-                >
-                  {detectMode === "T1(U-net)" && (
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      onClick={handleT1Detect}
-                      fullWidth
-                    >
-                      Detect
-                    </Button>
-                  )}
+                  {/* detectMode が "Canny" の場合だけ CannyThresh2 を表示 */}
                   {detectMode === "Canny" && (
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      onClick={handleCannyDetect}
-                      fullWidth
-                    >
-                      Detect
-                    </Button>
+                    <Grid item xs={3}>
+                      <TextField
+                        label="Canny Th2"
+                        variant="outlined"
+                        type="number"
+                        size="small"
+                        value={cannyThresh2}
+                        onChange={(e) => setCannyThresh2(parseInt(e.target.value, 10))}
+                        InputProps={{
+                          onWheel: handleWheel,
+                        }}
+                        fullWidth
+                      />
+                    </Grid>
                   )}
-                </Grid>
-              </>
-            )}
-          </Grid>
+
+                  {/* Detect ボタン:
+                      detectMode が "T1(U-net)" のとき → T1Detect,
+                      detectMode が "Canny" のとき → CannyDetect
+                  */}
+                  <Grid
+                    item
+                    xs={detectMode === "Canny" ? 3 : 6}
+                  >
+                    {detectMode === "T1(U-net)" && (
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={handleT1Detect}
+                        fullWidth
+                      >
+                        Detect
+                      </Button>
+                    )}
+                    {detectMode === "Canny" && (
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={handleCannyDetect}
+                        fullWidth
+                      >
+                        Detect
+                      </Button>
+                    )}
+                  </Grid>
+                </>
+              )}
+            </Grid>
+          </Box>
 
           {/* チェックボックス類 */}
-          <Box mt={2}>
+          <Box sx={{ mb: 3 }}>
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={2}>
                 <FormControlLabel
@@ -839,7 +847,12 @@ const CellImageGrid: React.FC = () => {
           </Box>
 
           {/* Prev / Next */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 3 }}
+          >
             <Button
               variant="contained"
               color="primary"
@@ -889,7 +902,7 @@ const CellImageGrid: React.FC = () => {
           </Box>
 
           {/* PH / Fluo画像 */}
-          <Grid container spacing={2} style={{ marginTop: 20 }}>
+          <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               {images[cellIds[currentIndex]] ? (
                 <img
@@ -933,45 +946,51 @@ const CellImageGrid: React.FC = () => {
 
         {/* ----- 中央カラム: DrawModeごとの追加表示 ----- */}
         <Grid item xs={12} md={6} lg={4}>
-          {/* DrawMode セレクト + Polyfit Degree */}
-          <FormControl fullWidth variant="outlined">
-            <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
-            <Select
-              labelId="draw-mode-select-label"
-              label="Draw Mode"
-              value={drawMode}
-              onChange={handleDrawModeChange}
-            >
-              {DRAW_MODES.map((mode) => (
-                <MenuItem key={mode.value} value={mode.value}>
-                  {mode.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box sx={{ mb: 2 }}>
+            {/* DrawMode セレクト + Polyfit Degree */}
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+              <Select
+                labelId="draw-mode-select-label"
+                label="Draw Mode"
+                value={drawMode}
+                onChange={handleDrawModeChange}
+              >
+                {DRAW_MODES.map((mode) => (
+                  <MenuItem key={mode.value} value={mode.value}>
+                    {mode.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-          {DRAW_MODES.find((m) => m.value === drawMode)?.needsPolyfit && (
-            <Box mt={2}>
-              <TextField
-                label="Polyfit Degree"
-                variant="outlined"
-                type="number"
-                value={fitDegree}
-                onChange={handleFitDegreeChange}
-                InputProps={{
-                  inputProps: { min: 0, step: 1 },
-                  onWheel: handleWheel,
-                  autoComplete: "off",
-                }}
-                fullWidth
-              />
-            </Box>
-          )}
+            {DRAW_MODES.find((m) => m.value === drawMode)?.needsPolyfit && (
+              <Box mt={2}>
+                <TextField
+                  label="Polyfit Degree"
+                  variant="outlined"
+                  type="number"
+                  value={fitDegree}
+                  onChange={handleFitDegreeChange}
+                  InputProps={{
+                    inputProps: { min: 0, step: 1 },
+                    onWheel: handleWheel,
+                    autoComplete: "off",
+                  }}
+                  fullWidth
+                />
+              </Box>
+            )}
+          </Box>
 
-          <Box mt={2}>
+          <Box sx={{ mb: 2 }}>
             {/* モード別の表示 */}
-            {drawMode === "light" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
-            {drawMode === "t1contour" && <Scatter data={contourPlotData} options={contourPlotOptions} />}
+            {drawMode === "light" && (
+              <Scatter data={contourPlotData} options={contourPlotOptions} />
+            )}
+            {drawMode === "t1contour" && (
+              <Scatter data={contourPlotData} options={contourPlotOptions} />
+            )}
 
             {drawMode === "replot" && images[cellIds[currentIndex]]?.replot && (
               <img
@@ -981,24 +1000,31 @@ const CellImageGrid: React.FC = () => {
               />
             )}
 
-            {drawMode === "distribution" && images[cellIds[currentIndex]]?.distribution && (
-              <img
-                src={images[cellIds[currentIndex]]?.distribution}
-                alt={`Cell ${cellIds[currentIndex]} Distribution`}
-                style={{ width: "100%" }}
-              />
-            )}
+            {drawMode === "distribution" &&
+              images[cellIds[currentIndex]]?.distribution && (
+                <img
+                  src={images[cellIds[currentIndex]]?.distribution}
+                  alt={`Cell ${cellIds[currentIndex]} Distribution`}
+                  style={{ width: "100%" }}
+                />
+              )}
 
-            {drawMode === "distribution_normalized" && images[cellIds[currentIndex]]?.distribution_normalized && (
-              <img
-                src={images[cellIds[currentIndex]]?.distribution_normalized}
-                alt={`Cell ${cellIds[currentIndex]} Distribution (Normalized)`}
-                style={{ width: "100%" }}
-              />
-            )}
+            {drawMode === "distribution_normalized" &&
+              images[cellIds[currentIndex]]?.distribution_normalized && (
+                <img
+                  src={images[cellIds[currentIndex]]?.distribution_normalized}
+                  alt={`Cell ${cellIds[currentIndex]} Distribution (Normalized)`}
+                  style={{ width: "100%" }}
+                />
+              )}
 
             {drawMode === "path" && isLoading ? (
-              <Box display="flex" justifyContent="center" alignItems="center" style={{ height: 400 }}>
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                style={{ height: 400 }}
+              >
                 <Spinner />
               </Box>
             ) : (
@@ -1012,79 +1038,84 @@ const CellImageGrid: React.FC = () => {
               )
             )}
 
-            {drawMode === "prediction" && images[cellIds[currentIndex]]?.prediction && (
-              <img
-                src={images[cellIds[currentIndex]]?.prediction}
-                alt={`Cell ${cellIds[currentIndex]} Prediction`}
-                style={{ width: "100%" }}
-              />
-            )}
+            {drawMode === "prediction" &&
+              images[cellIds[currentIndex]]?.prediction && (
+                <img
+                  src={images[cellIds[currentIndex]]?.prediction}
+                  alt={`Cell ${cellIds[currentIndex]} Prediction`}
+                  style={{ width: "100%" }}
+                />
+              )}
 
-            {drawMode === "cloud_points" && images[cellIds[currentIndex]]?.cloud_points && (
-              <img
-                src={images[cellIds[currentIndex]]?.cloud_points}
-                alt={`Cell ${cellIds[currentIndex]} 3D`}
-                style={{ width: "100%" }}
-              />
-            )}
+            {drawMode === "cloud_points" &&
+              images[cellIds[currentIndex]]?.cloud_points && (
+                <img
+                  src={images[cellIds[currentIndex]]?.cloud_points}
+                  alt={`Cell ${cellIds[currentIndex]} 3D`}
+                  style={{ width: "100%" }}
+                />
+              )}
 
-            {drawMode === "cloud_points_ph" && images[cellIds[currentIndex]]?.cloud_points_ph && (
-              <img
-                src={images[cellIds[currentIndex]]?.cloud_points_ph}
-                alt={`Cell ${cellIds[currentIndex]} 3D`}
-                style={{ width: "100%" }}
-              />
-            )}
+            {drawMode === "cloud_points_ph" &&
+              images[cellIds[currentIndex]]?.cloud_points_ph && (
+                <img
+                  src={images[cellIds[currentIndex]]?.cloud_points_ph}
+                  alt={`Cell ${cellIds[currentIndex]} 3D`}
+                  style={{ width: "100%" }}
+                />
+              )}
           </Box>
         </Grid>
 
         {/* ----- 右カラム: MorphoEngine (None, Median, Mean, Var, Heatmap) ----- */}
         <Grid item xs={12} md={6} lg={3}>
-          <FormControl fullWidth variant="outlined">
-            <InputLabel id="engine-select-label">MorphoEngine</InputLabel>
-            <Select
-              labelId="engine-select-label"
-              label="MorphoEngine"
-              id="engine-select"
-              value={engineMode}
-              onChange={handleEngineModeChange}
-              renderValue={(selected: string) => {
-                if (selected === "None") {
-                  return "None";
-                } else {
-                  const engineName = selected as EngineName;
-                  let displayText: string = engineName;
-                  return (
+          <Box sx={{ mb: 2 }}>
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="engine-select-label">MorphoEngine</InputLabel>
+              <Select
+                labelId="engine-select-label"
+                label="MorphoEngine"
+                id="engine-select"
+                value={engineMode}
+                onChange={handleEngineModeChange}
+                renderValue={(selected: string) => {
+                  if (selected === "None") {
+                    return "None";
+                  } else {
+                    const engineName = selected as EngineName;
+                    let displayText: string = engineName;
+                    return (
+                      <Box display="flex" alignItems="center">
+                        {engineName !== "None" && (
+                          <img
+                            src={engineLogos[engineName]}
+                            alt=""
+                            style={{ width: 24, height: 24, marginRight: 8 }}
+                          />
+                        )}
+                        {displayText}
+                      </Box>
+                    );
+                  }
+                }}
+              >
+                {Object.entries(engineLogos).map(([engine, logoPath]) => (
+                  <MenuItem key={engine} value={engine}>
                     <Box display="flex" alignItems="center">
-                      {engineName !== "None" && (
+                      {engine !== "None" && (
                         <img
-                          src={engineLogos[engineName]}
+                          src={logoPath}
                           alt=""
                           style={{ width: 24, height: 24, marginRight: 8 }}
                         />
                       )}
-                      {displayText}
+                      {engine}
                     </Box>
-                  );
-                }
-              }}
-            >
-              {Object.entries(engineLogos).map(([engine, logoPath]) => (
-                <MenuItem key={engine} value={engine}>
-                  <Box display="flex" alignItems="center">
-                    {engine !== "None" && (
-                      <img
-                        src={logoPath}
-                        alt=""
-                        style={{ width: 24, height: 24, marginRight: 8 }}
-                      />
-                    )}
-                    {engine}
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
 
           {engineMode === "None" && (
             <Box
@@ -1093,7 +1124,7 @@ const CellImageGrid: React.FC = () => {
                 justifyContent: "center",
                 alignItems: "center",
                 height: "100%",
-                marginTop: 3,
+                mt: 3,
               }}
             >
               <Typography variant="h5">MorphoEngine is off.</Typography>
@@ -1157,7 +1188,7 @@ const CellImageGrid: React.FC = () => {
           )}
         </Grid>
       </Grid>
-    </>
+    </Box>
   );
 };
 
