@@ -15,7 +15,6 @@ class SyncChores:
     @staticmethod
     def correct_drift(reference_image, target_image):
         """
-        後半コードをベースにしたドリフト補正。
         ORB + BFMatcher + 座標反転してからアフィン変換を推定。
         """
         orb = cv2.ORB_create()
@@ -61,16 +60,18 @@ class SyncChores:
     @staticmethod
     def process_image(array):
         """
-        後半コードをベースにした画像のシンプルな正規化＆8bit変換
+        シンプルな正規化＆8bit変換
         """
         array = array.astype(np.float32)  # Convert to float
-        array -= array.min()  # Normalize to 0
-        max_val = array.max()
-        if max_val == 0:
-            # 全てが同値の場合などはスケールできないので0埋めに
+        array_min = array.min()
+        array_max = array.max()
+        array -= array_min
+        diff = array_max - array_min
+        if diff == 0:
+            # 全てが同値の場合
             return (array * 0).astype(np.uint8)
-        array /= max_val  # Normalize to 1
-        array *= 255  # Scale to 0-255
+        array /= diff
+        array *= 255
         return array.astype(np.uint8)
 
     @classmethod
@@ -87,25 +88,23 @@ class SyncChores:
         """
         タイムラプスnd2ファイルをFieldごと・時系列ごとにTIFFで保存。
         (チャンネル0 -> fluo, チャンネル1 -> ph の想定)
-
-        後半コードのやり方を参考にしつつ、
-        最初のコードと同様 ThreadPoolExecutor で並列化する例。
         """
         base_output_dir = "uploaded_files/"
+        # 出力用フォルダを作り直す
         if os.path.exists("TimelapseParserTemp"):
             shutil.rmtree("TimelapseParserTemp")
-        shutil.rmtree("TimelapseParserTemp", ignore_errors=True)
         os.makedirs("TimelapseParserTemp", exist_ok=True)
 
         nd2_fullpath = os.path.join(base_output_dir, file_name)
         with nd2reader.ND2Reader(nd2_fullpath) as images:
+            # ★★★ ここがポイント： iter_axes をオフにする(または None にする)
+            images.iter_axes = []
+
+            # 必要に応じて bundle_axes を設定 (c,y,x) など
+            images.bundle_axes = "yxc"  # 例: y,x,c
+
             print(f"Available axes: {images.axes}")
             print(f"Sizes: {images.sizes}")
-
-            # 後半コード同様に設定
-            # Field(v)をまとめて走査できるように
-            images.bundle_axes = "cyx" if "c" in images.axes else "yx"
-            images.iter_axes = "v"
 
             num_fields = images.sizes.get("v", 1)
             num_channels = images.sizes.get("c", 1)
@@ -129,117 +128,59 @@ class SyncChores:
                 with ThreadPoolExecutor() as executor:
                     for channel_idx in range(num_channels):
                         for time_idx in range(num_timepoints):
-                            # 後半コードと同様に Field/Channel/Time を指定
-                            images.default_coords.update(
-                                {"v": field_idx, "c": channel_idx, "t": time_idx}
+                            # ここで手動で指定する：v=field_idx, c=channel_idx, t=time_idx
+                            # 2Dフレームを取り出す
+                            frame_data = images.get_frame_2D(
+                                v=field_idx, c=channel_idx, t=time_idx
                             )
-                            # 画像を取得 (images[0] で現在のdefault_coordsのフレームを取得)
-                            frame_data = images[0]
+                            # frame_data.shape は通常 (y, x)
 
-                            # Zスタックがある場合は3Dになる可能性がある
-                            if len(frame_data.shape) == 3:
-                                for i in range(frame_data.shape[0]):
-                                    channel_image = cls.process_image(frame_data[i])
-                                    if i == 1:  # ph (位相差)
-                                        if time_idx == 0:
-                                            reference_image_ph = channel_image
-                                            # time=0はそのまま保存
-                                            tiff_filename = os.path.join(
-                                                base_output_subdir_ph,
-                                                f"time_{time_idx + 1}_channel_{i}.tif",
-                                            )
-                                            Image.fromarray(channel_image).save(
-                                                tiff_filename
-                                            )
-                                            print(f"Saved: {tiff_filename}")
-                                        else:
-                                            # 並列タスク
-                                            tasks.append(
-                                                executor.submit(
-                                                    cls._drift_and_save,
-                                                    reference_image_ph,
-                                                    channel_image,
-                                                    os.path.join(
-                                                        base_output_subdir_ph,
-                                                        f"time_{time_idx + 1}_channel_{i}.tif",
-                                                    ),
-                                                )
-                                            )
-                                    else:  # fluo
-                                        if time_idx == 0:
-                                            reference_image_fluo = channel_image
-                                            tiff_filename = os.path.join(
-                                                base_output_subdir_fluo,
-                                                f"time_{time_idx + 1}_channel_{i}.tif",
-                                            )
-                                            Image.fromarray(channel_image).save(
-                                                tiff_filename
-                                            )
-                                            print(f"Saved: {tiff_filename}")
-                                        else:
-                                            tasks.append(
-                                                executor.submit(
-                                                    cls._drift_and_save,
-                                                    reference_image_fluo,
-                                                    channel_image,
-                                                    os.path.join(
-                                                        base_output_subdir_fluo,
-                                                        f"time_{time_idx + 1}_channel_{i}.tif",
-                                                    ),
-                                                )
-                                            )
-                            else:
-                                # 2D の場合
-                                channel_image = cls.process_image(frame_data)
+                            # とりあえず channel_idx == 1 を ph (位相差) とし、
+                            # それ以外を fluo とする例
+                            channel_image = cls.process_image(frame_data)
 
-                                # とりあえずここでは channel_idx == 1 を ph とみなす例にしておく
-                                # (元々のロジックに合わせたい場合は適宜修正)
-                                if channel_idx == 1:
-                                    if time_idx == 0:
-                                        reference_image_ph = channel_image
-                                        tiff_filename = os.path.join(
-                                            base_output_subdir_ph,
-                                            f"time_{time_idx + 1}.tif",
-                                        )
-                                        Image.fromarray(channel_image).save(
-                                            tiff_filename
-                                        )
-                                        print(f"Saved: {tiff_filename}")
-                                    else:
-                                        tasks.append(
-                                            executor.submit(
-                                                cls._drift_and_save,
-                                                reference_image_ph,
-                                                channel_image,
-                                                os.path.join(
-                                                    base_output_subdir_ph,
-                                                    f"time_{time_idx + 1}.tif",
-                                                ),
-                                            )
-                                        )
+                            if channel_idx == 1:  # ph
+                                if time_idx == 0:
+                                    reference_image_ph = channel_image
+                                    tiff_filename = os.path.join(
+                                        base_output_subdir_ph,
+                                        f"time_{time_idx + 1}.tif",
+                                    )
+                                    Image.fromarray(channel_image).save(tiff_filename)
+                                    print(f"Saved: {tiff_filename}")
                                 else:
-                                    if time_idx == 0:
-                                        reference_image_fluo = channel_image
-                                        tiff_filename = os.path.join(
-                                            base_output_subdir_fluo,
-                                            f"time_{time_idx + 1}.tif",
+                                    tasks.append(
+                                        executor.submit(
+                                            cls._drift_and_save,
+                                            reference_image_ph,
+                                            channel_image,
+                                            os.path.join(
+                                                base_output_subdir_ph,
+                                                f"time_{time_idx + 1}.tif",
+                                            ),
                                         )
-                                        Image.fromarray(channel_image).save(
-                                            tiff_filename
+                                    )
+                            else:  # fluo
+                                if time_idx == 0:
+                                    reference_image_fluo = channel_image
+                                    tiff_filename = os.path.join(
+                                        base_output_subdir_fluo,
+                                        f"time_{time_idx + 1}.tif",
+                                    )
+                                    Image.fromarray(channel_image).save(tiff_filename)
+                                    print(f"Saved: {tiff_filename}")
+                                else:
+                                    tasks.append(
+                                        executor.submit(
+                                            cls._drift_and_save,
+                                            reference_image_fluo,
+                                            channel_image,
+                                            os.path.join(
+                                                base_output_subdir_fluo,
+                                                f"time_{time_idx + 1}.tif",
+                                            ),
                                         )
-                                        print(f"Saved: {tiff_filename}")
-                                    else:
-                                        tasks.append(
-                                            executor.submit(
-                                                cls._drift_and_save,
-                                                reference_image_fluo,
-                                                channel_image,
-                                                os.path.join(
-                                                    base_output_subdir_fluo,
-                                                    f"time_{time_idx + 1}.tif",
-                                                ),
-                                            )
-                                        )
+                                    )
 
                     # すべての並列タスク完了を待つ
                     for future in as_completed(tasks):
