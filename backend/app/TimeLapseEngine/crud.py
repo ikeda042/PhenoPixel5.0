@@ -94,6 +94,7 @@ class SyncChores:
         base_output_dir = "uploaded_files/"
         if os.path.exists("TimelapseParserTemp"):
             shutil.rmtree("TimelapseParserTemp")
+        shutil.rmtree("TimelapseParserTemp", ignore_errors=True)
         os.makedirs("TimelapseParserTemp", exist_ok=True)
 
         nd2_fullpath = os.path.join(base_output_dir, file_name)
