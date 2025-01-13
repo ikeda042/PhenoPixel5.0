@@ -100,7 +100,8 @@ async def extract_all_cells(file_name: str):
     全てのフィールドからセルを抽出し、データベースに保存するエンドポイント。
     """
     db_name = file_name.split(".")[0] + "_cells.db"
-    async for Field in TimelapseEngineCrudBase(file_name).get_fields_of_nd2():
+    fields = await TimelapseEngineCrudBase(file_name).get_fields_of_nd2()
+    for Field in fields:
         await TimelapseEngineCrudBase(file_name).extract_cells(
             field=Field, dbname=db_name
         )
