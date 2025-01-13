@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from fastapi.responses import JSONResponse
 import shutil
+import re  # 追加
 
 
 class SyncChores:
@@ -197,20 +198,29 @@ class SyncChores:
         ph_folder = os.path.join(field_folder, "ph")
         fluo_folder = os.path.join(field_folder, "fluo")
 
-        ph_image_files = sorted(
-            [
-                os.path.join(ph_folder, f)
-                for f in os.listdir(ph_folder)
-                if f.endswith(".tif")
-            ]
-        )
-        fluo_image_files = sorted(
-            [
-                os.path.join(fluo_folder, f)
-                for f in os.listdir(fluo_folder)
-                if f.endswith(".tif")
-            ]
-        )
+        # --- ここを修正: time_XX.tif の数字部分でソート ---
+        def extract_time_index(path: str) -> int:
+            """
+            ファイル名が time_数字.tif となっている想定で、
+            その数字部分を int にして返す
+            """
+            match = re.search(r"time_(\d+)\.tif", path)
+            return int(match.group(1)) if match else 0
+
+        ph_image_files = [
+            os.path.join(ph_folder, f)
+            for f in os.listdir(ph_folder)
+            if f.endswith(".tif")
+        ]
+        # ファイル名から数字を取り出してソート
+        ph_image_files = sorted(ph_image_files, key=extract_time_index)
+
+        fluo_image_files = [
+            os.path.join(fluo_folder, f)
+            for f in os.listdir(fluo_folder)
+            if f.endswith(".tif")
+        ]
+        fluo_image_files = sorted(fluo_image_files, key=extract_time_index)
 
         ph_images = [Image.open(img_file) for img_file in ph_image_files]
         fluo_images = [Image.open(img_file) for img_file in fluo_image_files]
