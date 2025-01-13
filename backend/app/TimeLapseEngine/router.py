@@ -87,8 +87,10 @@ async def delete_nd2_file(file_path: str):
 async def extract_cells(file_name: str, Field: str):
     """
     セルを抽出し、データベースに保存するエンドポイント。
+    デバッグ用途で使う。
     """
-    await TimelapseEngineCrudBase(file_name).extract_cells(Field)
+    db_name = file_name.split(".")[0] + f"_{Field}_cells.db"
+    await TimelapseEngineCrudBase(file_name).extract_cells(field=Field, dbname=db_name)
     return JSONResponse(content={"message": "Cells extracted and saved to database."})
 
 
@@ -97,6 +99,9 @@ async def extract_all_cells(file_name: str):
     """
     全てのフィールドからセルを抽出し、データベースに保存するエンドポイント。
     """
+    db_name = file_name.split(".")[0] + "_cells.db"
     async for Field in TimelapseEngineCrudBase(file_name).get_fields_of_nd2():
-        await TimelapseEngineCrudBase(file_name).extract_cells(Field)
+        await TimelapseEngineCrudBase(file_name).extract_cells(
+            field=Field, dbname=db_name
+        )
     return JSONResponse(content={"message": "Cells extracted and saved to database."})
