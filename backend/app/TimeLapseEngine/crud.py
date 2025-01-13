@@ -375,7 +375,7 @@ class TimelapseEngineCrudBase:
     async def extract_cells(
         self,
         field: str,
-        dbname: str = "cells_timelapse.db",
+        dbname: str,
         param1: int = 130,
         min_area: int = 300,
         crop_size: int = 200,
