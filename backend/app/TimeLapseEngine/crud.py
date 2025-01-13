@@ -372,18 +372,22 @@ class TimelapseEngineCrudBase:
         dbname: str = "cells_timelapse.db",
         param1: int = 130,
         min_area: int = 300,
+        crop_size: int = 200,
     ):
         """
         指定した Field (例: "Field_1") 内の全タイムポイントについて、
-        ph画像・fluo画像を読み込み、輪郭抽出→セル情報抽出→DBに保存する。
+        ph画像・fluo画像を読み込み、輪郭抽出 & セルクロップ → DBに保存する。
+
+        ※「細胞のクロップ方法」は先のコード例の SyncChores.init 内で行われている
+          フィルタリング & 重心クロップと同じロジックを踏襲しています。
 
         :param field: "Field_1" や "Field_2" のように指定
         :param dbname: SQLite の保存先DBファイル名
-        :param param1: ２値化用の閾値
+        :param param1: 位相差画像の閾値（2値化に使用）
         :param min_area: セルとみなす最小面積
         """
 
-        # DB作成 (すでに存在する場合は追記 or 先に消して作り直す等、用途に合わせて)
+        # DB作成 (すでに存在する場合は追記／用途に応じて)
         engine = create_async_engine(
             f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
         )
@@ -394,16 +398,21 @@ class TimelapseEngineCrudBase:
             engine, expire_on_commit=False, class_=AsyncSession
         )
 
-        # フォルダのパスを組み立て
+        # TimelapseParserTemp 以下のフォルダ構造:
+        #   TimelapseParserTemp/
+        #       Field_1/
+        #         ph/time_1.tif, time_2.tif, ...
+        #         fluo/time_1.tif, time_2.tif, ...
+        #
         ph_folder = os.path.join("TimelapseParserTemp", field, "ph")
         fluo_folder = os.path.join("TimelapseParserTemp", field, "fluo")
 
-        # time_{数字}.tif の数字部分を抽出してソートするための関数
+        # time_{数字}.tif の数字部分を抽出してソートする関数
         def extract_time_index(filename: str) -> int:
             match = re.search(r"time_(\d+)\.tif", filename)
             return int(match.group(1)) if match else 0
 
-        # ph, fluo のTIFファイルリストを取得
+        # ph, fluo のTIFファイルを取得して時系列順にソート
         ph_files = [f for f in os.listdir(ph_folder) if f.endswith(".tif")]
         fluo_files = [f for f in os.listdir(fluo_folder) if f.endswith(".tif")]
         ph_files = sorted(ph_files, key=extract_time_index)
@@ -413,12 +422,15 @@ class TimelapseEngineCrudBase:
             print("No TIFF files found for ph or fluo.")
             return
 
+        # クロップサイズ(幅,高さ)のタプルを作成 (width=height=crop_size)
+        output_size = (crop_size, crop_size)
+
         # タイムポイント数だけループ
         for i, (ph_file, fluo_file) in enumerate(zip(ph_files, fluo_files)):
             ph_path = os.path.join(ph_folder, ph_file)
             fluo_path = os.path.join(fluo_folder, fluo_file)
 
-            # 画像をOpenCVで読み込み
+            # OpenCVで読み込み (BGR)
             ph_img = cv2.imread(ph_path, cv2.IMREAD_COLOR)
             fluo_img = cv2.imread(fluo_path, cv2.IMREAD_COLOR)
 
@@ -429,59 +441,87 @@ class TimelapseEngineCrudBase:
             # (1) 位相差をグレースケールに変換して閾値処理
             ph_gray = cv2.cvtColor(ph_img, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(ph_gray, param1, 255, cv2.THRESH_BINARY)
-            # (2) Cannyなどで輪郭検出
-            edges = cv2.Canny(thresh, 0, 150)
+
+            # (2) Canny で輪郭検出
+            edges = cv2.Canny(thresh, 0, 130)
             contours, hierarchy = cv2.findContours(
                 edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
             )
 
-            # 面積フィルタ
+            # (3) 面積フィルタリング
             contours = [cnt for cnt in contours if cv2.contourArea(cnt) >= min_area]
 
-            # セル個数ループ
+            # (4) 以下、DBに保存
             async with async_session() as session:
-                for c_idx, contour in enumerate(contours):
-                    # セル情報計算
-                    perimeter = cv2.arcLength(contour, True)
+
+                c_idx = 1  # セル番号用カウンタ
+                for contour in contours:
                     area = cv2.contourArea(contour)
+                    perimeter = cv2.arcLength(contour, True)
                     M = cv2.moments(contour)
                     if M["m00"] == 0:
                         continue
-                    center_x = M["m10"] / M["m00"]
-                    center_y = M["m01"] / M["m00"]
+                    cx = int(M["m10"] / M["m00"])
+                    cy = int(M["m01"] / M["m00"])
 
-                    # IDなど好きなように付与
-                    cell_id = f"field{field}_time{i+1}_cell{c_idx+1}"
+                    # (5) 中心が [400, 2000] の範囲にあるかどうかでフィルタ
+                    #     ※ 必要に応じて [400, 1700] などに修正してください
+                    if not (400 < cx < 2000 and 400 < cy < 2000):
+                        continue
 
-                    # ph / fluo それぞれのグレースケール
-                    ph_gray_encode = cv2.imencode(".png", ph_gray)[1].tobytes()
-                    fluo_gray = cv2.cvtColor(fluo_img, cv2.COLOR_BGR2GRAY)
-                    fluo_gray_encode = cv2.imencode(".png", fluo_gray)[1].tobytes()
+                    # (6) 中心座標(cx,cy)を中心に (image_size x image_size) でクロップ
+                    x1 = max(0, cx - output_size[0] // 2)
+                    y1 = max(0, cy - output_size[1] // 2)
+                    x2 = min(ph_img.shape[1], cx + output_size[0] // 2)
+                    y2 = min(ph_img.shape[0], cy + output_size[1] // 2)
 
-                    # DB に格納 (Cell テーブル)
+                    cropped_ph = ph_img[y1:y2, x1:x2]  # BGR
+                    cropped_fluo = fluo_img[y1:y2, x1:x2]  # BGR
+
+                    # (7) クロップ結果がちょうど指定サイズでなければスキップ
+                    if (
+                        cropped_ph.shape[0] != output_size[1]
+                        or cropped_ph.shape[1] != output_size[0]
+                    ):
+                        continue
+
+                    # (8) DB保存用にグレースケール → PNGエンコード (バイナリ化)
+                    cropped_ph_gray = cv2.cvtColor(cropped_ph, cv2.COLOR_BGR2GRAY)
+                    cropped_fluo_gray = cv2.cvtColor(cropped_fluo, cv2.COLOR_BGR2GRAY)
+
+                    ph_gray_encode = cv2.imencode(".png", cropped_ph_gray)[1].tobytes()
+                    fluo_gray_encode = cv2.imencode(".png", cropped_fluo_gray)[
+                        1
+                    ].tobytes()
+
+                    # (9) セルIDなど適当に付与 (例: field名 + time + cell番号 など)
+                    cell_id = f"{field}_time{i+1}_cell{c_idx}"
+
                     cell_obj = Cell(
                         cell_id=cell_id,
-                        label_experiment=field,  # 例: Field名を実験ラベルとして登録
-                        manual_label=-1,  # まだ未分類などの意味で -1
+                        label_experiment=field,  # 例: field名をexperimentラベルに
+                        manual_label=-1,  # 未分類の意味で仮に -1 とする
                         perimeter=perimeter,
                         area=area,
                         img_ph=ph_gray_encode,
                         img_fluo1=fluo_gray_encode,
                         img_fluo2=None,  # 今回は fluo2未使用とする
-                        contour=pickle.dumps(contour),
-                        center_x=center_x,
-                        center_y=center_y,
+                        contour=pickle.dumps(contour),  # 輪郭をpickleで保存
+                        center_x=cx,
+                        center_y=cy,
                     )
 
-                    # 既存チェックは適宜行う
-                    # 例: 同じ cell_id が既にあるかどうかを確認してから追加
+                    # 既に同一 cell_id があるかチェック (必要に応じて)
                     existing = await session.execute(
                         select(Cell).filter_by(cell_id=cell_id)
                     )
                     if existing.scalar() is None:
                         session.add(cell_obj)
 
+                    c_idx += 1  # 次のセル番号へ
+
+                # コミット
                 await session.commit()
 
-        print("Cell extraction finished.")
+        print("Cell extraction finished (with cropping).")
         return
