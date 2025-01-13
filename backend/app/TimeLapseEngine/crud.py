@@ -366,7 +366,6 @@ class TimelapseEngineCrudBase:
             num_fields = images.sizes.get("v", 1)
             return [f"Field_{i+1}" for i in range(num_fields)]
 
-    # ▼ ここから追加：extract_cellsメソッドの例 ▼
     async def extract_cells(
         self,
         field: str,
@@ -486,5 +485,3 @@ class TimelapseEngineCrudBase:
 
         print("Cell extraction finished.")
         return
-
-    # ▲ ここまでが追加メソッド ▲
