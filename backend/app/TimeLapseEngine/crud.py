@@ -59,6 +59,18 @@ async def create_database(dbname: str):
     return engine
 
 
+import os
+import re
+import cv2
+import io
+import shutil
+import numpy as np
+import nd2reader
+from PIL import Image
+import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
 class SyncChores:
     """
     既存の補助的クラス。
@@ -80,14 +92,18 @@ class SyncChores:
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         matches = bf.match(des1, des2)
 
-        if len(matches) < 10:  # マッチングが少なすぎる場合、補正を行わない
+        # マッチングがあまりに少ない場合は補正を行わない
+        if len(matches) < 10:
             print("Insufficient matches, skipping drift correction.")
             return target_image
 
+        # ORB特徴点の座標リスト
         src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
 
+        # 画像の縦横サイズ
         height, width = reference_image.shape[:2]
+
         # x座標とy座標をそれぞれ反転
         src_pts[:, :, 0] = width - src_pts[:, :, 0]
         src_pts[:, :, 1] = height - src_pts[:, :, 1]
@@ -118,28 +134,20 @@ class SyncChores:
         array -= array_min
         diff = array_max - array_min
         if diff == 0:
-            # 全てが同値の場合
+            # 全てが同値の場合は真っ黒にする
             return (array * 0).astype(np.uint8)
         array /= diff
         array *= 255
         return array.astype(np.uint8)
 
     @classmethod
-    def _drift_and_save(cls, reference_image, target_image, save_path):
-        """
-        並列用: ドリフト補正して保存する小分け関数
-        """
-        corrected = cls.correct_drift(reference_image, target_image)
-        Image.fromarray(corrected).save(save_path)
-        return save_path
-
-    @classmethod
     def extract_timelapse_nd2(cls, file_name: str):
         """
-        タイムラプスnd2ファイルをFieldごと・時系列ごとにTIFFで保存。
+        タイムラプス nd2 ファイルを Field ごと・時系列ごとに TIFF で保存（補正後を上書き保存）。
         (チャンネル0 -> fluo, チャンネル1 -> ph の想定)
         """
         base_output_dir = "uploaded_files/"
+        # 既存の作業用フォルダがあれば削除し、再作成
         if os.path.exists("TimelapseParserTemp"):
             shutil.rmtree("TimelapseParserTemp")
         os.makedirs("TimelapseParserTemp", exist_ok=True)
@@ -156,6 +164,7 @@ class SyncChores:
             num_channels = images.sizes.get("c", 1)
             num_timepoints = images.sizes.get("t", 1)
 
+            # Field(視野)ごとに処理
             for field_idx in range(num_fields):
                 field_folder = os.path.join(
                     "TimelapseParserTemp", f"Field_{field_idx + 1}"
@@ -166,61 +175,70 @@ class SyncChores:
                 os.makedirs(base_output_subdir_ph, exist_ok=True)
                 os.makedirs(base_output_subdir_fluo, exist_ok=True)
 
+                # ph, fluo それぞれの参照画像を初期化
                 reference_image_ph = None
                 reference_image_fluo = None
 
+                # 並列実行のためのキュー
                 tasks = []
                 with ThreadPoolExecutor() as executor:
                     for channel_idx in range(num_channels):
                         for time_idx in range(num_timepoints):
+                            # 2次元フレームを取得
                             frame_data = images.get_frame_2D(
                                 v=field_idx, c=channel_idx, t=time_idx
                             )
                             channel_image = cls.process_image(frame_data)
 
-                            if channel_idx == 1:  # ph
+                            # 保存先のパスを作成
+                            if channel_idx == 1:  # ph チャンネル
+                                tiff_filename = os.path.join(
+                                    base_output_subdir_ph,
+                                    f"time_{time_idx + 1}.tif",
+                                )
                                 if time_idx == 0:
+                                    # 1フレーム目：参照画像をセット
                                     reference_image_ph = channel_image
-                                    tiff_filename = os.path.join(
-                                        base_output_subdir_ph,
-                                        f"time_{time_idx + 1}.tif",
-                                    )
-                                    Image.fromarray(channel_image).save(tiff_filename)
-                                    print(f"Saved: {tiff_filename}")
+                                    # ※もし1フレーム目も補正したい場合は下の行をコメントアウトして、
+                                    #   'corrected_image = cls.correct_drift(...)' を呼び出すように変更してください
+                                    corrected_image = channel_image
+                                    Image.fromarray(corrected_image).save(tiff_filename)
+                                    print(f"Saved (ph, first): {tiff_filename}")
                                 else:
+                                    # 2フレーム目以降は drift 補正して上書き保存
                                     tasks.append(
                                         executor.submit(
                                             cls._drift_and_save,
                                             reference_image_ph,
                                             channel_image,
-                                            os.path.join(
-                                                base_output_subdir_ph,
-                                                f"time_{time_idx + 1}.tif",
-                                            ),
+                                            tiff_filename,
                                         )
                                     )
-                            else:  # fluo
+                            else:  # fluo チャンネル
+                                tiff_filename = os.path.join(
+                                    base_output_subdir_fluo,
+                                    f"time_{time_idx + 1}.tif",
+                                )
                                 if time_idx == 0:
+                                    # 1フレーム目：参照画像をセット
                                     reference_image_fluo = channel_image
-                                    tiff_filename = os.path.join(
-                                        base_output_subdir_fluo,
-                                        f"time_{time_idx + 1}.tif",
-                                    )
-                                    Image.fromarray(channel_image).save(tiff_filename)
-                                    print(f"Saved: {tiff_filename}")
+                                    # ※もし1フレーム目も補正したい場合は下の行をコメントアウトして、
+                                    #   'corrected_image = cls.correct_drift(...)' を呼び出すように変更してください
+                                    corrected_image = channel_image
+                                    Image.fromarray(corrected_image).save(tiff_filename)
+                                    print(f"Saved (fluo, first): {tiff_filename}")
                                 else:
+                                    # 2フレーム目以降は drift 補正して上書き保存
                                     tasks.append(
                                         executor.submit(
                                             cls._drift_and_save,
                                             reference_image_fluo,
                                             channel_image,
-                                            os.path.join(
-                                                base_output_subdir_fluo,
-                                                f"time_{time_idx + 1}.tif",
-                                            ),
+                                            tiff_filename,
                                         )
                                     )
 
+                    # 並列タスク完了待ち
                     for future in as_completed(tasks):
                         try:
                             saved_path = future.result()
@@ -229,35 +247,54 @@ class SyncChores:
                             print(f"Error in parallel task: {e}")
 
     @classmethod
+    def _drift_and_save(cls, reference_image, target_image, save_path):
+        """
+        並列用: ドリフト補正して上書き保存する小分け関数。
+        """
+        corrected = cls.correct_drift(reference_image, target_image)
+        Image.fromarray(corrected).save(save_path)
+        return save_path
+
+    @classmethod
     def create_combined_gif(
         cls, field_folder: str, resize_factor: float = 0.5
     ) -> io.BytesIO:
+        """
+        ph と fluo を横並びに合成した GIF をメモリ上 (BytesIO) に作成して返す。
+        """
         ph_folder = os.path.join(field_folder, "ph")
         fluo_folder = os.path.join(field_folder, "fluo")
 
+        # 時間インデックスを取り出すための正規表現
         def extract_time_index(path: str) -> int:
             match = re.search(r"time_(\d+)\.tif", path)
             return int(match.group(1)) if match else 0
 
-        ph_image_files = [
-            os.path.join(ph_folder, f)
-            for f in os.listdir(ph_folder)
-            if f.endswith(".tif")
-        ]
-        ph_image_files = sorted(ph_image_files, key=extract_time_index)
+        # ph と fluo でそれぞれのファイルをソート
+        ph_image_files = sorted(
+            [
+                os.path.join(ph_folder, f)
+                for f in os.listdir(ph_folder)
+                if f.endswith(".tif")
+            ],
+            key=extract_time_index,
+        )
+        fluo_image_files = sorted(
+            [
+                os.path.join(fluo_folder, f)
+                for f in os.listdir(fluo_folder)
+                if f.endswith(".tif")
+            ],
+            key=extract_time_index,
+        )
 
-        fluo_image_files = [
-            os.path.join(fluo_folder, f)
-            for f in os.listdir(fluo_folder)
-            if f.endswith(".tif")
-        ]
-        fluo_image_files = sorted(fluo_image_files, key=extract_time_index)
-
+        # 画像として読み込み
         ph_images = [Image.open(img_file) for img_file in ph_image_files]
         fluo_images = [Image.open(img_file) for img_file in fluo_image_files]
 
         combined_images = []
         for ph_img, fluo_img in zip(ph_images, fluo_images):
+            # リサイズ
             ph_img_resized = ph_img.resize(
                 (int(ph_img.width * resize_factor), int(ph_img.height * resize_factor))
             )
@@ -268,6 +305,7 @@ class SyncChores:
                 )
             )
 
+            # 横に並べて合成
             combined_width = ph_img_resized.width + fluo_img_resized.width
             combined_height = max(ph_img_resized.height, fluo_img_resized.height)
             combined_img = Image.new("RGB", (combined_width, combined_height))
@@ -278,6 +316,7 @@ class SyncChores:
         if not combined_images:
             raise ValueError("No images found to create combined GIF.")
 
+        # GIF をメモリに書き込む
         gif_buffer = io.BytesIO()
         combined_images[0].save(
             gif_buffer,
