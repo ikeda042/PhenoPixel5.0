@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
 import math
+from fastapi import HTTPException
+from fastapi.responses import StreamingResponse
 
 Base = declarative_base()
 
@@ -559,3 +561,77 @@ class TimelapseEngineCrudBase:
 
         print("Cell extraction finished (with cropping).")
         return
+
+    async def create_gif_for_cell(
+        self,
+        field: str,
+        cell_number: int,
+        dbname: str,
+        channel: str = "ph",  # "ph", "fluo1", "fluo2"
+        duration_ms: int = 200,
+    ):
+        if channel not in ["ph", "fluo1", "fluo2"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid channel. Use 'ph', 'fluo1', or 'fluo2'.",
+            )
+
+        engine = create_async_engine(
+            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+        )
+        async_session = sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+        frames = []
+        async with async_session() as session:
+            # 例: "field" カラムと "cell" カラムを持つテーブルがある想定
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells = result.scalars().all()
+            if not cells:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No data found for field={field}, cell={cell_number}",
+                )
+
+            for row in cells:
+                if channel == "ph":
+                    img_binary = row.img_ph
+                elif channel == "fluo1":
+                    img_binary = row.img_fluo1
+                else:  # channel == "fluo2"
+                    img_binary = row.img_fluo2
+
+                if img_binary is None:
+                    continue
+
+                np_img = cv2.imdecode(
+                    np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
+                )
+                if np_img is None:
+                    continue
+
+                pil_img = Image.fromarray(np_img)
+                frames.append(pil_img)
+
+        if not frames:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No valid frames found for field={field}, cell={cell_number}, channel={channel}",
+            )
+
+        gif_buffer = io.BytesIO()
+        frames[0].save(
+            gif_buffer,
+            format="GIF",
+            save_all=True,
+            append_images=frames[1:],
+            duration=duration_ms,
+            loop=0,
+        )
+        gif_buffer.seek(0)
+        return gif_buffer

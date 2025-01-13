@@ -106,3 +106,23 @@ async def extract_all_cells(file_name: str):
             field=Field, dbname=db_name
         )
     return JSONResponse(content={"message": "Cells extracted and saved to database."})
+
+
+@router_tl_engine.get("/nd2_files/{file_name}/cells/{field_name}/{cell_number}/gif")
+async def create_gif_for_cell_endpoint(
+    file_name: str, field_name: str, cell_number: int
+):
+    """
+    セル番号に対応する GIF を生成し、ストリーミングで返すエンドポイント。
+    """
+    db_name = file_name.split(".")[0] + f"_cells.db"
+    crud = TimelapseEngineCrudBase(file_name)
+    gif_buffer = await crud.create_gif_for_cell(
+        field=field_name, cell_number=cell_number, dbname=db_name
+    )
+
+    return StreamingResponse(
+        gif_buffer,
+        media_type="image/gif",
+        headers={"Content-Disposition": "attachment; filename=cell.gif"},
+    )
