@@ -9,10 +9,59 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from fastapi.responses import JSONResponse
 import shutil
-import re  # 追加
+import re
+
+# 追加
+import pickle
+from typing import Literal
+import aiofiles
+from fastapi import HTTPException
+from fastapi.responses import StreamingResponse
+from sqlalchemy import BLOB, Column, FLOAT, Integer, String
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.sql import select
+import ulid
+
+Base = declarative_base()
+
+
+# 既存の DB テーブル定義 (細胞情報を保存するための例)
+class Cell(Base):
+    __tablename__ = "cells"
+    id = Column(Integer, primary_key=True)
+    cell_id = Column(String)
+    label_experiment = Column(String)
+    manual_label = Column(Integer)
+    perimeter = Column(FLOAT)
+    area = Column(FLOAT)
+    img_ph = Column(BLOB)
+    img_fluo1 = Column(BLOB, nullable=True)
+    img_fluo2 = Column(BLOB, nullable=True)
+    contour = Column(BLOB)
+    center_x = Column(FLOAT)
+    center_y = Column(FLOAT)
+
+
+async def get_session(dbname: str):
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False)
+    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    async with async_session() as session:
+        yield session
+
+
+async def create_database(dbname: str):
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=True)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    return engine
 
 
 class SyncChores:
+    """
+    既存の補助的クラス。
+    """
+
     @staticmethod
     def correct_drift(reference_image, target_image):
         """
@@ -33,18 +82,16 @@ class SyncChores:
             print("Insufficient matches, skipping drift correction.")
             return target_image
 
-        # 特徴点の座標を取得し、x軸とy軸を反転させる
         src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
 
         height, width = reference_image.shape[:2]
         # x座標とy座標をそれぞれ反転
-        src_pts[:, :, 0] = width - src_pts[:, :, 0]  # x座標を反転
-        src_pts[:, :, 1] = height - src_pts[:, :, 1]  # y座標を反転
+        src_pts[:, :, 0] = width - src_pts[:, :, 0]
+        src_pts[:, :, 1] = height - src_pts[:, :, 1]
         dst_pts[:, :, 0] = width - dst_pts[:, :, 0]
         dst_pts[:, :, 1] = height - dst_pts[:, :, 1]
 
-        # RANSACで部分アフィン行列を推定
         matrix, mask = cv2.estimateAffinePartial2D(
             src_pts, dst_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0
         )
@@ -91,18 +138,14 @@ class SyncChores:
         (チャンネル0 -> fluo, チャンネル1 -> ph の想定)
         """
         base_output_dir = "uploaded_files/"
-        # 出力用フォルダを作り直す
         if os.path.exists("TimelapseParserTemp"):
             shutil.rmtree("TimelapseParserTemp")
         os.makedirs("TimelapseParserTemp", exist_ok=True)
 
         nd2_fullpath = os.path.join(base_output_dir, file_name)
         with nd2reader.ND2Reader(nd2_fullpath) as images:
-            # ★★★ ここがポイント： iter_axes をオフにする(または None にする)
             images.iter_axes = []
-
-            # 必要に応じて bundle_axes を設定 (c,y,x) など
-            images.bundle_axes = "yxc"  # 例: y,x,c
+            images.bundle_axes = "yxc"
 
             print(f"Available axes: {images.axes}")
             print(f"Sizes: {images.sizes}")
@@ -124,20 +167,13 @@ class SyncChores:
                 reference_image_ph = None
                 reference_image_fluo = None
 
-                # 並列タスクの蓄積先
                 tasks = []
                 with ThreadPoolExecutor() as executor:
                     for channel_idx in range(num_channels):
                         for time_idx in range(num_timepoints):
-                            # ここで手動で指定する：v=field_idx, c=channel_idx, t=time_idx
-                            # 2Dフレームを取り出す
                             frame_data = images.get_frame_2D(
                                 v=field_idx, c=channel_idx, t=time_idx
                             )
-                            # frame_data.shape は通常 (y, x)
-
-                            # とりあえず channel_idx == 1 を ph (位相差) とし、
-                            # それ以外を fluo とする例
                             channel_image = cls.process_image(frame_data)
 
                             if channel_idx == 1:  # ph
@@ -183,7 +219,6 @@ class SyncChores:
                                         )
                                     )
 
-                    # すべての並列タスク完了を待つ
                     for future in as_completed(tasks):
                         try:
                             saved_path = future.result()
@@ -198,12 +233,7 @@ class SyncChores:
         ph_folder = os.path.join(field_folder, "ph")
         fluo_folder = os.path.join(field_folder, "fluo")
 
-        # --- ここを修正: time_XX.tif の数字部分でソート ---
         def extract_time_index(path: str) -> int:
-            """
-            ファイル名が time_数字.tif となっている想定で、
-            その数字部分を int にして返す
-            """
             match = re.search(r"time_(\d+)\.tif", path)
             return int(match.group(1)) if match else 0
 
@@ -212,7 +242,6 @@ class SyncChores:
             for f in os.listdir(ph_folder)
             if f.endswith(".tif")
         ]
-        # ファイル名から数字を取り出してソート
         ph_image_files = sorted(ph_image_files, key=extract_time_index)
 
         fluo_image_files = [
@@ -300,7 +329,7 @@ class AsyncChores:
 
 class TimelapseEngineCrudBase:
     """
-    ND2 -> TIFF(タイムラプス分割) -> GIF作成 といった一連の流れを実装するクラスの例
+    ND2 -> TIFF(タイムラプス分割) -> GIF作成 といった流れを実装するクラスの例
     """
 
     def __init__(self, nd2_path: str):
@@ -315,12 +344,12 @@ class TimelapseEngineCrudBase:
         return True
 
     async def main(self):
-        # ND2ファイルを tiff に分割保存 (ドリフト補正込み)
+        # ND2ファイルを TIFF に分割保存 (ドリフト補正込み)
         await AsyncChores().extract_timelapse_nd2(self.nd2_path)
         return JSONResponse(content={"message": "Timelapse extracted"})
 
     async def create_combined_gif(self, field: str):
-        # 指定したFieldフォルダからGIFを生成
+        # 指定した Field フォルダから GIF を生成
         return await AsyncChores().create_combined_gif("TimelapseParserTemp/" + field)
 
     async def get_fields_of_nd2(self) -> list[str]:
@@ -336,3 +365,126 @@ class TimelapseEngineCrudBase:
         with nd2reader.ND2Reader(nd2_fullpath) as images:
             num_fields = images.sizes.get("v", 1)
             return [f"Field_{i+1}" for i in range(num_fields)]
+
+    # ▼ ここから追加：extract_cellsメソッドの例 ▼
+    async def extract_cells(
+        self,
+        field: str,
+        dbname: str = "cells_timelapse.db",
+        param1: int = 130,
+        min_area: int = 300,
+    ):
+        """
+        指定した Field (例: "Field_1") 内の全タイムポイントについて、
+        ph画像・fluo画像を読み込み、輪郭抽出→セル情報抽出→DBに保存する。
+
+        :param field: "Field_1" や "Field_2" のように指定
+        :param dbname: SQLite の保存先DBファイル名
+        :param param1: ２値化用の閾値
+        :param min_area: セルとみなす最小面積
+        """
+
+        # DB作成 (すでに存在する場合は追記 or 先に消して作り直す等、用途に合わせて)
+        engine = create_async_engine(
+            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+        )
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)  # Cell テーブルを作成
+
+        async_session = sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+        # フォルダのパスを組み立て
+        ph_folder = os.path.join("TimelapseParserTemp", field, "ph")
+        fluo_folder = os.path.join("TimelapseParserTemp", field, "fluo")
+
+        # time_{数字}.tif の数字部分を抽出してソートするための関数
+        def extract_time_index(filename: str) -> int:
+            match = re.search(r"time_(\d+)\.tif", filename)
+            return int(match.group(1)) if match else 0
+
+        # ph, fluo のTIFファイルリストを取得
+        ph_files = [f for f in os.listdir(ph_folder) if f.endswith(".tif")]
+        fluo_files = [f for f in os.listdir(fluo_folder) if f.endswith(".tif")]
+        ph_files = sorted(ph_files, key=extract_time_index)
+        fluo_files = sorted(fluo_files, key=extract_time_index)
+
+        if not ph_files or not fluo_files:
+            print("No TIFF files found for ph or fluo.")
+            return
+
+        # タイムポイント数だけループ
+        for i, (ph_file, fluo_file) in enumerate(zip(ph_files, fluo_files)):
+            ph_path = os.path.join(ph_folder, ph_file)
+            fluo_path = os.path.join(fluo_folder, fluo_file)
+
+            # 画像をOpenCVで読み込み
+            ph_img = cv2.imread(ph_path, cv2.IMREAD_COLOR)
+            fluo_img = cv2.imread(fluo_path, cv2.IMREAD_COLOR)
+
+            if ph_img is None or fluo_img is None:
+                print(f"Skipping because image not found: {ph_path}, {fluo_path}")
+                continue
+
+            # (1) 位相差をグレースケールに変換して閾値処理
+            ph_gray = cv2.cvtColor(ph_img, cv2.COLOR_BGR2GRAY)
+            _, thresh = cv2.threshold(ph_gray, param1, 255, cv2.THRESH_BINARY)
+            # (2) Cannyなどで輪郭検出
+            edges = cv2.Canny(thresh, 0, 150)
+            contours, hierarchy = cv2.findContours(
+                edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+            )
+
+            # 面積フィルタ
+            contours = [cnt for cnt in contours if cv2.contourArea(cnt) >= min_area]
+
+            # セル個数ループ
+            async with async_session() as session:
+                for c_idx, contour in enumerate(contours):
+                    # セル情報計算
+                    perimeter = cv2.arcLength(contour, True)
+                    area = cv2.contourArea(contour)
+                    M = cv2.moments(contour)
+                    if M["m00"] == 0:
+                        continue
+                    center_x = M["m10"] / M["m00"]
+                    center_y = M["m01"] / M["m00"]
+
+                    # IDなど好きなように付与
+                    cell_id = f"field{field}_time{i+1}_cell{c_idx+1}"
+
+                    # ph / fluo それぞれのグレースケール
+                    ph_gray_encode = cv2.imencode(".png", ph_gray)[1].tobytes()
+                    fluo_gray = cv2.cvtColor(fluo_img, cv2.COLOR_BGR2GRAY)
+                    fluo_gray_encode = cv2.imencode(".png", fluo_gray)[1].tobytes()
+
+                    # DB に格納 (Cell テーブル)
+                    cell_obj = Cell(
+                        cell_id=cell_id,
+                        label_experiment=field,  # 例: Field名を実験ラベルとして登録
+                        manual_label=-1,  # まだ未分類などの意味で -1
+                        perimeter=perimeter,
+                        area=area,
+                        img_ph=ph_gray_encode,
+                        img_fluo1=fluo_gray_encode,
+                        img_fluo2=None,  # 今回は fluo2未使用とする
+                        contour=pickle.dumps(contour),
+                        center_x=center_x,
+                        center_y=center_y,
+                    )
+
+                    # 既存チェックは適宜行う
+                    # 例: 同じ cell_id が既にあるかどうかを確認してから追加
+                    existing = await session.execute(
+                        select(Cell).filter_by(cell_id=cell_id)
+                    )
+                    if existing.scalar() is None:
+                        session.add(cell_obj)
+
+                await session.commit()
+
+        print("Cell extraction finished.")
+        return
+
+    # ▲ ここまでが追加メソッド ▲
