@@ -1,260 +1,221 @@
-import React, { useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
-    Box, Grid, Typography, TextField, Button, MenuItem, Select, FormControl, InputLabel, Backdrop, CircularProgress, Breadcrumbs, Link
+  Box,
+  Grid,
+  Typography,
+  Button,
+  Backdrop,
+  CircularProgress,
+  Breadcrumbs,
+  Link,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
+  Card,
+  CardContent,
+  useMediaQuery,
+  useTheme
 } from "@mui/material";
-import { styled } from '@mui/system';
 import axios from "axios";
 import { settings } from "../settings";
-import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 
 const url_prefix = settings.url_prefix;
 
-const CustomTextField = styled(TextField)({
-    '& .MuiOutlinedInput-root': {
-        '& fieldset': {
-            borderColor: 'black',
-        },
-        '&:hover fieldset': {
-            borderColor: 'black',
-        },
-        '&.Mui-focused fieldset': {
-            borderColor: 'black',
-        },
-    },
-    '& input[type=number]': {
-        '-moz-appearance': 'textfield',
-    },
-    '& input[type=number]::-webkit-outer-spin-button': {
-        '-webkit-appearance': 'none',
-        margin: 0,
-    },
-    '& input[type=number]::-webkit-inner-spin-button': {
-        '-webkit-appearance': 'none',
-        margin: 0,
-    },
-});
-
 const TimelapseParser: React.FC = () => {
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const fileName = searchParams.get("file_name") || "";
-    const [mode, setMode] = useState("dual_layer");
-    const [param1, setParam1] = useState(100);
-    const [imageSize, setImageSize] = useState(200);
-    const [isLoading, setIsLoading] = useState(false);
-    const [numImages, setNumImages] = useState(0);
-    const [currentImage, setCurrentImage] = useState(0);
-    const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const fileName = searchParams.get("file_name") || "";
+  const [isLoading, setIsLoading] = useState(false);
 
-    const handleExtractCells = async () => {
-        setIsLoading(true);
-        const reverseLayers = mode === "dual_layer_reversed";
-        try {
-            await axios.get(`${url_prefix}/tl-engine_x100/nd2_files/${fileName}`, {
-                params: {
-                    param1,
-                    image_size: imageSize,
-                    reverse_layers: reverseLayers,
-                },
-            });
-            const countResponse = await axios.get(`${url_prefix}/cell_extraction/ph_contours/count`);
-            const numImages = countResponse.data.count;
-            setNumImages(numImages);
-            setCurrentImage(0);
-            fetchImage(0);
-        } catch (error) {
-            console.error("Failed to extract cells", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  // Field 関連
+  const [fields, setFields] = useState<string[]>([]);
+  const [selectedField, setSelectedField] = useState<string>("");
+  const [gifUrl, setGifUrl] = useState<string>("");
 
-    const fetchImage = async (frameNum: number) => {
-        try {
-            const response = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${frameNum}`, {
-                responseType: 'blob',
-            });
-            const imageUrl = URL.createObjectURL(response.data);
-            setCurrentImageUrl(imageUrl);
-        } catch (error) {
-            console.error("Failed to fetch image", error);
-        }
-    };
+  // レスポンシブブレイクポイントを取得
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
-    const handlePreviousImage = () => {
-        const newImage = currentImage - 1;
-        if (newImage >= 0) {
-            setCurrentImage(newImage);
-            fetchImage(newImage);
-        }
-    };
+  /**
+   * ND2 ファイルをパースする
+   * 1) GET /tlengine/nd2_files/{file_name}
+   * 2) パース完了後に、GET /tlengine/nd2_files/{file_name}/fields を呼び出す
+   */
+  const handleParseND2 = async () => {
+    if (!fileName) return;
+    setIsLoading(true);
+    try {
+      // 1) ND2 ファイルの解析
+      await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}`);
+      // 2) Field 一覧を取得
+      const fieldsResponse = await axios.get(
+        `${url_prefix}/tlengine/nd2_files/${fileName}/fields`
+      );
+      if (fieldsResponse.data.fields) {
+        setFields(fieldsResponse.data.fields);
+      } else {
+        setFields([]);
+      }
+    } catch (error) {
+      console.error("Failed to parse ND2 file or get fields", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const handleNextImage = () => {
-        const newImage = currentImage + 1;
-        if (newImage < numImages) {
-            setCurrentImage(newImage);
-            fetchImage(newImage);
-        }
-    };
+  /**
+   * Field 選択時に呼び出す
+   * GET /tlengine/nd2_files/{file_name}/gif/{Field} で GIF を取得
+   */
+  const fetchGif = async (fieldValue: string) => {
+    if (!fileName || !fieldValue) return;
+    setIsLoading(true);
+    try {
+      const response = await axios.get(
+        `${url_prefix}/tlengine/nd2_files/${fileName}/gif/${fieldValue}`,
+        { responseType: "blob" }
+      );
+      const blobUrl = URL.createObjectURL(response.data);
+      setGifUrl(blobUrl);
+    } catch (error) {
+      console.error("Failed to fetch GIF", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const handleGoToDatabases = () => {
-        navigate(`/dbconsole?default_search_word=${fileName.slice(0, -10)}`);
-    };
+  /**
+   * Field セレクト変更時のハンドラ
+   */
+  const handleFieldChange = (event: SelectChangeEvent<string>) => {
+    const newField = event.target.value as string;
+    setSelectedField(newField);
+    fetchGif(newField);
+  };
 
-    const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-        event.currentTarget.blur();
-        event.preventDefault();
-    };
+  return (
+    <>
+      <Backdrop open={isLoading} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
 
-    return (
-        <Box>
-            <Backdrop open={isLoading} style={{ zIndex: 1201 }}>
-                <CircularProgress color="inherit" />
-            </Backdrop>
-            <Box mb={2}>
-                <Breadcrumbs aria-label="breadcrumb">
-                    <Link underline="hover" color="inherit" href="/">
-                        Top
-                    </Link>
-                    <Link underline="hover" color="inherit" href="/tl-engine">
-                        Timelapse ND2 files
-                    </Link>
-
-                    <Typography color="text.primary">Cell extraction</Typography>
-                </Breadcrumbs>
-            </Box>
-            <Grid container spacing={2} >
-                <Grid item xs={12} md={4} style={{ display: 'flex', justifyContent: 'center' }}>
-                    <Box width="100%" >
-                        <Typography variant="body1">
-                            nd2 filename :  {fileName}
-                        </Typography>
-                        <FormControl fullWidth margin="normal">
-                            <InputLabel>Mode</InputLabel>
-                            <Select
-                                value={mode}
-                                onChange={(e) => setMode(e.target.value)}
-                            >
-                                <MenuItem value="single_layer">Single Layer</MenuItem>
-                                <MenuItem value="dual_layer">Dual Layer</MenuItem>
-                                <MenuItem value="dual_layer_reversed">Dual Layer (Reversed)</MenuItem> {/* Use reverse_layers for this */}
-                                <MenuItem value="triple_layer">Triple Layer</MenuItem>
-                            </Select>
-                        </FormControl>
-                        <TextField
-                            label="Param1"
-                            type="number"
-                            placeholder="1-255"
-                            value={param1}
-                            onChange={(e) => setParam1(Number(e.target.value))}
-                            InputProps={{
-                                inputProps: { min: 0.1, step: 0.1 },
-                                onWheel: handleWheel,
-                                autoComplete: "off"
-                            }}
-                        />
-                        <CustomTextField
-                            label="Image Size"
-                            type="number"
-                            fullWidth
-                            margin="normal"
-                            value={imageSize}
-                            onChange={(e) => setImageSize(Number(e.target.value))}
-                        />
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            fullWidth
-                            onClick={handleExtractCells}
-                            disabled={isLoading}
-                            sx={{
-                                backgroundColor: 'black',
-                                color: 'white',
-                                height: '56px',
-                                textTransform: 'none',
-                                '&:hover': {
-                                    backgroundColor: 'grey'
-                                }
-                            }}
-                        >
-                            {numImages > 0 && ("Re-extract Cells")}
-                            {numImages === 0 && ("Extract Cells")}
-                        </Button>
-                        {numImages > 0 && (
-                            <Button
-                                variant="contained"
-                                color="secondary"
-                                fullWidth
-                                onClick={handleGoToDatabases}
-                                sx={{
-                                    marginTop: 2,
-                                    backgroundColor: 'black',
-                                    textTransform: 'none',
-                                    color: 'white',
-                                    height: '56px',
-                                    '&:hover': {
-                                        backgroundColor: 'grey'
-                                    }
-                                }}
-                            >
-                                Go to Databases
-                            </Button>
-                        )}
-                    </Box>
-                </Grid>
-                {currentImageUrl && (
-                    <Grid item xs={12} md={8}>
-                        <Box display="flex" flexDirection="column" alignItems="center" mt={5}>
-                            <Box
-                                component="img"
-                                src={currentImageUrl}
-                                alt={`Extracted cell ${currentImage}`}
-                                sx={{ width: '400px', height: '400px', objectFit: 'contain' }}
-                            />
-                            <Box display="flex" justifyContent="space-between" width="400px" mt={2}>
-                                <Button
-                                    variant="contained"
-                                    onClick={handlePreviousImage}
-                                    disabled={currentImage === 0}
-                                    startIcon={<ArrowBackIosIcon />}
-                                    sx={{
-                                        backgroundColor: 'black',
-                                        color: 'white',
-                                        textTransform: 'none',
-                                        '&:hover': {
-                                            backgroundColor: 'grey'
-                                        }
-                                    }}
-                                >
-                                    Previous
-                                </Button>
-                                <Typography variant="body1">{currentImage + 1} / {numImages}</Typography>
-                                <Button
-                                    variant="contained"
-                                    onClick={handleNextImage}
-                                    disabled={currentImage === numImages - 1}
-                                    endIcon={<ArrowForwardIosIcon />}
-                                    sx={{
-                                        backgroundColor: 'black',
-                                        color: 'white',
-                                        textTransform: 'none',
-                                        '&:hover': {
-                                            backgroundColor: 'grey'
-                                        }
-                                    }
-                                    }
-                                >
-                                    Next
-                                </Button>
-                            </Box>
-                        </Box>
-                    </Grid>
-                )}
-            </Grid>
+      {/* 全画面を覆うレイアウトコンテナ */}
+      <Box
+        sx={{
+          width: "100%",
+          minHeight: "100vh",
+          boxSizing: "border-box",
+          p: 4
+        }}
+      >
+        {/* パンくずリスト */}
+        <Box mb={2}>
+          <Breadcrumbs aria-label="breadcrumb">
+            <Link underline="hover" color="inherit" href="/">
+              Top
+            </Link>
+            <Link underline="hover" color="inherit" href="/tl-engine">
+              Timelapse ND2 files
+            </Link>
+            <Typography color="text.primary">ND2 parse</Typography>
+          </Breadcrumbs>
         </Box>
-    );
+
+        <Card sx={{ height: "100%" }}>
+          <CardContent>
+            <Grid container spacing={3} sx={{ height: "100%" }}>
+              {/* 左サイド：ファイル名と操作ボタン */}
+              <Grid item xs={12} md={4}>
+                <Typography
+                  variant={isSmallScreen ? "body1" : "h6"}
+                  mb={2}
+                  sx={{ fontWeight: 600 }}
+                >
+                  ND2 filename: {fileName}
+                </Typography>
+
+                {/* ND2 パースボタン */}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  onClick={handleParseND2}
+                  disabled={isLoading || !fileName}
+                  sx={{
+                    height: 56,
+                    mb: 2,
+                    textTransform: "none",
+                    backgroundColor: "#333",
+                    "&:hover": {
+                      backgroundColor: "#555"
+                    }
+                  }}
+                >
+                  Parse ND2 File
+                </Button>
+
+                {/* Field ドロップダウン */}
+                {fields.length > 0 && (
+                  <FormControl fullWidth>
+                    <InputLabel>Field</InputLabel>
+                    <Select value={selectedField} onChange={handleFieldChange}>
+                      {fields.map((field) => (
+                        <MenuItem key={field} value={field}>
+                          {field}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+              </Grid>
+
+              {/* 右サイド：GIF 表示エリア */}
+              <Grid item xs={12} md={8}>
+                {gifUrl ? (
+                  <Box
+                    display="flex"
+                    flexDirection="column"
+                    alignItems="center"
+                    sx={{ mt: isSmallScreen ? 2 : 0 }}
+                  >
+                    <Typography variant="body1" mb={2}>
+                    <b>{selectedField}</b>
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={gifUrl}
+                      alt={`GIF for Field: ${selectedField}`}
+                      sx={{
+                        maxWidth: "100%",
+                        height: "auto",
+                        objectFit: "contain",
+                        border: "1px solid #eee",
+                        borderRadius: 1,
+                        p: 1
+                      }}
+                    />
+                  </Box>
+                ) : (
+                  <Box
+                    display="flex"
+                    justifyContent="center"
+                    alignItems="center"
+                    sx={{ height: "100%", minHeight: 200 }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      Please wait for parsing ND2 file and select a field
+                    </Typography>
+                  </Box>
+                )}
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Box>
+    </>
+  );
 };
 
 export default TimelapseParser;
