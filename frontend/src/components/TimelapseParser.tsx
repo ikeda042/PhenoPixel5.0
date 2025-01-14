@@ -66,6 +66,23 @@ const TimelapseParser: React.FC = () => {
   };
 
   /**
+   * "Extract cells"ボタン押下時に呼び出す
+   * GET /tlengine/nd2_files/{file_name}/cells
+   */
+  const handleExtractAllCells = async () => {
+    if (!fileName) return;
+    setIsLoading(true);
+    try {
+      await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}/cells`);
+      alert("Cells have been extracted successfully!");
+    } catch (error) {
+      console.error("Failed to extract cells", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
    * Field 選択時に呼び出す
    * GET /tlengine/nd2_files/{file_name}/gif/{Field} で GIF を取得
    */
@@ -156,7 +173,29 @@ const TimelapseParser: React.FC = () => {
                   Parse ND2 File
                 </Button>
 
-                {/* Field ドロップダウン */}
+                {/* Extract cells ボタン：fields が取得できたら表示 */}
+                {fields.length > 0 && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    onClick={handleExtractAllCells}
+                    disabled={isLoading || !fileName}
+                    sx={{
+                      height: 56,
+                      mb: 2,
+                      textTransform: "none",
+                      backgroundColor: "#333",
+                      "&:hover": {
+                        backgroundColor: "#555"
+                      }
+                    }}
+                  >
+                    Extract cells
+                  </Button>
+                )}
+
+                {/* Field ドロップダウン：fields が取得できたら表示 */}
                 {fields.length > 0 && (
                   <FormControl fullWidth>
                     <InputLabel>Field</InputLabel>
@@ -181,7 +220,7 @@ const TimelapseParser: React.FC = () => {
                     sx={{ mt: isSmallScreen ? 2 : 0 }}
                   >
                     <Typography variant="body1" mb={2}>
-                    <b>{selectedField}</b>
+                      <b>{selectedField}</b>
                     </Typography>
                     <Box
                       component="img"
