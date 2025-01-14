@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Box,
@@ -24,6 +24,9 @@ import { settings } from "../settings";
 
 const url_prefix = settings.url_prefix;
 
+// DisplayType を "raw" | "extracted" | "dual" に拡張
+type DisplayType = "raw" | "extracted" | "dual";
+
 const TimelapseParser: React.FC = () => {
   const [searchParams] = useSearchParams();
   const fileName = searchParams.get("file_name") || "";
@@ -32,7 +35,16 @@ const TimelapseParser: React.FC = () => {
   // Field 関連
   const [fields, setFields] = useState<string[]>([]);
   const [selectedField, setSelectedField] = useState<string>("");
-  const [gifUrl, setGifUrl] = useState<string>("");
+
+  // GIF 表示関連
+  //  - raw, extracted それぞれの URL を別々に保持
+  const [gifUrlRaw, setGifUrlRaw] = useState<string>("");
+  const [gifUrlExtracted, setGifUrlExtracted] = useState<string>("");
+
+  /**
+   * 画像表示形式 (raw / extracted / dual) を管理
+   */
+  const [displayType, setDisplayType] = useState<DisplayType>("raw");
 
   // レスポンシブブレイクポイントを取得
   const theme = useTheme();
@@ -66,21 +78,59 @@ const TimelapseParser: React.FC = () => {
   };
 
   /**
-   * Field 選択時に呼び出す
-   * GET /tlengine/nd2_files/{file_name}/gif/{Field} で GIF を取得
+   * "Extract cells"ボタン押下時に呼び出す
+   * GET /tlengine/nd2_files/{file_name}/cells
    */
-  const fetchGif = async (fieldValue: string) => {
-    if (!fileName || !fieldValue) return;
+  const handleExtractAllCells = async () => {
+    if (!fileName) return;
     setIsLoading(true);
     try {
-      const response = await axios.get(
-        `${url_prefix}/tlengine/nd2_files/${fileName}/gif/${fieldValue}`,
-        { responseType: "blob" }
-      );
-      const blobUrl = URL.createObjectURL(response.data);
-      setGifUrl(blobUrl);
+      await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}/cells`);
+      alert("Cells have been extracted successfully!");
+    } catch (error) {
+      console.error("Failed to extract cells", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * displayType が "dual" の場合は両方のエンドポイントを呼び出して 2 枚の GIF を取得、
+   * それ以外の場合は単一のエンドポイントを呼び出して該当 GIF を取得する
+   */
+  const fetchGif = async (fieldValue: string, type: DisplayType) => {
+    if (!fileName || !fieldValue) return;
+    setIsLoading(true);
+
+    // Raw 用＆Extracted 用のエンドポイント
+    const endpointRaw = `${url_prefix}/tlengine/nd2_files/${fileName}/gif/${fieldValue}`;
+    const endpointExtracted = `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${fieldValue}/gif`;
+
+    try {
+      if (type === "dual") {
+        // 同時取得
+        const [rawResponse, extractedResponse] = await Promise.all([
+          axios.get(endpointRaw, { responseType: "blob" }),
+          axios.get(endpointExtracted, { responseType: "blob" }),
+        ]);
+        setGifUrlRaw(URL.createObjectURL(rawResponse.data));
+        setGifUrlExtracted(URL.createObjectURL(extractedResponse.data));
+      } else if (type === "raw") {
+        // Raw だけ取得
+        const rawResponse = await axios.get(endpointRaw, { responseType: "blob" });
+        setGifUrlRaw(URL.createObjectURL(rawResponse.data));
+        setGifUrlExtracted(""); // 他方はクリア
+      } else {
+        // Extracted だけ取得
+        const extractedResponse = await axios.get(endpointExtracted, { responseType: "blob" });
+        setGifUrlExtracted(URL.createObjectURL(extractedResponse.data));
+        setGifUrlRaw(""); // 他方はクリア
+      }
     } catch (error) {
       console.error("Failed to fetch GIF", error);
+      // 取得に失敗した場合はそれぞれ空にしておく
+      setGifUrlRaw("");
+      setGifUrlExtracted("");
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +142,24 @@ const TimelapseParser: React.FC = () => {
   const handleFieldChange = (event: SelectChangeEvent<string>) => {
     const newField = event.target.value as string;
     setSelectedField(newField);
-    fetchGif(newField);
+
+    // Field を選択する度に現在の displayType で画像を取得し直す
+    if (newField) {
+      fetchGif(newField, displayType);
+    }
+  };
+
+  /**
+   * 表示形式ドロップダウン変更時のハンドラ
+   */
+  const handleDisplayTypeChange = (event: SelectChangeEvent<DisplayType>) => {
+    const newType = event.target.value as DisplayType;
+    setDisplayType(newType);
+
+    // 既に Field が選択されている場合は再度取得
+    if (selectedField) {
+      fetchGif(selectedField, newType);
+    }
   };
 
   return (
@@ -156,9 +223,31 @@ const TimelapseParser: React.FC = () => {
                   Parse ND2 File
                 </Button>
 
-                {/* Field ドロップダウン */}
+                {/* Extract cells ボタン：fields が取得できたら表示 */}
                 {fields.length > 0 && (
-                  <FormControl fullWidth>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    onClick={handleExtractAllCells}
+                    disabled={isLoading || !fileName}
+                    sx={{
+                      height: 56,
+                      mb: 2,
+                      textTransform: "none",
+                      backgroundColor: "#333",
+                      "&:hover": {
+                        backgroundColor: "#555"
+                      }
+                    }}
+                  >
+                    Extract cells
+                  </Button>
+                )}
+
+                {/* Field ドロップダウン：fields が取得できたら表示 */}
+                {fields.length > 0 && (
+                  <FormControl fullWidth sx={{ mb: 2 }}>
                     <InputLabel>Field</InputLabel>
                     <Select value={selectedField} onChange={handleFieldChange}>
                       {fields.map((field) => (
@@ -169,11 +258,24 @@ const TimelapseParser: React.FC = () => {
                     </Select>
                   </FormControl>
                 )}
+
+                {/* 表示形式ドロップダウン："raw" / "extracted" / "dual" */}
+                {fields.length > 0 && (
+                  <FormControl fullWidth>
+                    <InputLabel>Display Type</InputLabel>
+                    <Select value={displayType} onChange={handleDisplayTypeChange}>
+                      <MenuItem value="raw">Raw</MenuItem>
+                      <MenuItem value="extracted">Extracted</MenuItem>
+                      <MenuItem value="dual">Dual</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
               </Grid>
 
               {/* 右サイド：GIF 表示エリア */}
               <Grid item xs={12} md={8}>
-                {gifUrl ? (
+                {/* ディスプレイモードに応じて描画を切り替え */}
+                {displayType === "raw" && gifUrlRaw && (
                   <Box
                     display="flex"
                     flexDirection="column"
@@ -181,12 +283,12 @@ const TimelapseParser: React.FC = () => {
                     sx={{ mt: isSmallScreen ? 2 : 0 }}
                   >
                     <Typography variant="body1" mb={2}>
-                    <b>{selectedField}</b>
+                      <b>{selectedField}</b> (Raw)
                     </Typography>
                     <Box
                       component="img"
-                      src={gifUrl}
-                      alt={`GIF for Field: ${selectedField}`}
+                      src={gifUrlRaw}
+                      alt={`GIF (Raw) for Field: ${selectedField}`}
                       sx={{
                         maxWidth: "100%",
                         height: "auto",
@@ -197,7 +299,98 @@ const TimelapseParser: React.FC = () => {
                       }}
                     />
                   </Box>
-                ) : (
+                )}
+
+                {displayType === "extracted" && gifUrlExtracted && (
+                  <Box
+                    display="flex"
+                    flexDirection="column"
+                    alignItems="center"
+                    sx={{ mt: isSmallScreen ? 2 : 0 }}
+                  >
+                    <Typography variant="body1" mb={2}>
+                      <b>{selectedField}</b> (Extracted)
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={gifUrlExtracted}
+                      alt={`GIF (Extracted) for Field: ${selectedField}`}
+                      sx={{
+                        maxWidth: "100%",
+                        height: "auto",
+                        objectFit: "contain",
+                        border: "1px solid #eee",
+                        borderRadius: 1,
+                        p: 1
+                      }}
+                    />
+                  </Box>
+                )}
+
+                {displayType === "dual" && (
+                  <Box
+                    display="flex"
+                    flexDirection={isSmallScreen ? "column" : "row"}
+                    justifyContent="center"
+                    alignItems="center"
+                    gap={2}
+                    sx={{ mt: isSmallScreen ? 2 : 0 }}
+                  >
+                    {/* Raw GIF */}
+                    {gifUrlRaw && (
+                      <Box
+                        display="flex"
+                        flexDirection="column"
+                        alignItems="center"
+                      >
+                        <Typography variant="body1" mb={1}>
+                          <b>{selectedField}</b> (Raw)
+                        </Typography>
+                        <Box
+                          component="img"
+                          src={gifUrlRaw}
+                          alt={`GIF (Raw) for Field: ${selectedField}`}
+                          sx={{
+                            maxWidth: "100%",
+                            height: "auto",
+                            objectFit: "contain",
+                            border: "1px solid #eee",
+                            borderRadius: 1,
+                            p: 1
+                          }}
+                        />
+                      </Box>
+                    )}
+                    {/* Extracted GIF */}
+                    {gifUrlExtracted && (
+                      <Box
+                        display="flex"
+                        flexDirection="column"
+                        alignItems="center"
+                      >
+                        <Typography variant="body1" mb={1}>
+                          <b>{selectedField}</b> (Extracted)
+                        </Typography>
+                        <Box
+                          component="img"
+                          src={gifUrlExtracted}
+                          alt={`GIF (Extracted) for Field: ${selectedField}`}
+                          sx={{
+                            maxWidth: "100%",
+                            height: "auto",
+                            objectFit: "contain",
+                            border: "1px solid #eee",
+                            borderRadius: 1,
+                            p: 1
+                          }}
+                        />
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {/* 何も選択されていないか、まだ GIF がない場合 */}
+                {!gifUrlRaw && !gifUrlExtracted && (
                   <Box
                     display="flex"
                     justifyContent="center"
@@ -205,7 +398,7 @@ const TimelapseParser: React.FC = () => {
                     sx={{ height: "100%", minHeight: 200 }}
                   >
                     <Typography variant="body2" color="text.secondary">
-                      Please wait for parsing ND2 file and select a field
+                      Please parse ND2 file and select a field & display type
                     </Typography>
                   </Box>
                 )}

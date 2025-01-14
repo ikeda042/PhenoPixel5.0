@@ -81,3 +81,65 @@ async def delete_nd2_file(file_path: str):
     """
     await TimelapseEngineCrudBase("").delete_nd2_file(file_path)
     return JSONResponse(content={"detail": f"{file_path} deleted successfully."})
+
+
+@router_tl_engine.get("/nd2_files/{file_name}/cells/{Field}")
+async def extract_cells(file_name: str, Field: str):
+    """
+    セルを抽出し、データベースに保存するエンドポイント。
+    デバッグ用途で使う。
+    """
+    db_name = file_name.split(".")[0] + f"_{Field}_cells.db"
+    await TimelapseEngineCrudBase(file_name).extract_cells(field=Field, dbname=db_name)
+    return JSONResponse(content={"message": "Cells extracted and saved to database."})
+
+
+@router_tl_engine.get("/nd2_files/{file_name}/cells")
+async def extract_all_cells(file_name: str):
+    """
+    全てのフィールドからセルを抽出し、データベースに保存するエンドポイント。
+    """
+    db_name = file_name.split(".")[0] + "_cells.db"
+    fields = await TimelapseEngineCrudBase(file_name).get_fields_of_nd2()
+    for Field in fields:
+        await TimelapseEngineCrudBase(file_name).extract_cells(
+            field=Field, dbname=db_name
+        )
+    return JSONResponse(content={"message": "Cells extracted and saved to database."})
+
+
+@router_tl_engine.get("/nd2_files/{file_name}/cells/{field_name}/{cell_number}/gif")
+async def create_gif_for_cell_endpoint(
+    file_name: str, field_name: str, cell_number: int
+):
+    """
+    セル番号に対応する GIF を生成し、ストリーミングで返すエンドポイント。
+    """
+    db_name = file_name.split(".")[0] + f"_cells.db"
+    crud = TimelapseEngineCrudBase(file_name)
+    gif_buffer = await crud.create_gif_for_cell(
+        field=field_name, cell_number=cell_number, dbname=db_name
+    )
+
+    return StreamingResponse(
+        gif_buffer,
+        media_type="image/gif",
+        headers={"Content-Disposition": "attachment; filename=cell.gif"},
+    )
+
+
+@router_tl_engine.get("/nd2_files/{file_name}/cells/{field_name}/gif")
+async def create_gif_for_cells_endpoint(file_name: str, field_name: str):
+    """
+    指定したフィールド内の全セルについて、GIF を生成し、ストリーミングで返すエンドポイント。
+    """
+    db_name = file_name.split(".")[0] + f"_cells.db"
+    gif_buffer = await TimelapseEngineCrudBase(file_name).create_gif_for_cells(
+        field=field_name, dbname=db_name
+    )
+
+    return StreamingResponse(
+        gif_buffer,
+        media_type="image/gif",
+        headers={"Content-Disposition": "attachment; filename=cells.gif"},
+    )

@@ -9,10 +9,72 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from fastapi.responses import JSONResponse
 import shutil
-import re  # 追加
+import re
+
+import pickle
+from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, func, distinct
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.sql import select
+import math
+from fastapi import HTTPException
+
+Base = declarative_base()
+
+
+# 既存の DB テーブル定義 (細胞情報を保存するための例)
+class Cell(Base):
+    __tablename__ = "cells"
+    id = Column(Integer, primary_key=True)
+    cell_id = Column(String)
+    label_experiment = Column(String)
+    manual_label = Column(Integer)
+    perimeter = Column(FLOAT)
+    area = Column(FLOAT)
+    img_ph = Column(BLOB)
+    img_fluo1 = Column(BLOB, nullable=True)
+    img_fluo2 = Column(BLOB, nullable=True)
+    contour = Column(BLOB)
+    center_x = Column(FLOAT)
+    center_y = Column(FLOAT)
+
+    # --- 新規追加: field, time, cell の3カラム ---
+    field = Column(String, nullable=True)  # 例: "Field_1"
+    time = Column(Integer, nullable=True)  # 例: 1, 2, 3, ...
+    cell = Column(Integer, nullable=True)  # 例: 同一タイム内のセル番号
+
+
+async def get_session(dbname: str):
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False)
+    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    async with async_session() as session:
+        yield session
+
+
+async def create_database(dbname: str):
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=True)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    return engine
+
+
+import os
+import re
+import cv2
+import io
+import shutil
+import numpy as np
+import nd2reader
+from PIL import Image
+import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class SyncChores:
+    """
+    既存の補助的クラス。
+    """
+
     @staticmethod
     def correct_drift(reference_image, target_image):
         """
@@ -29,22 +91,24 @@ class SyncChores:
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         matches = bf.match(des1, des2)
 
-        if len(matches) < 10:  # マッチングが少なすぎる場合、補正を行わない
+        # マッチングがあまりに少ない場合は補正を行わない
+        if len(matches) < 10:
             print("Insufficient matches, skipping drift correction.")
             return target_image
 
-        # 特徴点の座標を取得し、x軸とy軸を反転させる
+        # ORB特徴点の座標リスト
         src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
 
+        # 画像の縦横サイズ
         height, width = reference_image.shape[:2]
+
         # x座標とy座標をそれぞれ反転
-        src_pts[:, :, 0] = width - src_pts[:, :, 0]  # x座標を反転
-        src_pts[:, :, 1] = height - src_pts[:, :, 1]  # y座標を反転
+        src_pts[:, :, 0] = width - src_pts[:, :, 0]
+        src_pts[:, :, 1] = height - src_pts[:, :, 1]
         dst_pts[:, :, 0] = width - dst_pts[:, :, 0]
         dst_pts[:, :, 1] = height - dst_pts[:, :, 1]
 
-        # RANSACで部分アフィン行列を推定
         matrix, mask = cv2.estimateAffinePartial2D(
             src_pts, dst_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0
         )
@@ -69,40 +133,28 @@ class SyncChores:
         array -= array_min
         diff = array_max - array_min
         if diff == 0:
-            # 全てが同値の場合
+            # 全てが同値の場合は真っ黒にする
             return (array * 0).astype(np.uint8)
         array /= diff
         array *= 255
         return array.astype(np.uint8)
 
     @classmethod
-    def _drift_and_save(cls, reference_image, target_image, save_path):
-        """
-        並列用: ドリフト補正して保存する小分け関数
-        """
-        corrected = cls.correct_drift(reference_image, target_image)
-        Image.fromarray(corrected).save(save_path)
-        return save_path
-
-    @classmethod
     def extract_timelapse_nd2(cls, file_name: str):
         """
-        タイムラプスnd2ファイルをFieldごと・時系列ごとにTIFFで保存。
+        タイムラプス nd2 ファイルを Field ごと・時系列ごとに TIFF で保存（補正後を上書き保存）。
         (チャンネル0 -> fluo, チャンネル1 -> ph の想定)
         """
         base_output_dir = "uploaded_files/"
-        # 出力用フォルダを作り直す
+        # 既存の作業用フォルダがあれば削除し、再作成
         if os.path.exists("TimelapseParserTemp"):
             shutil.rmtree("TimelapseParserTemp")
         os.makedirs("TimelapseParserTemp", exist_ok=True)
 
         nd2_fullpath = os.path.join(base_output_dir, file_name)
         with nd2reader.ND2Reader(nd2_fullpath) as images:
-            # ★★★ ここがポイント： iter_axes をオフにする(または None にする)
             images.iter_axes = []
-
-            # 必要に応じて bundle_axes を設定 (c,y,x) など
-            images.bundle_axes = "yxc"  # 例: y,x,c
+            images.bundle_axes = "yxc"
 
             print(f"Available axes: {images.axes}")
             print(f"Sizes: {images.sizes}")
@@ -111,6 +163,7 @@ class SyncChores:
             num_channels = images.sizes.get("c", 1)
             num_timepoints = images.sizes.get("t", 1)
 
+            # Field(視野)ごとに処理
             for field_idx in range(num_fields):
                 field_folder = os.path.join(
                     "TimelapseParserTemp", f"Field_{field_idx + 1}"
@@ -121,69 +174,70 @@ class SyncChores:
                 os.makedirs(base_output_subdir_ph, exist_ok=True)
                 os.makedirs(base_output_subdir_fluo, exist_ok=True)
 
+                # ph, fluo それぞれの参照画像を初期化
                 reference_image_ph = None
                 reference_image_fluo = None
 
-                # 並列タスクの蓄積先
+                # 並列実行のためのキュー
                 tasks = []
                 with ThreadPoolExecutor() as executor:
                     for channel_idx in range(num_channels):
                         for time_idx in range(num_timepoints):
-                            # ここで手動で指定する：v=field_idx, c=channel_idx, t=time_idx
-                            # 2Dフレームを取り出す
+                            # 2次元フレームを取得
                             frame_data = images.get_frame_2D(
                                 v=field_idx, c=channel_idx, t=time_idx
                             )
-                            # frame_data.shape は通常 (y, x)
-
-                            # とりあえず channel_idx == 1 を ph (位相差) とし、
-                            # それ以外を fluo とする例
                             channel_image = cls.process_image(frame_data)
 
-                            if channel_idx == 1:  # ph
+                            # 保存先のパスを作成
+                            if channel_idx == 1:  # ph チャンネル
+                                tiff_filename = os.path.join(
+                                    base_output_subdir_ph,
+                                    f"time_{time_idx + 1}.tif",
+                                )
                                 if time_idx == 0:
+                                    # 1フレーム目：参照画像をセット
                                     reference_image_ph = channel_image
-                                    tiff_filename = os.path.join(
-                                        base_output_subdir_ph,
-                                        f"time_{time_idx + 1}.tif",
-                                    )
-                                    Image.fromarray(channel_image).save(tiff_filename)
-                                    print(f"Saved: {tiff_filename}")
+                                    # ※もし1フレーム目も補正したい場合は下の行をコメントアウトして、
+                                    #   'corrected_image = cls.correct_drift(...)' を呼び出すように変更してください
+                                    corrected_image = channel_image
+                                    Image.fromarray(corrected_image).save(tiff_filename)
+                                    print(f"Saved (ph, first): {tiff_filename}")
                                 else:
+                                    # 2フレーム目以降は drift 補正して上書き保存
                                     tasks.append(
                                         executor.submit(
                                             cls._drift_and_save,
                                             reference_image_ph,
                                             channel_image,
-                                            os.path.join(
-                                                base_output_subdir_ph,
-                                                f"time_{time_idx + 1}.tif",
-                                            ),
+                                            tiff_filename,
                                         )
                                     )
-                            else:  # fluo
+                            else:  # fluo チャンネル
+                                tiff_filename = os.path.join(
+                                    base_output_subdir_fluo,
+                                    f"time_{time_idx + 1}.tif",
+                                )
                                 if time_idx == 0:
+                                    # 1フレーム目：参照画像をセット
                                     reference_image_fluo = channel_image
-                                    tiff_filename = os.path.join(
-                                        base_output_subdir_fluo,
-                                        f"time_{time_idx + 1}.tif",
-                                    )
-                                    Image.fromarray(channel_image).save(tiff_filename)
-                                    print(f"Saved: {tiff_filename}")
+                                    # ※もし1フレーム目も補正したい場合は下の行をコメントアウトして、
+                                    #   'corrected_image = cls.correct_drift(...)' を呼び出すように変更してください
+                                    corrected_image = channel_image
+                                    Image.fromarray(corrected_image).save(tiff_filename)
+                                    print(f"Saved (fluo, first): {tiff_filename}")
                                 else:
+                                    # 2フレーム目以降は drift 補正して上書き保存
                                     tasks.append(
                                         executor.submit(
                                             cls._drift_and_save,
                                             reference_image_fluo,
                                             channel_image,
-                                            os.path.join(
-                                                base_output_subdir_fluo,
-                                                f"time_{time_idx + 1}.tif",
-                                            ),
+                                            tiff_filename,
                                         )
                                     )
 
-                    # すべての並列タスク完了を待つ
+                    # 並列タスク完了待ち
                     for future in as_completed(tasks):
                         try:
                             saved_path = future.result()
@@ -192,41 +246,54 @@ class SyncChores:
                             print(f"Error in parallel task: {e}")
 
     @classmethod
+    def _drift_and_save(cls, reference_image, target_image, save_path):
+        """
+        並列用: ドリフト補正して上書き保存する小分け関数。
+        """
+        corrected = cls.correct_drift(reference_image, target_image)
+        Image.fromarray(corrected).save(save_path)
+        return save_path
+
+    @classmethod
     def create_combined_gif(
         cls, field_folder: str, resize_factor: float = 0.5
     ) -> io.BytesIO:
+        """
+        ph と fluo を横並びに合成した GIF をメモリ上 (BytesIO) に作成して返す。
+        """
         ph_folder = os.path.join(field_folder, "ph")
         fluo_folder = os.path.join(field_folder, "fluo")
 
-        # --- ここを修正: time_XX.tif の数字部分でソート ---
+        # 時間インデックスを取り出すための正規表現
         def extract_time_index(path: str) -> int:
-            """
-            ファイル名が time_数字.tif となっている想定で、
-            その数字部分を int にして返す
-            """
             match = re.search(r"time_(\d+)\.tif", path)
             return int(match.group(1)) if match else 0
 
-        ph_image_files = [
-            os.path.join(ph_folder, f)
-            for f in os.listdir(ph_folder)
-            if f.endswith(".tif")
-        ]
-        # ファイル名から数字を取り出してソート
-        ph_image_files = sorted(ph_image_files, key=extract_time_index)
+        # ph と fluo でそれぞれのファイルをソート
+        ph_image_files = sorted(
+            [
+                os.path.join(ph_folder, f)
+                for f in os.listdir(ph_folder)
+                if f.endswith(".tif")
+            ],
+            key=extract_time_index,
+        )
+        fluo_image_files = sorted(
+            [
+                os.path.join(fluo_folder, f)
+                for f in os.listdir(fluo_folder)
+                if f.endswith(".tif")
+            ],
+            key=extract_time_index,
+        )
 
-        fluo_image_files = [
-            os.path.join(fluo_folder, f)
-            for f in os.listdir(fluo_folder)
-            if f.endswith(".tif")
-        ]
-        fluo_image_files = sorted(fluo_image_files, key=extract_time_index)
-
+        # 画像として読み込み
         ph_images = [Image.open(img_file) for img_file in ph_image_files]
         fluo_images = [Image.open(img_file) for img_file in fluo_image_files]
 
         combined_images = []
         for ph_img, fluo_img in zip(ph_images, fluo_images):
+            # リサイズ
             ph_img_resized = ph_img.resize(
                 (int(ph_img.width * resize_factor), int(ph_img.height * resize_factor))
             )
@@ -237,6 +304,7 @@ class SyncChores:
                 )
             )
 
+            # 横に並べて合成
             combined_width = ph_img_resized.width + fluo_img_resized.width
             combined_height = max(ph_img_resized.height, fluo_img_resized.height)
             combined_img = Image.new("RGB", (combined_width, combined_height))
@@ -247,6 +315,7 @@ class SyncChores:
         if not combined_images:
             raise ValueError("No images found to create combined GIF.")
 
+        # GIF をメモリに書き込む
         gif_buffer = io.BytesIO()
         combined_images[0].save(
             gif_buffer,
@@ -300,7 +369,7 @@ class AsyncChores:
 
 class TimelapseEngineCrudBase:
     """
-    ND2 -> TIFF(タイムラプス分割) -> GIF作成 といった一連の流れを実装するクラスの例
+    ND2 -> TIFF(タイムラプス分割) -> GIF作成 といった流れを実装するクラスの例
     """
 
     def __init__(self, nd2_path: str):
@@ -315,12 +384,12 @@ class TimelapseEngineCrudBase:
         return True
 
     async def main(self):
-        # ND2ファイルを tiff に分割保存 (ドリフト補正込み)
+        # ND2ファイルを TIFF に分割保存 (ドリフト補正込み)
         await AsyncChores().extract_timelapse_nd2(self.nd2_path)
         return JSONResponse(content={"message": "Timelapse extracted"})
 
     async def create_combined_gif(self, field: str):
-        # 指定したFieldフォルダからGIFを生成
+        # 指定した Field フォルダから GIF を生成
         return await AsyncChores().create_combined_gif("TimelapseParserTemp/" + field)
 
     async def get_fields_of_nd2(self) -> list[str]:
@@ -336,3 +405,434 @@ class TimelapseEngineCrudBase:
         with nd2reader.ND2Reader(nd2_fullpath) as images:
             num_fields = images.sizes.get("v", 1)
             return [f"Field_{i+1}" for i in range(num_fields)]
+
+    async def extract_cells(
+        self,
+        field: str,
+        dbname: str,
+        param1: int = 90,
+        min_area: int = 300,
+        crop_size: int = 200,
+    ):
+        engine = create_async_engine(
+            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+        )
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        async_session = sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+        ph_folder = os.path.join("TimelapseParserTemp", field, "ph")
+        fluo_folder = os.path.join("TimelapseParserTemp", field, "fluo")
+
+        def extract_time_index(filename: str) -> int:
+            match = re.search(r"time_(\d+)\.tif", filename)
+            return int(match.group(1)) if match else 0
+
+        ph_files = [f for f in os.listdir(ph_folder) if f.endswith(".tif")]
+        fluo_files = [f for f in os.listdir(fluo_folder) if f.endswith(".tif")]
+        ph_files = sorted(ph_files, key=extract_time_index)
+        fluo_files = sorted(fluo_files, key=extract_time_index)
+
+        if not ph_files or not fluo_files:
+            print("No TIFF files found for ph or fluo.")
+            return
+
+        total_frames = len(ph_files)
+        output_size = (crop_size, crop_size)
+
+        active_cells = {}
+        next_cell_idx = 1
+
+        for i, (ph_file, fluo_file) in enumerate(zip(ph_files, fluo_files)):
+            ph_path = os.path.join(ph_folder, ph_file)
+            fluo_path = os.path.join(fluo_folder, fluo_file)
+
+            ph_img = cv2.imread(ph_path, cv2.IMREAD_COLOR)
+            fluo_img = cv2.imread(fluo_path, cv2.IMREAD_COLOR)
+
+            if ph_img is None or fluo_img is None:
+                print(f"Skipping because image not found: {ph_path}, {fluo_path}")
+                continue
+
+            # 画像の高さ・幅を取得
+            height, width = ph_img.shape[:2]
+
+            ph_gray = cv2.cvtColor(ph_img, cv2.COLOR_BGR2GRAY)
+            _, thresh = cv2.threshold(ph_gray, param1, 255, cv2.THRESH_BINARY)
+
+            edges = cv2.Canny(thresh, 0, 130)
+            contours, hierarchy = cv2.findContours(
+                edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+            )
+            contours = [cnt for cnt in contours if cv2.contourArea(cnt) >= min_area]
+
+            new_active_cells = {}
+
+            async with async_session() as session:
+                for contour in contours:
+                    area = cv2.contourArea(contour)
+                    perimeter = cv2.arcLength(contour, True)
+                    M = cv2.moments(contour)
+                    if M["m00"] == 0:
+                        continue
+                    cx = int(M["m10"] / M["m00"])
+                    cy = int(M["m01"] / M["m00"])
+
+                    # 画像の上下左右をそれぞれ 10% 除外した範囲を定義
+                    x_min = int(width * 0.1)
+                    x_max = int(width * 0.9)
+                    y_min = int(height * 0.1)
+                    y_max = int(height * 0.9)
+
+                    # 10% ~ 90% の範囲に入っていなければスキップ
+                    if not (x_min < cx < x_max and y_min < cy < y_max):
+                        continue
+
+                    assigned_cell_idx = None
+                    min_dist = float("inf")
+                    distance_threshold = 60
+
+                    for prev_idx, (px, py) in active_cells.items():
+                        dist = math.sqrt((cx - px) ** 2 + (cy - py) ** 2)
+                        if dist < distance_threshold and dist < min_dist:
+                            min_dist = dist
+                            assigned_cell_idx = prev_idx
+
+                    if assigned_cell_idx is None:
+                        assigned_cell_idx = next_cell_idx
+                        next_cell_idx += 1
+
+                    if assigned_cell_idx not in new_active_cells:
+                        new_active_cells[assigned_cell_idx] = (cx, cy)
+
+                    # クロップ領域を算出
+                    x1 = max(0, cx - output_size[0] // 2)
+                    y1 = max(0, cy - output_size[1] // 2)
+                    x2 = min(ph_img.shape[1], cx + output_size[0] // 2)
+                    y2 = min(ph_img.shape[0], cy + output_size[1] // 2)
+
+                    cropped_ph = ph_img[y1:y2, x1:x2]
+                    cropped_fluo = fluo_img[y1:y2, x1:x2]
+
+                    if (
+                        cropped_ph.shape[0] != output_size[1]
+                        or cropped_ph.shape[1] != output_size[0]
+                    ):
+                        continue
+
+                    cropped_ph_gray = cv2.cvtColor(cropped_ph, cv2.COLOR_BGR2GRAY)
+                    cropped_fluo_gray = cv2.cvtColor(cropped_fluo, cv2.COLOR_BGR2GRAY)
+
+                    ph_gray_encode = cv2.imencode(".png", cropped_ph_gray)[1].tobytes()
+                    fluo_gray_encode = cv2.imencode(".png", cropped_fluo_gray)[
+                        1
+                    ].tobytes()
+
+                    # ★ ここで輪郭をクロップ座標系へシフトしてから保存する
+                    contour_shifted = contour.copy()
+                    contour_shifted[:, :, 0] -= x1
+                    contour_shifted[:, :, 1] -= y1
+
+                    cell_id = f"{field}_cell{assigned_cell_idx}"
+
+                    cell_obj = Cell(
+                        cell_id=cell_id,
+                        label_experiment=field,
+                        manual_label="N/A",
+                        perimeter=perimeter,
+                        area=area,
+                        img_ph=ph_gray_encode,
+                        img_fluo1=fluo_gray_encode,
+                        img_fluo2=None,
+                        # DBには「シフト後の」contourを保存
+                        contour=pickle.dumps(contour_shifted),
+                        center_x=cx,
+                        center_y=cy,
+                        field=field,
+                        time=i + 1,
+                        cell=assigned_cell_idx,
+                    )
+
+                    existing = await session.execute(
+                        select(Cell).filter_by(cell_id=cell_id, time=i + 1)
+                    )
+                    if existing.scalar() is None:
+                        session.add(cell_obj)
+
+                await session.commit()
+
+            active_cells = new_active_cells
+
+        # 全フレームに揃っていない細胞を削除
+        async with async_session() as session:
+            subquery = (
+                select(Cell.cell)
+                .where(Cell.field == field)
+                .group_by(Cell.cell)
+                .having(func.count(distinct(Cell.time)) < total_frames)
+            )
+            result = await session.execute(subquery)
+            cells_to_delete = [row[0] for row in result]
+
+            if cells_to_delete:
+                delete_stmt = (
+                    delete(Cell)
+                    .where(Cell.field == field)
+                    .where(Cell.cell.in_(cells_to_delete))
+                )
+                await session.execute(delete_stmt)
+                await session.commit()
+
+        print("Cell extraction finished (with cropping).")
+        print("Removed cells that did not appear in every frame.")
+        return
+
+    async def create_gif_for_cell(
+        self,
+        field: str,
+        cell_number: int,
+        dbname: str,
+        channel: str = "ph",  # "ph", "fluo1", "fluo2"
+        duration_ms: int = 200,
+    ):
+        if channel not in ["ph", "fluo1", "fluo2"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid channel. Use 'ph', 'fluo1', or 'fluo2'.",
+            )
+
+        engine = create_async_engine(
+            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+        )
+        async_session = sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+        frames = []
+        async with async_session() as session:
+            # 例: "field" カラムと "cell" カラムを持つテーブルがある想定
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells = result.scalars().all()
+            if not cells:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No data found for field={field}, cell={cell_number}",
+                )
+
+            for row in cells:
+                if channel == "ph":
+                    img_binary = row.img_ph
+                elif channel == "fluo1":
+                    img_binary = row.img_fluo1
+                else:  # channel == "fluo2"
+                    img_binary = row.img_fluo2
+
+                if img_binary is None:
+                    continue
+
+                np_img = cv2.imdecode(
+                    np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
+                )
+                if np_img is None:
+                    continue
+
+                pil_img = Image.fromarray(np_img)
+                frames.append(pil_img)
+
+        if not frames:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No valid frames found for field={field}, cell={cell_number}, channel={channel}",
+            )
+
+        gif_buffer = io.BytesIO()
+        frames[0].save(
+            gif_buffer,
+            format="GIF",
+            save_all=True,
+            append_images=frames[1:],
+            duration=duration_ms,
+            loop=0,
+        )
+        gif_buffer.seek(0)
+        return gif_buffer
+
+    async def create_gif_for_cells(
+        self,
+        field: str,
+        dbname: str,
+        channel: str = "ph",  # "ph", "fluo1", "fluo2"
+        duration_ms: int = 200,
+    ):
+        # channel 入力チェック
+        if channel not in ["ph", "fluo1", "fluo2"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid channel. Use 'ph', 'fluo1', or 'fluo2'.",
+            )
+
+        engine = create_async_engine(
+            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+        )
+        async_session = sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+        async with async_session() as session:
+            all_cells_query = (
+                select(Cell)
+                .filter_by(field=field)
+                .order_by(Cell.time.asc(), Cell.cell.asc())
+            )
+            result = await session.execute(all_cells_query)
+            all_cells = result.scalars().all()
+
+        if not all_cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No cells found for field={field}",
+            )
+
+        unique_times = sorted(list(set(c.time for c in all_cells)))
+        unique_cells = sorted(
+            list(set(c.cell for c in all_cells if c.cell is not None))
+        )
+
+        if not unique_cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No valid cell numbering found for field={field}",
+            )
+
+        num_cells = len(unique_cells)
+        rows = int(math.floor(math.sqrt(num_cells)))
+        cols = int(math.ceil(num_cells / rows))
+
+        cell_positions = {}
+        for i, cell_num in enumerate(unique_cells):
+            row_idx = i // cols
+            col_idx = i % cols
+            cell_positions[cell_num] = (row_idx, col_idx)
+
+        first_valid_img_size = None
+        frames_for_gif = []
+
+        for t in unique_times:
+            cell_to_image = {}
+            for cell_num in unique_cells:
+                matched = [c for c in all_cells if c.cell == cell_num and c.time == t]
+                if not matched:
+                    # 空画像(真っ黒 200x200) → 今回はカラー(黒)で作る
+                    cell_to_image[cell_num] = Image.new("RGB", (200, 200), (0, 0, 0))
+                    continue
+
+                row = matched[0]
+                if channel == "ph":
+                    img_binary = row.img_ph
+                elif channel == "fluo1":
+                    img_binary = row.img_fluo1
+                else:
+                    img_binary = row.img_fluo2
+
+                if img_binary is None:
+                    cell_to_image[cell_num] = Image.new("RGB", (200, 200), (0, 0, 0))
+                    continue
+
+                np_img_gray = cv2.imdecode(
+                    np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
+                )
+                if np_img_gray is None:
+                    cell_to_image[cell_num] = Image.new("RGB", (200, 200), (0, 0, 0))
+                    continue
+
+                # ここでカラー変換
+                np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
+                original_h, original_w = np_img_gray.shape[:2]
+
+                if first_valid_img_size is None:
+                    first_valid_img_size = (original_w, original_h)
+
+                target_w, target_h = first_valid_img_size
+
+                # リサイズ
+                if (original_w, original_h) != (target_w, target_h):
+                    scale_x = target_w / original_w
+                    scale_y = target_h / original_h
+                    np_img_color = cv2.resize(
+                        np_img_color, (target_w, target_h), interpolation=cv2.INTER_AREA
+                    )
+                else:
+                    scale_x, scale_y = 1.0, 1.0
+
+                # 輪郭があれば描画
+                if row.contour is not None:
+                    try:
+                        contours = pickle.loads(row.contour)
+                        if not isinstance(contours, list):
+                            contours = [contours]
+
+                        for c in contours:
+                            c = np.array(c, dtype=np.float32)
+                            # shape が (N,2) なら (N,1,2) に変換
+                            if len(c.shape) == 2:
+                                c = c[:, np.newaxis, :]
+
+                            # スケーリング
+                            c[:, :, 0] *= scale_x
+                            c[:, :, 1] *= scale_y
+                            c = c.astype(np.int32)
+
+                            # BGR=(0,0,255) = 赤, 太さ2ピクセル
+                            cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
+
+                    except Exception as e:
+                        print(f"[WARN] Contour parse error: {e}")  # ログを出す
+
+                # OpenCV BGR → PIL RGB
+                np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
+                pil_img = Image.fromarray(np_img_rgb)
+
+                cell_to_image[cell_num] = pil_img
+
+            if not first_valid_img_size:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No valid images found to determine size.",
+                )
+
+            w, h = first_valid_img_size
+            mosaic_w = cols * w
+            mosaic_h = rows * h
+
+            # 今回は "RGB" キャンバスにする
+            mosaic = Image.new("RGB", (mosaic_w, mosaic_h), (0, 0, 0))
+            for cell_num, pil_img in cell_to_image.items():
+                r_idx, c_idx = cell_positions[cell_num]
+                mosaic.paste(pil_img, (c_idx * w, r_idx * h))
+
+            frames_for_gif.append(mosaic)
+
+        if not frames_for_gif:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No frames created for field={field}",
+            )
+
+        gif_buffer = io.BytesIO()
+        frames_for_gif[0].save(
+            gif_buffer,
+            format="GIF",
+            save_all=True,
+            append_images=frames_for_gif[1:],
+            duration=duration_ms,
+            loop=0,
+        )
+        gif_buffer.seek(0)
+        return gif_buffer
