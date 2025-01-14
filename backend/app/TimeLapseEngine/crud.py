@@ -12,7 +12,7 @@ import shutil
 import re
 
 import pickle
-from sqlalchemy import BLOB, Column, FLOAT, Integer, String
+from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, func, distinct
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
@@ -421,6 +421,10 @@ class TimelapseEngineCrudBase:
 
         前の time におけるセル中心と十分近い座標ならば同一セル (cell) と判定し、
         同じ cell カラム値を割り当てることで、タイムラプス上での同一細胞トラッキングを行う。
+
+        【追加要件】：
+          - 全フレームで観測されなかった (途中で消失した、または途中から出現した)
+            セルは最終的に DB から一括削除する。
         """
 
         # DB作成 (すでに存在する場合は追記／用途に応じて)
@@ -428,9 +432,7 @@ class TimelapseEngineCrudBase:
             f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
         )
         async with engine.begin() as conn:
-            await conn.run_sync(
-                Base.metadata.create_all
-            )  # Cell テーブル（拡張含む）を作成
+            await conn.run_sync(Base.metadata.create_all)  # Cellテーブルを作成
 
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
@@ -460,11 +462,14 @@ class TimelapseEngineCrudBase:
             print("No TIFF files found for ph or fluo.")
             return
 
+        # 総フレーム数 (PH のタイム数を基準とする)
+        total_frames = len(ph_files)
+
         output_size = (crop_size, crop_size)
 
-        # 前の time から引き継ぐアクティブなセルたち (cell_idx -> (cx, cy))
+        # 前の time におけるセルたち (cell_idx -> (cx, cy))
         active_cells = {}
-        # 次に割り当てるセル番号（globalなIDとして利用する想定）
+        # 次に割り当てるセル番号（globalなID）
         next_cell_idx = 1
 
         # タイムポイントごとにループ
@@ -492,8 +497,7 @@ class TimelapseEngineCrudBase:
             # (3) 面積フィルタリング
             contours = [cnt for cnt in contours if cv2.contourArea(cnt) >= min_area]
 
-            # 新しい time (i) におけるセル中心座標一覧をためる
-            new_active_cells = {}  # 更新後の active_cells を入れるための辞書
+            new_active_cells = {}  # 更新後の active_cells を入れるため
 
             async with async_session() as session:
                 for contour in contours:
@@ -505,16 +509,14 @@ class TimelapseEngineCrudBase:
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
 
-                    # (例) 中心が [400, 2000] の範囲にない場合はスキップ
+                    # 任意の領域チェック（例: 中心が [500, 1900] に収まらない場合は除外）
                     if not (500 < cx < 1900 and 500 < cy < 1900):
                         continue
 
                     # (4) 前の time のセルと近いかどうか判定 → 同一セルならセル番号を再利用
                     assigned_cell_idx = None
                     min_dist = float("inf")
-                    distance_threshold = (
-                        60  # この閾値より小さければ「同じセル」とみなす
-                    )
+                    distance_threshold = 60  # これ以下なら同一セルとみなす
 
                     for prev_idx, (px, py) in active_cells.items():
                         dist = math.sqrt((cx - px) ** 2 + (cy - py) ** 2)
@@ -522,23 +524,19 @@ class TimelapseEngineCrudBase:
                             min_dist = dist
                             assigned_cell_idx = prev_idx
 
-                    # 前の time のセルと対応付かなければ新規セル扱い
+                    # 前の time のセルと対応付かない → 新規セル
                     if assigned_cell_idx is None:
                         assigned_cell_idx = next_cell_idx
                         next_cell_idx += 1
 
-                    # new_active_cells に登録しておく（次の time の比較用）
-                    # 同じ assigned_cell_idx が複数 contour に割り当てられないように、
-                    # もしすでに new_active_cells に同じ ID が入っていたら、
-                    # より中心が近いほうを優先する等のロジックを加味することもあるが、
-                    # ここでは単純化して上書きなしの想定とする
+                    # new_active_cells に登録
                     if assigned_cell_idx not in new_active_cells:
                         new_active_cells[assigned_cell_idx] = (cx, cy)
                     else:
-                        # すでに割り当て済みの場合、どちらかに統合するロジックを入れる等は運用次第
+                        # 重複割り当てが起きる場合のロジックは要件次第
                         pass
 
-                    # クロップ領域設定
+                    # クロップ領域
                     x1 = max(0, cx - output_size[0] // 2)
                     y1 = max(0, cy - output_size[1] // 2)
                     x2 = min(ph_img.shape[1], cx + output_size[0] // 2)
@@ -562,8 +560,6 @@ class TimelapseEngineCrudBase:
                         1
                     ].tobytes()
 
-                    # DB保存用の一意なID (例: field名 + グローバルcell_idx)
-                    # time も入れたい場合は適宜ご調整ください
                     cell_id = f"{field}_cell{assigned_cell_idx}"
 
                     cell_obj = Cell(
@@ -580,25 +576,46 @@ class TimelapseEngineCrudBase:
                         center_y=cy,
                         field=field,
                         time=i + 1,
-                        cell=assigned_cell_idx,  # 同一セル tracking の肝
+                        cell=assigned_cell_idx,
                     )
 
-                    # 既に同一 cell_id があるかチェック（不要なら省略しても可）
+                    # 既に同一 (cell_id, time) があるかチェック
                     existing = await session.execute(
-                        select(Cell).filter_by(
-                            cell_id=cell_id,
-                            time=i + 1,
-                        )
+                        select(Cell).filter_by(cell_id=cell_id, time=i + 1)
                     )
                     if existing.scalar() is None:
                         session.add(cell_obj)
 
                 await session.commit()
 
-            # タイム i の処理が終わったら、active_cells を更新
+            # タイム i の処理が終わったら active_cells を更新
             active_cells = new_active_cells
 
+        # ====== ここから「全フレームに揃っていない細胞を削除」する処理を追加 ======
+        async with async_session() as session:
+            # すべてのセルを集計し、「いくつの distinct time に出現したか」カウント
+            # field で絞るのを忘れないように
+            subquery = (
+                select(Cell.cell)
+                .where(Cell.field == field)
+                .group_by(Cell.cell)
+                # distinct(Cell.time) の数が total_frames 未満 -> 全てのフレームにいない
+                .having(func.count(distinct(Cell.time)) < total_frames)
+            )
+            result = await session.execute(subquery)
+            cells_to_delete = [row[0] for row in result]  # row[0] が cell 番号
+
+            if cells_to_delete:
+                delete_stmt = (
+                    delete(Cell)
+                    .where(Cell.field == field)
+                    .where(Cell.cell.in_(cells_to_delete))
+                )
+                await session.execute(delete_stmt)
+                await session.commit()
+
         print("Cell extraction finished (with cropping).")
+        print("Removed cells that did not appear in every frame.")
         return
 
     async def create_gif_for_cell(
