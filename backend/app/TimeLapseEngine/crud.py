@@ -18,7 +18,6 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
 import math
 from fastapi import HTTPException
-from fastapi.responses import StreamingResponse
 
 Base = declarative_base()
 
