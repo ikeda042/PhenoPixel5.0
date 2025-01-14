@@ -696,22 +696,9 @@ class TimelapseEngineCrudBase:
         self,
         field: str,
         dbname: str,
-        channel: str = "ph",  # "ph", "fluo1", or "fluo2"
+        channel: str = "ph",  # "ph", "fluo1", "fluo2"
         duration_ms: int = 200,
     ):
-        """
-        指定した field 内に含まれる全セルについて、タイムごとに 200x200 のクロップ画像を並べ、
-        できるだけ正方形に近いグリッド (n x m) でレイアウトしたフレームを時系列順に繋いで
-        1つの GIF にして返す関数。
-
-        - field: 例 "Field_1" など
-        - dbname: 使用するDBファイル名 (例: "example.db")
-        - channel: "ph", "fluo1", "fluo2" のいずれか
-        - duration_ms: GIF のフレーム間隔 (ミリ秒)
-
-        戻り値:
-            GIF バイナリが格納された BytesIO オブジェクト
-        """
         # channel 入力チェック
         if channel not in ["ph", "fluo1", "fluo2"]:
             raise HTTPException(
@@ -719,7 +706,6 @@ class TimelapseEngineCrudBase:
                 detail="Invalid channel. Use 'ph', 'fluo1', or 'fluo2'.",
             )
 
-        # データベースへの接続準備
         engine = create_async_engine(
             f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
         )
@@ -728,7 +714,6 @@ class TimelapseEngineCrudBase:
         )
 
         async with async_session() as session:
-            # 指定フィールドに該当するセルをすべて取得 (time順, cell順)
             all_cells_query = (
                 select(Cell)
                 .filter_by(field=field)
@@ -743,7 +728,6 @@ class TimelapseEngineCrudBase:
                 detail=f"No cells found for field={field}",
             )
 
-        # タイムとセル番号をすべて取得
         unique_times = sorted(list(set(c.time for c in all_cells)))
         unique_cells = sorted(
             list(set(c.cell for c in all_cells if c.cell is not None))
@@ -755,31 +739,26 @@ class TimelapseEngineCrudBase:
                 detail=f"No valid cell numbering found for field={field}",
             )
 
-        # 画像配置用の行数・列数を「できるだけ正方形に近い」形に計算
         num_cells = len(unique_cells)
         rows = int(math.floor(math.sqrt(num_cells)))
         cols = int(math.ceil(num_cells / rows))
 
-        # あらかじめ「cell番号 → (row_idx, col_idx)」の対応を作っておく
         cell_positions = {}
         for i, cell_num in enumerate(unique_cells):
             row_idx = i // cols
             col_idx = i % cols
             cell_positions[cell_num] = (row_idx, col_idx)
 
-        # 一枚目の有効画像のサイズを判定するための変数
         first_valid_img_size = None
-
         frames_for_gif = []
 
         for t in unique_times:
-            # タイム t における全セル画像を channel から取り出して並べる
             cell_to_image = {}
             for cell_num in unique_cells:
                 matched = [c for c in all_cells if c.cell == cell_num and c.time == t]
                 if not matched:
-                    # 該当がなければ空画像(真っ黒200x200)を用意
-                    cell_to_image[cell_num] = Image.new("L", (200, 200), color=0)
+                    # 空画像(真っ黒 200x200) → 今回はカラー(黒)で作る
+                    cell_to_image[cell_num] = Image.new("RGB", (200, 200), (0, 0, 0))
                     continue
 
                 row = matched[0]
@@ -791,30 +770,66 @@ class TimelapseEngineCrudBase:
                     img_binary = row.img_fluo2
 
                 if img_binary is None:
-                    # 画像が無い場合は真っ黒
-                    cell_to_image[cell_num] = Image.new("L", (200, 200), color=0)
+                    cell_to_image[cell_num] = Image.new("RGB", (200, 200), (0, 0, 0))
                     continue
 
-                # バイナリ→numpy→PIL
-                np_img = cv2.imdecode(
+                np_img_gray = cv2.imdecode(
                     np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
                 )
-                if np_img is None:
-                    cell_to_image[cell_num] = Image.new("L", (200, 200), color=0)
+                if np_img_gray is None:
+                    cell_to_image[cell_num] = Image.new("RGB", (200, 200), (0, 0, 0))
                     continue
 
-                pil_img = Image.fromarray(np_img)
+                # ここでカラー変換
+                np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
+                original_h, original_w = np_img_gray.shape[:2]
 
-                # サイズチェック＆リサイズ(必要なら)
                 if first_valid_img_size is None:
-                    first_valid_img_size = pil_img.size
-                if pil_img.size != first_valid_img_size:
-                    pil_img = pil_img.resize(first_valid_img_size)
+                    first_valid_img_size = (original_w, original_h)
+
+                target_w, target_h = first_valid_img_size
+
+                # リサイズ
+                if (original_w, original_h) != (target_w, target_h):
+                    scale_x = target_w / original_w
+                    scale_y = target_h / original_h
+                    np_img_color = cv2.resize(
+                        np_img_color, (target_w, target_h), interpolation=cv2.INTER_AREA
+                    )
+                else:
+                    scale_x, scale_y = 1.0, 1.0
+
+                # 輪郭があれば描画
+                if row.contour is not None:
+                    try:
+                        contours = pickle.loads(row.contour)
+                        if not isinstance(contours, list):
+                            contours = [contours]
+
+                        for c in contours:
+                            c = np.array(c, dtype=np.float32)
+                            # shape が (N,2) なら (N,1,2) に変換
+                            if len(c.shape) == 2:
+                                c = c[:, np.newaxis, :]
+
+                            # スケーリング
+                            c[:, :, 0] *= scale_x
+                            c[:, :, 1] *= scale_y
+                            c = c.astype(np.int32)
+
+                            # BGR=(0,0,255) = 赤, 太さ2ピクセル
+                            cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
+
+                    except Exception as e:
+                        print(f"[WARN] Contour parse error: {e}")  # ログを出す
+
+                # OpenCV BGR → PIL RGB
+                np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
+                pil_img = Image.fromarray(np_img_rgb)
 
                 cell_to_image[cell_num] = pil_img
 
             if not first_valid_img_size:
-                # 一度も有効画像が出なかった場合
                 raise HTTPException(
                     status_code=404,
                     detail="No valid images found to determine size.",
@@ -823,9 +838,9 @@ class TimelapseEngineCrudBase:
             w, h = first_valid_img_size
             mosaic_w = cols * w
             mosaic_h = rows * h
-            mosaic = Image.new("L", (mosaic_w, mosaic_h), color=0)
 
-            # 事前に決めた座標に基づいてセル画像を貼り付け
+            # 今回は "RGB" キャンバスにする
+            mosaic = Image.new("RGB", (mosaic_w, mosaic_h), (0, 0, 0))
             for cell_num, pil_img in cell_to_image.items():
                 r_idx, c_idx = cell_positions[cell_num]
                 mosaic.paste(pil_img, (c_idx * w, r_idx * h))
@@ -838,7 +853,6 @@ class TimelapseEngineCrudBase:
                 detail=f"No frames created for field={field}",
             )
 
-        # GIF をメモリバッファに保存
         gif_buffer = io.BytesIO()
         frames_for_gif[0].save(
             gif_buffer,
