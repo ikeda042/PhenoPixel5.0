@@ -458,6 +458,9 @@ class TimelapseEngineCrudBase:
                 print(f"Skipping because image not found: {ph_path}, {fluo_path}")
                 continue
 
+            # 画像の高さ・幅を取得
+            height, width = ph_img.shape[:2]
+
             ph_gray = cv2.cvtColor(ph_img, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(ph_gray, param1, 255, cv2.THRESH_BINARY)
 
@@ -479,8 +482,14 @@ class TimelapseEngineCrudBase:
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
 
-                    # 任意の座標制限 (例)
-                    if not (500 < cx < 1900 and 500 < cy < 1900):
+                    # 画像の上下左右をそれぞれ 10% 除外した範囲を定義
+                    x_min = int(width * 0.1)
+                    x_max = int(width * 0.9)
+                    y_min = int(height * 0.1)
+                    y_max = int(height * 0.9)
+
+                    # 10% ~ 90% の範囲に入っていなければスキップ
+                    if not (x_min < cx < x_max and y_min < cy < y_max):
                         continue
 
                     assigned_cell_idx = None
@@ -500,7 +509,7 @@ class TimelapseEngineCrudBase:
                     if assigned_cell_idx not in new_active_cells:
                         new_active_cells[assigned_cell_idx] = (cx, cy)
 
-                    # クロップ領域
+                    # クロップ領域を算出
                     x1 = max(0, cx - output_size[0] // 2)
                     y1 = max(0, cy - output_size[1] // 2)
                     x2 = min(ph_img.shape[1], cx + output_size[0] // 2)
@@ -533,13 +542,13 @@ class TimelapseEngineCrudBase:
                     cell_obj = Cell(
                         cell_id=cell_id,
                         label_experiment=field,
-                        manual_label=-1,
+                        manual_label="N/A",
                         perimeter=perimeter,
                         area=area,
                         img_ph=ph_gray_encode,
                         img_fluo1=fluo_gray_encode,
                         img_fluo2=None,
-                        # DB には「シフト後の」contour を保存
+                        # DBには「シフト後の」contourを保存
                         contour=pickle.dumps(contour_shifted),
                         center_x=cx,
                         center_y=cy,
