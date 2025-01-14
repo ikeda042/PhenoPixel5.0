@@ -32,7 +32,16 @@ const TimelapseParser: React.FC = () => {
   // Field 関連
   const [fields, setFields] = useState<string[]>([]);
   const [selectedField, setSelectedField] = useState<string>("");
+
+  // GIF 表示関連
   const [gifUrl, setGifUrl] = useState<string>("");
+
+  /**
+   * 画像表示形式 (生 / 細胞抽出後) を管理
+   *  - raw: ParseND2File 処理で生成した生の画像 ( /nd2_files/{file_name}/gif/{field_name} )
+   *  - extracted: ExtractCells 後の画像 ( /nd2_files/{file_name}/cells/{field_name}/gif )
+   */
+  const [displayType, setDisplayType] = useState<"raw" | "extracted">("raw");
 
   // レスポンシブブレイクポイントを取得
   const theme = useTheme();
@@ -83,17 +92,22 @@ const TimelapseParser: React.FC = () => {
   };
 
   /**
-   * Field 選択時に呼び出す
-   * GET /tlengine/nd2_files/{file_name}/gif/{Field} で GIF を取得
+   * Field 選択時 (または表示形式選択時) に呼び出す
+   * - 生画像:     GET /tlengine/nd2_files/{file_name}/gif/{field_name}
+   * - 抽出後画像: GET /tlengine/nd2_files/{file_name}/cells/{field_name}/gif
    */
-  const fetchGif = async (fieldValue: string) => {
+  const fetchGif = async (fieldValue: string, type: "raw" | "extracted") => {
     if (!fileName || !fieldValue) return;
     setIsLoading(true);
+
+    // エンドポイントを動的に切り替え
+    const endpoint =
+      type === "raw"
+        ? `${url_prefix}/tlengine/nd2_files/${fileName}/gif/${fieldValue}`
+        : `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${fieldValue}/gif`;
+
     try {
-      const response = await axios.get(
-        `${url_prefix}/tlengine/nd2_files/${fileName}/gif/${fieldValue}`,
-        { responseType: "blob" }
-      );
+      const response = await axios.get(endpoint, { responseType: "blob" });
       const blobUrl = URL.createObjectURL(response.data);
       setGifUrl(blobUrl);
     } catch (error) {
@@ -109,7 +123,24 @@ const TimelapseParser: React.FC = () => {
   const handleFieldChange = (event: SelectChangeEvent<string>) => {
     const newField = event.target.value as string;
     setSelectedField(newField);
-    fetchGif(newField);
+
+    // Field を選択する度に現在の displayType で画像を取得し直す
+    if (newField) {
+      fetchGif(newField, displayType);
+    }
+  };
+
+  /**
+   * 表示形式ドロップダウン変更時のハンドラ
+   */
+  const handleDisplayTypeChange = (event: SelectChangeEvent<"raw" | "extracted">) => {
+    const newType = event.target.value as "raw" | "extracted";
+    setDisplayType(newType);
+
+    // 既に Field が選択されている場合は再度取得
+    if (selectedField) {
+      fetchGif(selectedField, newType);
+    }
   };
 
   return (
@@ -197,7 +228,7 @@ const TimelapseParser: React.FC = () => {
 
                 {/* Field ドロップダウン：fields が取得できたら表示 */}
                 {fields.length > 0 && (
-                  <FormControl fullWidth>
+                  <FormControl fullWidth sx={{ mb: 2 }}>
                     <InputLabel>Field</InputLabel>
                     <Select value={selectedField} onChange={handleFieldChange}>
                       {fields.map((field) => (
@@ -205,6 +236,17 @@ const TimelapseParser: React.FC = () => {
                           {field}
                         </MenuItem>
                       ))}
+                    </Select>
+                  </FormControl>
+                )}
+
+                {/* 表示形式ドロップダウン："raw" / "extracted" */}
+                {fields.length > 0 && (
+                  <FormControl fullWidth>
+                    <InputLabel>Display Type</InputLabel>
+                    <Select value={displayType} onChange={handleDisplayTypeChange}>
+                      <MenuItem value="raw">Raw</MenuItem>
+                      <MenuItem value="extracted">Extracted</MenuItem>
                     </Select>
                   </FormControl>
                 )}
@@ -220,7 +262,7 @@ const TimelapseParser: React.FC = () => {
                     sx={{ mt: isSmallScreen ? 2 : 0 }}
                   >
                     <Typography variant="body1" mb={2}>
-                      <b>{selectedField}</b>
+                      <b>{selectedField}</b> ({displayType === "raw" ? "Raw" : "Extracted"})
                     </Typography>
                     <Box
                       component="img"
