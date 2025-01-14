@@ -420,10 +420,10 @@ class TimelapseEngineCrudBase:
         min_area: int = 300,
         crop_size: int = 200,
     ):
-        engine = create_async_engine(
-            f"sqlite+aiosqlite:///TimelapseDatabases/{dbname}?timeout=30",
-            echo=False,
-        )
+        db_path = os.path.join("TimelapseDatabases", dbname)
+        if os.path.exists(db_path):
+            os.remove(db_path)
+        engine = await create_database(dbname)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
