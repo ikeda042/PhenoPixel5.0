@@ -411,7 +411,7 @@ class TimelapseEngineCrudBase:
         self,
         field: str,
         dbname: str,
-        param1: int = 130,
+        param1: int = 90,
         min_area: int = 300,
         crop_size: int = 200,
     ):
@@ -669,6 +669,178 @@ class TimelapseEngineCrudBase:
             format="GIF",
             save_all=True,
             append_images=frames[1:],
+            duration=duration_ms,
+            loop=0,
+        )
+        gif_buffer.seek(0)
+        return gif_buffer
+
+    async def create_gif_for_cells(
+        self,
+        field: str,
+        dbname: str,
+        channel: str = "ph",  # "ph", "fluo1", or "fluo2"
+        duration_ms: int = 200,
+    ):
+        """
+        指定した field 内に含まれる全セルについて、タイムごとに 200x200 のクロップ画像を並べ、
+        できるだけ正方形に近いグリッド (n x m) でレイアウトしたフレームを時系列順に繋いで
+        1つの GIF にして返す関数。
+
+        - field: 例 "Field_1" など
+        - dbname: 使用するDBファイル名 (例: "example.db")
+        - channel: "ph", "fluo1", "fluo2" のいずれか
+        - duration_ms: GIF のフレーム間隔 (ミリ秒)
+
+        戻り値:
+            GIF バイナリが格納された BytesIO オブジェクト
+        """
+        # channel 入力チェック
+        if channel not in ["ph", "fluo1", "fluo2"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid channel. Use 'ph', 'fluo1', or 'fluo2'.",
+            )
+
+        # データベースへの接続準備
+        engine = create_async_engine(
+            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+        )
+        async_session = sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+        async with async_session() as session:
+            # 指定フィールドに該当するセルをすべて取得 (time順, cell順)
+            all_cells_query = (
+                select(Cell)
+                .filter_by(field=field)
+                .order_by(Cell.time.asc(), Cell.cell.asc())
+            )
+            result = await session.execute(all_cells_query)
+            all_cells = result.scalars().all()
+
+        if not all_cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No cells found for field={field}",
+            )
+
+        # タイムとセル番号をすべて取得
+        unique_times = sorted(list(set(c.time for c in all_cells)))
+        unique_cells = sorted(
+            list(set(c.cell for c in all_cells if c.cell is not None))
+        )
+
+        if not unique_cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No valid cell numbering found for field={field}",
+            )
+
+        # 画像配置用の行数・列数を「できるだけ正方形に近い」形に計算
+        # 例: セル数=200 → sqrt(200)=14.14 → 行=14, 列=15 など
+        import math
+
+        num_cells = len(unique_cells)
+        rows = int(math.floor(math.sqrt(num_cells)))
+        cols = int(math.ceil(num_cells / rows))
+
+        # DBに保存された画像はすべて200x200である想定だが、
+        # 念のため 1枚取り出してサイズを確認し、サイズが揃っていない場合は
+        # リサイズするよう実装 (ここでは全画像200x200である前提でほぼ動作)
+        first_valid_img_size = None
+
+        # GIF用フレームを作る
+        frames_for_gif = []
+
+        for t in unique_times:
+            # タイム t における全セル画像を channel から取り出して並べる
+            # cell -> 画像(PIL) の辞書を作り、存在しなければ真っ黒画像にする
+            cell_to_image = {}
+            for cell_num in unique_cells:
+                # セル(cell_num) かつ time(t) を探す
+                matched = [c for c in all_cells if c.cell == cell_num and c.time == t]
+                if not matched:
+                    # 該当がなければ空画像を用意 (200x200 の真っ黒)
+                    cell_to_image[cell_num] = Image.new("L", (200, 200), color=0)
+                    continue
+
+                # 先頭1つを取り出し (同じセル&タイムで複数行あるケースは想定外として)
+                row = matched[0]
+                if channel == "ph":
+                    img_binary = row.img_ph
+                elif channel == "fluo1":
+                    img_binary = row.img_fluo1
+                else:
+                    img_binary = row.img_fluo2
+
+                if img_binary is None:
+                    # 画像が無い場合は真っ黒
+                    cell_to_image[cell_num] = Image.new("L", (200, 200), color=0)
+                    continue
+
+                # バイナリ→numpy→PIL
+                np_img = cv2.imdecode(
+                    np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
+                )
+                if np_img is None:
+                    cell_to_image[cell_num] = Image.new("L", (200, 200), color=0)
+                    continue
+
+                pil_img = Image.fromarray(np_img)
+
+                # サイズチェック＆リサイズ(必要なら)
+                if first_valid_img_size is None:
+                    first_valid_img_size = pil_img.size
+                if pil_img.size != first_valid_img_size:
+                    pil_img = pil_img.resize(first_valid_img_size)
+
+                cell_to_image[cell_num] = pil_img
+
+            # rows x cols の配置でモザイクを作成
+            if not first_valid_img_size:
+                # 一度も有効画像が出なかった場合
+                raise HTTPException(
+                    status_code=404,
+                    detail="No valid images found to determine size.",
+                )
+
+            w, h = first_valid_img_size
+            mosaic_w = cols * w
+            mosaic_h = rows * h
+
+            mosaic = Image.new("L", (mosaic_w, mosaic_h), color=0)
+
+            # セルを行・列順に敷き詰める
+            idx = 0
+            for r in range(rows):
+                for c in range(cols):
+                    if idx < num_cells:
+                        cell_num = unique_cells[idx]
+                        tile_img = cell_to_image[cell_num]
+                        mosaic.paste(tile_img, (c * w, r * h))
+                        idx += 1
+                    else:
+                        # セル総数が grid に満たない場合はそのまま空でOK
+                        pass
+
+            frames_for_gif.append(mosaic)
+
+        # Frames が空ならエラー
+        if not frames_for_gif:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No frames created for field={field}",
+            )
+
+        # GIF をメモリバッファに保存
+        gif_buffer = io.BytesIO()
+        frames_for_gif[0].save(
+            gif_buffer,
+            format="GIF",
+            save_all=True,
+            append_images=frames_for_gif[1:],
             duration=duration_ms,
             loop=0,
         )
