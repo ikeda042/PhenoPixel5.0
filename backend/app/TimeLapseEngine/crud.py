@@ -506,14 +506,14 @@ class TimelapseEngineCrudBase:
                     cy = int(M["m01"] / M["m00"])
 
                     # (例) 中心が [400, 2000] の範囲にない場合はスキップ
-                    if not (400 < cx < 2000 and 400 < cy < 2000):
+                    if not (500 < cx < 1900 and 500 < cy < 1900):
                         continue
 
                     # (4) 前の time のセルと近いかどうか判定 → 同一セルならセル番号を再利用
                     assigned_cell_idx = None
                     min_dist = float("inf")
                     distance_threshold = (
-                        40  # この閾値より小さければ「同じセル」とみなす
+                        60  # この閾値より小さければ「同じセル」とみなす
                     )
 
                     for prev_idx, (px, py) in active_cells.items():
@@ -739,34 +739,32 @@ class TimelapseEngineCrudBase:
             )
 
         # 画像配置用の行数・列数を「できるだけ正方形に近い」形に計算
-        # 例: セル数=200 → sqrt(200)=14.14 → 行=14, 列=15 など
-        import math
-
         num_cells = len(unique_cells)
         rows = int(math.floor(math.sqrt(num_cells)))
         cols = int(math.ceil(num_cells / rows))
 
-        # DBに保存された画像はすべて200x200である想定だが、
-        # 念のため 1枚取り出してサイズを確認し、サイズが揃っていない場合は
-        # リサイズするよう実装 (ここでは全画像200x200である前提でほぼ動作)
+        # あらかじめ「cell番号 → (row_idx, col_idx)」の対応を作っておく
+        cell_positions = {}
+        for i, cell_num in enumerate(unique_cells):
+            row_idx = i // cols
+            col_idx = i % cols
+            cell_positions[cell_num] = (row_idx, col_idx)
+
+        # 一枚目の有効画像のサイズを判定するための変数
         first_valid_img_size = None
 
-        # GIF用フレームを作る
         frames_for_gif = []
 
         for t in unique_times:
             # タイム t における全セル画像を channel から取り出して並べる
-            # cell -> 画像(PIL) の辞書を作り、存在しなければ真っ黒画像にする
             cell_to_image = {}
             for cell_num in unique_cells:
-                # セル(cell_num) かつ time(t) を探す
                 matched = [c for c in all_cells if c.cell == cell_num and c.time == t]
                 if not matched:
-                    # 該当がなければ空画像を用意 (200x200 の真っ黒)
+                    # 該当がなければ空画像(真っ黒200x200)を用意
                     cell_to_image[cell_num] = Image.new("L", (200, 200), color=0)
                     continue
 
-                # 先頭1つを取り出し (同じセル&タイムで複数行あるケースは想定外として)
                 row = matched[0]
                 if channel == "ph":
                     img_binary = row.img_ph
@@ -798,7 +796,6 @@ class TimelapseEngineCrudBase:
 
                 cell_to_image[cell_num] = pil_img
 
-            # rows x cols の配置でモザイクを作成
             if not first_valid_img_size:
                 # 一度も有効画像が出なかった場合
                 raise HTTPException(
@@ -809,25 +806,15 @@ class TimelapseEngineCrudBase:
             w, h = first_valid_img_size
             mosaic_w = cols * w
             mosaic_h = rows * h
-
             mosaic = Image.new("L", (mosaic_w, mosaic_h), color=0)
 
-            # セルを行・列順に敷き詰める
-            idx = 0
-            for r in range(rows):
-                for c in range(cols):
-                    if idx < num_cells:
-                        cell_num = unique_cells[idx]
-                        tile_img = cell_to_image[cell_num]
-                        mosaic.paste(tile_img, (c * w, r * h))
-                        idx += 1
-                    else:
-                        # セル総数が grid に満たない場合はそのまま空でOK
-                        pass
+            # 事前に決めた座標に基づいてセル画像を貼り付け
+            for cell_num, pil_img in cell_to_image.items():
+                r_idx, c_idx = cell_positions[cell_num]
+                mosaic.paste(pil_img, (c_idx * w, r_idx * h))
 
             frames_for_gif.append(mosaic)
 
-        # Frames が空ならエラー
         if not frames_for_gif:
             raise HTTPException(
                 status_code=404,
