@@ -61,7 +61,7 @@ class Cell(Base):
     base_cell_id = Column(Boolean, nullable=True)
 
     # 死細胞判定用カラム
-    is_dead = Column(String, nullable=True)
+    is_dead = Column(Integer, nullable=True)
 
 
 @asynccontextmanager
@@ -588,7 +588,7 @@ class TimelapseEngineCrudBase:
                         time=i + 1,
                         cell=assigned_cell_idx,
                         base_cell_id=base_ids[assigned_cell_idx],
-                        is_dead=None,
+                        is_dead=-1,
                     )
 
                     # 重複チェック
@@ -1017,7 +1017,7 @@ class TimelapseDatabaseCrud:
             await session.commit()
             return result.rowcount
 
-    async def update_dead_status(self, base_cell_id: str, is_dead: bool):
+    async def update_dead_status(self, base_cell_id: str, is_dead: int):
         async with get_session(self.dbname) as session:
             result = await session.execute(
                 update(Cell)
