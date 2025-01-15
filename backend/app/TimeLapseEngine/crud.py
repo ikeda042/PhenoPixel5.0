@@ -875,7 +875,7 @@ class TimelapseDatabaseCrud:
                     .filter_by(field=field, cell=cell_number)
                     .order_by(Cell.time)
                 )
-                cells = result.scalars().all()
+                cells: list[Cell] = result.scalars().all()
 
         if not cells:
             raise HTTPException(
