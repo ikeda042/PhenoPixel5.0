@@ -112,7 +112,7 @@ const TimelapseParser: React.FC = () => {
     // Raw 用＆Extracted 用のエンドポイント
     const endpointRaw = `${url_prefix}/tlengine/nd2_files/${fileName}/gif/${fieldValue}`;
     // フィールドごとのエンドポイントは使わず、常に /cells/gif を使用
-    const endpointExtracted = `${url_prefix}/tlengine/nd2_files/${fileName}/cells/gif`;
+    const endpointExtracted = `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${fieldValue}/gif`
 
     try {
       if (type === "dual") {
