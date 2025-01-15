@@ -923,7 +923,7 @@ class TimelapseDatabaseCrud:
                         [np.array(contour_data, dtype=np.int32)],
                         -1,
                         (0, 255, 0),  # 緑色
-                        2,
+                        1,
                     )
                     # Pillow 用に BGR -> RGB に変換
                     rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
