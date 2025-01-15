@@ -203,12 +203,14 @@ async def read_cell_by_cell_id(db_name: str, cell_id: str):
 @router_tl_engine.get(
     "/databases/{db_name}/cells/by_field/{field}/cell_number/{cell_number}"
 )
-async def read_cells_by_cell_number(db_name: str, field: str, cell_number: int):
+async def read_cells_by_cell_number(
+    db_name: str, field: str, cell_number: int, manual_label: str | None = None
+):
     """
     指定したデータベース(db_name)から、field + cell_number で該当するセルを全部取得するエンドポイント
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
-    cells = await crud.get_cells_by_cell_number(field, cell_number)
+    cells = await crud.get_cells_by_cell_number(field, cell_number, manual_label)
     if not cells:
         raise HTTPException(
             status_code=404,
@@ -238,6 +240,7 @@ async def get_cell_gif(
     field: str,
     cell_number: int,
     channel: str = "ph",
+    manual_label: str | None = None,
 ):
     """
     指定したフィールド & セル番号 の時系列 GIF を返すエンドポイント
@@ -245,7 +248,7 @@ async def get_cell_gif(
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
     gif_buffer: io.BytesIO = await crud.get_cells_gif_by_cell_number(
-        field, cell_number, channel
+        field, cell_number, channel, manual_label
     )
     return StreamingResponse(
         gif_buffer,
