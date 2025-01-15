@@ -284,39 +284,18 @@ async def get_cell_numbers_of_field(db_name: str, field: str):
     )
 
 
-#   async def update_manual_label(self, base_cell_id: str, label: str):
-#         async with get_session(self.dbname) as session:
-#             result = await session.execute(
-#                 update(Cell)
-#                 .where(Cell.base_cell_id == base_cell_id)
-#                 .values(manual_label=label)
-#             )
-#             await session.commit()
-#             return result.rowcount
-
-#     async def update_dead_status(self, base_cell_id: str, is_dead: bool):
-#         async with get_session(self.dbname) as session:
-#             result = await session.execute(
-#                 update(Cell)
-#                 .where(Cell.base_cell_id == base_cell_id)
-#                 .values(is_dead=is_dead)
-#             )
-#             await session.commit()
-#             return result.rowcount
-
-
-@router_tl_engine.patch("/databases/{db_name}/cells/{cell_id}/label")
-async def update_manual_label(db_name: str, cell_id: str, label: str):
+@router_tl_engine.patch("/databases/{db_name}/cells/{base_cell_id}/label")
+async def update_manual_label(db_name: str, base_cell_id: str, label: str):
     """
     指定したデータベース(db_name)のセル(cell_id)の manual_label を更新するエンドポイント
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
-    result = await crud.update_manual_label(cell_id, label)
+    result = await crud.update_manual_label(base_cell_id, label)
     return JSONResponse(content={"updated": result})
 
 
-@router_tl_engine.patch("/databases/{db_name}/cells/{cell_id}/dead")
-async def update_dead_status(db_name: str, cell_id: str, is_dead: bool):
+@router_tl_engine.patch("/databases/{db_name}/cells/{base_cell_id}/dead")
+async def update_dead_status(db_name: str, base_cell_id: str, is_dead: bool):
     """
     指定したデータベース(db_name)のセル(cell_id)の is_dead を更新するエンドポイント
     """
