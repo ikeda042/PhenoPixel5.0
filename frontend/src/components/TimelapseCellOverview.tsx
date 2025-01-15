@@ -14,6 +14,8 @@ import {
   CardMedia,
   Breadcrumbs,
   Link,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
@@ -41,6 +43,9 @@ const url_prefix = settings.url_prefix;
  * 画像は ph, fluo1, fluo2 の3チャネルを同時に表示する。
  */
 const TimelapseViewer: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const [searchParams] = useSearchParams();
   const dbName = searchParams.get("db_name"); // "?db_name=xxx" を取得
 
@@ -161,7 +166,15 @@ const TimelapseViewer: React.FC = () => {
   );
 
   return (
-    <Container sx={{ py: 4 }}>
+    <Container
+      sx={{
+        py: 4,
+        // カード背景が映えるように全体背景を少し薄いグレーに
+        backgroundColor: "#f9f9f9",
+        minHeight: "100vh",
+      }}
+      maxWidth="xl"
+    >
       <Box mb={2}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link underline="hover" color="inherit" href="/">
@@ -173,78 +186,133 @@ const TimelapseViewer: React.FC = () => {
           <Typography color="text.primary">{dbName}</Typography>
         </Breadcrumbs>
       </Box>
-      <Box mb={2}>
-        <Typography variant="h4" gutterBottom>
+
+      <Box mb={3}>
+        <Typography variant="h4" gutterBottom fontWeight="bold">
           Timelapse Viewer
         </Typography>
       </Box>
 
-      {/* フィールド選択 */}
-      <FormControl sx={{ mr: 2, minWidth: 120, mb: 2 }}>
-        <InputLabel id="field-select-label">Field</InputLabel>
-        <Select
-          labelId="field-select-label"
-          value={selectedField}
-          label="Field"
-          onChange={(e) => setSelectedField(e.target.value as string)}
-        >
-          {fields.map((field) => (
-            <MenuItem key={field} value={field}>
-              {field}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      {/* フィールド＆セル番号選択 */}
+      <Box
+        display="flex"
+        flexWrap="wrap"
+        alignItems="center"
+        gap={2}
+        mb={3}
+        // モバイル時は縦並びにする
+        flexDirection={isMobile ? "column" : "row"}
+      >
+        <FormControl sx={{ minWidth: 120 }}>
+          <InputLabel id="field-select-label">Field</InputLabel>
+          <Select
+            labelId="field-select-label"
+            value={selectedField}
+            label="Field"
+            onChange={(e) => setSelectedField(e.target.value as string)}
+          >
+            {fields.map((field) => (
+              <MenuItem key={field} value={field}>
+                {field}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-      {/* セル番号選択 */}
-      <FormControl sx={{ mr: 2, minWidth: 120, mb: 2 }}>
-        <InputLabel id="cellnumber-select-label">Cell #</InputLabel>
-        <Select
-          labelId="cellnumber-select-label"
-          value={selectedCellNumber}
-          label="Cell #"
-          onChange={(e) => setSelectedCellNumber(e.target.value as number)}
-        >
-          {cellNumbers.map((num) => (
-            <MenuItem key={num} value={num}>
-              {num}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+        <FormControl sx={{ minWidth: 120 }}>
+          <InputLabel id="cellnumber-select-label">Cell #</InputLabel>
+          <Select
+            labelId="cellnumber-select-label"
+            value={selectedCellNumber}
+            label="Cell #"
+            onChange={(e) => setSelectedCellNumber(e.target.value as number)}
+          >
+            {cellNumbers.map((num) => (
+              <MenuItem key={num} value={num}>
+                {num}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-      {/* Prev/Next ボタン */}
-      <Box mb={4}>
-        <Button variant="outlined" sx={{ mr: 2 }} onClick={handlePrevCell}>
-          Prev Cell
-        </Button>
-        <Button variant="outlined" onClick={handleNextCell}>
-          Next Cell
-        </Button>
+        {/* Prev/Next ボタン */}
+        <Box display="flex" flexDirection="row" gap={2}>
+          <Button
+            variant="contained"
+            sx={{
+              backgroundColor: "#000",
+              color: "#fff",
+              "&:hover": {
+                backgroundColor: "#333",
+              },
+            }}
+            onClick={handlePrevCell}
+          >
+            Prev Cell
+          </Button>
+          <Button
+            variant="contained"
+            sx={{
+              backgroundColor: "#000",
+              color: "#fff",
+              "&:hover": {
+                backgroundColor: "#333",
+              },
+            }}
+            onClick={handleNextCell}
+          >
+            Next Cell
+          </Button>
+        </Box>
       </Box>
 
       {/* タイムラプスGIFの表示 */}
       {dbName ? (
         <Grid container spacing={3}>
           {gifUrls.map((url, idx) => (
-            <Grid item xs={12} md={4} key={`${channels[idx]}-${reloadKey}`}>
-              <Card>
+            <Grid
+              item
+              xs={12}
+              md={4}
+              key={`${channels[idx]}-${reloadKey}`}
+              // モバイルの時は幅を全体に使い、PC時は3列
+            >
+              <Card
+                sx={{
+                  borderRadius: 2,
+                  boxShadow: 3,
+                  backgroundColor: "#fff",
+                }}
+              >
                 <CardHeader
                   title={`Channel: ${channels[idx]}`}
-                  sx={{ pb: 0 }}
+                  sx={{
+                    pb: 1,
+                    "& .MuiCardHeader-title": {
+                      fontWeight: "bold",
+                    },
+                  }}
                 />
                 <CardMedia
                   component="img"
                   image={url}
                   alt={`timelapse-${channels[idx]}`}
-                  sx={{ mt: 1 }}
+                  sx={{
+                    // 画像の角を少し丸める
+                    borderRadius: 2,
+                    mt: 1,
+                    mx: "auto",
+                    width: "auto",
+                    maxHeight: 300,
+                    objectFit: "contain",
+                  }}
                 />
               </Card>
             </Grid>
           ))}
         </Grid>
       ) : (
-        <Typography variant="body1">
+        <Typography variant="body1" mt={2}>
           データがありません。DB名やフィールドが正しく指定されているか確認してください。
         </Typography>
       )}
