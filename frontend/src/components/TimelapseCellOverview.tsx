@@ -228,12 +228,6 @@ const TimelapseViewer: React.FC = () => {
           </Breadcrumbs>
         </Box>
 
-        <Box mb={3}>
-          <Typography variant="h4" gutterBottom fontWeight="bold">
-            Timelapse Viewer
-          </Typography>
-        </Box>
-
         {/* フィールド＆セル番号選択 */}
         <Box
           display="flex"
