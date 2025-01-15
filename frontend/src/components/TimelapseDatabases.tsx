@@ -219,11 +219,10 @@ const TimelapseDatabases: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Database Name</TableCell>
-                <TableCell>Copy</TableCell>
-                <TableCell>Access Database</TableCell>
-                {/* 新しく追加する preview カラム */}
-                <TableCell>Preview</TableCell>
+                <TableCell align="center">Database Name</TableCell>
+                <TableCell align="center">Copy</TableCell>
+                <TableCell align="center">Preview</TableCell>
+                <TableCell align="center">Access Database</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -245,29 +244,8 @@ const TimelapseDatabases: React.FC = () => {
                       </IconButton>
                     </Tooltip>
                   </TableCell>
-
-                  {/* Access database */}
-                  <TableCell>
-                    <IconButton
-                      onClick={() => handleNavigate(database)}
-                      sx={{
-                        color: "#000", // アイコンも黒色に
-                      }}
-                    >
-                      <Typography
-                        sx={{
-                          color: "#000",
-                          fontSize: "0.8rem",
-                        }}
-                      >
-                        Access database
-                      </Typography>
-                      <NavigateNextIcon />
-                    </IconButton>
-                  </TableCell>
-
-                  {/* Preview */}
-                  <TableCell>
+                   {/* Preview */}
+                   <TableCell>
                     {/* フィールドの選択ドロップダウン */}
                     <FormControl size="small" sx={{ minWidth: 120 }}>
                       <InputLabel id={`select-label-${database}`}>Field</InputLabel>
@@ -309,6 +287,27 @@ const TimelapseDatabases: React.FC = () => {
                       Preview
                     </Button>
                   </TableCell>
+                  {/* Access database */}
+                  <TableCell>
+                    <IconButton
+                      onClick={() => handleNavigate(database)}
+                      sx={{
+                        color: "#000", // アイコンも黒色に
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          color: "#000",
+                          fontSize: "0.8rem",
+                        }}
+                      >
+                        Access database
+                      </Typography>
+                      <NavigateNextIcon />
+                    </IconButton>
+                  </TableCell>
+
+                 
                 </TableRow>
               ))}
             </TableBody>
