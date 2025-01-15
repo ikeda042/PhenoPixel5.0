@@ -18,6 +18,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
 import math
 from fastapi import HTTPException
+from sqlalchemy.sql import Select
 
 Base = declarative_base()
 
@@ -836,3 +837,162 @@ class TimelapseEngineCrudBase:
         )
         gif_buffer.seek(0)
         return gif_buffer
+
+
+class TimelapseDatabaseCrud(TimelapseEngineCrudBase):
+    """
+    TimelapseEngineCrudBase を継承し、基本CRUD (create, read, update, delete) を追加したクラス。
+
+    - セルの新規登録
+    - セルの情報取得
+    - セルの更新
+    - セルの削除
+    - セル一覧取得
+    などの機能をまとめる。
+
+    さらに、親クラスの機能を使って GIF を取得するためのラッパメソッドも作る。
+    """
+
+    def __init__(self, dbname: str, nd2_path: str):
+        """
+        dbname: SQLite のファイル名（例: "mydatabase.db"）
+        nd2_path: タイムラプス ND2 ファイル名（例: "test_timelapse.nd2"）
+        """
+        super().__init__(nd2_path=nd2_path)
+        self.dbname = dbname
+        self.engine = create_async_engine(
+            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+        )
+        self.async_session = sessionmaker(
+            self.engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+    async def create_cell(self, cell_data: dict) -> Cell:
+        """
+        新規セル情報を追加（例: cell_data は {"cell_id": "...", "field": "Field_1", ...} のような dict）
+        """
+        async with self.async_session() as session:
+            # DB スキーマを作成（存在しなければ）
+            async with self.engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+
+            cell_obj = Cell(**cell_data)
+            session.add(cell_obj)
+            await session.commit()
+            await session.refresh(cell_obj)  # INSERT後の最新状態を取得
+            return cell_obj
+
+    async def read_cell_by_id(self, db_id: int) -> Cell | None:
+        """
+        主キー (id) で検索
+        """
+        async with self.async_session() as session:
+            stmt: Select = select(Cell).where(Cell.id == db_id)
+            result = await session.execute(stmt)
+            cell = result.scalar()
+            return cell
+
+    async def read_cells(
+        self, field: str | None = None, cell_num: int | None = None
+    ) -> list[Cell]:
+        """
+        条件付きで Cell を取得 (field や cell_num など)
+        """
+        async with self.async_session() as session:
+            stmt: Select = select(Cell)
+
+            if field is not None:
+                stmt = stmt.where(Cell.field == field)
+            if cell_num is not None:
+                stmt = stmt.where(Cell.cell == cell_num)
+
+            stmt = stmt.order_by(Cell.time.asc(), Cell.cell.asc())
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    async def update_cell(self, db_id: int, update_data: dict) -> Cell | None:
+        """
+        主キー (id) を元に更新
+        """
+        async with self.async_session() as session:
+            stmt: Select = select(Cell).where(Cell.id == db_id)
+            result = await session.execute(stmt)
+            cell = result.scalar()
+
+            if not cell:
+                return None
+
+            # 受け取ったデータを上書き
+            for k, v in update_data.items():
+                if hasattr(cell, k):
+                    setattr(cell, k, v)
+
+            session.add(cell)
+            await session.commit()
+            await session.refresh(cell)
+            return cell
+
+    async def delete_cell(self, db_id: int) -> bool:
+        """
+        主キー (id) を元に削除
+        """
+        async with self.async_session() as session:
+            stmt: Select = select(Cell).where(Cell.id == db_id)
+            result = await session.execute(stmt)
+            cell = result.scalar()
+            if not cell:
+                return False
+
+            await session.delete(cell)
+            await session.commit()
+            return True
+
+    async def list_cells(self) -> list[Cell]:
+        """
+        全セルを返す
+        """
+        async with self.async_session() as session:
+            stmt: Select = select(Cell).order_by(Cell.id)
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    # --- 以下は親クラスのメソッドを呼び出すラッパなどを追加可能 ---
+
+    async def extract_timelapse(self) -> JSONResponse:
+        """
+        親クラス TimelapseEngineCrudBase の main() を呼び出して、
+        ND2 から TIFF 分割処理を実行する。
+        """
+        return await self.main()
+
+    async def get_fields(self) -> list[str]:
+        """
+        親クラスの get_fields_of_nd2() を呼ぶ
+        """
+        return await self.get_fields_of_nd2()
+
+    async def run_extract_cells(
+        self, field: str, param1: int = 90, min_area: int = 300, crop_size: int = 200
+    ):
+        """
+        親クラスの extract_cells() を呼ぶ
+        """
+        return await self.extract_cells(field, self.dbname, param1, min_area, crop_size)
+
+    async def get_cell_gif(
+        self, field: str, cell_number: int, channel: str = "ph", duration_ms: int = 200
+    ) -> io.BytesIO:
+        """
+        親クラスの create_gif_for_cell() を呼ぶ
+        """
+        return await self.create_gif_for_cell(
+            field, cell_number, self.dbname, channel, duration_ms
+        )
+
+    async def get_cells_mosaic_gif(
+        self, field: str, channel: str = "ph", duration_ms: int = 200
+    ) -> io.BytesIO:
+        """
+        親クラスの create_gif_for_cells() を呼ぶ
+        """
+        return await self.create_gif_for_cells(field, self.dbname, channel, duration_ms)
