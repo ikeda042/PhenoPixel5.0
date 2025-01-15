@@ -14,6 +14,7 @@ import TimelapseNd2List from "./components/TimelapseNd2List";
 import TimelapseParser from "./components/TimelapseParser";
 import ResultsConsole from "./components/ResultsConsole";
 import TimelapseDatabases from "./components/TimelapseDatabases";
+import TimelapseViewer from "./components/TimelapseCellOverview";
 // ↑ 必要なコンポーネントをインポート
 
 /* --------------------------------
@@ -161,6 +162,14 @@ function App() {
                 </Box>
               }
             />
+            <Route
+            path="/tlengine/databases/"
+            element={
+              <Box component="main" sx={{ p: 1 }}>
+                <TimelapseViewer />
+              </Box>
+            }
+          />
           </Routes>
         </Router>
       ) : (
