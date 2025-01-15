@@ -318,7 +318,7 @@ const TopPage: React.FC = () => {
     {
       title: "Timelapse Database",
       icon: <AutoAwesomeMotionIcon sx={{ fontSize: 50 }} />,
-      path: "/tlengine/databases",
+      path: "/tlengine/dbconsole",
       description: "Timelapse database console (beta)",
       external: false,
     },

@@ -10,9 +10,11 @@ import {
   TableCell,
   TableBody,
   Paper,
+  Button,
 } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
+import { useNavigate } from "react-router-dom";
 
 /**
  * /tlengine/databases のレスポンス用インターフェイス
@@ -25,6 +27,7 @@ const url_prefix = settings.url_prefix;
 
 const TimelapseDatabases: React.FC = () => {
   const [databases, setDatabases] = useState<string[]>([]);
+  const navigate = useNavigate();
 
   /**
    * コンポーネント描画時にデータベース一覧を取得
@@ -43,12 +46,28 @@ const TimelapseDatabases: React.FC = () => {
     fetchDatabases();
   }, []);
 
+  /**
+   * 「Access Databases」 ボタンクリック時
+   * React Router を利用して /tlengine/databases に遷移
+   */
+  const handleAccessDatabases = () => {
+    navigate("/tlengine/databases");
+  };
+
   return (
     <Container>
       <Box mt={2}>
-        <Typography variant="h5" gutterBottom>
-          Timelapse Databases
-        </Typography>
+        {/* タイトル + ボタン */}
+        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+          <Typography variant="h5" gutterBottom>
+            Timelapse Databases
+          </Typography>
+          <Button variant="contained" onClick={handleAccessDatabases}>
+            Access Databases
+          </Button>
+        </Box>
+
+        {/* データベース一覧テーブル */}
         <TableContainer component={Paper}>
           <Table>
             <TableHead>

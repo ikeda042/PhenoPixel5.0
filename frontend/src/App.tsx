@@ -154,7 +154,7 @@ function App() {
               }
             />
             <Route
-              path="/tlengine/databases"
+              path="/tlengine/dbconsole"
               element={
                 <Box component="main" sx={{ p: 1 }}>
                   <TimelapseDatabases />
