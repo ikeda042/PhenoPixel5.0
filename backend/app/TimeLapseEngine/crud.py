@@ -23,6 +23,7 @@ from sqlalchemy import (
     Column,
     FLOAT,
     Integer,
+    Boolean,
     String,
     delete,
     func,
@@ -57,7 +58,7 @@ class Cell(Base):
     field = Column(String, nullable=True)  # 例: "Field_1"
     time = Column(Integer, nullable=True)  # 例: 1, 2, 3, ...
     cell = Column(Integer, nullable=True)  # 例: 同一タイム内のセル番号
-    base_cell_id = Column(String, nullable=True)
+    base_cell_id = Column(Boolean, nullable=True)
 
     # 死細胞判定用カラム
     is_dead = Column(String, nullable=True)
@@ -587,7 +588,7 @@ class TimelapseEngineCrudBase:
                         time=i + 1,
                         cell=assigned_cell_idx,
                         base_cell_id=base_ids[assigned_cell_idx],
-                        is_dead="N/A",
+                        is_dead=None,
                     )
 
                     # 重複チェック
