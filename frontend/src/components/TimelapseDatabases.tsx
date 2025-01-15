@@ -13,6 +13,8 @@ import {
   Button,
   IconButton,
   Tooltip,
+  Breadcrumbs,
+  Link,
 } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
@@ -76,6 +78,16 @@ const TimelapseDatabases: React.FC = () => {
   return (
     <Container>
       <Box mt={2}>
+      <Box mb={2}>
+        <Breadcrumbs aria-label="breadcrumb">
+          <Link underline="hover" color="inherit" href="/">
+            Top
+          </Link>
+          <Link underline="hover" color="inherit" href="/tlengine/dbconsole">
+            Database Console
+          </Link>
+        </Breadcrumbs>
+      </Box>
         {/* タイトル */}
         <Box
           display="flex"
