@@ -51,7 +51,7 @@ const TimelapseViewer: React.FC = () => {
   const [selectedCellNumber, setSelectedCellNumber] = useState<number>(0);
 
   // 常に表示したいチャネル
-  const channels = ["ph", "fluo1", "fluo2"] as const;
+  const channels = ["ph", "fluo1", "fluo1"] as const;
 
   // DB名が取れない場合のエラーハンドリング
   useEffect(() => {
