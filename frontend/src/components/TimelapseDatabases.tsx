@@ -19,6 +19,10 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
@@ -50,9 +54,11 @@ const TimelapseDatabases: React.FC = () => {
   const [selectedFields, setSelectedFields] = useState<Record<string, string>>({});
 
   /**
-   * key: データベース名, value: 生成したGIFのURL (Blob URL)
+   * モーダル関連のステート
    */
-  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  const [previewModalOpen, setPreviewModalOpen] = useState<boolean>(false);
+  const [previewModalDbName, setPreviewModalDbName] = useState<string>("");
+  const [previewModalUrl, setPreviewModalUrl] = useState<string>("");
 
   const navigate = useNavigate();
 
@@ -112,7 +118,7 @@ const TimelapseDatabases: React.FC = () => {
 
   /**
    * Previewボタン押下時に呼ばれる想定の関数
-   * 指定したフィールドのGIFを作成APIを呼び、Blob URLを作ってプレビューする
+   * 指定したフィールドのGIFを作成APIを呼び、モーダルでプレビュー表示する
    */
   const handlePreview = async (dbName: string) => {
     const field = selectedFields[dbName];
@@ -121,25 +127,25 @@ const TimelapseDatabases: React.FC = () => {
       return;
     }
 
-    // DB名 から ND2ファイル名を逆引き (例: "foo_cells.db" -> "foo.nd2")
+    // DB名 から ND2ファイル名を推定 (例: "foo_cells.db" -> "foo.nd2")
     const fileName = dbName.replace("_cells.db", ".nd2");
 
     try {
-      // GIFを取得
+      // GIFを取得 (バイナリ)
       const response = await axios.get(
         `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${field}/gif`,
         {
-          responseType: "arraybuffer", // バイナリを取得する
+          responseType: "arraybuffer",
         }
       );
-
       // Blob を生成
       const blob = new Blob([response.data], { type: "image/gif" });
-      // ブラウザ上で表示できるURLに変換
       const blobUrl = URL.createObjectURL(blob);
 
-      // previewUrls に格納
-      setPreviewUrls((prev) => ({ ...prev, [dbName]: blobUrl }));
+      // モーダルを開いてプレビュー表示
+      setPreviewModalDbName(dbName);
+      setPreviewModalUrl(blobUrl);
+      setPreviewModalOpen(true);
     } catch (err) {
       console.error("Failed to fetch GIF:", err);
       alert(`Failed to fetch GIF for ${dbName}, Field: ${field}`);
@@ -151,6 +157,15 @@ const TimelapseDatabases: React.FC = () => {
    */
   const handleFieldChange = (dbName: string, newField: string) => {
     setSelectedFields((prev) => ({ ...prev, [dbName]: newField }));
+  };
+
+  /**
+   * モーダルを閉じる
+   */
+  const handleClosePreview = () => {
+    setPreviewModalOpen(false);
+    setPreviewModalDbName("");
+    setPreviewModalUrl("");
   };
 
   return (
@@ -236,25 +251,23 @@ const TimelapseDatabases: React.FC = () => {
                         ))}
                       </Select>
                     </FormControl>
+
                     {/* プレビューボタン */}
                     <Button
                       variant="contained"
                       size="small"
-                      sx={{ ml: 2 }}
+                      sx={{
+                        ml: 2,
+                        backgroundColor: "#000", // ボタンを黒色に
+                        color: "#fff",
+                        // 行の高さに合わせるため適宜調整
+                        minHeight: "36px",
+                        fontSize: "0.8rem",
+                      }}
                       onClick={() => handlePreview(database)}
                     >
                       Preview
                     </Button>
-                    {/* 取得したGIFのプレビュー表示 */}
-                    {previewUrls[database] && (
-                      <Box mt={1}>
-                        <img
-                          src={previewUrls[database]}
-                          alt={`${database}-gif`}
-                          style={{ maxHeight: "200px", maxWidth: "200px" }}
-                        />
-                      </Box>
-                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -262,6 +275,30 @@ const TimelapseDatabases: React.FC = () => {
           </Table>
         </TableContainer>
       </Box>
+
+      {/* プレビュー用モーダル */}
+      <Dialog
+        open={previewModalOpen}
+        onClose={handleClosePreview}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Preview - {previewModalDbName}</DialogTitle>
+        <DialogContent>
+          {previewModalUrl && (
+            <img
+              src={previewModalUrl}
+              alt="Preview GIF"
+              style={{ width: "100%", maxHeight: "80vh", objectFit: "contain" }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePreview} variant="contained" color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
