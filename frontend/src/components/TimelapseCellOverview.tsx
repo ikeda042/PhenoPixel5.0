@@ -44,7 +44,6 @@ interface GetCellNumbersResponse {
 
 /**
  * /databases/{db_name}/cells/by_field/{field}/cell_number/{cell_number} の簡易レスポンス
- * (まだ is_dead を含まない想定)
  */
 interface CellDataByFieldNumber {
   id: number;
@@ -54,7 +53,6 @@ interface CellDataByFieldNumber {
   cell: number;
   area: number;
   perimeter: number;
-  // is_dead は無い
 }
 
 /**
@@ -66,7 +64,6 @@ interface GetCellsResponseByFieldNumber {
 
 /**
  * /databases/{db_name}/cells/by_id/{cell_id} のレスポンス
- * (ここで is_dead が取れる)
  */
 interface CellDataById {
   id: number;
@@ -80,7 +77,6 @@ interface CellDataById {
   is_dead?: number; // ここを使う
 }
 
-// 例：サーバーのエンドポイントのプレフィックス
 const url_prefix = settings.url_prefix;
 
 const TimelapseViewer: React.FC = () => {
@@ -116,7 +112,6 @@ const TimelapseViewer: React.FC = () => {
   // 表示したいチャネル（ph, fluo1, fluo2）
   const channels = ["ph", "fluo1", "fluo2"] as const;
 
-  // DB名が取れない場合のエラーハンドリング
   useEffect(() => {
     if (!dbName) {
       console.error("No db_name is specified in query parameters.");
@@ -132,7 +127,6 @@ const TimelapseViewer: React.FC = () => {
         `${url_prefix}/tlengine/databases/${dbName}/fields`
       );
       setFields(response.data.fields);
-      // フィールド一覧取得後、先頭要素をデフォルト選択
       if (response.data.fields.length > 0) {
         setSelectedField(response.data.fields[0]);
       }
@@ -151,7 +145,6 @@ const TimelapseViewer: React.FC = () => {
       );
       setCellNumbers(response.data.cell_numbers);
 
-      // セル番号一覧取得後、先頭要素をデフォルト選択
       if (response.data.cell_numbers.length > 0) {
         setSelectedCellNumber(response.data.cell_numbers[0]);
       }
@@ -186,7 +179,7 @@ const TimelapseViewer: React.FC = () => {
     }
 
     try {
-      // まずは field & cell_number から cell_id を取得
+      // field & cell_number から cell_id を取得
       const response = await axios.get<GetCellsResponseByFieldNumber>(
         `${url_prefix}/tlengine/databases/${dbName}/cells/by_field/${selectedField}/cell_number/${selectedCellNumber}`
       );
@@ -195,14 +188,11 @@ const TimelapseViewer: React.FC = () => {
         setCurrentCellData(null);
         return;
       }
-
-      // 先頭のデータから cell_id を取得
       const baseCellId = cells[0].cell_id;
 
-      // 次に cell_id で詳細 (is_dead 等) を取得
+      // cell_id で詳細を取得
       const detail = await fetchCellDataById(baseCellId);
       if (detail) {
-        console.log("Fetched cell data:", detail);
         setCurrentCellData(detail);
       } else {
         setCurrentCellData(null);
@@ -219,9 +209,7 @@ const TimelapseViewer: React.FC = () => {
   const handleChangeManualLabel = async (value: string) => {
     if (!dbName || !currentCellData) return;
 
-    // "N/A" はサーバー側で特別な扱いをしたい場合は適宜変更
     const patchLabel = value === "N/A" ? "N/A" : value;
-
     try {
       const baseCellId = currentCellData.cell_id;
       await axios.patch(
@@ -235,21 +223,16 @@ const TimelapseViewer: React.FC = () => {
   };
 
   /**
-   * is_dead のチェックが変わったら自動的にPATCH (パスパラメータ版)
-   * 生細胞 => 0, 死細胞 => 1
+   * is_dead のチェックが変わったら自動的にPATCH
    */
   const handleChangeIsDead = async (checked: boolean) => {
     if (!dbName || !currentCellData) return;
-
     try {
       const baseCellId = currentCellData.cell_id;
-      const isDeadValue = checked ? 1 : 0; // チェックされていれば1(死細胞)、外れていれば0(生細胞)
-
+      const isDeadValue = checked ? 1 : 0;
       await axios.patch(
         `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/dead/${isDeadValue}`
       );
-
-      // 成功後、最新データを再取得
       fetchCurrentCellData();
     } catch (error) {
       console.error("Failed to update is_dead:", error);
@@ -275,14 +258,14 @@ const TimelapseViewer: React.FC = () => {
   }, [dbName, selectedField]);
 
   /**
-   * フィールド or セル番号が変わったら、細胞情報を取得
+   * フィールド or セル番号が変わったら細胞情報を取得
    */
   useEffect(() => {
     fetchCurrentCellData();
   }, [dbName, selectedField, selectedCellNumber]);
 
   /**
-   * セル番号を前後に移動する (UI 上の Prev / Next ボタン用)
+   * セル番号を前後に移動する
    */
   const handlePrevCell = () => {
     if (cellNumbers.length === 0) return;
@@ -317,30 +300,23 @@ const TimelapseViewer: React.FC = () => {
   );
 
   /**
-   * 「Field すべての細胞の GIF プレビュー」を取得するボタン (モーダル + ローディング)
+   * 「Field すべての細胞の GIF プレビュー」を取得するボタン
    */
   const handlePreviewAllCells = async () => {
     if (!dbName || !selectedField) {
       console.error("DB名やFieldが未選択です。");
       return;
     }
-
-    // dbName から nd2 ファイル名を導出 (例: sample_cells.db -> sample.nd2)
     const fileName = dbName.replace("_cells.db", "") + ".nd2";
-
-    // モーダルを開き & ローディング開始
     setOpenModal(true);
     setLoadingAllCells(true);
     setAllCellsGifUrl("");
 
     try {
-      // バイナリ(画像)として取得
       const response = await axios.get(
         `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${selectedField}/gif`,
         { responseType: "blob" }
       );
-
-      // Blob を生成してプレビュー用のURLを作成
       const blobUrl = URL.createObjectURL(response.data);
       setAllCellsGifUrl(blobUrl);
     } catch (error) {
@@ -355,7 +331,7 @@ const TimelapseViewer: React.FC = () => {
       <Container
         sx={{
           py: 4,
-          backgroundColor: "#f9f9f9",
+          backgroundColor: "#fff",
           minHeight: "100vh",
         }}
         maxWidth="xl"
@@ -372,7 +348,7 @@ const TimelapseViewer: React.FC = () => {
           </Breadcrumbs>
         </Box>
 
-        {/* フィールド＆セル番号選択 */}
+        {/* フィールド＆セル番号選択、manual_label、is_dead、ボタン類を同じ行に */}
         <Box
           display="flex"
           flexWrap="wrap"
@@ -413,58 +389,10 @@ const TimelapseViewer: React.FC = () => {
             </Select>
           </FormControl>
 
-          {/* Prev/Next ボタン */}
-          <Box display="flex" flexDirection="row" gap={2}>
-            <Button
-              variant="contained"
-              sx={{
-                backgroundColor: "#000",
-                color: "#fff",
-                "&:hover": {
-                  backgroundColor: "#333",
-                },
-              }}
-              onClick={handlePrevCell}
-            >
-              Prev Cell
-            </Button>
-            <Button
-              variant="contained"
-              sx={{
-                backgroundColor: "#000",
-                color: "#fff",
-                "&:hover": {
-                  backgroundColor: "#333",
-                },
-              }}
-              onClick={handleNextCell}
-            >
-              Next Cell
-            </Button>
-
-            {/* 全細胞の GIF を取得するボタン */}
-            <Button
-              variant="contained"
-              sx={{
-                backgroundColor: "#444",
-                color: "#fff",
-                "&:hover": {
-                  backgroundColor: "#666",
-                },
-              }}
-              onClick={handlePreviewAllCells}
-            >
-              Preview All Cells
-            </Button>
-          </Box>
-        </Box>
-
-        {/* Current Cell Info */}
-        {currentCellData && (
-          <Box mb={3}>
-            {/* manual_label の選択セレクトボックス：選んだら即 PATCH */}
-            <Box mt={2}>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
+          {/* manual_label セレクトボックスと is_dead チェックボックス (currentCellData があるときのみ) */}
+          {currentCellData && (
+            <>
+              <FormControl sx={{ minWidth: 120 }}>
                 <InputLabel id="manual-label-select-label">
                   manual_label
                 </InputLabel>
@@ -485,29 +413,70 @@ const TimelapseViewer: React.FC = () => {
                   ))}
                 </Select>
               </FormControl>
-            </Box>
 
-            {/* is_dead のチェックボックス：操作したら即 PATCH */}
-            <Box mt={2}>
               <FormControlLabel
                 control={
                   <Checkbox
+                    color="error" // チェックボックスを赤に
                     checked={currentCellData.is_dead === 1}
                     onChange={(e) => handleChangeIsDead(e.target.checked)}
                   />
                 }
                 label="is_dead"
               />
-            </Box>
-          </Box>
-        )}
+            </>
+          )}
 
-        {/* タイムラプスGIFの表示（3チャネルをまとめて1つのブロックとして表示） */}
+          {/* Prev/Next ボタン */}
+          <Button
+            variant="contained"
+            sx={{
+              backgroundColor: "#000",
+              color: "#fff",
+              "&:hover": {
+                backgroundColor: "#333",
+              },
+            }}
+            onClick={handlePrevCell}
+          >
+            Prev Cell
+          </Button>
+          <Button
+            variant="contained"
+            sx={{
+              backgroundColor: "#000",
+              color: "#fff",
+              "&:hover": {
+                backgroundColor: "#333",
+              },
+            }}
+            onClick={handleNextCell}
+          >
+            Next Cell
+          </Button>
+
+          {/* 全細胞の GIF を取得するボタン */}
+          <Button
+            variant="contained"
+            sx={{
+              backgroundColor: "#444",
+              color: "#fff",
+              "&:hover": {
+                backgroundColor: "#666",
+              },
+            }}
+            onClick={handlePreviewAllCells}
+          >
+            Preview All Cells
+          </Button>
+        </Box>
+
+        {/* タイムラプスGIFの表示（3チャネル） */}
         {dbName ? (
           <Card
             sx={{
               borderRadius: 2,
-              boxShadow: 3,
+              boxShadow: 2,
               backgroundColor: "#fff",
             }}
           >
