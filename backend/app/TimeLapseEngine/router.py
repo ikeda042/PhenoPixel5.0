@@ -257,5 +257,5 @@ async def get_databases():
     データベースの一覧を取得するエンドポイント
     """
     return JSONResponse(
-        content={"databases": await TimelapseDatabaseCrud.get_database_names()}
+        content={"databases": await TimelapseDatabaseCrud("").get_database_names()}
     )

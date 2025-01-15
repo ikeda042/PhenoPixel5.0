@@ -13,6 +13,7 @@ import GraphEngine from "./components/GraphEngine";
 import TimelapseNd2List from "./components/TimelapseNd2List";
 import TimelapseParser from "./components/TimelapseParser";
 import ResultsConsole from "./components/ResultsConsole";
+import TimelapseDatabases from "./components/TimelapseDatabases";
 // ↑ 必要なコンポーネントをインポート
 
 /* --------------------------------
@@ -149,6 +150,14 @@ function App() {
               element={
                 <Box component="main" sx={{ p: 1 }}>
                   <ResultsConsole />
+                </Box>
+              }
+            />
+            <Route
+              path="/tlengine/databases"
+              element={
+                <Box component="main" sx={{ p: 1 }}>
+                  <TimelapseDatabases />
                 </Box>
               }
             />
