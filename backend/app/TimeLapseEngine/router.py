@@ -294,7 +294,7 @@ async def update_manual_label(db_name: str, base_cell_id: str, label: str):
     return JSONResponse(content={"updated": result})
 
 
-@router_tl_engine.patch("/databases/{db_name}/cells/{base_cell_id}/dead")
+@router_tl_engine.patch("/databases/{db_name}/cells/{base_cell_id}/dead/{is_dead}")
 async def update_dead_status(db_name: str, base_cell_id: str, is_dead: int):
     """
     指定したデータベース(db_name)のセル(cell_id)の is_dead を更新するエンドポイント
