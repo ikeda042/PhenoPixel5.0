@@ -53,7 +53,9 @@ async def get_session(dbname: str):
     """
     セッションを非同期コンテキストマネージャとして返す関数。
     """
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False)
+    engine = create_async_engine(
+        f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=False
+    )
     AsyncSessionLocal = sessionmaker(
         engine, expire_on_commit=False, class_=AsyncSession
     )
@@ -62,7 +64,9 @@ async def get_session(dbname: str):
 
 
 async def create_database(dbname: str):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=True)
+    engine = create_async_engine(
+        f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=True
+    )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     return engine
@@ -413,7 +417,7 @@ class TimelapseEngineCrudBase:
         crop_size: int = 200,
     ):
         engine = create_async_engine(
-            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+            f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=False
         )
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -603,7 +607,7 @@ class TimelapseEngineCrudBase:
             )
 
         engine = create_async_engine(
-            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+            f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=False
         )
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
@@ -677,7 +681,7 @@ class TimelapseEngineCrudBase:
             )
 
         engine = create_async_engine(
-            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+            f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=False
         )
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
