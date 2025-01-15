@@ -880,23 +880,40 @@ class TimelapseDatabaseCrud:
     def __init__(self, dbname: str):
         self.dbname = dbname
 
-    async def get_cells_by_field(self, field: str) -> list[Cell]:
+    async def get_cells_by_field(
+        self, field: str, manual_label: str | None = None
+    ) -> list[Cell]:
+        """
+        指定した field のセルを取得する。
+        manual_label が指定されている場合は、manual_label も条件に加えて取得する。
+        """
         async with get_session(self.dbname) as session:
-            result = await session.execute(select(Cell).filter_by(field=field))
+            stmt = select(Cell).filter_by(field=field)
+            if manual_label is not None:
+                stmt = stmt.filter(Cell.manual_label == manual_label)
+            result = await session.execute(stmt)
             return result.scalars().all()
 
-    async def get_cell_by_id(self, cell_id: str) -> Cell:
+    async def get_cell_by_id(self, cell_id: str) -> "Cell":
+        """
+        cell_id をキーにして 1 件だけセルを取得する。
+        """
         async with get_session(self.dbname) as session:
             result = await session.execute(select(Cell).filter_by(cell_id=cell_id))
             return result.scalar_one()
 
     async def get_cells_by_cell_number(
-        self, field: str, cell_number: int
+        self, field: str, cell_number: int, manual_label: str | None = None
     ) -> list[Cell]:
+        """
+        指定した field, cell_number のセルを取得する。
+        manual_label が指定されている場合は、manual_label も条件に加えて取得する。
+        """
         async with get_session(self.dbname) as session:
-            result = await session.execute(
-                select(Cell).filter_by(field=field, cell=cell_number)
-            )
+            stmt = select(Cell).filter_by(field=field, cell=cell_number)
+            if manual_label is not None:
+                stmt = stmt.filter(Cell.manual_label == manual_label)
+            result = await session.execute(stmt)
             return result.scalars().all()
 
     async def get_cells_gif_by_cell_number(
@@ -905,18 +922,23 @@ class TimelapseDatabaseCrud:
         cell_number: int,
         channel: str,
         draw_contour: bool = True,  # 新たに追加
+        manual_label: str | None = None,
     ) -> io.BytesIO:
         """
         指定した field, cell_number, channel のセル画像を順番に GIF 化して返す。
         draw_contour=True の場合は DB に格納されている contour を描画した画像を返す。
+        manual_label が指定されている場合は、manual_label も条件に加えて取得する。
         """
-        # セッションからデータ取得
         async with get_session(self.dbname) as session:
-            result = await session.execute(
+            stmt = (
                 select(Cell)
                 .filter_by(field=field, cell=cell_number)
                 .order_by(Cell.time)
             )
+            if manual_label is not None:
+                stmt = stmt.filter(Cell.manual_label == manual_label)
+
+            result = await session.execute(stmt)
             cells: list[Cell] = result.scalars().all()
 
         if not cells:
@@ -953,7 +975,6 @@ class TimelapseDatabaseCrud:
                     # グレースケール -> BGR に変換
                     bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
                     # 複数の輪郭がある場合はリスト化されていることを想定
-                    # 単一の輪郭であれば [contour_data] のようにリスト化して描画
                     cv2.drawContours(
                         bgr_img,
                         [np.array(contour_data, dtype=np.int32)],
@@ -964,7 +985,7 @@ class TimelapseDatabaseCrud:
                     # Pillow 用に BGR -> RGB に変換
                     rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
                     pil_img = Image.fromarray(rgb_img)
-                except Exception as e:
+                except Exception:
                     # contour のフォーマットが合わない場合などはエラーを無視して通常表示
                     pil_img = Image.fromarray(np_img)
             else:
@@ -976,7 +997,10 @@ class TimelapseDatabaseCrud:
         if not frames:
             raise HTTPException(
                 status_code=404,
-                detail=f"No valid frames found for field={field}, cell={cell_number}, channel={channel}",
+                detail=(
+                    f"No valid frames found for field={field}, "
+                    f"cell={cell_number}, channel={channel}"
+                ),
             )
 
         # GIF バッファ作成
