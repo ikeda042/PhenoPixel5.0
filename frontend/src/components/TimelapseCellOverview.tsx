@@ -12,8 +12,8 @@ import {
   Card,
   CardHeader,
   CardMedia,
-    Breadcrumbs,
-    Link,
+  Breadcrumbs,
+  Link,
 } from "@mui/material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
@@ -52,8 +52,11 @@ const TimelapseViewer: React.FC = () => {
   const [cellNumbers, setCellNumbers] = useState<number[]>([]);
   const [selectedCellNumber, setSelectedCellNumber] = useState<number>(0);
 
-  // 常に表示したいチャネル
-  const channels = ["ph", "fluo1", "fluo1"] as const;
+  // GIF の再生タイミングを揃えるためのキー
+  const [reloadKey, setReloadKey] = useState<number>(0);
+
+  // 表示したいチャネル（ph, fluo1, fluo2）
+  const channels = ["ph", "fluo1", "fluo2"] as const;
 
   // DB名が取れない場合のエラーハンドリング
   useEffect(() => {
@@ -140,6 +143,15 @@ const TimelapseViewer: React.FC = () => {
   };
 
   /**
+   * いずれかが変わったら GIF を再同期する
+   */
+  useEffect(() => {
+    // フィールドやセル番号が変更されたタイミングで、
+    // GIF をリロードして再生タイミングを揃える
+    setReloadKey((prev) => prev + 1);
+  }, [dbName, selectedField, selectedCellNumber]);
+
+  /**
    * チャネルごとにタイムラプスGIFの URL を組み立て
    */
   const gifUrls = channels.map((ch) =>
@@ -150,7 +162,7 @@ const TimelapseViewer: React.FC = () => {
 
   return (
     <Container sx={{ py: 4 }}>
-        <Box mb={2}>
+      <Box mb={2}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link underline="hover" color="inherit" href="/">
             Top
@@ -215,7 +227,7 @@ const TimelapseViewer: React.FC = () => {
       {dbName ? (
         <Grid container spacing={3}>
           {gifUrls.map((url, idx) => (
-            <Grid item xs={12} md={4} key={channels[idx]}>
+            <Grid item xs={12} md={4} key={`${channels[idx]}-${reloadKey}`}>
               <Card>
                 <CardHeader
                   title={`Channel: ${channels[idx]}`}
