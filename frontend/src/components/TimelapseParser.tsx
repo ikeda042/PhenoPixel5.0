@@ -39,16 +39,14 @@ const TimelapseParser: React.FC = () => {
   const [fields, setFields] = useState<string[]>([]);
   const [selectedField, setSelectedField] = useState<string>("");
 
-  // param1 関連
-  const [param1, setParam1] = useState<number>(0);
+  // param1 を文字列で管理
+  const [param1, setParam1] = useState<string>("");
 
   // GIF 表示関連 (raw, extracted それぞれの URL)
   const [gifUrlRaw, setGifUrlRaw] = useState<string>("");
   const [gifUrlExtracted, setGifUrlExtracted] = useState<string>("");
 
-  /**
-   * 画像表示形式 (raw / extracted / dual) を管理
-   */
+  // 画像表示形式 (raw / extracted / dual)
   const [displayType, setDisplayType] = useState<DisplayType>("raw");
 
   // レスポンシブブレイクポイントを取得
@@ -91,7 +89,7 @@ const TimelapseParser: React.FC = () => {
     try {
       // param1 をクエリに付与 (サーバ側は param_1 の名前で受け取る)
       await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}/cells`, {
-        params: { param_1: param1 }
+        params: { param_1: Number(param1) }
       });
       alert(`Cells have been extracted successfully! (param1=${param1})`);
     } catch (error) {
@@ -103,6 +101,9 @@ const TimelapseParser: React.FC = () => {
 
   /**
    * displayType が "dual" の場合は両方のエンドポイントを呼び出して 2 枚の GIF を取得
+   *   - Raw 用 : GET /tlengine/nd2_files/{file_name}/gif/{fieldValue}
+   *   - Extracted 用 : GET /tlengine/nd2_files/{file_name}/cells/gif
+   *        (フィールドごとの抽出は行わず、常に /cells のエンドポイントを使用)
    */
   const fetchGif = async (fieldValue: string, type: DisplayType) => {
     if (!fileName || !fieldValue) return;
@@ -110,7 +111,8 @@ const TimelapseParser: React.FC = () => {
 
     // Raw 用＆Extracted 用のエンドポイント
     const endpointRaw = `${url_prefix}/tlengine/nd2_files/${fileName}/gif/${fieldValue}`;
-    const endpointExtracted = `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${fieldValue}/gif`;
+    // フィールドごとのエンドポイントは使わず、常に /cells/gif を使用
+    const endpointExtracted = `${url_prefix}/tlengine/nd2_files/${fileName}/cells/gif`;
 
     try {
       if (type === "dual") {
@@ -232,9 +234,10 @@ const TimelapseParser: React.FC = () => {
                 {/* param1入力フォーム：Field の有無に関わらず表示 */}
                 <TextField
                   label="param1"
-                  type="number"
+                  type="text"            // number -> text に変更
+                  inputMode="numeric"   // 数字入力用に
                   value={param1}
-                  onChange={(e) => setParam1(Number(e.target.value))}
+                  onChange={(e) => setParam1(e.target.value)}
                   fullWidth
                   sx={{ mb: 2 }}
                 />

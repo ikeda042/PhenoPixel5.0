@@ -539,7 +539,7 @@ class TimelapseEngineCrudBase:
                     contour_shifted[:, :, 0] -= x1
                     contour_shifted[:, :, 1] -= y1
 
-                    cell_id = ulid.new()
+                    cell_id = ulid.new().str
 
                     cell_obj = Cell(
                         cell_id=cell_id,
