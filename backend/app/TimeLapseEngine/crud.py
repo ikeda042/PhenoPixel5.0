@@ -854,3 +854,70 @@ class TimelapseDatabaseCrud:
             async with session() as s:
                 result = await s.execute(select(Cell).filter_by(cell_id=cell_id))
                 return result.scalar_one()
+
+    async def get_cells_by_cell_number(
+        self, field: str, cell_number: int
+    ) -> list[Cell]:
+        async with get_session(self.dbname) as session:
+            async with session() as s:
+                result = await s.execute(
+                    select(Cell).filter_by(field=field, cell=cell_number)
+                )
+                return result.scalars().all()
+
+    async def get_cells_gif_by_cell_number(
+        self, field: str, cell_number: int, channel: str
+    ) -> io.BytesIO:
+        async with get_session(self.dbname) as session:
+            async with session() as s:
+                result = await s.execute(
+                    select(Cell)
+                    .filter_by(field=field, cell=cell_number)
+                    .order_by(Cell.time)
+                )
+                cells = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        frames = []
+        for row in cells:
+            if channel == "ph":
+                img_binary = row.img_ph
+            elif channel == "fluo1":
+                img_binary = row.img_fluo1
+            else:
+                img_binary = row.img_fluo2
+
+            if img_binary is None:
+                continue
+
+            np_img = cv2.imdecode(
+                np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
+            )
+            if np_img is None:
+                continue
+
+            pil_img = Image.fromarray(np_img)
+            frames.append(pil_img)
+
+        if not frames:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No valid frames found for field={field}, cell={cell_number}, channel={channel}",
+            )
+
+        gif_buffer = io.BytesIO()
+        frames[0].save(
+            gif_buffer,
+            format="GIF",
+            save_all=True,
+            append_images=frames[1:],
+            duration=200,
+            loop=0,
+        )
+        gif_buffer.seek(0)
+        return gif_buffer
