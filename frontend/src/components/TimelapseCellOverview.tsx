@@ -21,6 +21,8 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
@@ -51,7 +53,8 @@ interface CellData {
   cell: number;
   area: number;
   perimeter: number;
-  manual_label?: number; // ★ 追加
+  manual_label?: number; 
+  is_dead?: boolean;
 }
 
 interface GetCellsResponse {
@@ -60,15 +63,9 @@ interface GetCellsResponse {
 
 const url_prefix = settings.url_prefix;
 
-/**
- * タイムラプスGIFを表示し、
- * DB名、Field、CellNumberなどを選択/操作できるコンポーネント
- * 画像は ph, fluo1, fluo2 の3チャネルを隣接して表示する。
- */
 const TimelapseViewer: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
   const [searchParams] = useSearchParams();
   const dbName = searchParams.get("db_name"); // "?db_name=xxx" を取得
 
@@ -80,19 +77,22 @@ const TimelapseViewer: React.FC = () => {
   const [cellNumbers, setCellNumbers] = useState<number[]>([]);
   const [selectedCellNumber, setSelectedCellNumber] = useState<number>(0);
 
-  // ★ 今表示中のセル情報（manual_label など取得するため）
+  // 今表示中のセル情報
   const [currentCellData, setCurrentCellData] = useState<CellData | null>(null);
+
+  // manual_label のセレクトボックス用 (N/A, 1, 2, 3, 4)
+  const manualLabelOptions = ["N/A", "1", "2", "3", "4"];
 
   // GIF の再生タイミングを揃えるためのキー
   const [reloadKey, setReloadKey] = useState<number>(0);
-
-  // 表示したいチャネル（ph, fluo1, fluo2）
-  const channels = ["ph", "fluo1", "fluo2"] as const;
 
   // 「All Cells」プレビュー用のモーダル管理
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [loadingAllCells, setLoadingAllCells] = useState<boolean>(false);
   const [allCellsGifUrl, setAllCellsGifUrl] = useState<string>("");
+
+  // 表示したいチャネル（ph, fluo1, fluo2）
+  const channels = ["ph", "fluo1", "fluo2"] as const;
 
   // DB名が取れない場合のエラーハンドリング
   useEffect(() => {
@@ -149,14 +149,14 @@ const TimelapseViewer: React.FC = () => {
     }
 
     try {
-      // by_field + cell_number のエンドポイントを呼び、手動ラベル(manual_label)を含む CellData を取得
+      // by_field + cell_number のエンドポイントを呼び、CellData を取得
       const response = await axios.get<GetCellsResponse>(
         `${url_prefix}/tlengine/databases/${dbName}/cells/by_field/${selectedField}/cell_number/${selectedCellNumber}`
       );
 
       const cells = response.data.cells;
       if (cells.length > 0) {
-        // 先頭のセル情報を格納しておく (同一 field & cell_number でも time が複数ある場合があるが、まずは一つだけ取り出す例)
+        // 先頭のセル情報を格納 (time が複数ある場合、例として1つだけ表示)
         setCurrentCellData(cells[0]);
       } else {
         setCurrentCellData(null);
@@ -164,6 +164,46 @@ const TimelapseViewer: React.FC = () => {
     } catch (error) {
       console.error("Failed to fetch current cell data:", error);
       setCurrentCellData(null);
+    }
+  };
+
+  /**
+   * manual_label を変更したら自動的にPATCH
+   */
+  const handleChangeManualLabel = async (value: string) => {
+    if (!dbName || !currentCellData) return;
+
+    // "N/A" はサーバー的には何もない値として扱いたい想定であれば、例えば label="" を送るなど
+    // ここでは "N/A" を文字列としてそのまま送っている例です
+    const patchLabel = value === "N/A" ? "N/A" : value; 
+
+    try {
+      const baseCellId = currentCellData.cell_id;
+      await axios.patch(
+        `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/label?label=${patchLabel}`
+      );
+      // 成功後、最新データを再取得
+      fetchCurrentCellData();
+    } catch (error) {
+      console.error("Failed to update manual_label:", error);
+    }
+  };
+
+  /**
+   * is_dead のチェックが変わったら自動的にPATCH
+   */
+  const handleChangeIsDead = async (checked: boolean) => {
+    if (!dbName || !currentCellData) return;
+
+    try {
+      const baseCellId = currentCellData.cell_id;
+      await axios.patch(
+        `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/dead?is_dead=${checked}`
+      );
+      // 成功後、最新データを再取得
+      fetchCurrentCellData();
+    } catch (error) {
+      console.error("Failed to update is_dead:", error);
     }
   };
 
@@ -223,11 +263,10 @@ const TimelapseViewer: React.FC = () => {
   /**
    * チャネルごとにタイムラプスGIFの URL を組み立て
    */
-  const gifUrls = channels.map(
-    (ch) =>
-      dbName
-        ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}`
-        : ""
+  const gifUrls = channels.map((ch) =>
+    dbName
+      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}`
+      : ""
   );
 
   /**
@@ -373,12 +412,10 @@ const TimelapseViewer: React.FC = () => {
           </Box>
         </Box>
 
-        {/* 取得した manual_label の表示例 */}
+        {/* Current Cell Info */}
         {currentCellData && (
           <Box mb={3}>
-            <Typography variant="h6">
-              Current Cell Info
-            </Typography>
+            <Typography variant="h6">Current Cell Info</Typography>
             <Typography variant="body1">
               Cell ID: {currentCellData.cell_id}
             </Typography>
@@ -388,6 +425,47 @@ const TimelapseViewer: React.FC = () => {
                 ? currentCellData.manual_label
                 : "N/A"}
             </Typography>
+            <Typography variant="body1">
+              is_dead: {currentCellData.is_dead ? "true" : "false"}
+            </Typography>
+
+            {/* manual_label の選択セレクトボックス：選んだら即 PATCH */}
+            <Box mt={2}>
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel id="manual-label-select-label">
+                  manual_label
+                </InputLabel>
+                <Select
+                  labelId="manual-label-select-label"
+                  label="manual_label"
+                  value={
+                    currentCellData.manual_label !== undefined
+                      ? String(currentCellData.manual_label)
+                      : "N/A"
+                  }
+                  onChange={(e) => handleChangeManualLabel(e.target.value)}
+                >
+                  {manualLabelOptions.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* is_dead のチェックボックス：操作したら即 PATCH */}
+            <Box mt={2}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={currentCellData.is_dead ?? false}
+                    onChange={(e) => handleChangeIsDead(e.target.checked)}
+                  />
+                }
+                label="is_dead"
+              />
+            </Box>
           </Box>
         )}
 
