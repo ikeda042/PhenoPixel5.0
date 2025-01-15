@@ -12,6 +12,8 @@ import {
   Card,
   CardHeader,
   CardMedia,
+    Breadcrumbs,
+    Link,
 } from "@mui/material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
@@ -148,6 +150,17 @@ const TimelapseViewer: React.FC = () => {
 
   return (
     <Container sx={{ py: 4 }}>
+        <Box mb={2}>
+        <Breadcrumbs aria-label="breadcrumb">
+          <Link underline="hover" color="inherit" href="/">
+            Top
+          </Link>
+          <Link underline="hover" color="inherit" href="/tlengine/dbconsole">
+            Database Console
+          </Link>
+          <Typography color="text.primary">{dbName}</Typography>
+        </Breadcrumbs>
+      </Box>
       <Box mb={2}>
         <Typography variant="h4" gutterBottom>
           Timelapse Viewer
