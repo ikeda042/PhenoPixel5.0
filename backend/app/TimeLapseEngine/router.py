@@ -249,3 +249,13 @@ async def get_cell_gif(
             "Content-Disposition": f"attachment; filename={field}_{cell_number}_{channel}.gif"
         },
     )
+
+
+@router_tl_engine.get("/databases")
+async def get_databases():
+    """
+    データベースの一覧を取得するエンドポイント
+    """
+    return JSONResponse(
+        content={"databases": await TimelapseDatabaseCrud.get_database_names()}
+    )

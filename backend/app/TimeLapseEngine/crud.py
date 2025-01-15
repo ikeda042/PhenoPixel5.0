@@ -918,3 +918,6 @@ class TimelapseDatabaseCrud:
         )
         gif_buffer.seek(0)
         return gif_buffer
+
+    async def get_database_names(self) -> list[str]:
+        return [i for i in os.listdir("timelapse_databases") if i.endswith(".db")]
