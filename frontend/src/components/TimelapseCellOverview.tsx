@@ -8,6 +8,10 @@ import {
   FormControl,
   InputLabel,
   Button,
+  Grid,
+  Card,
+  CardHeader,
+  CardMedia,
 } from "@mui/material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
@@ -31,7 +35,8 @@ const url_prefix = settings.url_prefix;
 
 /**
  * タイムラプスGIFを表示し、
- * DB名、Field、CellNumber、Channelなどを選択/操作できるコンポーネント
+ * DB名、Field、CellNumberなどを選択/操作できるコンポーネント
+ * 画像は ph, fluo1, fluo2 の3チャネルを同時に表示する。
  */
 const TimelapseViewer: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -45,10 +50,8 @@ const TimelapseViewer: React.FC = () => {
   const [cellNumbers, setCellNumbers] = useState<number[]>([]);
   const [selectedCellNumber, setSelectedCellNumber] = useState<number>(0);
 
-  // チャネル選択用 (必要に応じて増やす)
+  // 常に表示したいチャネル
   const channels = ["ph", "fluo1", "fluo2"] as const;
-  type ChannelType = typeof channels[number];
-  const [selectedChannel, setSelectedChannel] = useState<ChannelType>("ph");
 
   // DB名が取れない場合のエラーハンドリング
   useEffect(() => {
@@ -68,7 +71,7 @@ const TimelapseViewer: React.FC = () => {
       );
       setFields(response.data.fields);
 
-      // フィールド一覧取得後、先頭要素をデフォルト選択に
+      // フィールド一覧取得後、先頭要素をデフォルト選択
       if (response.data.fields.length > 0) {
         setSelectedField(response.data.fields[0]);
       }
@@ -87,7 +90,7 @@ const TimelapseViewer: React.FC = () => {
       );
       setCellNumbers(response.data.cell_numbers);
 
-      // セル番号一覧取得後、先頭要素をデフォルト選択に
+      // セル番号一覧取得後、先頭要素をデフォルト選択
       if (response.data.cell_numbers.length > 0) {
         setSelectedCellNumber(response.data.cell_numbers[0]);
       }
@@ -116,14 +119,6 @@ const TimelapseViewer: React.FC = () => {
   }, [selectedField]);
 
   /**
-   * タイムラプスGIF表示用の URL を組み立て
-   * - 例: /databases/{db_name}/cells/gif/{field}/{cell_number}?channel=ph
-   */
-  const gifUrl = dbName
-    ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${selectedChannel}`
-    : "";
-
-  /**
    * セル番号を前後に移動する (UI 上の Prev / Next ボタン用)
    */
   const handlePrevCell = () => {
@@ -142,91 +137,92 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
+  /**
+   * チャネルごとにタイムラプスGIFの URL を組み立て
+   */
+  const gifUrls = channels.map((ch) =>
+    dbName
+      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}`
+      : ""
+  );
+
   return (
-    <Container>
-      <Box mt={2}>
-        <Typography variant="h5" gutterBottom>
+    <Container sx={{ py: 4 }}>
+      <Box mb={2}>
+        <Typography variant="h4" gutterBottom>
           Timelapse Viewer
         </Typography>
-
-        {/* フィールド選択 */}
-        <FormControl sx={{ mr: 2, minWidth: 120 }}>
-          <InputLabel id="field-select-label">Field</InputLabel>
-          <Select
-            labelId="field-select-label"
-            value={selectedField}
-            label="Field"
-            onChange={(e) => setSelectedField(e.target.value as string)}
-          >
-            {fields.map((field) => (
-              <MenuItem key={field} value={field}>
-                {field}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* チャネル選択 */}
-        <FormControl sx={{ mr: 2, minWidth: 120 }}>
-          <InputLabel id="channel-select-label">Channel</InputLabel>
-          <Select
-            labelId="channel-select-label"
-            value={selectedChannel}
-            label="Channel"
-            onChange={(e) => setSelectedChannel(e.target.value as ChannelType)}
-          >
-            {channels.map((ch) => (
-              <MenuItem key={ch} value={ch}>
-                {ch}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* セル番号選択 (ドロップダウンでもよいし、Prev/Next ボタンでも操作可能) */}
-        <FormControl sx={{ mr: 2, minWidth: 120 }}>
-          <InputLabel id="cellnumber-select-label">Cell #</InputLabel>
-          <Select
-            labelId="cellnumber-select-label"
-            value={selectedCellNumber}
-            label="Cell #"
-            onChange={(e) => setSelectedCellNumber(e.target.value as number)}
-          >
-            {cellNumbers.map((num) => (
-              <MenuItem key={num} value={num}>
-                {num}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* Prev/Next ボタン */}
-        <Box mt={2}>
-          <Button variant="outlined" sx={{ mr: 2 }} onClick={handlePrevCell}>
-            Prev Cell
-          </Button>
-          <Button variant="outlined" onClick={handleNextCell}>
-            Next Cell
-          </Button>
-        </Box>
-
-        {/* タイムラプスGIFの表示 */}
-        <Box mt={4}>
-          {gifUrl ? (
-            <Box>
-              <Typography variant="subtitle1" gutterBottom>
-                {`Field: ${selectedField}, Cell #: ${selectedCellNumber}, Channel: ${selectedChannel}`}
-              </Typography>
-              {/* GIF 表示 */}
-              <img src={gifUrl} alt="timelapse" />
-            </Box>
-          ) : (
-            <Typography variant="body1">
-              データがありません。DB名やフィールドが正しく指定されているか確認してください。
-            </Typography>
-          )}
-        </Box>
       </Box>
+
+      {/* フィールド選択 */}
+      <FormControl sx={{ mr: 2, minWidth: 120, mb: 2 }}>
+        <InputLabel id="field-select-label">Field</InputLabel>
+        <Select
+          labelId="field-select-label"
+          value={selectedField}
+          label="Field"
+          onChange={(e) => setSelectedField(e.target.value as string)}
+        >
+          {fields.map((field) => (
+            <MenuItem key={field} value={field}>
+              {field}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* セル番号選択 */}
+      <FormControl sx={{ mr: 2, minWidth: 120, mb: 2 }}>
+        <InputLabel id="cellnumber-select-label">Cell #</InputLabel>
+        <Select
+          labelId="cellnumber-select-label"
+          value={selectedCellNumber}
+          label="Cell #"
+          onChange={(e) => setSelectedCellNumber(e.target.value as number)}
+        >
+          {cellNumbers.map((num) => (
+            <MenuItem key={num} value={num}>
+              {num}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Prev/Next ボタン */}
+      <Box mb={4}>
+        <Button variant="outlined" sx={{ mr: 2 }} onClick={handlePrevCell}>
+          Prev Cell
+        </Button>
+        <Button variant="outlined" onClick={handleNextCell}>
+          Next Cell
+        </Button>
+      </Box>
+
+      {/* タイムラプスGIFの表示 */}
+      {dbName ? (
+        <Grid container spacing={3}>
+          {gifUrls.map((url, idx) => (
+            <Grid item xs={12} md={4} key={channels[idx]}>
+              <Card>
+                <CardHeader
+                  title={`Channel: ${channels[idx]}`}
+                  sx={{ pb: 0 }}
+                />
+                <CardMedia
+                  component="img"
+                  image={url}
+                  alt={`timelapse-${channels[idx]}`}
+                  sx={{ mt: 1 }}
+                />
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <Typography variant="body1">
+          データがありません。DB名やフィールドが正しく指定されているか確認してください。
+        </Typography>
+      )}
     </Container>
   );
 };
