@@ -107,7 +107,7 @@ async def extract_all_cells(file_name: str, param_1: int):
     fields = await TimelapseEngineCrudBase(file_name).get_fields_of_nd2()
     for Field in fields:
         await TimelapseEngineCrudBase(file_name).extract_cells(
-            field=Field, dbname=db_name
+            field=Field, dbname=db_name, param1=param_1
         )
     return JSONResponse(content={"message": "Cells extracted and saved to database."})
 
