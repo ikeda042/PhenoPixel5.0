@@ -99,7 +99,7 @@ async def extract_cells(file_name: str, Field: str, param_1: int):
 
 
 @router_tl_engine.get("/nd2_files/{file_name}/cells")
-async def extract_all_cells(file_name: str):
+async def extract_all_cells(file_name: str, param_1: int):
     """
     全てのフィールドからセルを抽出し、データベースに保存するエンドポイント。
     """
