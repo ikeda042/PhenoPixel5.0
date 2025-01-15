@@ -33,7 +33,7 @@ class Cell(Base):
     id = Column(Integer, primary_key=True)
     cell_id = Column(String)
     label_experiment = Column(String)
-    manual_label = Column(Integer)
+    manual_label = Column(String)
     perimeter = Column(FLOAT)
     area = Column(FLOAT)
     img_ph = Column(BLOB)
@@ -48,6 +48,9 @@ class Cell(Base):
     time = Column(Integer, nullable=True)  # 例: 1, 2, 3, ...
     cell = Column(Integer, nullable=True)  # 例: 同一タイム内のセル番号
     base_cell_id = Column(String, nullable=True)
+
+    # 死細胞判定用カラム
+    is_dead = Column(String, nullable=True)
 
 
 @asynccontextmanager
@@ -561,7 +564,7 @@ class TimelapseEngineCrudBase:
                         cell_id=new_ulid,
                         label_experiment=field,
                         # manual_label は int カラムなので、暫定的に 0 などで登録
-                        manual_label=0,
+                        manual_label="N/A",
                         perimeter=perimeter,
                         area=area,
                         img_ph=ph_gray_encode,
@@ -573,9 +576,8 @@ class TimelapseEngineCrudBase:
                         field=field,
                         time=i + 1,
                         cell=assigned_cell_idx,
-                        base_cell_id=base_ids[
-                            assigned_cell_idx
-                        ],  # 最初に検出されたフレームの cell_id
+                        base_cell_id=base_ids[assigned_cell_idx],
+                        is_dead="N/A",
                     )
 
                     # 重複チェック
