@@ -2,6 +2,8 @@ from fastapi import APIRouter, UploadFile, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 import os
 import aiofiles
+from TimeLapseEngine.crud import TimelapseDatabaseCrud
+import io
 
 # 上で定義した TimelapseEngineCrudBase をインポート
 from .crud import TimelapseEngineCrudBase
@@ -142,4 +144,118 @@ async def create_gif_for_cells_endpoint(file_name: str, field_name: str):
         gif_buffer,
         media_type="image/gif",
         headers={"Content-Disposition": "attachment; filename=cells.gif"},
+    )
+
+
+@router_tl_engine.get("/databases/{db_name}/cells/by_field/{field}")
+async def read_cells_by_field(db_name: str, field: str):
+    """
+    指定したデータベース(db_name)から、指定したFieldに属するセル一覧を取得するエンドポイント
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    cells = await crud.get_cells_by_field(field)
+    # 必要に応じてレスポンスを整形
+    # 例: JSON で返す
+    cell_list = []
+    for c in cells:
+        cell_list.append(
+            {
+                "id": c.id,
+                "cell_id": c.cell_id,
+                "field": c.field,
+                "time": c.time,
+                "cell": c.cell,
+                "area": c.area,
+                "perimeter": c.perimeter,
+            }
+        )
+    return JSONResponse(content={"cells": cell_list})
+
+
+@router_tl_engine.get("/databases/{db_name}/cells/by_id/{cell_id}")
+async def read_cell_by_cell_id(db_name: str, cell_id: str):
+    """
+    指定したデータベース(db_name)から、cell_id で 1件だけ取得するエンドポイント
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    try:
+        cell = await crud.get_cell_by_id(cell_id)
+        return JSONResponse(
+            content={
+                "id": cell.id,
+                "cell_id": cell.cell_id,
+                "field": cell.field,
+                "time": cell.time,
+                "cell": cell.cell,
+                "area": cell.area,
+                "perimeter": cell.perimeter,
+            }
+        )
+    except:
+        # get_cell_by_id で該当が無い場合は scalar_one() が例外を出す
+        raise HTTPException(status_code=404, detail=f"Cell not found: {cell_id}")
+
+
+@router_tl_engine.get(
+    "/databases/{db_name}/cells/by_field/{field}/cell_number/{cell_number}"
+)
+async def read_cells_by_cell_number(db_name: str, field: str, cell_number: int):
+    """
+    指定したデータベース(db_name)から、field + cell_number で該当するセルを全部取得するエンドポイント
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    cells = await crud.get_cells_by_cell_number(field, cell_number)
+    if not cells:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No cells found in db={db_name}, field={field}, cell_number={cell_number}",
+        )
+
+    cell_list = []
+    for c in cells:
+        cell_list.append(
+            {
+                "id": c.id,
+                "cell_id": c.cell_id,
+                "field": c.field,
+                "time": c.time,
+                "cell": c.cell,
+                "area": c.area,
+                "perimeter": c.perimeter,
+            }
+        )
+    return JSONResponse(content={"cells": cell_list})
+
+
+@router_tl_engine.get("/databases/{db_name}/cells/gif/{field}/{cell_number}")
+async def get_cell_gif(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel: str = "ph",
+):
+    """
+    指定したフィールド & セル番号 の時系列 GIF を返すエンドポイント
+    チャネルはクエリパラメータ ?channel=ph|fluo1|fluo2 （デフォルト ph）
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    gif_buffer: io.BytesIO = await crud.get_cells_gif_by_cell_number(
+        field, cell_number, channel
+    )
+    return StreamingResponse(
+        gif_buffer,
+        media_type="image/gif",
+        headers={
+            "Content-Disposition": f"attachment; filename={field}_{cell_number}_{channel}.gif"
+        },
+    )
+
+
+@router_tl_engine.get("/databases")
+async def get_databases():
+    """
+    データベースの一覧を取得するエンドポイント
+    """
+    return JSONResponse(
+        content={"databases": await TimelapseDatabaseCrud("").get_database_names()}
     )

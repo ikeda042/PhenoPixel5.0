@@ -19,6 +19,7 @@ import Inventory2Icon from "@mui/icons-material/Inventory2";
 import SettingsEthernetIcon from "@mui/icons-material/SettingsEthernet";
 import { useNavigate } from "react-router-dom";
 import { settings } from "../settings";
+import AutoAwesomeMotionIcon from '@mui/icons-material/AutoAwesomeMotion';
 
 /* --------------------------------
  *  ImageCard Component
@@ -35,7 +36,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
       sx={{
         cursor: "pointer",
         textAlign: "center",
-        // Card の高さをレスポンシブに制御（例）
         height: { xs: 200, md: 220 },
         display: "flex",
         flexDirection: "column",
@@ -54,7 +54,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
           src={imageUrl}
           alt={`${title} Image`}
           sx={{
-            // 画像の高さや表示方法をレスポンシブに調整
             height: { xs: 100, md: 120 },
             width: "100%",
             objectFit: "cover",
@@ -68,7 +67,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          // paddingを必要に応じて微調整
           "&:last-child": { pb: 2 },
         }}
       >
@@ -279,6 +277,7 @@ const TopPage: React.FC = () => {
 
   /**
    * メニューアイテム
+   * （System Status のメニュー項目は削除し、代わりに上部に表示）
    */
   const menuItems = [
     {
@@ -303,17 +302,24 @@ const TopPage: React.FC = () => {
       external: false,
     },
     {
-      title: "X100TLengine",
+      title: "GraphEngine",
+      icon: <BarChartIcon sx={{ fontSize: 50 }} />,
+      path: "/graphengine",
+      description: "Create graphs from the data.",
+      external: false,
+    },
+    {
+      title: "TimeLapse Engine",
       icon: <DisplaySettingsIcon sx={{ fontSize: 50 }} />,
       path: "/tl-engine",
       description: "Process nd2 timelapse files.(beta)",
       external: false,
     },
     {
-      title: "GraphEngine",
-      icon: <BarChartIcon sx={{ fontSize: 50 }} />,
-      path: "/graphengine",
-      description: "Create graphs from the data.",
+      title: "Timelapse Database",
+      icon: <AutoAwesomeMotionIcon sx={{ fontSize: 50 }} />,
+      path: "/tlengine/dbconsole",
+      description: "Timelapse database console (beta)",
       external: false,
     },
     {
@@ -330,14 +336,23 @@ const TopPage: React.FC = () => {
       description: "Project documentation.",
       external: true,
     },
-    {
-      title: "System Status",
-      icon: <SettingsEthernetIcon sx={{ fontSize: 50 }} />,
-      path: "#",
-      external: false,
-      // description の部分にコンポーネント埋め込み
-      description: (
-        <>
+  ];
+
+  return (
+    <Container sx={{ minHeight: "100vh", py: 4 }}>
+      {/* 上部に System Status を表示させる */}
+      <Box sx={{ mb: 4 }}>
+        <Box
+          sx={{
+            border: "1px solid grey",
+            borderRadius: "8px",
+            padding: 2,
+            textAlign: "center",
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            System Status
+          </Typography>
           <Typography
             variant="body2"
             color={backendStatus === "ready" ? "green" : "red"}
@@ -366,19 +381,10 @@ const TopPage: React.FC = () => {
                 : "Not connected"
               : "unknown"}
           </Typography>
-        </>
-      ),
-    },
-  ];
+        </Box>
+      </Box>
 
-  return (
-    <Container sx={{ minHeight: "100vh", py: 4 }}>
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-      >
+      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center">
         <Grid container spacing={2} justifyContent="center">
           {/* スイッチの追加 */}
           <Grid item xs={12} sx={{ textAlign: "center", mb: 2 }}>
@@ -460,7 +466,6 @@ const TopPage: React.FC = () => {
                   <Typography variant="h6" mt={2}>
                     {item.title}
                   </Typography>
-                  {/* description に文字列 or ReactNode を埋め込む */}
                   {typeof item.description === "string" ? (
                     <Typography variant="body2" mt={1} color="textSecondary">
                       {item.description}

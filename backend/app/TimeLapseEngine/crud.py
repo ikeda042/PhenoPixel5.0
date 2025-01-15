@@ -1,23 +1,27 @@
+# Standard library imports
 import asyncio
-import os
-import io
-import nd2reader
-from PIL import Image
-import cv2
-import numpy as np
+import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from functools import partial
-from fastapi.responses import JSONResponse
-import shutil
-import re
-
+from contextlib import asynccontextmanager
+import io
+import math
+import os
 import pickle
+import re
+import shutil
+from functools import partial
+
+# Third-party imports
+import cv2
+import nd2reader
+import numpy as np
+from PIL import Image
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, func, distinct
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.sql import select
-import math
-from fastapi import HTTPException
+from sqlalchemy.sql import select, Select
 
 Base = declarative_base()
 
@@ -44,30 +48,28 @@ class Cell(Base):
     cell = Column(Integer, nullable=True)  # 例: 同一タイム内のセル番号
 
 
+@asynccontextmanager
 async def get_session(dbname: str):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False)
-    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with async_session() as session:
+    """
+    セッションを非同期コンテキストマネージャとして返す関数。
+    """
+    engine = create_async_engine(
+        f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=False
+    )
+    AsyncSessionLocal = sessionmaker(
+        engine, expire_on_commit=False, class_=AsyncSession
+    )
+    async with AsyncSessionLocal() as session:
         yield session
 
 
 async def create_database(dbname: str):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=True)
+    engine = create_async_engine(
+        f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=True
+    )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     return engine
-
-
-import os
-import re
-import cv2
-import io
-import shutil
-import numpy as np
-import nd2reader
-from PIL import Image
-import concurrent.futures
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class SyncChores:
@@ -415,7 +417,7 @@ class TimelapseEngineCrudBase:
         crop_size: int = 200,
     ):
         engine = create_async_engine(
-            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+            f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=False
         )
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -605,7 +607,7 @@ class TimelapseEngineCrudBase:
             )
 
         engine = create_async_engine(
-            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+            f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=False
         )
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
@@ -679,7 +681,7 @@ class TimelapseEngineCrudBase:
             )
 
         engine = create_async_engine(
-            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+            f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=False
         )
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
@@ -836,3 +838,86 @@ class TimelapseEngineCrudBase:
         )
         gif_buffer.seek(0)
         return gif_buffer
+
+
+class TimelapseDatabaseCrud:
+    def __init__(self, dbname: str):
+        self.dbname = dbname
+
+    async def get_cells_by_field(self, field: str) -> list[Cell]:
+        async with get_session(self.dbname) as session:
+            result = await session.execute(select(Cell).filter_by(field=field))
+            return result.scalars().all()
+
+    async def get_cell_by_id(self, cell_id: str) -> Cell:
+        async with get_session(self.dbname) as session:
+            result = await session.execute(select(Cell).filter_by(cell_id=cell_id))
+            return result.scalar_one()
+
+    async def get_cells_by_cell_number(
+        self, field: str, cell_number: int
+    ) -> list[Cell]:
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell).filter_by(field=field, cell=cell_number)
+            )
+            return result.scalars().all()
+
+    async def get_cells_gif_by_cell_number(
+        self, field: str, cell_number: int, channel: str
+    ) -> io.BytesIO:
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells: list[Cell] = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        frames = []
+        for row in cells:
+            if channel == "ph":
+                img_binary = row.img_ph
+            elif channel == "fluo1":
+                img_binary = row.img_fluo1
+            else:
+                img_binary = row.img_fluo2
+
+            if img_binary is None:
+                continue
+
+            np_img = cv2.imdecode(
+                np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
+            )
+            if np_img is None:
+                continue
+
+            pil_img = Image.fromarray(np_img)
+            frames.append(pil_img)
+
+        if not frames:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No valid frames found for field={field}, cell={cell_number}, channel={channel}",
+            )
+
+        gif_buffer = io.BytesIO()
+        frames[0].save(
+            gif_buffer,
+            format="GIF",
+            save_all=True,
+            append_images=frames[1:],
+            duration=200,
+            loop=0,
+        )
+        gif_buffer.seek(0)
+        return gif_buffer
+
+    async def get_database_names(self) -> list[str]:
+        return [i for i in os.listdir("timelapse_databases") if i.endswith(".db")]
