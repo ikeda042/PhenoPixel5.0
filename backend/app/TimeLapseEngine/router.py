@@ -224,6 +224,7 @@ async def read_cells_by_cell_number(db_name: str, field: str, cell_number: int):
                 "cell": c.cell,
                 "area": c.area,
                 "perimeter": c.perimeter,
+                "manual_label": c.manual_label,
             }
         )
     return JSONResponse(content={"cells": cell_list})

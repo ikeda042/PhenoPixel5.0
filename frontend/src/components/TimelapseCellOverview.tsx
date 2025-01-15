@@ -40,6 +40,24 @@ interface GetCellNumbersResponse {
   cell_numbers: number[];
 }
 
+/**
+ * セルを取得するエンドポイント (/databases/{db_name}/cells/by_field/{field}/cell_number/{cell_number}) のレスポンス
+ */
+interface CellData {
+  id: number;
+  cell_id: string;
+  field: string;
+  time: number;
+  cell: number;
+  area: number;
+  perimeter: number;
+  manual_label?: number; // ★ 追加
+}
+
+interface GetCellsResponse {
+  cells: CellData[];
+}
+
 const url_prefix = settings.url_prefix;
 
 /**
@@ -61,6 +79,9 @@ const TimelapseViewer: React.FC = () => {
   // セル番号一覧・選択中のセル番号
   const [cellNumbers, setCellNumbers] = useState<number[]>([]);
   const [selectedCellNumber, setSelectedCellNumber] = useState<number>(0);
+
+  // ★ 今表示中のセル情報（manual_label など取得するため）
+  const [currentCellData, setCurrentCellData] = useState<CellData | null>(null);
 
   // GIF の再生タイミングを揃えるためのキー
   const [reloadKey, setReloadKey] = useState<number>(0);
@@ -119,6 +140,34 @@ const TimelapseViewer: React.FC = () => {
   };
 
   /**
+   * 現在選択中の Field & Cell Number で、細胞情報を取得
+   */
+  const fetchCurrentCellData = async () => {
+    if (!dbName || !selectedField || !selectedCellNumber) {
+      setCurrentCellData(null);
+      return;
+    }
+
+    try {
+      // by_field + cell_number のエンドポイントを呼び、手動ラベル(manual_label)を含む CellData を取得
+      const response = await axios.get<GetCellsResponse>(
+        `${url_prefix}/tlengine/databases/${dbName}/cells/by_field/${selectedField}/cell_number/${selectedCellNumber}`
+      );
+
+      const cells = response.data.cells;
+      if (cells.length > 0) {
+        // 先頭のセル情報を格納しておく (同一 field & cell_number でも time が複数ある場合があるが、まずは一つだけ取り出す例)
+        setCurrentCellData(cells[0]);
+      } else {
+        setCurrentCellData(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch current cell data:", error);
+      setCurrentCellData(null);
+    }
+  };
+
+  /**
    * コンポーネント初回表示時にフィールド一覧を取得
    */
   useEffect(() => {
@@ -136,6 +185,14 @@ const TimelapseViewer: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedField]);
+
+  /**
+   * フィールド or セル番号が変わったら、細胞情報を取得
+   */
+  useEffect(() => {
+    fetchCurrentCellData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbName, selectedField, selectedCellNumber]);
 
   /**
    * セル番号を前後に移動する (UI 上の Prev / Next ボタン用)
@@ -166,10 +223,11 @@ const TimelapseViewer: React.FC = () => {
   /**
    * チャネルごとにタイムラプスGIFの URL を組み立て
    */
-  const gifUrls = channels.map((ch) =>
-    dbName
-      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}`
-      : ""
+  const gifUrls = channels.map(
+    (ch) =>
+      dbName
+        ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}`
+        : ""
   );
 
   /**
@@ -314,6 +372,24 @@ const TimelapseViewer: React.FC = () => {
             </Button>
           </Box>
         </Box>
+
+        {/* 取得した manual_label の表示例 */}
+        {currentCellData && (
+          <Box mb={3}>
+            <Typography variant="h6">
+              Current Cell Info
+            </Typography>
+            <Typography variant="body1">
+              Cell ID: {currentCellData.cell_id}
+            </Typography>
+            <Typography variant="body1">
+              manual_label:{" "}
+              {currentCellData.manual_label !== undefined
+                ? currentCellData.manual_label
+                : "N/A"}
+            </Typography>
+          </Box>
+        )}
 
         {/* タイムラプスGIFの表示（3チャネルをまとめて1つのブロックとして表示） */}
         {dbName ? (
