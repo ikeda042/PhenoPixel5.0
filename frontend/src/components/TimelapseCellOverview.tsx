@@ -208,8 +208,8 @@ const TimelapseViewer: React.FC = () => {
    */
   const handleChangeManualLabel = async (value: string) => {
     if (!dbName || !currentCellData) return;
-
     const patchLabel = value === "N/A" ? "N/A" : value;
+
     try {
       const baseCellId = currentCellData.cell_id;
       await axios.patch(
@@ -289,6 +289,62 @@ const TimelapseViewer: React.FC = () => {
   useEffect(() => {
     setReloadKey((prev) => prev + 1);
   }, [dbName, selectedField, selectedCellNumber]);
+
+  /**
+   * キーボードイベントで各操作を行う
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // input フォーカス中など、特定の場合は無視したい場合はここで制御
+      // if ((e.target as HTMLElement).tagName === "INPUT") return;
+
+      if (!currentCellData) return;
+
+      switch (e.key) {
+        case "d":
+          // is_dead のオン/オフ切り替え
+          e.preventDefault();
+          handleChangeIsDead(currentCellData.is_dead !== 1);
+          break;
+        case "n":
+          // manual_label = N/A
+          e.preventDefault();
+          handleChangeManualLabel("N/A");
+          break;
+        case "1":
+        case "2":
+        case "3":
+        case "4":
+          // manual_label = 1 / 2 / 3 / 4
+          e.preventDefault();
+          handleChangeManualLabel(e.key);
+          break;
+        case "Enter":
+          // Next Cell
+          e.preventDefault();
+          handleNextCell();
+          break;
+        case " ":
+          // Prev Cell
+          e.preventDefault();
+          handlePrevCell();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    currentCellData,
+    handleChangeIsDead,
+    handleChangeManualLabel,
+    handleNextCell,
+    handlePrevCell,
+  ]);
 
   /**
    * チャネルごとにタイムラプスGIFの URL を組み立て
