@@ -1,3 +1,5 @@
+// src/pages/TimelapseParser.tsx
+
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -55,8 +57,6 @@ const TimelapseParser: React.FC = () => {
 
   /**
    * ND2 ファイルをパースする
-   * 1) GET /tlengine/nd2_files/{file_name}
-   * 2) パース完了後に、GET /tlengine/nd2_files/{file_name}/fields を呼び出す
    */
   const handleParseND2 = async () => {
     if (!fileName) return;
@@ -89,7 +89,7 @@ const TimelapseParser: React.FC = () => {
     if (!fileName) return;
     setIsLoading(true);
     try {
-      // param1 をクエリに付与
+      // param1 をクエリに付与 (サーバ側は param_1 の名前で受け取る)
       await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}/cells`, {
         params: { param_1: param1 }
       });
@@ -102,8 +102,7 @@ const TimelapseParser: React.FC = () => {
   };
 
   /**
-   * displayType が "dual" の場合は両方のエンドポイントを呼び出して 2 枚の GIF を取得、
-   * それ以外の場合は単一のエンドポイントを呼び出して該当 GIF を取得
+   * displayType が "dual" の場合は両方のエンドポイントを呼び出して 2 枚の GIF を取得
    */
   const fetchGif = async (fieldValue: string, type: DisplayType) => {
     if (!fileName || !fieldValue) return;
