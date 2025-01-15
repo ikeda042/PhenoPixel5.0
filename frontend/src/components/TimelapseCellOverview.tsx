@@ -54,7 +54,10 @@ interface CellData {
   area: number;
   perimeter: number;
   manual_label?: number; 
-  is_dead?: boolean;
+  /**
+   * 生細胞が 0、死細胞が 1
+   */
+  is_dead?: number;
 }
 
 interface GetCellsResponse {
@@ -175,7 +178,7 @@ const TimelapseViewer: React.FC = () => {
 
     // "N/A" はサーバー的には何もない値として扱いたい想定であれば、例えば label="" を送るなど
     // ここでは "N/A" を文字列としてそのまま送っている例です
-    const patchLabel = value === "N/A" ? "N/A" : value; 
+    const patchLabel = value === "N/A" ? "N/A" : value;
 
     try {
       const baseCellId = currentCellData.cell_id;
@@ -191,14 +194,16 @@ const TimelapseViewer: React.FC = () => {
 
   /**
    * is_dead のチェックが変わったら自動的にPATCH
+   * 生細胞 => 0, 死細胞 => 1
    */
   const handleChangeIsDead = async (checked: boolean) => {
     if (!dbName || !currentCellData) return;
 
     try {
       const baseCellId = currentCellData.cell_id;
+      const isDeadValue = checked ? 1 : 0; // チェックされていれば1(死細胞)、外れていれば0(生細胞)
       await axios.patch(
-        `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/dead?is_dead=${checked}`
+        `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/dead?is_dead=${isDeadValue}`
       );
       // 成功後、最新データを再取得
       fetchCurrentCellData();
@@ -445,7 +450,7 @@ const TimelapseViewer: React.FC = () => {
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={currentCellData.is_dead ?? false}
+                    checked={currentCellData.is_dead === 1}
                     onChange={(e) => handleChangeIsDead(e.target.checked)}
                   />
                 }
