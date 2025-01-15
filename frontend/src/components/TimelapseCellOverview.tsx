@@ -26,6 +26,7 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
+import {settings} from "../settings";
 
 /**
  * /databases/{db_name}/fields のレスポンス
@@ -64,9 +65,7 @@ interface GetCellsResponse {
 }
 
 // 例：サーバーのエンドポイントのプレフィックス
-const settings = {
-  url_prefix: "http://localhost:8000",
-};
+const url_prefix = settings.url_prefix;
 
 const TimelapseViewer: React.FC = () => {
   const theme = useTheme();
@@ -118,7 +117,7 @@ const TimelapseViewer: React.FC = () => {
         `${url_prefix}/tlengine/databases/${dbName}/fields`
       );
       setFields(response.data.fields);
-
+      console.log("Fetched fields:", `${url_prefix}/tlengine/databases/${dbName}/fields`);
       // フィールド一覧取得後、先頭要素をデフォルト選択
       if (response.data.fields.length > 0) {
         setSelectedField(response.data.fields[0]);
