@@ -261,3 +261,23 @@ async def get_databases():
     return JSONResponse(
         content={"databases": await TimelapseDatabaseCrud("").get_database_names()}
     )
+
+
+@router_tl_engine.get("/databases/{db_name}/fields")
+async def get_fields_of_db(db_name: str):
+    """
+    指定したデータベース(db_name)のフィールド一覧を取得するエンドポイント
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    return JSONResponse(content={"fields": await crud.get_fields_of_db()})
+
+
+@router_tl_engine.get("/databases/{db_name}/fields/{field}/cell_numbers")
+async def get_cell_numbers_of_field(db_name: str, field: str):
+    """
+    指定したデータベース(db_name)のフィールド(field)のセル番号一覧を取得するエンドポイント
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    return JSONResponse(
+        content={"cell_numbers": await crud.get_cell_numbers_of_field(field)}
+    )

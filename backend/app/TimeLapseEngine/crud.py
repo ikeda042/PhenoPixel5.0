@@ -22,6 +22,7 @@ from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, func, disti
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select, Select
+import ulid
 
 Base = declarative_base()
 
@@ -263,6 +264,7 @@ class SyncChores:
         """
         ph と fluo を横並びに合成した GIF をメモリ上 (BytesIO) に作成して返す。
         """
+
         ph_folder = os.path.join(field_folder, "ph")
         fluo_folder = os.path.join(field_folder, "fluo")
 
@@ -295,11 +297,11 @@ class SyncChores:
 
         combined_images = []
         for ph_img, fluo_img in zip(ph_images, fluo_images):
-            # リサイズ
-            ph_img_resized = ph_img.resize(
+            # リサイズ（thumbnailを使用してアスペクト比を保ちながらリサイズ）
+            ph_img.thumbnail(
                 (int(ph_img.width * resize_factor), int(ph_img.height * resize_factor))
             )
-            fluo_img_resized = fluo_img.resize(
+            fluo_img.thumbnail(
                 (
                     int(fluo_img.width * resize_factor),
                     int(fluo_img.height * resize_factor),
@@ -307,17 +309,17 @@ class SyncChores:
             )
 
             # 横に並べて合成
-            combined_width = ph_img_resized.width + fluo_img_resized.width
-            combined_height = max(ph_img_resized.height, fluo_img_resized.height)
+            combined_width = ph_img.width + fluo_img.width
+            combined_height = max(ph_img.height, fluo_img.height)
             combined_img = Image.new("RGB", (combined_width, combined_height))
-            combined_img.paste(ph_img_resized, (0, 0))
-            combined_img.paste(fluo_img_resized, (ph_img_resized.width, 0))
+            combined_img.paste(ph_img, (0, 0))
+            combined_img.paste(fluo_img, (ph_img.width, 0))
             combined_images.append(combined_img)
 
         if not combined_images:
             raise ValueError("No images found to create combined GIF.")
 
-        # GIF をメモリに書き込む
+        # GIF をメモリに書き込む（圧縮オプションを追加する）
         gif_buffer = io.BytesIO()
         combined_images[0].save(
             gif_buffer,
@@ -326,6 +328,7 @@ class SyncChores:
             append_images=combined_images[1:],
             duration=100,
             loop=0,
+            optimize=True,  # GIFの最適化
         )
         gif_buffer.seek(0)
         return gif_buffer
@@ -538,7 +541,7 @@ class TimelapseEngineCrudBase:
                     contour_shifted[:, :, 0] -= x1
                     contour_shifted[:, :, 1] -= y1
 
-                    cell_id = f"{field}_cell{assigned_cell_idx}"
+                    cell_id = ulid.new().str
 
                     cell_obj = Cell(
                         cell_id=cell_id,
@@ -864,8 +867,17 @@ class TimelapseDatabaseCrud:
             return result.scalars().all()
 
     async def get_cells_gif_by_cell_number(
-        self, field: str, cell_number: int, channel: str
+        self,
+        field: str,
+        cell_number: int,
+        channel: str,
+        draw_contour: bool = True,  # 新たに追加
     ) -> io.BytesIO:
+        """
+        指定した field, cell_number, channel のセル画像を順番に GIF 化して返す。
+        draw_contour=True の場合は DB に格納されている contour を描画した画像を返す。
+        """
+        # セッションからデータ取得
         async with get_session(self.dbname) as session:
             result = await session.execute(
                 select(Cell)
@@ -882,6 +894,7 @@ class TimelapseDatabaseCrud:
 
         frames = []
         for row in cells:
+            # チャネルごとの画像バイナリを取得
             if channel == "ph":
                 img_binary = row.img_ph
             elif channel == "fluo1":
@@ -892,13 +905,39 @@ class TimelapseDatabaseCrud:
             if img_binary is None:
                 continue
 
+            # バイナリ -> NumPy 配列 (グレースケール)
             np_img = cv2.imdecode(
                 np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
             )
             if np_img is None:
                 continue
 
-            pil_img = Image.fromarray(np_img)
+            # contour 描画フラグが立っている場合は contour カラムを読み込んで描画する
+            if draw_contour and row.contour is not None:
+                try:
+                    # pickle で保存されている contour 情報を想定
+                    contour_data = pickle.loads(row.contour)
+                    # グレースケール -> BGR に変換
+                    bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
+                    # 複数の輪郭がある場合はリスト化されていることを想定
+                    # 単一の輪郭であれば [contour_data] のようにリスト化して描画
+                    cv2.drawContours(
+                        bgr_img,
+                        [np.array(contour_data, dtype=np.int32)],
+                        -1,
+                        (0, 255, 0),  # 緑色
+                        1,
+                    )
+                    # Pillow 用に BGR -> RGB に変換
+                    rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+                    pil_img = Image.fromarray(rgb_img)
+                except Exception as e:
+                    # contour のフォーマットが合わない場合などはエラーを無視して通常表示
+                    pil_img = Image.fromarray(np_img)
+            else:
+                # 通常のグレースケール画像をそのまま PIL に渡す
+                pil_img = Image.fromarray(np_img)
+
             frames.append(pil_img)
 
         if not frames:
@@ -907,6 +946,7 @@ class TimelapseDatabaseCrud:
                 detail=f"No valid frames found for field={field}, cell={cell_number}, channel={channel}",
             )
 
+        # GIF バッファ作成
         gif_buffer = io.BytesIO()
         frames[0].save(
             gif_buffer,
@@ -921,3 +961,15 @@ class TimelapseDatabaseCrud:
 
     async def get_database_names(self) -> list[str]:
         return [i for i in os.listdir("timelapse_databases") if i.endswith(".db")]
+
+    async def get_fields_of_db(self) -> list[str]:
+        async with get_session(self.dbname) as session:
+            result = await session.execute(select(Cell.field).distinct())
+            return [row[0] for row in result]
+
+    async def get_cell_numbers_of_field(self, field: str) -> list[int]:
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell.cell).filter_by(field=field).distinct()
+            )
+            return [row[0] for row in result]
