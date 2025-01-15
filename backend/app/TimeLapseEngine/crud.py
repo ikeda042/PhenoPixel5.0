@@ -864,8 +864,17 @@ class TimelapseDatabaseCrud:
             return result.scalars().all()
 
     async def get_cells_gif_by_cell_number(
-        self, field: str, cell_number: int, channel: str
+        self,
+        field: str,
+        cell_number: int,
+        channel: str,
+        draw_contour: bool = True,  # 新たに追加
     ) -> io.BytesIO:
+        """
+        指定した field, cell_number, channel のセル画像を順番に GIF 化して返す。
+        draw_contour=True の場合は DB に格納されている contour を描画した画像を返す。
+        """
+        # セッションからデータ取得
         async with get_session(self.dbname) as session:
             result = await session.execute(
                 select(Cell)
@@ -882,6 +891,7 @@ class TimelapseDatabaseCrud:
 
         frames = []
         for row in cells:
+            # チャネルごとの画像バイナリを取得
             if channel == "ph":
                 img_binary = row.img_ph
             elif channel == "fluo1":
@@ -892,13 +902,39 @@ class TimelapseDatabaseCrud:
             if img_binary is None:
                 continue
 
+            # バイナリ -> NumPy 配列 (グレースケール)
             np_img = cv2.imdecode(
                 np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
             )
             if np_img is None:
                 continue
 
-            pil_img = Image.fromarray(np_img)
+            # contour 描画フラグが立っている場合は contour カラムを読み込んで描画する
+            if draw_contour and row.contour is not None:
+                try:
+                    # pickle で保存されている contour 情報を想定
+                    contour_data = pickle.loads(row.contour)
+                    # グレースケール -> BGR に変換
+                    bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
+                    # 複数の輪郭がある場合はリスト化されていることを想定
+                    # 単一の輪郭であれば [contour_data] のようにリスト化して描画
+                    cv2.drawContours(
+                        bgr_img,
+                        [np.array(contour_data, dtype=np.int32)],
+                        -1,
+                        (0, 255, 0),  # 緑色
+                        2,
+                    )
+                    # Pillow 用に BGR -> RGB に変換
+                    rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+                    pil_img = Image.fromarray(rgb_img)
+                except Exception as e:
+                    # contour のフォーマットが合わない場合などはエラーを無視して通常表示
+                    pil_img = Image.fromarray(np_img)
+            else:
+                # 通常のグレースケール画像をそのまま PIL に渡す
+                pil_img = Image.fromarray(np_img)
+
             frames.append(pil_img)
 
         if not frames:
@@ -907,6 +943,7 @@ class TimelapseDatabaseCrud:
                 detail=f"No valid frames found for field={field}, cell={cell_number}, channel={channel}",
             )
 
+        # GIF バッファ作成
         gif_buffer = io.BytesIO()
         frames[0].save(
             gif_buffer,
