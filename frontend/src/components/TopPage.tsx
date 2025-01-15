@@ -19,6 +19,7 @@ import Inventory2Icon from "@mui/icons-material/Inventory2";
 import SettingsEthernetIcon from "@mui/icons-material/SettingsEthernet";
 import { useNavigate } from "react-router-dom";
 import { settings } from "../settings";
+import AutoAwesomeMotionIcon from '@mui/icons-material/AutoAwesomeMotion';
 
 /* --------------------------------
  *  ImageCard Component
@@ -301,6 +302,13 @@ const TopPage: React.FC = () => {
       external: false,
     },
     {
+      title: "GraphEngine",
+      icon: <BarChartIcon sx={{ fontSize: 50 }} />,
+      path: "/graphengine",
+      description: "Create graphs from the data.",
+      external: false,
+    },
+    {
       title: "X100TLengine",
       icon: <DisplaySettingsIcon sx={{ fontSize: 50 }} />,
       path: "/tl-engine",
@@ -308,10 +316,10 @@ const TopPage: React.FC = () => {
       external: false,
     },
     {
-      title: "GraphEngine",
-      icon: <BarChartIcon sx={{ fontSize: 50 }} />,
-      path: "/graphengine",
-      description: "Create graphs from the data.",
+      title: "Timelapse Database",
+      icon: <AutoAwesomeMotionIcon sx={{ fontSize: 50 }} />,
+      path: "/tl-engine",
+      description: "Timelapse database console (beta)",
       external: false,
     },
     {
