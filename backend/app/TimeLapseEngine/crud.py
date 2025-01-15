@@ -842,37 +842,33 @@ class TimelapseDatabaseCrud:
 
     async def get_cells_by_field(self, field: str) -> list[Cell]:
         async with get_session(self.dbname) as session:
-            async with session() as s:
-                result = await s.execute(select(Cell).filter_by(field=field))
-                return result.scalars().all()
+            result = await session.execute(select(Cell).filter_by(field=field))
+            return result.scalars().all()
 
     async def get_cell_by_id(self, cell_id: str) -> Cell:
         async with get_session(self.dbname) as session:
-            async with session() as s:
-                result = await s.execute(select(Cell).filter_by(cell_id=cell_id))
-                return result.scalar_one()
+            result = await session.execute(select(Cell).filter_by(cell_id=cell_id))
+            return result.scalar_one()
 
     async def get_cells_by_cell_number(
         self, field: str, cell_number: int
     ) -> list[Cell]:
         async with get_session(self.dbname) as session:
-            async with session() as s:
-                result = await s.execute(
-                    select(Cell).filter_by(field=field, cell=cell_number)
-                )
-                return result.scalars().all()
+            result = await session.execute(
+                select(Cell).filter_by(field=field, cell=cell_number)
+            )
+            return result.scalars().all()
 
     async def get_cells_gif_by_cell_number(
         self, field: str, cell_number: int, channel: str
     ) -> io.BytesIO:
         async with get_session(self.dbname) as session:
-            async with session() as s:
-                result = await s.execute(
-                    select(Cell)
-                    .filter_by(field=field, cell=cell_number)
-                    .order_by(Cell.time)
-                )
-                cells: list[Cell] = result.scalars().all()
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells: list[Cell] = result.scalars().all()
 
         if not cells:
             raise HTTPException(
