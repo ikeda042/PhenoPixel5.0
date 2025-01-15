@@ -11,6 +11,7 @@ import {
   Grid,
   Card,
   CardHeader,
+  CardContent,
   CardMedia,
   Breadcrumbs,
   Link,
@@ -40,7 +41,7 @@ const url_prefix = settings.url_prefix;
 /**
  * タイムラプスGIFを表示し、
  * DB名、Field、CellNumberなどを選択/操作できるコンポーネント
- * 画像は ph, fluo1, fluo2 の3チャネルを同時に表示する。
+ * 画像は ph, fluo1, fluo2 の3チャネルを隣接して表示する。
  */
 const TimelapseViewer: React.FC = () => {
   const theme = useTheme();
@@ -169,7 +170,6 @@ const TimelapseViewer: React.FC = () => {
     <Container
       sx={{
         py: 4,
-        // カード背景が映えるように全体背景を少し薄いグレーに
         backgroundColor: "#f9f9f9",
         minHeight: "100vh",
       }}
@@ -200,7 +200,6 @@ const TimelapseViewer: React.FC = () => {
         alignItems="center"
         gap={2}
         mb={3}
-        // モバイル時は縦並びにする
         flexDirection={isMobile ? "column" : "row"}
       >
         <FormControl sx={{ minWidth: 120 }}>
@@ -266,51 +265,48 @@ const TimelapseViewer: React.FC = () => {
         </Box>
       </Box>
 
-      {/* タイムラプスGIFの表示 */}
+      {/* タイムラプスGIFの表示（3チャネルをまとめて1つのブロックとして表示） */}
       {dbName ? (
-        <Grid container spacing={3}>
-          {gifUrls.map((url, idx) => (
-            <Grid
-              item
-              xs={12}
-              md={4}
-              key={`${channels[idx]}-${reloadKey}`}
-              // モバイルの時は幅を全体に使い、PC時は3列
+        <Card
+          sx={{
+            borderRadius: 2,
+            boxShadow: 3,
+            backgroundColor: "#fff",
+          }}
+        >
+          <CardHeader
+            title="Channels: ph / fluo1 / fluo2"
+            sx={{
+              pb: 1,
+              "& .MuiCardHeader-title": {
+                fontWeight: "bold",
+              },
+            }}
+          />
+          <CardContent>
+            <Box
+              display="flex"
+              flexDirection={isMobile ? "column" : "row"}
+              gap={2}
+              justifyContent="center"
+              alignItems="center"
             >
-              <Card
-                sx={{
-                  borderRadius: 2,
-                  boxShadow: 3,
-                  backgroundColor: "#fff",
-                }}
-              >
-                <CardHeader
-                  title={`Channel: ${channels[idx]}`}
-                  sx={{
-                    pb: 1,
-                    "& .MuiCardHeader-title": {
-                      fontWeight: "bold",
-                    },
-                  }}
-                />
+              {gifUrls.map((url, idx) => (
                 <CardMedia
+                  key={`${channels[idx]}-${reloadKey}`}
                   component="img"
                   image={url}
                   alt={`timelapse-${channels[idx]}`}
                   sx={{
-                    // 画像の角を少し丸める
+                    maxWidth: isMobile ? "100%" : "30%",
                     borderRadius: 2,
-                    mt: 1,
-                    mx: "auto",
-                    width: "auto",
-                    maxHeight: 300,
                     objectFit: "contain",
                   }}
                 />
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
       ) : (
         <Typography variant="body1" mt={2}>
           データがありません。DB名やフィールドが正しく指定されているか確認してください。
