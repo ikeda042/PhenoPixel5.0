@@ -66,12 +66,7 @@ const TimelapseDatabases: React.FC = () => {
       });
   };
 
-  /**
-   * 指定のDBに画面遷移 (クエリパラメータ付き)
-   * Databases.tsx での handleNavigate を参考に
-   */
   const handleNavigate = (dbName: string) => {
-    // 例: /tlengine/databases?db_name=XXX
     navigate(`/tlengine/databases?db_name=${dbName}`);
   };
 
