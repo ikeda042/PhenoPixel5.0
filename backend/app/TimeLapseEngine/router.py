@@ -300,5 +300,5 @@ async def update_dead_status(db_name: str, base_cell_id: str, is_dead: bool):
     指定したデータベース(db_name)のセル(cell_id)の is_dead を更新するエンドポイント
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
-    result = await crud.update_dead_status(cell_id, is_dead)
+    result = await crud.update_dead_status(base_cell_id, is_dead)
     return JSONResponse(content={"updated": result})
