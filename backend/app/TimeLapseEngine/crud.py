@@ -449,8 +449,12 @@ class TimelapseEngineCrudBase:
         total_frames = len(ph_files)
         output_size = (crop_size, crop_size)
 
+        # 前フレームで追跡していた細胞の {cell番号: (中心x, 中心y)} を持つ辞書
         active_cells = {}
+        # 次に新規セルが見つかった時の cell 番号割り当て用カウンタ
         next_cell_idx = 1
+        # 追加：base_cell_id をセル番号ごとに記憶する辞書 {cell番号: 最初のフレームで生成された cell_id}
+        base_ids = {}
 
         for i, (ph_file, fluo_file) in enumerate(zip(ph_files, fluo_files)):
             ph_path = os.path.join(ph_folder, ph_file)
@@ -463,7 +467,6 @@ class TimelapseEngineCrudBase:
                 print(f"Skipping because image not found: {ph_path}, {fluo_path}")
                 continue
 
-            # 画像の高さ・幅を取得
             height, width = ph_img.shape[:2]
 
             ph_gray = cv2.cvtColor(ph_img, cv2.COLOR_BGR2GRAY)
@@ -501,16 +504,19 @@ class TimelapseEngineCrudBase:
                     min_dist = float("inf")
                     distance_threshold = 60
 
+                    # 前フレームの細胞中心との距離を見て同一セルかどうかを判定
                     for prev_idx, (px, py) in active_cells.items():
                         dist = math.sqrt((cx - px) ** 2 + (cy - py) ** 2)
                         if dist < distance_threshold and dist < min_dist:
                             min_dist = dist
                             assigned_cell_idx = prev_idx
 
+                    # 新規のセルとして割り当て
                     if assigned_cell_idx is None:
                         assigned_cell_idx = next_cell_idx
                         next_cell_idx += 1
 
+                    # 今フレームでも追跡対象として登録
                     if assigned_cell_idx not in new_active_cells:
                         new_active_cells[assigned_cell_idx] = (cx, cy)
 
@@ -523,6 +529,7 @@ class TimelapseEngineCrudBase:
                     cropped_ph = ph_img[y1:y2, x1:x2]
                     cropped_fluo = fluo_img[y1:y2, x1:x2]
 
+                    # クロップが指定サイズに満たない場合はスキップ
                     if (
                         cropped_ph.shape[0] != output_size[1]
                         or cropped_ph.shape[1] != output_size[0]
@@ -537,39 +544,51 @@ class TimelapseEngineCrudBase:
                         1
                     ].tobytes()
 
-                    # ★ ここで輪郭をクロップ座標系へシフトしてから保存する
+                    # 輪郭をクロップ座標系へシフト
                     contour_shifted = contour.copy()
                     contour_shifted[:, :, 0] -= x1
                     contour_shifted[:, :, 1] -= y1
 
-                    cell_id = ulid.new().str
+                    # 毎フレームごとにユニークな cell_id を生成
+                    new_ulid = ulid.new().str
 
+                    # もしこのセル番号の base_cell_id が未登録なら、新しく登録
+                    if assigned_cell_idx not in base_ids:
+                        base_ids[assigned_cell_idx] = new_ulid
+
+                    # DB に保存するオブジェクトを作成
                     cell_obj = Cell(
-                        cell_id=cell_id,
+                        cell_id=new_ulid,
                         label_experiment=field,
-                        manual_label="N/A",
+                        # manual_label は int カラムなので、暫定的に 0 などで登録
+                        manual_label=0,
                         perimeter=perimeter,
                         area=area,
                         img_ph=ph_gray_encode,
                         img_fluo1=fluo_gray_encode,
                         img_fluo2=None,
-                        # DBには「シフト後の」contourを保存
                         contour=pickle.dumps(contour_shifted),
                         center_x=cx,
                         center_y=cy,
                         field=field,
                         time=i + 1,
                         cell=assigned_cell_idx,
+                        base_cell_id=base_ids[
+                            assigned_cell_idx
+                        ],  # 最初に検出されたフレームの cell_id
                     )
 
+                    # 重複チェック
                     existing = await session.execute(
-                        select(Cell).filter_by(cell_id=cell_id, time=i + 1)
+                        select(Cell).filter_by(cell_id=new_ulid, time=i + 1)
                     )
                     if existing.scalar() is None:
                         session.add(cell_obj)
 
+                # フレーム内の処理が全部終わったらコミット
                 await session.commit()
 
+            # 次のフレーム用に active_cells を更新
             active_cells = new_active_cells
 
         # 全フレームに揃っていない細胞を削除
