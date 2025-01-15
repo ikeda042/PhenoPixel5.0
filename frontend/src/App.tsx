@@ -69,7 +69,7 @@ const PasswordProtect: React.FC<{
 function App() {
   // パスワード認証の管理
   const [isAuthenticated, setIsAuthenticated] = useState(
-    !(window.location.hostname === "10.32.17.73" && window.location.port === "3000"|| true) 
+    (window.location.hostname === "10.32.17.73" && window.location.port === "3000"|| true) 
   );
 
   return (
