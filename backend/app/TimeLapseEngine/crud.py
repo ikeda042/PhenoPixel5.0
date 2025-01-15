@@ -1,24 +1,27 @@
+# Standard library imports
 import asyncio
-import os
-import io
-import nd2reader
-from PIL import Image
-import cv2
-import numpy as np
+import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from functools import partial
-from fastapi.responses import JSONResponse
-import shutil
-import re
-
+from contextlib import asynccontextmanager
+import io
+import math
+import os
 import pickle
+import re
+import shutil
+from functools import partial
+
+# Third-party imports
+import cv2
+import nd2reader
+import numpy as np
+from PIL import Image
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, func, distinct
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.sql import select
-import math
-from fastapi import HTTPException
-from sqlalchemy.sql import Select
+from sqlalchemy.sql import select, Select
 
 Base = declarative_base()
 
@@ -45,10 +48,16 @@ class Cell(Base):
     cell = Column(Integer, nullable=True)  # 例: 同一タイム内のセル番号
 
 
+@asynccontextmanager
 async def get_session(dbname: str):
+    """
+    セッションを非同期コンテキストマネージャとして返す関数。
+    """
     engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False)
-    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with async_session() as session:
+    AsyncSessionLocal = sessionmaker(
+        engine, expire_on_commit=False, class_=AsyncSession
+    )
+    async with AsyncSessionLocal() as session:
         yield session
 
 
@@ -57,18 +66,6 @@ async def create_database(dbname: str):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     return engine
-
-
-import os
-import re
-import cv2
-import io
-import shutil
-import numpy as np
-import nd2reader
-from PIL import Image
-import concurrent.futures
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class SyncChores:
