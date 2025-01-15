@@ -47,6 +47,7 @@ class Cell(Base):
     field = Column(String, nullable=True)  # 例: "Field_1"
     time = Column(Integer, nullable=True)  # 例: 1, 2, 3, ...
     cell = Column(Integer, nullable=True)  # 例: 同一タイム内のセル番号
+    base_cell_id = Column(String, nullable=True)
 
 
 @asynccontextmanager
