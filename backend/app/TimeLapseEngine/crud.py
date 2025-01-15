@@ -995,3 +995,9 @@ class TimelapseDatabaseCrud:
                 select(Cell.cell).filter_by(field=field).distinct()
             )
             return [row[0] for row in result]
+
+    async def update_manual_label(self, base_cell_id: str, label: str):
+        pass
+
+    async def update_dead_status(self, base_cell_id: str, is_dead: bool):
+        pass
