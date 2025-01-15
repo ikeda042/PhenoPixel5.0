@@ -209,9 +209,6 @@ const TimelapseDatabases: React.FC = () => {
           justifyContent="space-between"
           mb={2}
         >
-          <Typography variant="h5" gutterBottom>
-            Timelapse Databases
-          </Typography>
         </Box>
 
         {/* データベース一覧テーブル */}
@@ -219,20 +216,20 @@ const TimelapseDatabases: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell align="center">Database Name</TableCell>
-                <TableCell align="center">Copy</TableCell>
-                <TableCell align="center">Preview</TableCell>
-                <TableCell align="center">Access Database</TableCell>
+                <TableCell align="center"><b>Database Name</b></TableCell>
+                <TableCell align="center"><b>Copy</b></TableCell>
+                <TableCell align="center"><b>Preview</b></TableCell>
+                <TableCell align="center"><b>Access Database</b></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {databases.map((database) => (
                 <TableRow key={database}>
                   {/* Database Name */}
-                  <TableCell>{database}</TableCell>
+                  <TableCell align="center">{database}</TableCell>
 
                   {/* Copy to Clipboard */}
-                  <TableCell>
+                  <TableCell align="center">
                     <Tooltip title="Copy to clipboard">
                       <IconButton
                         onClick={() => handleCopyToClipboard(database)}
@@ -245,7 +242,7 @@ const TimelapseDatabases: React.FC = () => {
                     </Tooltip>
                   </TableCell>
                    {/* Preview */}
-                   <TableCell>
+                   <TableCell align="center">
                     {/* フィールドの選択ドロップダウン */}
                     <FormControl size="small" sx={{ minWidth: 120 }}>
                       <InputLabel id={`select-label-${database}`}>Field</InputLabel>
@@ -288,7 +285,7 @@ const TimelapseDatabases: React.FC = () => {
                     </Button>
                   </TableCell>
                   {/* Access database */}
-                  <TableCell>
+                  <TableCell align="center">
                     <IconButton
                       onClick={() => handleNavigate(database)}
                       sx={{
