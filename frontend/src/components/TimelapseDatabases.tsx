@@ -23,6 +23,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Backdrop,
+  CircularProgress,
 } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
@@ -60,6 +62,11 @@ const TimelapseDatabases: React.FC = () => {
   const [previewModalDbName, setPreviewModalDbName] = useState<string>("");
   const [previewModalUrl, setPreviewModalUrl] = useState<string>("");
 
+  /**
+   * ローディングスピナーの開閉フラグ
+   */
+  const [loading, setLoading] = useState<boolean>(false);
+
   const navigate = useNavigate();
 
   /**
@@ -68,6 +75,7 @@ const TimelapseDatabases: React.FC = () => {
   useEffect(() => {
     const fetchDatabases = async () => {
       try {
+        setLoading(true);
         const response = await axios.get<ListDBResponse>(
           `${url_prefix}/tlengine/databases`
         );
@@ -90,6 +98,8 @@ const TimelapseDatabases: React.FC = () => {
         setDbFields(fieldsObj);
       } catch (error) {
         console.error("Failed to fetch databases:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchDatabases();
@@ -131,6 +141,7 @@ const TimelapseDatabases: React.FC = () => {
     const fileName = dbName.replace("_cells.db", ".nd2");
 
     try {
+      setLoading(true);
       // GIFを取得 (バイナリ)
       const response = await axios.get(
         `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${field}/gif`,
@@ -149,6 +160,8 @@ const TimelapseDatabases: React.FC = () => {
     } catch (err) {
       console.error("Failed to fetch GIF:", err);
       alert(`Failed to fetch GIF for ${dbName}, Field: ${field}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -170,6 +183,14 @@ const TimelapseDatabases: React.FC = () => {
 
   return (
     <Container>
+      {/* ローディングスピナー */}
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={loading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
+
       <Box mt={2}>
         <Box mb={2}>
           <Breadcrumbs aria-label="breadcrumb">
@@ -214,7 +235,12 @@ const TimelapseDatabases: React.FC = () => {
                   {/* Copy to Clipboard */}
                   <TableCell>
                     <Tooltip title="Copy to clipboard">
-                      <IconButton onClick={() => handleCopyToClipboard(database)}>
+                      <IconButton
+                        onClick={() => handleCopyToClipboard(database)}
+                        sx={{
+                          color: "#000", // アイコンも黒色に
+                        }}
+                      >
                         <ContentCopyIcon />
                       </IconButton>
                     </Tooltip>
@@ -222,8 +248,20 @@ const TimelapseDatabases: React.FC = () => {
 
                   {/* Access database */}
                   <TableCell>
-                    <IconButton onClick={() => handleNavigate(database)}>
-                      <Typography>Access database</Typography>
+                    <IconButton
+                      onClick={() => handleNavigate(database)}
+                      sx={{
+                        color: "#000", // アイコンも黒色に
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          color: "#000",
+                          fontSize: "0.8rem",
+                        }}
+                      >
+                        Access database
+                      </Typography>
                       <NavigateNextIcon />
                     </IconButton>
                   </TableCell>
@@ -260,9 +298,11 @@ const TimelapseDatabases: React.FC = () => {
                         ml: 2,
                         backgroundColor: "#000", // ボタンを黒色に
                         color: "#fff",
-                        // 行の高さに合わせるため適宜調整
                         minHeight: "36px",
                         fontSize: "0.8rem",
+                        "&:hover": {
+                          backgroundColor: "#333",
+                        },
                       }}
                       onClick={() => handlePreview(database)}
                     >
@@ -294,7 +334,17 @@ const TimelapseDatabases: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClosePreview} variant="contained" color="primary">
+          <Button
+            onClick={handleClosePreview}
+            variant="contained"
+            sx={{
+              backgroundColor: "#000",
+              color: "#fff",
+              "&:hover": {
+                backgroundColor: "#333",
+              },
+            }}
+          >
             Close
           </Button>
         </DialogActions>
