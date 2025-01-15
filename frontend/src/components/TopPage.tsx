@@ -280,18 +280,19 @@ const TopPage: React.FC = () => {
    * （System Status のメニュー項目は削除し、代わりに上部に表示）
    */
   const menuItems = [
-    {
-      title: "Database Console",
-      icon: <DatabaseIcon sx={{ fontSize: 50 }} />,
-      path: "/dbconsole",
-      description: "Label cells / manage databases.",
-      external: false,
-    },
+   
     {
       title: "Cell Extraction",
       icon: <ScienceIcon sx={{ fontSize: 50 }} />,
       path: "/nd2files",
       description: "Extract cells from ND2 files.",
+      external: false,
+    },
+    {
+      title: "Database Console",
+      icon: <DatabaseIcon sx={{ fontSize: 50 }} />,
+      path: "/dbconsole",
+      description: "Label cells / manage databases.",
       external: false,
     },
     {
@@ -309,7 +310,7 @@ const TopPage: React.FC = () => {
       external: false,
     },
     {
-      title: "TimeLapse Engine",
+      title: "TimeLapse Extraction",
       icon: <DisplaySettingsIcon sx={{ fontSize: 50 }} />,
       path: "/tl-engine",
       description: "Process nd2 timelapse files.(beta)",

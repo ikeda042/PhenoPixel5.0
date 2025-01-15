@@ -191,6 +191,8 @@ async def read_cell_by_cell_id(db_name: str, cell_id: str):
                 "cell": cell.cell,
                 "area": cell.area,
                 "perimeter": cell.perimeter,
+                "manual_label": cell.manual_label,
+                "is_dead": cell.is_dead,
             }
         )
     except:
@@ -224,6 +226,7 @@ async def read_cells_by_cell_number(db_name: str, field: str, cell_number: int):
                 "cell": c.cell,
                 "area": c.area,
                 "perimeter": c.perimeter,
+                "manual_label": c.manual_label,
             }
         )
     return JSONResponse(content={"cells": cell_list})
@@ -281,3 +284,23 @@ async def get_cell_numbers_of_field(db_name: str, field: str):
     return JSONResponse(
         content={"cell_numbers": await crud.get_cell_numbers_of_field(field)}
     )
+
+
+@router_tl_engine.patch("/databases/{db_name}/cells/{base_cell_id}/label")
+async def update_manual_label(db_name: str, base_cell_id: str, label: str):
+    """
+    指定したデータベース(db_name)のセル(cell_id)の manual_label を更新するエンドポイント
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    result = await crud.update_manual_label(base_cell_id, label)
+    return JSONResponse(content={"updated": result})
+
+
+@router_tl_engine.patch("/databases/{db_name}/cells/{base_cell_id}/dead/{is_dead}")
+async def update_dead_status(db_name: str, base_cell_id: str, is_dead: int):
+    """
+    指定したデータベース(db_name)のセル(cell_id)の is_dead を更新するエンドポイント
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    result = await crud.update_dead_status(base_cell_id, is_dead)
+    return JSONResponse(content={"updated": result})
