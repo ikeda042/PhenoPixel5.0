@@ -17,7 +17,8 @@ import {
   Card,
   CardContent,
   useMediaQuery,
-  useTheme
+  useTheme,
+  TextField
 } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
@@ -32,12 +33,14 @@ const TimelapseParser: React.FC = () => {
   const fileName = searchParams.get("file_name") || "";
   const [isLoading, setIsLoading] = useState(false);
 
-  // Field 関連
+  // Field 関連 (GIF 表示のため)
   const [fields, setFields] = useState<string[]>([]);
   const [selectedField, setSelectedField] = useState<string>("");
 
-  // GIF 表示関連
-  //  - raw, extracted それぞれの URL を別々に保持
+  // param1 関連
+  const [param1, setParam1] = useState<number>(0);
+
+  // GIF 表示関連 (raw, extracted それぞれの URL)
   const [gifUrlRaw, setGifUrlRaw] = useState<string>("");
   const [gifUrlExtracted, setGifUrlExtracted] = useState<string>("");
 
@@ -61,7 +64,7 @@ const TimelapseParser: React.FC = () => {
     try {
       // 1) ND2 ファイルの解析
       await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}`);
-      // 2) Field 一覧を取得
+      // 2) Field 一覧を取得 (GIF 表示用)
       const fieldsResponse = await axios.get(
         `${url_prefix}/tlengine/nd2_files/${fileName}/fields`
       );
@@ -79,14 +82,18 @@ const TimelapseParser: React.FC = () => {
 
   /**
    * "Extract cells"ボタン押下時に呼び出す
-   * GET /tlengine/nd2_files/{file_name}/cells
+   * 全ての Field を対象にセルを抽出するが、param1 を必ず指定
+   * GET /tlengine/nd2_files/{file_name}/cells?param_1=...
    */
   const handleExtractAllCells = async () => {
     if (!fileName) return;
     setIsLoading(true);
     try {
-      await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}/cells`);
-      alert("Cells have been extracted successfully!");
+      // param1 をクエリに付与
+      await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}/cells`, {
+        params: { param_1: param1 }
+      });
+      alert(`Cells have been extracted successfully! (param1=${param1})`);
     } catch (error) {
       console.error("Failed to extract cells", error);
     } finally {
@@ -96,7 +103,7 @@ const TimelapseParser: React.FC = () => {
 
   /**
    * displayType が "dual" の場合は両方のエンドポイントを呼び出して 2 枚の GIF を取得、
-   * それ以外の場合は単一のエンドポイントを呼び出して該当 GIF を取得する
+   * それ以外の場合は単一のエンドポイントを呼び出して該当 GIF を取得
    */
   const fetchGif = async (fieldValue: string, type: DisplayType) => {
     if (!fileName || !fieldValue) return;
@@ -137,7 +144,7 @@ const TimelapseParser: React.FC = () => {
   };
 
   /**
-   * Field セレクト変更時のハンドラ
+   * Field セレクト変更時のハンドラ (GIF 表示用)
    */
   const handleFieldChange = (event: SelectChangeEvent<string>) => {
     const newField = event.target.value as string;
@@ -223,29 +230,37 @@ const TimelapseParser: React.FC = () => {
                   Parse ND2 File
                 </Button>
 
-                {/* Extract cells ボタン：fields が取得できたら表示 */}
-                {fields.length > 0 && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={handleExtractAllCells}
-                    disabled={isLoading || !fileName}
-                    sx={{
-                      height: 56,
-                      mb: 2,
-                      textTransform: "none",
-                      backgroundColor: "#333",
-                      "&:hover": {
-                        backgroundColor: "#555"
-                      }
-                    }}
-                  >
-                    Extract cells
-                  </Button>
-                )}
+                {/* param1入力フォーム：Field の有無に関わらず表示 */}
+                <TextField
+                  label="param1"
+                  type="number"
+                  value={param1}
+                  onChange={(e) => setParam1(Number(e.target.value))}
+                  fullWidth
+                  sx={{ mb: 2 }}
+                />
 
-                {/* Field ドロップダウン：fields が取得できたら表示 */}
+                {/* Extract cells ボタン：全 Field 一括抽出 & param1 使用 */}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  onClick={handleExtractAllCells}
+                  disabled={isLoading || !fileName}
+                  sx={{
+                    height: 56,
+                    mb: 2,
+                    textTransform: "none",
+                    backgroundColor: "#333",
+                    "&:hover": {
+                      backgroundColor: "#555"
+                    }
+                  }}
+                >
+                  Extract cells
+                </Button>
+
+                {/* Field ドロップダウン：GIF 表示用途 */}
                 {fields.length > 0 && (
                   <FormControl fullWidth sx={{ mb: 2 }}>
                     <InputLabel>Field</InputLabel>
