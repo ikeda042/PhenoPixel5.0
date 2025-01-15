@@ -415,20 +415,6 @@ const TimelapseViewer: React.FC = () => {
         {/* Current Cell Info */}
         {currentCellData && (
           <Box mb={3}>
-            <Typography variant="h6">Current Cell Info</Typography>
-            <Typography variant="body1">
-              Cell ID: {currentCellData.cell_id}
-            </Typography>
-            <Typography variant="body1">
-              manual_label:{" "}
-              {currentCellData.manual_label !== undefined
-                ? currentCellData.manual_label
-                : "N/A"}
-            </Typography>
-            <Typography variant="body1">
-              is_dead: {currentCellData.is_dead ? "true" : "false"}
-            </Typography>
-
             {/* manual_label の選択セレクトボックス：選んだら即 PATCH */}
             <Box mt={2}>
               <FormControl size="small" sx={{ minWidth: 120 }}>
