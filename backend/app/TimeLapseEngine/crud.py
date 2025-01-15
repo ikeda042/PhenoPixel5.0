@@ -921,3 +921,15 @@ class TimelapseDatabaseCrud:
 
     async def get_database_names(self) -> list[str]:
         return [i for i in os.listdir("timelapse_databases") if i.endswith(".db")]
+
+    async def get_fields_of_db(self) -> list[str]:
+        async with get_session(self.dbname) as session:
+            result = await session.execute(select(Cell.field).distinct())
+            return [row[0] for row in result]
+
+    async def get_cell_numbers_of_field(self, field: str) -> list[int]:
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell.cell).filter_by(field=field).distinct()
+            )
+            return [row[0] for row in result]
