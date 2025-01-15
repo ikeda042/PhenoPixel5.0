@@ -26,7 +26,7 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
-import {settings} from "../settings";
+import { settings } from "../settings";
 
 /**
  * /databases/{db_name}/fields のレスポンス
@@ -43,9 +43,10 @@ interface GetCellNumbersResponse {
 }
 
 /**
- * セルを取得するエンドポイント (/databases/{db_name}/cells/by_field/{field}/cell_number/{cell_number}) のレスポンス
+ * /databases/{db_name}/cells/by_field/{field}/cell_number/{cell_number} の簡易レスポンス
+ * (まだ is_dead を含まない想定)
  */
-interface CellData {
+interface CellDataByFieldNumber {
   id: number;
   cell_id: string;
   field: string;
@@ -53,15 +54,30 @@ interface CellData {
   cell: number;
   area: number;
   perimeter: number;
-  manual_label?: number; 
-  /**
-   * 生細胞が 0、死細胞が 1
-   */
-  is_dead?: number;
+  // is_dead は無い
 }
 
-interface GetCellsResponse {
-  cells: CellData[];
+/**
+ * 上記のエンドポイントのレスポンス
+ */
+interface GetCellsResponseByFieldNumber {
+  cells: CellDataByFieldNumber[];
+}
+
+/**
+ * /databases/{db_name}/cells/by_id/{cell_id} のレスポンス
+ * (ここで is_dead が取れる)
+ */
+interface CellDataById {
+  id: number;
+  cell_id: string;
+  field: string;
+  time: number;
+  cell: number;
+  area: number;
+  perimeter: number;
+  manual_label?: number;
+  is_dead?: number; // ここを使う
 }
 
 // 例：サーバーのエンドポイントのプレフィックス
@@ -81,8 +97,10 @@ const TimelapseViewer: React.FC = () => {
   const [cellNumbers, setCellNumbers] = useState<number[]>([]);
   const [selectedCellNumber, setSelectedCellNumber] = useState<number>(0);
 
-  // 今表示中のセル情報
-  const [currentCellData, setCurrentCellData] = useState<CellData | null>(null);
+  // 今表示中のセル情報（by_id から取得した詳細）
+  const [currentCellData, setCurrentCellData] = useState<CellDataById | null>(
+    null
+  );
 
   // manual_label のセレクトボックス用
   const manualLabelOptions = ["N/A", "1", "2", "3", "4"];
@@ -97,9 +115,6 @@ const TimelapseViewer: React.FC = () => {
 
   // 表示したいチャネル（ph, fluo1, fluo2）
   const channels = ["ph", "fluo1", "fluo2"] as const;
-
-  // URL プレフィックス
-  const url_prefix = settings.url_prefix;
 
   // DB名が取れない場合のエラーハンドリング
   useEffect(() => {
@@ -117,7 +132,6 @@ const TimelapseViewer: React.FC = () => {
         `${url_prefix}/tlengine/databases/${dbName}/fields`
       );
       setFields(response.data.fields);
-      console.log("Fetched fields:", `${url_prefix}/tlengine/databases/${dbName}/fields`);
       // フィールド一覧取得後、先頭要素をデフォルト選択
       if (response.data.fields.length > 0) {
         setSelectedField(response.data.fields[0]);
@@ -147,7 +161,23 @@ const TimelapseViewer: React.FC = () => {
   };
 
   /**
-   * 現在選択中の Field & Cell Number で、細胞情報を取得
+   * cell_id を指定して詳細 (is_dead 等) を取得
+   */
+  const fetchCellDataById = async (cellId: string) => {
+    if (!dbName) return null;
+    try {
+      const response = await axios.get<CellDataById>(
+        `${url_prefix}/tlengine/databases/${dbName}/cells/by_id/${cellId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch cell data by cell_id:", error);
+      return null;
+    }
+  };
+
+  /**
+   * 現在選択中の Field & Cell Number から cell_id を取得後、is_dead 等を含む詳細を再取得
    */
   const fetchCurrentCellData = async () => {
     if (!dbName || !selectedField || !selectedCellNumber) {
@@ -156,14 +186,24 @@ const TimelapseViewer: React.FC = () => {
     }
 
     try {
-      const response = await axios.get<GetCellsResponse>(
+      // まずは field & cell_number から cell_id を取得
+      const response = await axios.get<GetCellsResponseByFieldNumber>(
         `${url_prefix}/tlengine/databases/${dbName}/cells/by_field/${selectedField}/cell_number/${selectedCellNumber}`
       );
-
       const cells = response.data.cells;
-      if (cells.length > 0) {
-        // 先頭のセル情報を格納 (time が複数ある場合、例として1つだけ表示)
-        setCurrentCellData(cells[0]);
+      if (cells.length === 0) {
+        setCurrentCellData(null);
+        return;
+      }
+
+      // 先頭のデータから cell_id を取得
+      const baseCellId = cells[0].cell_id;
+
+      // 次に cell_id で詳細 (is_dead 等) を取得
+      const detail = await fetchCellDataById(baseCellId);
+      if (detail) {
+        console.log("Fetched cell data:", detail);
+        setCurrentCellData(detail);
       } else {
         setCurrentCellData(null);
       }
@@ -205,7 +245,6 @@ const TimelapseViewer: React.FC = () => {
       const baseCellId = currentCellData.cell_id;
       const isDeadValue = checked ? 1 : 0; // チェックされていれば1(死細胞)、外れていれば0(生細胞)
 
-      // ★ ここがパスパラメータ版の変更ポイント
       await axios.patch(
         `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/dead/${isDeadValue}`
       );
@@ -262,7 +301,7 @@ const TimelapseViewer: React.FC = () => {
   };
 
   /**
-   * いずれかが変わったら GIF を再同期する
+   * いずれかが変わったら GIF を再同期する (Key を変える)
    */
   useEffect(() => {
     setReloadKey((prev) => prev + 1);

@@ -191,6 +191,8 @@ async def read_cell_by_cell_id(db_name: str, cell_id: str):
                 "cell": cell.cell,
                 "area": cell.area,
                 "perimeter": cell.perimeter,
+                "manual_label": cell.manual_label,
+                "is_dead": cell.is_dead,
             }
         )
     except:
