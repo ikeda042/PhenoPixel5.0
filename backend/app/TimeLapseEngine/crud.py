@@ -264,6 +264,7 @@ class SyncChores:
         """
         ph と fluo を横並びに合成した GIF をメモリ上 (BytesIO) に作成して返す。
         """
+
         ph_folder = os.path.join(field_folder, "ph")
         fluo_folder = os.path.join(field_folder, "fluo")
 
@@ -296,11 +297,11 @@ class SyncChores:
 
         combined_images = []
         for ph_img, fluo_img in zip(ph_images, fluo_images):
-            # リサイズ
-            ph_img_resized = ph_img.resize(
+            # リサイズ（thumbnailを使用してアスペクト比を保ちながらリサイズ）
+            ph_img.thumbnail(
                 (int(ph_img.width * resize_factor), int(ph_img.height * resize_factor))
             )
-            fluo_img_resized = fluo_img.resize(
+            fluo_img.thumbnail(
                 (
                     int(fluo_img.width * resize_factor),
                     int(fluo_img.height * resize_factor),
@@ -308,17 +309,17 @@ class SyncChores:
             )
 
             # 横に並べて合成
-            combined_width = ph_img_resized.width + fluo_img_resized.width
-            combined_height = max(ph_img_resized.height, fluo_img_resized.height)
+            combined_width = ph_img.width + fluo_img.width
+            combined_height = max(ph_img.height, fluo_img.height)
             combined_img = Image.new("RGB", (combined_width, combined_height))
-            combined_img.paste(ph_img_resized, (0, 0))
-            combined_img.paste(fluo_img_resized, (ph_img_resized.width, 0))
+            combined_img.paste(ph_img, (0, 0))
+            combined_img.paste(fluo_img, (ph_img.width, 0))
             combined_images.append(combined_img)
 
         if not combined_images:
             raise ValueError("No images found to create combined GIF.")
 
-        # GIF をメモリに書き込む
+        # GIF をメモリに書き込む（圧縮オプションを追加する）
         gif_buffer = io.BytesIO()
         combined_images[0].save(
             gif_buffer,
@@ -327,6 +328,7 @@ class SyncChores:
             append_images=combined_images[1:],
             duration=100,
             loop=0,
+            optimize=True,  # GIFの最適化
         )
         gif_buffer.seek(0)
         return gif_buffer
