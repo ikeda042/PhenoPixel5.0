@@ -18,7 +18,17 @@ import numpy as np
 from PIL import Image
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
-from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, func, distinct
+from sqlalchemy import (
+    BLOB,
+    Column,
+    FLOAT,
+    Integer,
+    String,
+    delete,
+    func,
+    distinct,
+    update,
+)
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select, Select
@@ -997,7 +1007,21 @@ class TimelapseDatabaseCrud:
             return [row[0] for row in result]
 
     async def update_manual_label(self, base_cell_id: str, label: str):
-        pass
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                update(Cell)
+                .where(Cell.base_cell_id == base_cell_id)
+                .values(manual_label=label)
+            )
+            await session.commit()
+            return result.rowcount
 
     async def update_dead_status(self, base_cell_id: str, is_dead: bool):
-        pass
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                update(Cell)
+                .where(Cell.base_cell_id == base_cell_id)
+                .values(is_dead=is_dead)
+            )
+            await session.commit()
+            return result.rowcount
