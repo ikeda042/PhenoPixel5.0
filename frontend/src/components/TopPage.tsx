@@ -310,7 +310,7 @@ const TopPage: React.FC = () => {
       external: false,
     },
     {
-      title: "TimeLapse Engine",
+      title: "TimeLapse Extraction",
       icon: <DisplaySettingsIcon sx={{ fontSize: 50 }} />,
       path: "/tl-engine",
       description: "Process nd2 timelapse files.(beta)",
