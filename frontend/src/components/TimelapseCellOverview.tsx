@@ -23,7 +23,9 @@ import {
   CircularProgress,
   Checkbox,
   FormControlLabel,
+  Grid,
 } from "@mui/material";
+import { ArrowBack, ArrowForward } from "@mui/icons-material"; // ← アイコンを追加
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import { settings } from "../settings";
@@ -74,7 +76,7 @@ interface CellDataById {
   area: number;
   perimeter: number;
   manual_label?: number;
-  is_dead?: number; // ここを使う
+  is_dead?: number;
 }
 
 const url_prefix = settings.url_prefix;
@@ -295,9 +297,6 @@ const TimelapseViewer: React.FC = () => {
    */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // input フォーカス中など、特定の場合は無視したい場合はここで制御
-      // if ((e.target as HTMLElement).tagName === "INPUT") return;
-
       if (!currentCellData) return;
 
       switch (e.key) {
@@ -483,9 +482,10 @@ const TimelapseViewer: React.FC = () => {
             </>
           )}
 
-          {/* Prev/Next ボタン */}
+          {/* Prev/Next ボタンをアイコン付きに */}
           <Button
             variant="contained"
+            startIcon={<ArrowBack />}
             sx={{
               backgroundColor: "#000",
               color: "#fff",
@@ -495,10 +495,11 @@ const TimelapseViewer: React.FC = () => {
             }}
             onClick={handlePrevCell}
           >
-            Prev Cell
+            Prev
           </Button>
           <Button
             variant="contained"
+            endIcon={<ArrowForward />}
             sx={{
               backgroundColor: "#000",
               color: "#fff",
@@ -508,7 +509,7 @@ const TimelapseViewer: React.FC = () => {
             }}
             onClick={handleNextCell}
           >
-            Next Cell
+            Next
           </Button>
 
           {/* 全細胞の GIF を取得するボタン */}
@@ -546,27 +547,27 @@ const TimelapseViewer: React.FC = () => {
               }}
             />
             <CardContent>
-              <Box
-                display="flex"
-                flexDirection={isMobile ? "column" : "row"}
-                gap={2}
+              <Grid
+                container
+                spacing={2}
                 justifyContent="center"
                 alignItems="center"
               >
                 {gifUrls.map((url, idx) => (
-                  <CardMedia
-                    key={`${channels[idx]}-${reloadKey}`}
-                    component="img"
-                    image={url}
-                    alt={`timelapse-${channels[idx]}`}
-                    sx={{
-                      maxWidth: isMobile ? "100%" : "30%",
-                      borderRadius: 2,
-                      objectFit: "contain",
-                    }}
-                  />
+                  <Grid item xs={12} sm={4} key={`${channels[idx]}-${reloadKey}`}>
+                    <CardMedia
+                      component="img"
+                      image={url}
+                      alt={`timelapse-${channels[idx]}`}
+                      sx={{
+                        width: "100%",
+                        borderRadius: 2,
+                        objectFit: "contain",
+                      }}
+                    />
+                  </Grid>
                 ))}
-              </Box>
+              </Grid>
             </CardContent>
           </Card>
         ) : (
