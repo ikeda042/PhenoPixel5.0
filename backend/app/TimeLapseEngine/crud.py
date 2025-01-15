@@ -22,6 +22,7 @@ from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, func, disti
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select, Select
+import ulid
 
 Base = declarative_base()
 
@@ -538,7 +539,7 @@ class TimelapseEngineCrudBase:
                     contour_shifted[:, :, 0] -= x1
                     contour_shifted[:, :, 1] -= y1
 
-                    cell_id = f"{field}_cell{assigned_cell_idx}"
+                    cell_id = ulid.new()
 
                     cell_obj = Cell(
                         cell_id=cell_id,
