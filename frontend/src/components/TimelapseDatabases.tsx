@@ -49,6 +49,11 @@ const TimelapseDatabases: React.FC = () => {
    */
   const [selectedFields, setSelectedFields] = useState<Record<string, string>>({});
 
+  /**
+   * key: データベース名, value: 生成したGIFのURL (Blob URL)
+   */
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+
   const navigate = useNavigate();
 
   /**
@@ -64,7 +69,6 @@ const TimelapseDatabases: React.FC = () => {
         setDatabases(dbList);
 
         // 各DBのフィールド一覧を取得
-        // Promise.all で並行して取得しても良いし、逐次取得でもOK
         const fieldsObj: Record<string, string[]> = {};
         for (const dbName of dbList) {
           try {
@@ -74,7 +78,7 @@ const TimelapseDatabases: React.FC = () => {
             fieldsObj[dbName] = fieldsRes.data.fields;
           } catch (fieldsErr) {
             console.error("Failed to fetch fields for", dbName, fieldsErr);
-            fieldsObj[dbName] = []; // フィールドが取得できなければ空配列にしておく
+            fieldsObj[dbName] = []; // 取得失敗時は空配列
           }
         }
         setDbFields(fieldsObj);
@@ -108,16 +112,38 @@ const TimelapseDatabases: React.FC = () => {
 
   /**
    * Previewボタン押下時に呼ばれる想定の関数
-   * 実際には、ここでGIF作成APIを呼ぶ、あるいはプレビュー用のURLを開くなど自由に拡張してください
+   * 指定したフィールドのGIFを作成APIを呼び、Blob URLを作ってプレビューする
    */
-  const handlePreview = (dbName: string) => {
+  const handlePreview = async (dbName: string) => {
     const field = selectedFields[dbName];
     if (!field) {
       alert(`No field selected for ${dbName}`);
       return;
     }
-    // ここで自由にプレビュー処理を実装
-    alert(`Preview for DB: ${dbName}, Field: ${field}`);
+
+    // DB名 から ND2ファイル名を逆引き (例: "foo_cells.db" -> "foo.nd2")
+    const fileName = dbName.replace("_cells.db", ".nd2");
+
+    try {
+      // GIFを取得
+      const response = await axios.get(
+        `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${field}/gif`,
+        {
+          responseType: "arraybuffer", // バイナリを取得する
+        }
+      );
+
+      // Blob を生成
+      const blob = new Blob([response.data], { type: "image/gif" });
+      // ブラウザ上で表示できるURLに変換
+      const blobUrl = URL.createObjectURL(blob);
+
+      // previewUrls に格納
+      setPreviewUrls((prev) => ({ ...prev, [dbName]: blobUrl }));
+    } catch (err) {
+      console.error("Failed to fetch GIF:", err);
+      alert(`Failed to fetch GIF for ${dbName}, Field: ${field}`);
+    }
   };
 
   /**
@@ -150,7 +176,6 @@ const TimelapseDatabases: React.FC = () => {
           <Typography variant="h5" gutterBottom>
             Timelapse Databases
           </Typography>
-          {/* 必要に応じてボタン等を追加 */}
         </Box>
 
         {/* データベース一覧テーブル */}
@@ -220,6 +245,16 @@ const TimelapseDatabases: React.FC = () => {
                     >
                       Preview
                     </Button>
+                    {/* 取得したGIFのプレビュー表示 */}
+                    {previewUrls[database] && (
+                      <Box mt={1}>
+                        <img
+                          src={previewUrls[database]}
+                          alt={`${database}-gif`}
+                          style={{ maxHeight: "200px", maxWidth: "200px" }}
+                        />
+                      </Box>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
