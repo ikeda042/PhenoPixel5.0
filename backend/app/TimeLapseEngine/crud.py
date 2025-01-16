@@ -1036,3 +1036,51 @@ class TimelapseDatabaseCrud:
             )
             await session.commit()
             return result.rowcount
+
+    async def get_contour_areas_by_cell_number(
+        self, field: str, cell_number: int
+    ) -> list[float]:
+        """
+        指定した field, cell_number のセルをタイム順に取得し、
+        各フレームに対して contour の面積を算出したリストを返す。
+        複数輪郭が入っている場合は合計面積を返すようにしている。
+        """
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells: list[Cell] = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        areas = []
+        for row in cells:
+            contour_area = 0.0
+            if row.contour is not None:
+                try:
+                    contour_data = pickle.loads(row.contour)
+                    # 複数の輪郭を想定して合計面積を算出
+                    if isinstance(contour_data[0], list) or isinstance(
+                        contour_data[0], np.ndarray
+                    ):
+                        for cnt in contour_data:
+                            contour_area += cv2.contourArea(
+                                np.array(cnt, dtype=np.int32)
+                            )
+                    else:
+                        # 単一の輪郭の場合
+                        contour_area = cv2.contourArea(
+                            np.array(contour_data, dtype=np.int32)
+                        )
+                except Exception:
+                    # contour のフォーマットが不正な場合は 0.0 とする
+                    contour_area = 0.0
+            areas.append(contour_area)
+
+        return areas
