@@ -598,15 +598,6 @@ const TimelapseViewer: React.FC = () => {
               mb: 4,
             }}
           >
-            <CardHeader
-              title="Channels / Contour Areas"
-              sx={{
-                pb: 1,
-                "& .MuiCardHeader-title": {
-                  fontWeight: "bold",
-                },
-              }}
-            />
             <CardContent>
               <Grid
                 container
