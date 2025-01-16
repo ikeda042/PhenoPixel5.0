@@ -1,6 +1,5 @@
 # Standard library imports
 import asyncio
-import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 import io
@@ -33,7 +32,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.sql import select, Select
+from sqlalchemy.sql import select
 import ulid
 import os
 
