@@ -125,7 +125,7 @@ const TimelapseViewer: React.FC = () => {
 
   // 輪郭面積（frame, area）の配列
   const [contourAreas, setContourAreas] = useState<ContourArea[]>([]);
-
+  console.log(contourAreas);
   useEffect(() => {
     if (!dbName) {
       console.error("No db_name is specified in query parameters.");
