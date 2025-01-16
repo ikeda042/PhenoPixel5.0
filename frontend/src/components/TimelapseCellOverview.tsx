@@ -155,6 +155,7 @@ const TimelapseViewer: React.FC = () => {
       );
       setCellNumbers(response.data.cell_numbers);
 
+      // 取得した際に、先頭のセル番号を自動的に選択
       if (response.data.cell_numbers.length > 0) {
         setSelectedCellNumber(response.data.cell_numbers[0]);
       }
@@ -256,13 +257,41 @@ const TimelapseViewer: React.FC = () => {
     if (currentIndex > 0) {
       setSelectedCellNumber(cellNumbers[currentIndex - 1]);
     }
+    // もし「先頭のセルからさらに前に行ったら前のフィールドへ」などを実装したい場合は
+    // 下記のようなロジックを足す (コメントアウト例)
+    //
+    // else {
+    //   // 最初のセルにいる状態でPrevしたときの挙動
+    //   const fieldIndex = fields.indexOf(selectedField);
+    //   if (fieldIndex > 0) {
+    //     // 前のフィールドへ
+    //     setSelectedField(fields[fieldIndex - 1]);
+    //     // ただし、setSelectedField直後は cellNumbers がまだ取得前なので、
+    //     // 「前フィールドの最後のセル」を選択するには、フックを使うか別の仕組みが必要
+    //   }
+    // }
   };
 
+  // ★ ここで最後のセルに到達していたら次のフィールドへ自動的に移るようにする
   const handleNextCell = () => {
     if (cellNumbers.length === 0) return;
     const currentIndex = cellNumbers.indexOf(selectedCellNumber);
-    if (currentIndex >= 0 && currentIndex < cellNumbers.length - 1) {
+
+    // まだ最後のセルでなければ、次のセル番号に移動
+    if (currentIndex < cellNumbers.length - 1) {
       setSelectedCellNumber(cellNumbers[currentIndex + 1]);
+    } else {
+      // 今のフィールドで最後のセルにいる
+      const fieldIndex = fields.indexOf(selectedField);
+      // 最後のフィールドでなければ、次のフィールドに移る
+      if (fieldIndex < fields.length - 1) {
+        setSelectedField(fields[fieldIndex + 1]);
+        // ※ useEffect 内の fetchCellNumbers で次フィールドの最初のセルが自動的に選択される
+      } else {
+        // 最後のフィールドかつ最後のセル
+        // 必要に応じて「もう最後です」などの挙動を入れてください
+        console.log("すべてのフィールドとセルを見終わりました。");
+      }
     }
   };
 
@@ -606,7 +635,6 @@ const TimelapseViewer: React.FC = () => {
                       // GIFと同じように幅100%で、縦横比1:1に調整
                       position: "relative",
                       width: "100%",
-                      // "縦横が同じ" ＝ 1:1 アスペクト比にする場合
                       paddingBottom: "100%",
                       borderRadius: 2,
                       overflow: "hidden",
@@ -624,8 +652,6 @@ const TimelapseViewer: React.FC = () => {
                       >
                         <Line
                           data={contourAreasChartData}
-                          // maintainAspectRatio: false を有効にし、
-                          // 親要素（ここでは1:1の正方形）にフィットさせる
                           options={contourAreasChartOptions}
                         />
                       </Box>
