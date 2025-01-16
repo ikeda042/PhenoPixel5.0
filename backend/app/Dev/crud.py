@@ -81,5 +81,16 @@ class HINETLogin:
 
 
 async def git_pull():
-    os.system("git checkout main")
-    os.system("git pull")
+    process_checkout = await asyncio.create_subprocess_shell(
+        "git checkout main",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    await process_checkout.communicate()
+
+    process_pull = await asyncio.create_subprocess_shell(
+        "git pull",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    await process_pull.communicate()
