@@ -92,6 +92,9 @@ async def extract_all_cells(file_name: str, param_1: int, crop_size: int = 200):
     """
     db_name = file_name.split(".")[0] + "_cells.db"
     fields = await TimelapseEngineCrudBase(file_name).get_fields_of_nd2()
+    db_path = f"timelapse_databases/{db_name}"
+    if os.path.exists(db_path):
+        os.remove(db_path)
     for Field in fields:
         await TimelapseEngineCrudBase(file_name).extract_cells(
             field=Field, dbname=db_name, param1=param_1, crop_size=crop_size

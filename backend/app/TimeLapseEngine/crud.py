@@ -555,8 +555,6 @@ class TimelapseEngineCrudBase:
         crop_size: int = 200,
     ):
         db_path = f"timelapse_databases/{dbname}"
-        if os.path.exists(db_path):
-            os.remove(db_path)
 
         engine = create_async_engine(
             f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
