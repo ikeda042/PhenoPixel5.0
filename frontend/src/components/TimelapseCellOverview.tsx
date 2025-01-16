@@ -383,8 +383,10 @@ const TimelapseViewer: React.FC = () => {
     ],
   };
 
+  // maintainAspectRatio を false にして、親要素のサイズに合わせられるようにする
   const contourAreasChartOptions: ChartOptions<"line"> = {
     responsive: true,
+    maintainAspectRatio: false, // これで親要素に合わせて拡大縮小
     plugins: {
       title: {
         display: true,
@@ -597,18 +599,42 @@ const TimelapseViewer: React.FC = () => {
                   </Grid>
                 ))}
 
-                {/* 同じ行にグラフを表示 */}
+                {/* 同じ行にグラフを表示し、GIFと同じサイズに合わせる */}
                 <Grid item xs={12} md={3}>
-                  {contourAreas.length > 0 ? (
-                    <Line
-                      data={contourAreasChartData}
-                      options={contourAreasChartOptions}
-                    />
-                  ) : (
-                    <Typography variant="body1" mt={2}>
-                      輪郭面積データがありません。
-                    </Typography>
-                  )}
+                  <Box
+                    sx={{
+                      // GIFと同じように幅100%で、縦横比1:1に調整
+                      position: "relative",
+                      width: "100%",
+                      // "縦横が同じ" ＝ 1:1 アスペクト比にする場合
+                      paddingBottom: "100%",
+                      borderRadius: 2,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {contourAreas.length > 0 ? (
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                        }}
+                      >
+                        <Line
+                          data={contourAreasChartData}
+                          // maintainAspectRatio: false を有効にし、
+                          // 親要素（ここでは1:1の正方形）にフィットさせる
+                          options={contourAreasChartOptions}
+                        />
+                      </Box>
+                    ) : (
+                      <Typography variant="body1" mt={2}>
+                        輪郭面積データがありません。
+                      </Typography>
+                    )}
+                  </Box>
                 </Grid>
               </Grid>
             </CardContent>
