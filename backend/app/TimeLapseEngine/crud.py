@@ -10,6 +10,7 @@ import pickle
 import re
 import shutil
 from functools import partial
+from PIL import Image, ImageDraw, ImageFont
 
 # Third-party imports
 import cv2
@@ -904,11 +905,13 @@ class TimelapseDatabaseCrud:
         field: str,
         cell_number: int,
         channel: str,
-        draw_contour: bool = True,  # 新たに追加
+        draw_contour: bool = True,
+        draw_frame_number: bool = True,  # 追加
     ) -> io.BytesIO:
         """
         指定した field, cell_number, channel のセル画像を順番に GIF 化して返す。
         draw_contour=True の場合は DB に格納されている contour を描画した画像を返す。
+        draw_frame_number=True の場合はフレーム左上にフレーム番号を描画する。
         """
         # セッションからデータ取得
         async with get_session(self.dbname) as session:
@@ -926,7 +929,7 @@ class TimelapseDatabaseCrud:
             )
 
         frames = []
-        for row in cells:
+        for i, row in enumerate(cells):
             # チャネルごとの画像バイナリを取得
             if channel == "ph":
                 img_binary = row.img_ph
@@ -945,15 +948,14 @@ class TimelapseDatabaseCrud:
             if np_img is None:
                 continue
 
-            # contour 描画フラグが立っている場合は contour カラムを読み込んで描画する
+            # contour 描画フラグが立っている場合
             if draw_contour and row.contour is not None:
                 try:
                     # pickle で保存されている contour 情報を想定
                     contour_data = pickle.loads(row.contour)
                     # グレースケール -> BGR に変換
                     bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
-                    # 複数の輪郭がある場合はリスト化されていることを想定
-                    # 単一の輪郭であれば [contour_data] のようにリスト化して描画
+                    # 単一/複数の輪郭を想定して描画
                     cv2.drawContours(
                         bgr_img,
                         [np.array(contour_data, dtype=np.int32)],
@@ -964,12 +966,20 @@ class TimelapseDatabaseCrud:
                     # Pillow 用に BGR -> RGB に変換
                     rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
                     pil_img = Image.fromarray(rgb_img)
-                except Exception as e:
+                except Exception:
                     # contour のフォーマットが合わない場合などはエラーを無視して通常表示
                     pil_img = Image.fromarray(np_img)
             else:
                 # 通常のグレースケール画像をそのまま PIL に渡す
                 pil_img = Image.fromarray(np_img)
+
+            # フレーム番号描画フラグが True の場合
+            if draw_frame_number:
+                draw = ImageDraw.Draw(pil_img)
+                # 既定のフォントを使用 (適宜変更可能)
+                font = ImageFont.load_default()
+                # 左上に i+1 の番号を描画
+                draw.text((5, 5), f"Frame: {i+1}", font=font, fill=(255, 255, 255))
 
             frames.append(pil_img)
 
@@ -1026,3 +1036,52 @@ class TimelapseDatabaseCrud:
             )
             await session.commit()
             return result.rowcount
+
+    async def get_contour_areas_by_cell_number(
+        self, field: str, cell_number: int
+    ) -> list[float]:
+        """
+        指定した field, cell_number のセルをタイム順に取得し、
+        各フレームに対して contour の面積を算出したリストを返す。
+        複数輪郭が入っている場合は合計面積を返すようにしている。
+        """
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells: list[Cell] = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        areas = []
+        for row in cells:
+            contour_area = 0.0
+            if row.contour is not None:
+                try:
+                    contour_data = pickle.loads(row.contour)
+                    # 配列かつ多輪郭のリストの場合
+                    if (
+                        isinstance(contour_data, list)
+                        and contour_data
+                        and isinstance(contour_data[0], (list, np.ndarray))
+                    ):
+                        for cnt in contour_data:
+                            contour_area += cv2.contourArea(
+                                np.array(cnt, dtype=np.int32)
+                            )
+                    else:
+                        # 単一輪郭の場合
+                        contour_area = cv2.contourArea(
+                            np.array(contour_data, dtype=np.int32)
+                        )
+                except Exception:
+                    contour_area = 0.0
+            areas.append(contour_area)
+
+        return areas

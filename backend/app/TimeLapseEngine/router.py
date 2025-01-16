@@ -304,3 +304,13 @@ async def update_dead_status(db_name: str, base_cell_id: str, is_dead: int):
     crud = TimelapseDatabaseCrud(dbname=db_name)
     result = await crud.update_dead_status(base_cell_id, is_dead)
     return JSONResponse(content={"updated": result})
+
+
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/contour_areas")
+async def get_contour_areas_by_cell_number(db_name: str, field: str, cell_number: int):
+    """
+    指定したデータベース(db_name)のセル(field, cell_number)の輪郭面積を取得するエンドポイント
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    areas = await crud.get_contour_areas_by_cell_number(field, cell_number)
+    return JSONResponse(content={"areas": areas})
