@@ -137,7 +137,7 @@ const GraphEngine: React.FC = () => {
 
             <FormControl sx={{ flex: 1 }}>
               <TextField
-                label="timespan_sec"
+                label="interval(s)"
                 type="number"
                 value={timespanSec}
                 onChange={(e) => setTimespanSec(Number(e.target.value))}
