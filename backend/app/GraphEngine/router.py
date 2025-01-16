@@ -42,7 +42,7 @@ async def mcpr(
     upper_OD: float = 0.3,
 ):
     image_list = await asyncio.to_thread(
-        _draw_graph_from_memory, file, blank_index, timespan_sec
+        _draw_graph_from_memory, file, blank_index, timespan_sec, lower_OD, upper_OD
     )
     per_row = 2 if len(image_list) < 3 else len(image_list) // 2
     combined_image = await combine_images_in_memory(image_list, per_row)
