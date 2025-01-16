@@ -24,6 +24,7 @@ from sqlalchemy import (
     Column,
     FLOAT,
     Integer,
+    Boolean,
     String,
     delete,
     func,
@@ -32,7 +33,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.sql import select
+from sqlalchemy.sql import select, Select
 import ulid
 
 Base = declarative_base()
@@ -161,7 +162,7 @@ class SyncChores:
     def extract_timelapse_nd2(cls, file_name: str):
         """
         タイムラプス nd2 ファイルを Field ごと・時系列ごとに TIFF で保存（補正後を上書き保存）。
-        (チャンネル0 -> fluo, チャンネル1 -> ph の想定)
+        チャンネル 0 -> ph, チャンネル 1 -> fluo1, チャンネル 2 -> fluo2 の想定。
         """
         base_output_dir = "uploaded_files/"
         # 既存の作業用フォルダがあれば削除し、再作成
@@ -178,7 +179,7 @@ class SyncChores:
             print(f"Sizes: {images.sizes}")
 
             num_fields = images.sizes.get("v", 1)
-            num_channels = images.sizes.get("c", 1)
+            num_channels = images.sizes.get("c", 1)  # 3 チャンネルを想定
             num_timepoints = images.sizes.get("t", 1)
 
             # Field(視野)ごとに処理
@@ -187,14 +188,21 @@ class SyncChores:
                     "TimelapseParserTemp", f"Field_{field_idx + 1}"
                 )
                 os.makedirs(field_folder, exist_ok=True)
-                base_output_subdir_ph = os.path.join(field_folder, "ph")
-                base_output_subdir_fluo = os.path.join(field_folder, "fluo")
-                os.makedirs(base_output_subdir_ph, exist_ok=True)
-                os.makedirs(base_output_subdir_fluo, exist_ok=True)
 
-                # ph, fluo それぞれの参照画像を初期化
-                reference_image_ph = None
-                reference_image_fluo = None
+                # チャンネルごとにサブディレクトリを作成
+                base_output_subdir_ph = os.path.join(field_folder, "ph")
+                base_output_subdir_fluo1 = os.path.join(field_folder, "fluo1")
+                base_output_subdir_fluo2 = os.path.join(field_folder, "fluo2")
+                os.makedirs(base_output_subdir_ph, exist_ok=True)
+                os.makedirs(base_output_subdir_fluo1, exist_ok=True)
+                os.makedirs(base_output_subdir_fluo2, exist_ok=True)
+
+                # 3 チャンネル分の参照画像を保存する辞書
+                reference_images = {
+                    "ph": None,
+                    "fluo1": None,
+                    "fluo2": None,
+                }
 
                 # 並列実行のためのキュー
                 tasks = []
@@ -207,53 +215,38 @@ class SyncChores:
                             )
                             channel_image = cls.process_image(frame_data)
 
-                            # 保存先のパスを作成
-                            if channel_idx == 1:  # ph チャンネル
-                                tiff_filename = os.path.join(
-                                    base_output_subdir_ph,
-                                    f"time_{time_idx + 1}.tif",
+                            # 保存先のパスを作成＆参照画像ラベルを決定
+                            if channel_idx == 0:
+                                channel_label = "ph"
+                                save_dir = base_output_subdir_ph
+                            elif channel_idx == 1:
+                                channel_label = "fluo1"
+                                save_dir = base_output_subdir_fluo1
+                            else:  # channel_idx == 2
+                                channel_label = "fluo2"
+                                save_dir = base_output_subdir_fluo2
+
+                            tiff_filename = os.path.join(
+                                save_dir, f"time_{time_idx + 1}.tif"
+                            )
+
+                            # 1 フレーム目は参照画像をセット (ドリフト補正をスキップ)
+                            if time_idx == 0:
+                                reference_images[channel_label] = channel_image
+                                Image.fromarray(channel_image).save(tiff_filename)
+                                print(
+                                    f"Saved ({channel_label}, first): {tiff_filename}"
                                 )
-                                if time_idx == 0:
-                                    # 1フレーム目：参照画像をセット
-                                    reference_image_ph = channel_image
-                                    # ※もし1フレーム目も補正したい場合は下の行をコメントアウトして、
-                                    #   'corrected_image = cls.correct_drift(...)' を呼び出すように変更してください
-                                    corrected_image = channel_image
-                                    Image.fromarray(corrected_image).save(tiff_filename)
-                                    print(f"Saved (ph, first): {tiff_filename}")
-                                else:
-                                    # 2フレーム目以降は drift 補正して上書き保存
-                                    tasks.append(
-                                        executor.submit(
-                                            cls._drift_and_save,
-                                            reference_image_ph,
-                                            channel_image,
-                                            tiff_filename,
-                                        )
+                            else:
+                                # 2フレーム目以降は drift 補正
+                                tasks.append(
+                                    executor.submit(
+                                        cls._drift_and_save,
+                                        reference_images[channel_label],
+                                        channel_image,
+                                        tiff_filename,
                                     )
-                            else:  # fluo チャンネル
-                                tiff_filename = os.path.join(
-                                    base_output_subdir_fluo,
-                                    f"time_{time_idx + 1}.tif",
                                 )
-                                if time_idx == 0:
-                                    # 1フレーム目：参照画像をセット
-                                    reference_image_fluo = channel_image
-                                    # ※もし1フレーム目も補正したい場合は下の行をコメントアウトして、
-                                    #   'corrected_image = cls.correct_drift(...)' を呼び出すように変更してください
-                                    corrected_image = channel_image
-                                    Image.fromarray(corrected_image).save(tiff_filename)
-                                    print(f"Saved (fluo, first): {tiff_filename}")
-                                else:
-                                    # 2フレーム目以降は drift 補正して上書き保存
-                                    tasks.append(
-                                        executor.submit(
-                                            cls._drift_and_save,
-                                            reference_image_fluo,
-                                            channel_image,
-                                            tiff_filename,
-                                        )
-                                    )
 
                     # 並列タスク完了待ち
                     for future in as_completed(tasks):
@@ -277,18 +270,20 @@ class SyncChores:
         cls, field_folder: str, resize_factor: float = 0.5
     ) -> io.BytesIO:
         """
-        ph と fluo を横並びに合成した GIF をメモリ上 (BytesIO) に作成して返す。
+        ph, fluo1, fluo2 の 3 つを横に並べて GIF をメモリ上 (BytesIO) に作成して返す。
+        全チャンネル必須という想定。
         """
 
         ph_folder = os.path.join(field_folder, "ph")
-        fluo_folder = os.path.join(field_folder, "fluo")
+        fluo1_folder = os.path.join(field_folder, "fluo1")
+        fluo2_folder = os.path.join(field_folder, "fluo2")
 
         # 時間インデックスを取り出すための正規表現
         def extract_time_index(path: str) -> int:
             match = re.search(r"time_(\d+)\.tif", path)
             return int(match.group(1)) if match else 0
 
-        # ph と fluo でそれぞれのファイルをソート
+        # ph, fluo1, fluo2 でそれぞれのファイルをソート
         ph_image_files = sorted(
             [
                 os.path.join(ph_folder, f)
@@ -297,10 +292,18 @@ class SyncChores:
             ],
             key=extract_time_index,
         )
-        fluo_image_files = sorted(
+        fluo1_image_files = sorted(
             [
-                os.path.join(fluo_folder, f)
-                for f in os.listdir(fluo_folder)
+                os.path.join(fluo1_folder, f)
+                for f in os.listdir(fluo1_folder)
+                if f.endswith(".tif")
+            ],
+            key=extract_time_index,
+        )
+        fluo2_image_files = sorted(
+            [
+                os.path.join(fluo2_folder, f)
+                for f in os.listdir(fluo2_folder)
                 if f.endswith(".tif")
             ],
             key=extract_time_index,
@@ -308,33 +311,50 @@ class SyncChores:
 
         # 画像として読み込み
         ph_images = [Image.open(img_file) for img_file in ph_image_files]
-        fluo_images = [Image.open(img_file) for img_file in fluo_image_files]
+        fluo1_images = [Image.open(img_file) for img_file in fluo1_image_files]
+        fluo2_images = [Image.open(img_file) for img_file in fluo2_image_files]
+
+        if not ph_images or not fluo1_images or not fluo2_images:
+            raise ValueError("Not all channel images found to create combined GIF.")
 
         combined_images = []
-        for ph_img, fluo_img in zip(ph_images, fluo_images):
+        for ph_img, fluo1_img, fluo2_img in zip(ph_images, fluo1_images, fluo2_images):
             # リサイズ（thumbnailを使用してアスペクト比を保ちながらリサイズ）
             ph_img.thumbnail(
                 (int(ph_img.width * resize_factor), int(ph_img.height * resize_factor))
             )
-            fluo_img.thumbnail(
+            fluo1_img.thumbnail(
                 (
-                    int(fluo_img.width * resize_factor),
-                    int(fluo_img.height * resize_factor),
+                    int(fluo1_img.width * resize_factor),
+                    int(fluo1_img.height * resize_factor),
+                )
+            )
+            fluo2_img.thumbnail(
+                (
+                    int(fluo2_img.width * resize_factor),
+                    int(fluo2_img.height * resize_factor),
                 )
             )
 
-            # 横に並べて合成
-            combined_width = ph_img.width + fluo_img.width
-            combined_height = max(ph_img.height, fluo_img.height)
+            # 横に並べて合成 (3 チャンネル)
+            combined_width = ph_img.width + fluo1_img.width + fluo2_img.width
+            combined_height = max(ph_img.height, fluo1_img.height, fluo2_img.height)
             combined_img = Image.new("RGB", (combined_width, combined_height))
-            combined_img.paste(ph_img, (0, 0))
-            combined_img.paste(fluo_img, (ph_img.width, 0))
+
+            # 貼り付け
+            offset_x = 0
+            combined_img.paste(ph_img, (offset_x, 0))
+            offset_x += ph_img.width
+            combined_img.paste(fluo1_img, (offset_x, 0))
+            offset_x += fluo1_img.width
+            combined_img.paste(fluo2_img, (offset_x, 0))
+
             combined_images.append(combined_img)
 
         if not combined_images:
             raise ValueError("No images found to create combined GIF.")
 
-        # GIF をメモリに書き込む（圧縮オプションを追加する）
+        # GIF をメモリに書き込む
         gif_buffer = io.BytesIO()
         combined_images[0].save(
             gif_buffer,
@@ -409,7 +429,7 @@ class TimelapseEngineCrudBase:
         return JSONResponse(content={"message": "Timelapse extracted"})
 
     async def create_combined_gif(self, field: str):
-        # 指定した Field フォルダから GIF を生成
+        # 指定した Field フォルダから 3ch GIF を生成
         return await AsyncChores().create_combined_gif("TimelapseParserTemp/" + field)
 
     async def get_fields_of_nd2(self) -> list[str]:
@@ -444,20 +464,38 @@ class TimelapseEngineCrudBase:
             engine, expire_on_commit=False, class_=AsyncSession
         )
 
+        # 3 チャンネルの TIFF ディレクトリ
         ph_folder = os.path.join("TimelapseParserTemp", field, "ph")
-        fluo_folder = os.path.join("TimelapseParserTemp", field, "fluo")
+        fluo1_folder = os.path.join("TimelapseParserTemp", field, "fluo1")
+        fluo2_folder = os.path.join("TimelapseParserTemp", field, "fluo2")
 
+        # 時間インデックスを抜き出すヘルパー
         def extract_time_index(filename: str) -> int:
             match = re.search(r"time_(\d+)\.tif", filename)
             return int(match.group(1)) if match else 0
 
-        ph_files = [f for f in os.listdir(ph_folder) if f.endswith(".tif")]
-        fluo_files = [f for f in os.listdir(fluo_folder) if f.endswith(".tif")]
-        ph_files = sorted(ph_files, key=extract_time_index)
-        fluo_files = sorted(fluo_files, key=extract_time_index)
+        # ph, fluo1, fluo2 ファイルリストを取得
+        ph_files = (
+            sorted(os.listdir(ph_folder), key=extract_time_index)
+            if os.path.exists(ph_folder)
+            else []
+        )
+        fluo1_files = (
+            sorted(os.listdir(fluo1_folder), key=extract_time_index)
+            if os.path.exists(fluo1_folder)
+            else []
+        )
+        fluo2_files = (
+            sorted(os.listdir(fluo2_folder), key=extract_time_index)
+            if os.path.exists(fluo2_folder)
+            else []
+        )
 
-        if not ph_files or not fluo_files:
-            print("No TIFF files found for ph or fluo.")
+        # 3 チャンネル共通でフレーム数を扱うなら、ph_files / fluo1_files / fluo2_files の
+        # うち最小長のものを全体フレーム数とみなす or いずれかをベースとする等、要件次第です。
+        # ここでは ph をベースにしています。
+        if not ph_files:
+            print("No TIFF files found for ph.")
             return
 
         total_frames = len(ph_files)
@@ -470,22 +508,40 @@ class TimelapseEngineCrudBase:
         # 追加：base_cell_id をセル番号ごとに記憶する辞書 {cell番号: 最初のフレームで生成された cell_id}
         base_ids = {}
 
-        for i, (ph_file, fluo_file) in enumerate(zip(ph_files, fluo_files)):
+        for i, ph_file in enumerate(ph_files):
+            # fluo1 / fluo2 側に同じ time_i+1 があるかを検索
+            ph_time_idx = extract_time_index(ph_file)
             ph_path = os.path.join(ph_folder, ph_file)
-            fluo_path = os.path.join(fluo_folder, fluo_file)
+
+            # fluo1
+            fluo1_path = None
+            candidates_fluo1 = [
+                f for f in fluo1_files if extract_time_index(f) == ph_time_idx
+            ]
+            if candidates_fluo1:
+                fluo1_path = os.path.join(fluo1_folder, candidates_fluo1[0])
+
+            # fluo2
+            fluo2_path = None
+            candidates_fluo2 = [
+                f for f in fluo2_files if extract_time_index(f) == ph_time_idx
+            ]
+            if candidates_fluo2:
+                fluo2_path = os.path.join(fluo2_folder, candidates_fluo2[0])
 
             ph_img = cv2.imread(ph_path, cv2.IMREAD_COLOR)
-            fluo_img = cv2.imread(fluo_path, cv2.IMREAD_COLOR)
+            fluo1_img = cv2.imread(fluo1_path, cv2.IMREAD_COLOR) if fluo1_path else None
+            fluo2_img = cv2.imread(fluo2_path, cv2.IMREAD_COLOR) if fluo2_path else None
 
-            if ph_img is None or fluo_img is None:
-                print(f"Skipping because image not found: {ph_path}, {fluo_path}")
+            if ph_img is None:
+                print(f"Skipping because ph image not found: {ph_path}")
                 continue
 
             height, width = ph_img.shape[:2]
 
+            # ph のみを使って閾値処理 & 輪郭検出
             ph_gray = cv2.cvtColor(ph_img, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(ph_gray, param1, 255, cv2.THRESH_BINARY)
-
             edges = cv2.Canny(thresh, 0, 130)
             contours, hierarchy = cv2.findContours(
                 edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
@@ -540,23 +596,35 @@ class TimelapseEngineCrudBase:
                     x2 = min(ph_img.shape[1], cx + output_size[0] // 2)
                     y2 = min(ph_img.shape[0], cy + output_size[1] // 2)
 
-                    cropped_ph = ph_img[y1:y2, x1:x2]
-                    cropped_fluo = fluo_img[y1:y2, x1:x2]
-
                     # クロップが指定サイズに満たない場合はスキップ
-                    if (
-                        cropped_ph.shape[0] != output_size[1]
-                        or cropped_ph.shape[1] != output_size[0]
-                    ):
+                    if (y2 - y1) != output_size[1] or (x2 - x1) != output_size[0]:
                         continue
 
+                    cropped_ph = ph_img[y1:y2, x1:x2]
                     cropped_ph_gray = cv2.cvtColor(cropped_ph, cv2.COLOR_BGR2GRAY)
-                    cropped_fluo_gray = cv2.cvtColor(cropped_fluo, cv2.COLOR_BGR2GRAY)
-
                     ph_gray_encode = cv2.imencode(".png", cropped_ph_gray)[1].tobytes()
-                    fluo_gray_encode = cv2.imencode(".png", cropped_fluo_gray)[
-                        1
-                    ].tobytes()
+
+                    # fluo1
+                    fluo1_gray_encode = None
+                    if fluo1_img is not None:
+                        cropped_fluo1 = fluo1_img[y1:y2, x1:x2]
+                        cropped_fluo1_gray = cv2.cvtColor(
+                            cropped_fluo1, cv2.COLOR_BGR2GRAY
+                        )
+                        fluo1_gray_encode = cv2.imencode(".png", cropped_fluo1_gray)[
+                            1
+                        ].tobytes()
+
+                    # fluo2
+                    fluo2_gray_encode = None
+                    if fluo2_img is not None:
+                        cropped_fluo2 = fluo2_img[y1:y2, x1:x2]
+                        cropped_fluo2_gray = cv2.cvtColor(
+                            cropped_fluo2, cv2.COLOR_BGR2GRAY
+                        )
+                        fluo2_gray_encode = cv2.imencode(".png", cropped_fluo2_gray)[
+                            1
+                        ].tobytes()
 
                     # 輪郭をクロップ座標系へシフト
                     contour_shifted = contour.copy()
@@ -574,13 +642,13 @@ class TimelapseEngineCrudBase:
                     cell_obj = Cell(
                         cell_id=new_ulid,
                         label_experiment=field,
-                        # manual_label は int カラムなので、暫定的に 0 などで登録
+                        # manual_label は文字列カラムなので "N/A" 等
                         manual_label="N/A",
                         perimeter=perimeter,
                         area=area,
                         img_ph=ph_gray_encode,
-                        img_fluo1=fluo_gray_encode,
-                        img_fluo2=None,
+                        img_fluo1=fluo1_gray_encode,
+                        img_fluo2=fluo2_gray_encode,
                         contour=pickle.dumps(contour_shifted),
                         center_x=cx,
                         center_y=cy,
@@ -651,7 +719,6 @@ class TimelapseEngineCrudBase:
 
         frames = []
         async with async_session() as session:
-            # 例: "field" カラムと "cell" カラムを持つテーブルがある想定
             result = await session.execute(
                 select(Cell)
                 .filter_by(field=field, cell=cell_number)
@@ -767,7 +834,7 @@ class TimelapseEngineCrudBase:
             for cell_num in unique_cells:
                 matched = [c for c in all_cells if c.cell == cell_num and c.time == t]
                 if not matched:
-                    # 空画像(真っ黒 200x200) → 今回はカラー(黒)で作る
+                    # 空画像(真っ黒 200x200)
                     cell_to_image[cell_num] = Image.new("RGB", (200, 200), (0, 0, 0))
                     continue
 
@@ -809,7 +876,7 @@ class TimelapseEngineCrudBase:
                 else:
                     scale_x, scale_y = 1.0, 1.0
 
-                # 輪郭があれば描画
+                # 輪郭描画
                 if row.contour is not None:
                     try:
                         contours = pickle.loads(row.contour)
@@ -818,25 +885,19 @@ class TimelapseEngineCrudBase:
 
                         for c in contours:
                             c = np.array(c, dtype=np.float32)
-                            # shape が (N,2) なら (N,1,2) に変換
                             if len(c.shape) == 2:
                                 c = c[:, np.newaxis, :]
 
-                            # スケーリング
                             c[:, :, 0] *= scale_x
                             c[:, :, 1] *= scale_y
                             c = c.astype(np.int32)
-
-                            # BGR=(0,0,255) = 赤, 太さ2ピクセル
                             cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
-
                     except Exception as e:
-                        print(f"[WARN] Contour parse error: {e}")  # ログを出す
+                        print(f"[WARN] Contour parse error: {e}")
 
                 # OpenCV BGR → PIL RGB
                 np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
                 pil_img = Image.fromarray(np_img_rgb)
-
                 cell_to_image[cell_num] = pil_img
 
             if not first_valid_img_size:
@@ -849,7 +910,6 @@ class TimelapseEngineCrudBase:
             mosaic_w = cols * w
             mosaic_h = rows * h
 
-            # 今回は "RGB" キャンバスにする
             mosaic = Image.new("RGB", (mosaic_w, mosaic_h), (0, 0, 0))
             for cell_num, pil_img in cell_to_image.items():
                 r_idx, c_idx = cell_positions[cell_num]
