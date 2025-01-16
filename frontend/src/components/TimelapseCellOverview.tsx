@@ -362,22 +362,6 @@ const TimelapseViewer: React.FC = () => {
     fetchContourAreas();
   }, [dbName, selectedField, selectedCellNumber]);
 
-  // ---- ここから折れ線グラフの設定 ----
-  // frame をそのまま x 軸に使う場合（frame が連番であればOK）
-  // const contourAreasChartData: ChartData<"line"> = {
-  //   labels: contourAreas.map((d) => d.frame),
-  //   datasets: [
-  //     {
-  //       label: "Contour Area",
-  //       data: contourAreas.map((d) => d.area),
-  //       fill: false,
-  //       borderColor: "rgba(75,192,192,1)",
-  //       tension: 0.1,
-  //     },
-  //   ],
-  // };
-
-  // frame はあくまで contourAreas 配列のインデックスにすぎない場合（インデックス表示したい場合）
   const contourAreasChartData: ChartData<"line"> = {
     labels: contourAreas.map((_, i) => i), // 0, 1, 2, ...
     datasets: [
