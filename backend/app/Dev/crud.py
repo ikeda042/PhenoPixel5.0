@@ -78,3 +78,8 @@ class HINETLogin:
             raise Exception(
                 "Please provide email, password and hinet url in .env file."
             )
+
+
+async def git_pull():
+    os.system("git checkout main")
+    os.system("git pull")
