@@ -35,6 +35,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select, Select
 import ulid
+import os
 
 Base = declarative_base()
 
@@ -454,8 +455,12 @@ class TimelapseEngineCrudBase:
         min_area: int = 300,
         crop_size: int = 200,
     ):
+        db_path = f"timelapse_databases/{dbname}"
+        if os.path.exists(db_path):
+            os.remove(db_path)
+
         engine = create_async_engine(
-            f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=False
+            f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
         )
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
