@@ -35,6 +35,9 @@ const TimelapseParser: React.FC = () => {
   const fileName = searchParams.get("file_name") || "";
   const [isLoading, setIsLoading] = useState(false);
 
+  // パース完了状態を管理するステート
+  const [isParsed, setIsParsed] = useState(false);
+
   // Field 関連 (GIF 表示のため)
   const [fields, setFields] = useState<string[]>([]);
   const [selectedField, setSelectedField] = useState<string>("");
@@ -54,7 +57,50 @@ const TimelapseParser: React.FC = () => {
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   /**
+   * 指定した Field の GIF を取得 (displayType に応じて取得先を切り替え)
+   */
+  const fetchGif = async (fieldValue: string, type: DisplayType) => {
+    if (!fileName || !fieldValue) return;
+    setIsLoading(true);
+
+    // Raw 用＆Extracted 用のエンドポイント
+    const endpointRaw = `${url_prefix}/tlengine/nd2_files/${fileName}/gif/${fieldValue}`;
+    // フィールドごとのエンドポイントは使わず、常に /cells/{fieldValue}/gif を使用
+    const endpointExtracted = `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${fieldValue}/gif`;
+
+    try {
+      if (type === "dual") {
+        // 同時取得
+        const [rawResponse, extractedResponse] = await Promise.all([
+          axios.get(endpointRaw, { responseType: "blob" }),
+          axios.get(endpointExtracted, { responseType: "blob" })
+        ]);
+        setGifUrlRaw(URL.createObjectURL(rawResponse.data));
+        setGifUrlExtracted(URL.createObjectURL(extractedResponse.data));
+      } else if (type === "raw") {
+        // Raw だけ取得
+        const rawResponse = await axios.get(endpointRaw, { responseType: "blob" });
+        setGifUrlRaw(URL.createObjectURL(rawResponse.data));
+        setGifUrlExtracted(""); // 他方はクリア
+      } else {
+        // Extracted だけ取得
+        const extractedResponse = await axios.get(endpointExtracted, { responseType: "blob" });
+        setGifUrlExtracted(URL.createObjectURL(extractedResponse.data));
+        setGifUrlRaw(""); // 他方はクリア
+      }
+    } catch (error) {
+      console.error("Failed to fetch GIF", error);
+      // 取得に失敗した場合はそれぞれ空にしておく
+      setGifUrlRaw("");
+      setGifUrlExtracted("");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
    * ND2 ファイルをパースする
+   * パース完了時に Field 一覧を取得し、初期表示として "Field_1" の "raw" を自動表示
    */
   const handleParseND2 = async () => {
     if (!fileName) return;
@@ -62,15 +108,25 @@ const TimelapseParser: React.FC = () => {
     try {
       // 1) ND2 ファイルの解析
       await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}`);
+
       // 2) Field 一覧を取得 (GIF 表示用)
       const fieldsResponse = await axios.get(
         `${url_prefix}/tlengine/nd2_files/${fileName}/fields`
       );
+
       if (fieldsResponse.data.fields) {
         setFields(fieldsResponse.data.fields);
       } else {
         setFields([]);
       }
+
+      // パース完了
+      setIsParsed(true);
+
+      // パース完了時に "Field_1" & "raw" を自動取得
+      setSelectedField("Field_1");
+      setDisplayType("raw");
+      await fetchGif("Field_1", "raw");
     } catch (error) {
       console.error("Failed to parse ND2 file or get fields", error);
     } finally {
@@ -94,51 +150,6 @@ const TimelapseParser: React.FC = () => {
       alert(`Cells have been extracted successfully! (param1=${param1})`);
     } catch (error) {
       console.error("Failed to extract cells", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * displayType が "dual" の場合は両方のエンドポイントを呼び出して 2 枚の GIF を取得
-   *   - Raw 用 : GET /tlengine/nd2_files/{file_name}/gif/{fieldValue}
-   *   - Extracted 用 : GET /tlengine/nd2_files/{file_name}/cells/gif
-   *        (フィールドごとの抽出は行わず、常に /cells のエンドポイントを使用)
-   */
-  const fetchGif = async (fieldValue: string, type: DisplayType) => {
-    if (!fileName || !fieldValue) return;
-    setIsLoading(true);
-
-    // Raw 用＆Extracted 用のエンドポイント
-    const endpointRaw = `${url_prefix}/tlengine/nd2_files/${fileName}/gif/${fieldValue}`;
-    // フィールドごとのエンドポイントは使わず、常に /cells/gif を使用
-    const endpointExtracted = `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${fieldValue}/gif`
-
-    try {
-      if (type === "dual") {
-        // 同時取得
-        const [rawResponse, extractedResponse] = await Promise.all([
-          axios.get(endpointRaw, { responseType: "blob" }),
-          axios.get(endpointExtracted, { responseType: "blob" }),
-        ]);
-        setGifUrlRaw(URL.createObjectURL(rawResponse.data));
-        setGifUrlExtracted(URL.createObjectURL(extractedResponse.data));
-      } else if (type === "raw") {
-        // Raw だけ取得
-        const rawResponse = await axios.get(endpointRaw, { responseType: "blob" });
-        setGifUrlRaw(URL.createObjectURL(rawResponse.data));
-        setGifUrlExtracted(""); // 他方はクリア
-      } else {
-        // Extracted だけ取得
-        const extractedResponse = await axios.get(endpointExtracted, { responseType: "blob" });
-        setGifUrlExtracted(URL.createObjectURL(extractedResponse.data));
-        setGifUrlRaw(""); // 他方はクリア
-      }
-    } catch (error) {
-      console.error("Failed to fetch GIF", error);
-      // 取得に失敗した場合はそれぞれ空にしておく
-      setGifUrlRaw("");
-      setGifUrlExtracted("");
     } finally {
       setIsLoading(false);
     }
@@ -211,7 +222,7 @@ const TimelapseParser: React.FC = () => {
                   ND2 filename: {fileName}
                 </Typography>
 
-                {/* ND2 パースボタン */}
+                {/* ND2 パースボタン (常時表示) */}
                 <Button
                   variant="contained"
                   color="primary"
@@ -231,61 +242,66 @@ const TimelapseParser: React.FC = () => {
                   Parse ND2 File
                 </Button>
 
-                {/* param1入力フォーム：Field の有無に関わらず表示 */}
-                <TextField
-                  label="param1"
-                  type="text"            // number -> text に変更
-                  inputMode="numeric"   // 数字入力用に
-                  value={param1}
-                  onChange={(e) => setParam1(e.target.value)}
-                  fullWidth
-                  sx={{ mb: 2 }}
-                />
+                {/* 以下の要素は isParsed = true の時だけ表示 */}
+                {isParsed && (
+                  <>
+                    {/* param1入力フォーム */}
+                    <TextField
+                      label="param1"
+                      type="text"
+                      inputMode="numeric"
+                      value={param1}
+                      onChange={(e) => setParam1(e.target.value)}
+                      fullWidth
+                      sx={{ mb: 2 }}
+                    />
 
-                {/* Extract cells ボタン：全 Field 一括抽出 & param1 使用 */}
-                <Button
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  onClick={handleExtractAllCells}
-                  disabled={isLoading || !fileName}
-                  sx={{
-                    height: 56,
-                    mb: 2,
-                    textTransform: "none",
-                    backgroundColor: "#333",
-                    "&:hover": {
-                      backgroundColor: "#555"
-                    }
-                  }}
-                >
-                  Extract cells
-                </Button>
+                    {/* Extract cells ボタン */}
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      fullWidth
+                      onClick={handleExtractAllCells}
+                      disabled={isLoading || !fileName}
+                      sx={{
+                        height: 56,
+                        mb: 2,
+                        textTransform: "none",
+                        backgroundColor: "#333",
+                        "&:hover": {
+                          backgroundColor: "#555"
+                        }
+                      }}
+                    >
+                      Extract cells
+                    </Button>
 
-                {/* Field ドロップダウン：GIF 表示用途 */}
-                {fields.length > 0 && (
-                  <FormControl fullWidth sx={{ mb: 2 }}>
-                    <InputLabel>Field</InputLabel>
-                    <Select value={selectedField} onChange={handleFieldChange}>
-                      {fields.map((field) => (
-                        <MenuItem key={field} value={field}>
-                          {field}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                )}
+                    {/* Field ドロップダウン */}
+                    {fields.length > 0 && (
+                      <FormControl fullWidth sx={{ mb: 2 }}>
+                        <InputLabel>Field</InputLabel>
+                        <Select value={selectedField} onChange={handleFieldChange}>
+                          {fields.map((field) => (
+                            <MenuItem key={field} value={field}>
+                              {field}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    )}
 
-                {/* 表示形式ドロップダウン："raw" / "extracted" / "dual" */}
-                {fields.length > 0 && (
-                  <FormControl fullWidth>
-                    <InputLabel>Display Type</InputLabel>
-                    <Select value={displayType} onChange={handleDisplayTypeChange}>
-                      <MenuItem value="raw">Raw</MenuItem>
-                      <MenuItem value="extracted">Extracted</MenuItem>
-                      <MenuItem value="dual">Dual</MenuItem>
-                    </Select>
-                  </FormControl>
+                    {/* 表示形式ドロップダウン："raw" / "extracted" / "dual" */}
+                    {fields.length > 0 && (
+                      <FormControl fullWidth>
+                        <InputLabel>Display Type</InputLabel>
+                        <Select value={displayType} onChange={handleDisplayTypeChange}>
+                          <MenuItem value="raw">Raw</MenuItem>
+                          <MenuItem value="extracted">Extracted</MenuItem>
+                          <MenuItem value="dual">Dual</MenuItem>
+                        </Select>
+                      </FormControl>
+                    )}
+                  </>
                 )}
               </Grid>
 
