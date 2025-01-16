@@ -128,6 +128,10 @@ const TimelapseViewer: React.FC = () => {
   // 輪郭面積（frame, area）に変換後の配列
   const [contourAreas, setContourAreas] = useState<ContourArea[]>([]);
 
+  // ★ 描画モードの状態を管理
+  type DrawMode = "ContourAreas" | "AnotherMode";
+  const [drawMode, setDrawMode] = useState<DrawMode>("ContourAreas");
+
   useEffect(() => {
     if (!dbName) {
       console.error("No db_name is specified in query parameters.");
@@ -257,19 +261,6 @@ const TimelapseViewer: React.FC = () => {
     if (currentIndex > 0) {
       setSelectedCellNumber(cellNumbers[currentIndex - 1]);
     }
-    // もし「先頭のセルからさらに前に行ったら前のフィールドへ」などを実装したい場合は
-    // 下記のようなロジックを足す (コメントアウト例)
-    //
-    // else {
-    //   // 最初のセルにいる状態でPrevしたときの挙動
-    //   const fieldIndex = fields.indexOf(selectedField);
-    //   if (fieldIndex > 0) {
-    //     // 前のフィールドへ
-    //     setSelectedField(fields[fieldIndex - 1]);
-    //     // ただし、setSelectedField直後は cellNumbers がまだ取得前なので、
-    //     // 「前フィールドの最後のセル」を選択するには、フックを使うか別の仕組みが必要
-    //   }
-    // }
   };
 
   // ★ ここで最後のセルに到達していたら次のフィールドへ自動的に移るようにする
@@ -582,6 +573,22 @@ const TimelapseViewer: React.FC = () => {
           </Button>
         </Box>
 
+        {/* ★ 新たに描画モード切り替え用のSelectを追加 */}
+        <Box mb={2} display="flex" alignItems="center" gap={2}>
+          <FormControl sx={{ minWidth: 180 }}>
+            <InputLabel id="draw-mode-select-label">描画モード</InputLabel>
+            <Select
+              labelId="draw-mode-select-label"
+              value={drawMode}
+              label="描画モード"
+              onChange={(e) => setDrawMode(e.target.value as DrawMode)}
+            >
+              <MenuItem value="ContourAreas">ContourAreas</MenuItem>
+              <MenuItem value="AnotherMode">AnotherMode</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+
         {dbName ? (
           <Card
             sx={{
@@ -628,40 +635,65 @@ const TimelapseViewer: React.FC = () => {
                   </Grid>
                 ))}
 
-                {/* 同じ行にグラフを表示し、GIFと同じサイズに合わせる */}
-                <Grid item xs={12} md={3}>
-                  <Box
-                    sx={{
-                      // GIFと同じように幅100%で、縦横比1:1に調整
-                      position: "relative",
-                      width: "100%",
-                      paddingBottom: "100%",
-                      borderRadius: 2,
-                      overflow: "hidden",
-                    }}
-                  >
-                    {contourAreas.length > 0 ? (
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                        }}
-                      >
-                        <Line
-                          data={contourAreasChartData}
-                          options={contourAreasChartOptions}
-                        />
-                      </Box>
-                    ) : (
-                      <Typography variant="body1" mt={2}>
-                        輪郭面積データがありません。
+                {/* 描画モードごとに表示を切り替え */}
+                {drawMode === "ContourAreas" && (
+                  <Grid item xs={12} md={3}>
+                    <Box
+                      sx={{
+                        // GIFと同じように幅100%で、縦横比1:1に調整
+                        position: "relative",
+                        width: "100%",
+                        paddingBottom: "100%",
+                        borderRadius: 2,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {contourAreas.length > 0 ? (
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                          }}
+                        >
+                          <Line
+                            data={contourAreasChartData}
+                            options={contourAreasChartOptions}
+                          />
+                        </Box>
+                      ) : (
+                        <Typography variant="body1" mt={2}>
+                          輪郭面積データがありません。
+                        </Typography>
+                      )}
+                    </Box>
+                  </Grid>
+                )}
+
+                {drawMode === "AnotherMode" && (
+                  <Grid item xs={12} md={3}>
+                    <Box
+                      sx={{
+                        // GIFと同じように幅100%で、縦横比1:1に調整
+                        position: "relative",
+                        width: "100%",
+                        paddingBottom: "100%",
+                        borderRadius: 2,
+                        overflow: "hidden",
+                        backgroundColor: "#fafafa",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography variant="body1">
+                        ここに別の描画モードのコンテンツを表示
                       </Typography>
-                    )}
-                  </Box>
-                </Grid>
+                    </Box>
+                  </Grid>
+                )}
               </Grid>
             </CardContent>
           </Card>
