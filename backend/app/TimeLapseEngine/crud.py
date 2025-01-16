@@ -35,6 +35,34 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
 import ulid
 import os
+import os
+import io
+import cv2
+import pickle
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw, ImageFont
+from fastapi import HTTPException
+from sqlalchemy.future import select
+from sqlalchemy import update
+from database import get_session, Cell
+from exceptions import CellNotFoundError
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import aiofiles
+import aiofiles.os
+from dataclasses import dataclass
+from datetime import datetime
+from fastapi import UploadFile
+from fastapi.responses import StreamingResponse
+from matplotlib.figure import Figure
+from numpy.linalg import eig, inv
+from scipy.integrate import quad
+from scipy.optimize import minimize
+from typing import Literal
+
+matplotlib.use("Agg")
 
 Base = declarative_base()
 
@@ -501,6 +529,18 @@ class AsyncChores:
         return await loop.run_in_executor(
             self.executor, partial(SyncChores.create_combined_gif, field_folder)
         )
+
+    @staticmethod
+    async def poly_fit(U: list[list[float]], degree: int = 1) -> list[float]:
+        """
+        SyncChores.poly_fit をスレッドプールで呼び出し。
+        """
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            result = await loop.run_in_executor(
+                executor, SyncChores.poly_fit, U, degree
+            )
+        return result
 
 
 class TimelapseEngineCrudBase:
@@ -1069,7 +1109,7 @@ class TimelapseDatabaseCrud:
         cell_number: int,
         channel: str,
         draw_contour: bool = True,
-        draw_frame_number: bool = True,  # 追加
+        draw_frame_number: bool = True,
     ) -> io.BytesIO:
         """
         指定した field, cell_number, channel のセル画像を順番に GIF 化して返す。
@@ -1114,11 +1154,8 @@ class TimelapseDatabaseCrud:
             # contour 描画フラグが立っている場合
             if draw_contour and row.contour is not None:
                 try:
-                    # pickle で保存されている contour 情報を想定
                     contour_data = pickle.loads(row.contour)
-                    # グレースケール -> BGR に変換
                     bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
-                    # 単一/複数の輪郭を想定して描画
                     cv2.drawContours(
                         bgr_img,
                         [np.array(contour_data, dtype=np.int32)],
@@ -1130,18 +1167,14 @@ class TimelapseDatabaseCrud:
                     rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
                     pil_img = Image.fromarray(rgb_img)
                 except Exception:
-                    # contour のフォーマットが合わない場合などはエラーを無視して通常表示
                     pil_img = Image.fromarray(np_img)
             else:
-                # 通常のグレースケール画像をそのまま PIL に渡す
                 pil_img = Image.fromarray(np_img)
 
             # フレーム番号描画フラグが True の場合
             if draw_frame_number:
                 draw = ImageDraw.Draw(pil_img)
-                # 既定のフォントを使用 (適宜変更可能)
                 font = ImageFont.load_default()
-                # 左上に i+1 の番号を描画
                 draw.text((5, 5), f"Frame: {i+1}", font=font, fill=(255, 255, 255))
 
             frames.append(pil_img)
@@ -1227,7 +1260,7 @@ class TimelapseDatabaseCrud:
             if row.contour is not None:
                 try:
                     contour_data = pickle.loads(row.contour)
-                    # 配列かつ多輪郭のリストの場合
+                    # 多輪郭の場合
                     if (
                         isinstance(contour_data, list)
                         and contour_data
@@ -1247,3 +1280,193 @@ class TimelapseDatabaseCrud:
             areas.append(contour_area)
 
         return areas
+
+    @staticmethod
+    async def replot(
+        image_fluo_raw: bytes,
+        contour_raw: bytes,
+        degree: int,
+    ) -> io.BytesIO:
+        """
+        (u1,u2) 平面に生データを散布し、多項式近似した曲線と輪郭を表示した結果を PNG 化して返す。
+        ※ 今回は一枚絵を返す関数。この返却された buf を複数フレーム繋げて GIF にする想定。
+        """
+        image_fluo = cv2.imdecode(
+            np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
+        )
+        image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+
+        mask = np.zeros_like(image_fluo_gray)
+        unpickled_contour = pickle.loads(contour_raw)
+        cv2.fillPoly(mask, [unpickled_contour], 255)
+
+        coords_inside_cell_1 = np.column_stack(np.where(mask))
+        points_inside_cell_1 = image_fluo_gray[
+            coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
+        ]
+
+        X = np.array(
+            [
+                [i[1] for i in coords_inside_cell_1],
+                [i[0] for i in coords_inside_cell_1],
+            ]
+        )
+
+        # 基底変換
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = SyncChores.basis_conversion(
+            [list(i[0]) for i in unpickled_contour],
+            X,
+            image_fluo.shape[0] / 2,
+            image_fluo.shape[1] / 2,
+            coords_inside_cell_1,
+        )
+
+        fig = plt.figure(figsize=(6, 6))
+        plt.scatter(u1, u2, s=5)
+        plt.scatter(u1_c, u2_c, color="red", s=100)
+        plt.axis("equal")
+        margin_width = 50
+        margin_height = 50
+        plt.scatter(
+            [i[1] for i in U],
+            [i[0] for i in U],
+            points_inside_cell_1,
+            c=points_inside_cell_1,
+            cmap="inferno",
+            marker="o",
+        )
+        plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
+        plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
+
+        max_val = np.max(points_inside_cell_1) if len(points_inside_cell_1) else 1
+        normalized_points = [i / max_val for i in points_inside_cell_1]
+
+        plt.text(
+            0.5,
+            0.2,
+            f"Median: {np.median(points_inside_cell_1):.2f}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
+        plt.text(
+            0.5,
+            0.1,
+            f"Normalized median: {np.median(normalized_points):.2f}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
+        plt.text(
+            0.5,
+            0.15,
+            f"Mean: {np.mean(points_inside_cell_1):.2f}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
+        plt.text(
+            0.5,
+            0.05,
+            f"Normalized mean: {np.mean(normalized_points):.2f}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
+
+        x = np.linspace(min_u1, max_u1, 1000)
+        theta = await AsyncChores.poly_fit(U, degree=degree)
+        y = np.polyval(theta, x)
+        plt.plot(x, y, color="red")
+        plt.scatter(u1_contour, u2_contour, color="lime", s=20)
+        plt.tick_params(direction="in")
+        plt.grid(True)
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        plt.close(fig)
+        return buf
+
+    async def get_cells_replot_gif_by_cell_number(
+        self,
+        field: str,
+        cell_number: int,
+        channel: Literal["fluo1", "fluo2"],
+        degree: int = 1,
+    ) -> io.BytesIO:
+        """
+        指定した field, cell_number, channel (fluo1 or fluo2) のセル画像を順番に replot し、
+        その結果を GIF として返す。
+        degree は多項式近似の次数。
+        """
+        # DB から該当セルのフレームを取得
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells: list[Cell] = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        frames = []
+        for row in cells:
+            # チャネルごとの画像バイナリを取得 (fluo1 or fluo2)
+            if channel == "fluo1":
+                image_fluo_raw = row.img_fluo1
+            else:
+                image_fluo_raw = row.img_fluo2
+
+            # 輪郭データ
+            contour_raw = row.contour
+
+            # 画像や輪郭が存在しない場合はスキップ
+            if (image_fluo_raw is None) or (contour_raw is None):
+                continue
+
+            # replot から PNG バッファを取得
+            replot_buf = await self.replot(image_fluo_raw, contour_raw, degree)
+
+            # Pillow で開いてフレームとして追加
+            pil_img = Image.open(replot_buf)
+            frames.append(pil_img)
+
+        if not frames:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"No valid frames found for field={field}, "
+                    f"cell={cell_number}, channel={channel}"
+                ),
+            )
+
+        # GIF にまとめる
+        gif_buffer = io.BytesIO()
+        frames[0].save(
+            gif_buffer,
+            format="GIF",
+            save_all=True,
+            append_images=frames[1:],
+            duration=200,
+            loop=0,
+        )
+        gif_buffer.seek(0)
+
+        return gif_buffer
