@@ -111,7 +111,7 @@ class SyncChores:
         matches = bf.match(des1, des2)
 
         # マッチングがあまりに少ない場合は補正を行わない
-        if len(matches) < 40:
+        if len(matches) < 100:
             print("Insufficient matches, skipping drift correction.")
             return target_image
 
