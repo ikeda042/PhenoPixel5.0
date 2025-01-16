@@ -25,7 +25,7 @@ import {
   FormControlLabel,
   Grid,
 } from "@mui/material";
-import { ArrowBack, ArrowForward } from "@mui/icons-material"; // ← アイコンを追加
+import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import { settings } from "../settings";
@@ -113,6 +113,11 @@ const TimelapseViewer: React.FC = () => {
 
   // 表示したいチャネル（ph, fluo1, fluo2）
   const channels = ["ph", "fluo1", "fluo2"] as const;
+
+  // 「Prev」「Next」ボタンの連打によるリクエスト負荷を抑えるためのタイマー
+  const [navigationTimer, setNavigationTimer] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
   useEffect(() => {
     if (!dbName) {
@@ -267,13 +272,20 @@ const TimelapseViewer: React.FC = () => {
   }, [dbName, selectedField, selectedCellNumber]);
 
   /**
-   * セル番号を前後に移動する
+   * セル番号を前後に移動する (300ms デバウンス処理付き)
    */
   const handlePrevCell = () => {
     if (cellNumbers.length === 0) return;
     const currentIndex = cellNumbers.indexOf(selectedCellNumber);
     if (currentIndex > 0) {
-      setSelectedCellNumber(cellNumbers[currentIndex - 1]);
+      if (navigationTimer) {
+        clearTimeout(navigationTimer);
+      }
+      setNavigationTimer(
+        setTimeout(() => {
+          setSelectedCellNumber(cellNumbers[currentIndex - 1]);
+        }, 300)
+      );
     }
   };
 
@@ -281,7 +293,14 @@ const TimelapseViewer: React.FC = () => {
     if (cellNumbers.length === 0) return;
     const currentIndex = cellNumbers.indexOf(selectedCellNumber);
     if (currentIndex >= 0 && currentIndex < cellNumbers.length - 1) {
-      setSelectedCellNumber(cellNumbers[currentIndex + 1]);
+      if (navigationTimer) {
+        clearTimeout(navigationTimer);
+      }
+      setNavigationTimer(
+        setTimeout(() => {
+          setSelectedCellNumber(cellNumbers[currentIndex + 1]);
+        }, 300)
+      );
     }
   };
 
