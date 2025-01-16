@@ -83,7 +83,7 @@ def _draw_graph_from_memory(
         plt.xlabel("time(h)")
         plt.ylabel("OD600(-)")
 
-        # 各ウェル (key) ごとに散布図を描画し、0.01-0.1 の範囲でフィッティング
+        # 各ウェル (key) ごとに散布図を描画し、フィット曲線を重ねる
         for i_dict in data[key_char]:
             key = list(i_dict.keys())[0]  # 例: 'A1'
             y = i_dict[key]  # OD600 のリスト
@@ -92,7 +92,7 @@ def _draw_graph_from_memory(
             x_arr = np.array(x)
             y_arr = np.array(y)
 
-            # 0.01 <= OD <= 0.1 の範囲だけ抽出
+            # lower_OD <= OD <= upper_OD の範囲だけ抽出
             mask = (y_arr >= lower_OD) & (y_arr <= upper_OD)
             x_sub = x_arr[mask]
             y_sub = y_arr[mask]
@@ -108,6 +108,14 @@ def _draw_graph_from_memory(
             # 散布図 (全体)
             if mu_value is not None:
                 plt.scatter(x_arr, y_arr, label=f"{key} (μ={mu_value:.3f}/h)", s=6)
+
+                # --- フィット曲線を重ねてプロット（赤線） ---
+                #   フィットに使った x_sub の最小値～最大値までを等間隔にとり、
+                #   そこに対して e^(slope*x + intercept) で y を算出し、プロット
+                x_fit = np.linspace(x_sub.min(), x_sub.max(), 50)
+                y_fit = np.exp(slope * x_fit + intercept)
+                plt.plot(x_fit, y_fit, color="red", lw=1.5)
+                # -------------------------------------------
             else:
                 plt.scatter(x_arr, y_arr, label=f"{key} (no fit)", s=6)
 
