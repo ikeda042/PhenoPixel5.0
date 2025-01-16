@@ -13,7 +13,8 @@ import {
   Breadcrumbs,
   Link,
   Paper,
-  useMediaQuery
+  useMediaQuery,
+  TextField
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { settings } from "../settings";
@@ -25,6 +26,12 @@ const GraphEngine: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // MCPR用パラメータ
+  const [blankIndex, setBlankIndex] = useState("2");
+  const [timespanSec, setTimespanSec] = useState(180);
+  const [lowerOD, setLowerOD] = useState(0.1);
+  const [upperOD, setUpperOD] = useState(0.3);
 
   // ブレイクポイントに応じたレスポンシブ制御
   const theme = useTheme();
@@ -54,7 +61,8 @@ const GraphEngine: React.FC = () => {
     try {
       let requestUrl;
       if (mode === "mcpr") {
-        requestUrl = `${url_prefix}/graph_engine/mcpr?blank_index=2&timespan_sec=180`;
+        // MCPRモード時はURLにクエリパラメータを付与
+        requestUrl = `${url_prefix}/graph_engine/mcpr?blank_index=${blankIndex}&timespan_sec=${timespanSec}&lower_OD=${lowerOD}&upper_OD=${upperOD}`;
       } else {
         requestUrl = `${url_prefix}/graph_engine/${mode}`;
       }
@@ -79,9 +87,8 @@ const GraphEngine: React.FC = () => {
   };
 
   return (
-    // Containerの上下パディングを少なめに設定
     <Container maxWidth="md" sx={{ py: 2 }}>
-      {/* パンくずリストをNavBarのすぐ下に表示する */}
+      {/* パンくずリスト */}
       <Box mb={2}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link underline="hover" color="inherit" href="/">
@@ -108,7 +115,61 @@ const GraphEngine: React.FC = () => {
           </Select>
         </FormControl>
 
-        {/* ファイル選択とグラフ生成ボタン */}
+        {/* MCPRモードの場合に追加パラメータを表示 */}
+        {mode === "mcpr" && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: isSmallScreen ? "column" : "row",
+              gap: 2,
+              mb: 2,
+            }}
+          >
+            <FormControl sx={{ flex: 1 }}>
+              <TextField
+                label="blank_index"
+                type="number"
+                value={blankIndex}
+                onChange={(e) => setBlankIndex(e.target.value)}
+                disabled={isLoading}
+              />
+            </FormControl>
+
+            <FormControl sx={{ flex: 1 }}>
+              <TextField
+                label="timespan_sec"
+                type="number"
+                value={timespanSec}
+                onChange={(e) => setTimespanSec(Number(e.target.value))}
+                disabled={isLoading}
+              />
+            </FormControl>
+
+            <FormControl sx={{ flex: 1 }}>
+              <TextField
+                label="lower_OD"
+                type="number"
+                inputProps={{ step: "0.01" }}
+                value={lowerOD}
+                onChange={(e) => setLowerOD(Number(e.target.value))}
+                disabled={isLoading}
+              />
+            </FormControl>
+
+            <FormControl sx={{ flex: 1 }}>
+              <TextField
+                label="upper_OD"
+                type="number"
+                inputProps={{ step: "0.01" }}
+                value={upperOD}
+                onChange={(e) => setUpperOD(Number(e.target.value))}
+                disabled={isLoading}
+              />
+            </FormControl>
+          </Box>
+        )}
+
+        {/* ファイル選択＋グラフ生成ボタン */}
         <Box
           sx={{
             display: "flex",
@@ -151,7 +212,7 @@ const GraphEngine: React.FC = () => {
           </Button>
         </Box>
 
-        {/* 画像表示 */}
+        {/* 生成結果の画像表示 */}
         {imageSrc && (
           <Box mt={4}>
             <Typography variant="h6" sx={{ mb: 2 }}>
