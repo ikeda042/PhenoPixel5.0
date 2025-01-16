@@ -82,12 +82,14 @@ interface CellDataById {
   is_dead?: number;
 }
 
+// API 側が { "areas": number[] } で返却してくるので、
+// フロントで下記のような変換用インターフェースを用意
 interface ContourArea {
   frame: number;
   area: number;
 }
 interface GetContourAreasResponse {
-  areas: ContourArea[];
+  areas: number[]; // ← 本来は number[] だが、後で {frame, area} に変換する
 }
 
 const url_prefix = settings.url_prefix;
@@ -123,9 +125,9 @@ const TimelapseViewer: React.FC = () => {
   // 表示したいチャネル（ph, fluo1, fluo2）
   const channels = ["ph", "fluo1", "fluo2"] as const;
 
-  // 輪郭面積（frame, area）の配列
+  // 輪郭面積（frame, area）に変換後の配列
   const [contourAreas, setContourAreas] = useState<ContourArea[]>([]);
-  console.log(contourAreas);
+
   useEffect(() => {
     if (!dbName) {
       console.error("No db_name is specified in query parameters.");
@@ -342,6 +344,7 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
+  // ★ ここで number[] → ContourArea[] に変換してから setContourAreas する
   const fetchContourAreas = async () => {
     if (!dbName || !selectedField || !selectedCellNumber) {
       setContourAreas([]);
@@ -351,7 +354,12 @@ const TimelapseViewer: React.FC = () => {
       const response = await axios.get<GetContourAreasResponse>(
         `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/contour_areas`
       );
-      setContourAreas(response.data.areas);
+      // 受け取った数値配列を { frame, area } の形に変換
+      const converted = response.data.areas.map((value, index) => ({
+        frame: index,
+        area: value,
+      }));
+      setContourAreas(converted);
     } catch (error) {
       console.error("Failed to fetch contour areas:", error);
       setContourAreas([]);
@@ -363,11 +371,11 @@ const TimelapseViewer: React.FC = () => {
   }, [dbName, selectedField, selectedCellNumber]);
 
   const contourAreasChartData: ChartData<"line"> = {
-    labels: contourAreas.map((_, i) => i), // 0, 1, 2, ...
+    labels: contourAreas.map((ca) => ca.frame),
     datasets: [
       {
         label: "Contour Area",
-        data: contourAreas.map((d) => d.area), // 面積をY軸に
+        data: contourAreas.map((ca) => ca.area),
         fill: false,
         borderColor: "rgba(75,192,192,1)",
         tension: 0.1,
@@ -399,7 +407,6 @@ const TimelapseViewer: React.FC = () => {
       },
     },
   };
-  // ---- ここまで折れ線グラフの設定 ----
 
   return (
     <>
