@@ -1065,21 +1065,22 @@ class TimelapseDatabaseCrud:
             if row.contour is not None:
                 try:
                     contour_data = pickle.loads(row.contour)
-                    # 複数の輪郭を想定して合計面積を算出
-                    if isinstance(contour_data[0], list) or isinstance(
-                        contour_data[0], np.ndarray
+                    # 配列かつ多輪郭のリストの場合
+                    if (
+                        isinstance(contour_data, list)
+                        and contour_data
+                        and isinstance(contour_data[0], (list, np.ndarray))
                     ):
                         for cnt in contour_data:
                             contour_area += cv2.contourArea(
                                 np.array(cnt, dtype=np.int32)
                             )
                     else:
-                        # 単一の輪郭の場合
+                        # 単一輪郭の場合
                         contour_area = cv2.contourArea(
                             np.array(contour_data, dtype=np.int32)
                         )
                 except Exception:
-                    # contour のフォーマットが不正な場合は 0.0 とする
                     contour_area = 0.0
             areas.append(contour_area)
 
