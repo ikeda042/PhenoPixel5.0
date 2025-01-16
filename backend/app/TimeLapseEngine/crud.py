@@ -1,6 +1,5 @@
 # Standard library imports
 import asyncio
-import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 import io
@@ -33,7 +32,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.sql import select, Select
+from sqlalchemy.sql import select
 import ulid
 import os
 
@@ -92,13 +91,15 @@ async def create_database(dbname: str):
 
 class SyncChores:
     """
-    既存の補助的クラス。
+    既存の補助的クラス。各種静的メソッドで画像処理を行う。
     """
 
     @staticmethod
     def correct_drift(reference_image, target_image):
         """
-        ORB + BFMatcher + 座標反転してからアフィン変換を推定。
+        ORB + BFMatcher + 座標反転してからアフィン変換を推定する例。
+        特徴点ベースのため、細胞分裂で大きく見え方が変化した場合は、
+        十分に対応しきれない可能性あり。
         """
         orb = cv2.ORB_create()
         kp1, des1 = orb.detectAndCompute(reference_image, None)
@@ -142,6 +143,81 @@ class SyncChores:
             print("Matrix estimation failed, skipping drift correction.")
             return target_image
 
+    # --- [ECC 法追加箇所] ---
+    @staticmethod
+    def correct_drift_ecc(reference_image, target_image, warp_mode=cv2.MOTION_AFFINE):
+        """
+        ECC (Enhanced Correlation Coefficient) によるドリフト補正。
+        同一フレームの全画素が持つ情報を相関最大化するようにアライメントするため、
+        細胞が多く写っている/分裂してもある程度頑健に補正が可能。
+
+        warp_mode (int):
+          - cv2.MOTION_TRANSLATION: 平行移動のみ
+          - cv2.MOTION_EUCLIDEAN: 回転＋平行移動
+          - cv2.MOTION_AFFINE: アフィン変換
+          - cv2.MOTION_HOMOGRAPHY: 射影変換
+
+        細胞が大きく回転するシーンが少なければ MOTION_TRANSLATION や MOTION_AFFINE が軽量かつ安定しやすい。
+        """
+        # ECC ではグレースケール画像が前提
+        ref_gray = (
+            reference_image
+            if len(reference_image.shape) == 2
+            else cv2.cvtColor(reference_image, cv2.COLOR_BGR2GRAY)
+        )
+        tgt_gray = (
+            target_image
+            if len(target_image.shape) == 2
+            else cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
+        )
+
+        # 初期変換行列を設定
+        if warp_mode == cv2.MOTION_HOMOGRAPHY:
+            warp_matrix = np.eye(3, 3, dtype=np.float32)
+        else:
+            warp_matrix = np.eye(2, 3, dtype=np.float32)
+
+        # 終了条件 (反復回数と閾値)
+        number_of_iterations = 100
+        termination_eps = 1e-4
+        criteria = (
+            cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+            number_of_iterations,
+            termination_eps,
+        )
+
+        try:
+            # ECC の計算を実行
+            cc, warp_matrix = cv2.findTransformECC(
+                ref_gray, tgt_gray, warp_matrix, warp_mode, criteria
+            )
+        except cv2.error as e:
+            print(f"[ECC] Alignment failed with OpenCV error: {e}")
+            return target_image
+
+        # warp_mode に応じて変換
+        h, w = reference_image.shape[:2]
+        if warp_mode == cv2.MOTION_HOMOGRAPHY:
+            # homography なら 3x3 行列を warpPerspective で適用
+            aligned = cv2.warpPerspective(
+                target_image,
+                warp_matrix,
+                (w, h),
+                flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP,
+            )
+        else:
+            # それ以外は warpAffine で適用
+            aligned = cv2.warpAffine(
+                target_image,
+                warp_matrix,
+                (w, h),
+                flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP,
+            )
+
+        return aligned
+
+    # --- [ECC 法追加箇所] ---
+
     @staticmethod
     def process_image(array):
         """
@@ -160,10 +236,14 @@ class SyncChores:
         return array.astype(np.uint8)
 
     @classmethod
-    def extract_timelapse_nd2(cls, file_name: str):
+    def extract_timelapse_nd2(cls, file_name: str, drift_method: str = "orb"):
         """
         タイムラプス nd2 ファイルを Field ごと・時系列ごとに TIFF で保存（補正後を上書き保存）。
         チャンネル 0 -> ph, チャンネル 1 -> fluo1, チャンネル 2 -> fluo2 の想定。
+
+        drift_method (str): "orb" or "ecc"
+          - "orb": ORB + BFMatcher の既存ロジック
+          - "ecc": ECC による画素相関ベースのアライメント
         """
         base_output_dir = "uploaded_files/"
         # 既存の作業用フォルダがあれば削除し、再作成
@@ -239,13 +319,19 @@ class SyncChores:
                                     f"Saved ({channel_label}, first): {tiff_filename}"
                                 )
                             else:
-                                # 2フレーム目以降は drift 補正
+                                # 2フレーム目以降は drift 補正 (ORB or ECC 選択)
+                                if drift_method == "ecc":
+                                    drift_func = cls.correct_drift_ecc
+                                else:
+                                    drift_func = cls.correct_drift
+
                                 tasks.append(
                                     executor.submit(
                                         cls._drift_and_save,
                                         reference_images[channel_label],
                                         channel_image,
                                         tiff_filename,
+                                        drift_func,
                                     )
                                 )
 
@@ -258,11 +344,12 @@ class SyncChores:
                             print(f"Error in parallel task: {e}")
 
     @classmethod
-    def _drift_and_save(cls, reference_image, target_image, save_path):
+    def _drift_and_save(cls, reference_image, target_image, save_path, drift_func):
         """
         並列用: ドリフト補正して上書き保存する小分け関数。
+        drift_func: 使用するドリフト補正関数 (correct_drift or correct_drift_ecc)
         """
-        corrected = cls.correct_drift(reference_image, target_image)
+        corrected = drift_func(reference_image, target_image)
         Image.fromarray(corrected).save(save_path)
         return save_path
 
@@ -385,16 +472,24 @@ class AsyncChores:
             partial(SyncChores.correct_drift, reference_image, target_image),
         )
 
+    async def correct_drift_ecc(self, reference_image, target_image):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self.executor,
+            partial(SyncChores.correct_drift_ecc, reference_image, target_image),
+        )
+
     async def process_image(self, array):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             self.executor, partial(SyncChores.process_image, array)
         )
 
-    async def extract_timelapse_nd2(self, file_name: str):
+    async def extract_timelapse_nd2(self, file_name: str, drift_method: str = "orb"):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
-            self.executor, partial(SyncChores.extract_timelapse_nd2, file_name)
+            self.executor,
+            partial(SyncChores.extract_timelapse_nd2, file_name, drift_method),
         )
 
     async def shutdown(self):
@@ -424,10 +519,14 @@ class TimelapseEngineCrudBase:
         await asyncio.to_thread(os.remove, f"uploaded_files/{filename}")
         return True
 
-    async def main(self):
-        # ND2ファイルを TIFF に分割保存 (ドリフト補正込み)
-        await AsyncChores().extract_timelapse_nd2(self.nd2_path)
-        return JSONResponse(content={"message": "Timelapse extracted"})
+    async def main(self, drift_method: str = "orb"):
+        # ND2ファイルを TIFF に分割保存 (ドリフト補正込み) - drift_method を指定
+        await AsyncChores().extract_timelapse_nd2(
+            self.nd2_path, drift_method=drift_method
+        )
+        return JSONResponse(
+            content={"message": f"Timelapse extracted with {drift_method}."}
+        )
 
     async def create_combined_gif(self, field: str):
         # 指定した Field フォルダから 3ch GIF を生成
