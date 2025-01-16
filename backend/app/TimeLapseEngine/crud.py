@@ -1274,7 +1274,7 @@ class TimelapseDatabaseCrud:
                 detail=f"No cells found for field={field}, cell_number={cell_number}",
             )
 
-        frames: t.List[Image.Image] = []  # Pillow Image のリスト
+        frames: list[Image.Image] = []
 
         for i, cell in enumerate(cells):
             # チャネルごとの画像バイナリを取得 (PH 以外を想定)
