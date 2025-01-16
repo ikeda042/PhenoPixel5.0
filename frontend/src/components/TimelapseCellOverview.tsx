@@ -337,15 +337,17 @@ const TimelapseViewer: React.FC = () => {
   ]);
 
   // 通常 GIF (3 枚表示する場合)
+  // ★ duration=200 をパラメータに付与してタイミングを揃える
   const gifUrls = channels.map((ch) =>
     dbName
-      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}`
+      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200`
       : ""
   );
 
-  // replot 用 GIF (モードが Replot の時に表示)
+  // Replot 用 GIF (モードが Replot の時に表示)
+  // 同様に duration=200 を付与
   const replotGifUrl = dbName
-    ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/replot?channel=${replotChannel}&degree=4`
+    ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/replot?channel=${replotChannel}&degree=4&duration=200`
     : "";
 
   const handlePreviewAllCells = async () => {
@@ -581,7 +583,7 @@ const TimelapseViewer: React.FC = () => {
           </Button>
         </Box>
 
-        {/* ★ 新たに描画モード切り替え用のSelectを追加 */}
+        {/* ★ 描画モード切り替え用のSelect */}
         <Box mb={2} display="flex" alignItems="center" gap={2}>
           <FormControl sx={{ minWidth: 180 }}>
             <InputLabel id="draw-mode-select-label">DrawMode</InputLabel>
@@ -629,11 +631,13 @@ const TimelapseViewer: React.FC = () => {
               <Grid
                 container
                 spacing={2}
+                // 幅がある画面ではなるべく 1 行で 4 枚並ぶようにする
+                // （小さい画面では折り返す場合もあります）
                 justifyContent="center"
                 alignItems="flex-start"
               >
                 {/* 
-                  常に 3つの通常 GIF を表示
+                  いつも 3つの通常GIF を先に表示
                 */}
                 {gifUrls.map((url, idx) => (
                   <Grid
@@ -655,7 +659,27 @@ const TimelapseViewer: React.FC = () => {
                   </Grid>
                 ))}
 
-                {/* 描画モード別に、ContourAreas か Replot かを表示 */}
+                {/* 
+                  Replotモードのときは 4 枚目として Replot GIF を同じ行に表示
+                  ContourAreas モードのときはグラフを表示
+                */}
+                {drawMode === "Replot" && (
+                  <Grid item xs={12} md={3}>
+                    <CardMedia
+                      component="img"
+                      image={replotGifUrl}
+                      alt={`replot-${replotChannel}`}
+                      key={`replot-${replotChannel}-${reloadKey}`}
+                      sx={{
+                        width: "100%",
+                        borderRadius: 2,
+                        objectFit: "contain",
+                      }}
+                    />
+                  </Grid>
+                )}
+
+                {/* ContourAreas モードのときにグラフ表示 */}
                 {drawMode === "ContourAreas" && (
                   <Grid item xs={12} md={3}>
                     <Box
@@ -689,23 +713,6 @@ const TimelapseViewer: React.FC = () => {
                         </Typography>
                       )}
                     </Box>
-                  </Grid>
-                )}
-
-                {/* Replot モードのときに 1枚だけ replot GIF を表示 */}
-                {drawMode === "Replot" && (
-                  <Grid item xs={12} md={4}>
-                    <CardMedia
-                      component="img"
-                      image={replotGifUrl}
-                      alt={`replot-${replotChannel}`}
-                      key={`replot-${replotChannel}-${reloadKey}`}
-                      sx={{
-                        width: "100%",
-                        borderRadius: 2,
-                        objectFit: "contain",
-                      }}
-                    />
                   </Grid>
                 )}
               </Grid>
