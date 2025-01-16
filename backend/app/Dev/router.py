@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import os
 import aiofiles
-from Dev.crud import HINETLogin
+from Dev.crud import HINETLogin, git_pull
 
 router_dev = APIRouter(prefix="/dev", tags=["dev"])
 
@@ -25,3 +25,9 @@ async def login_to_hinet():
     hinet_login = HINETLogin()
     await hinet_login.login()
     return JSONResponse(content={"message": "Login successful."})
+
+
+@router_dev.get("/git-pull")
+async def pull_from_git():
+    await git_pull()
+    return JSONResponse(content={"message": "Git pull successful."})

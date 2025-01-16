@@ -78,3 +78,19 @@ class HINETLogin:
             raise Exception(
                 "Please provide email, password and hinet url in .env file."
             )
+
+
+async def git_pull():
+    process_checkout = await asyncio.create_subprocess_shell(
+        "git checkout main",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    await process_checkout.communicate()
+
+    process_pull = await asyncio.create_subprocess_shell(
+        "git pull",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    await process_pull.communicate()
