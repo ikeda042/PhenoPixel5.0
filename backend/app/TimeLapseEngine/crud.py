@@ -1323,8 +1323,8 @@ class TimelapseDatabaseCrud:
             format="GIF",
             save_all=True,
             append_images=frames[1:],
-            loop=0,  # 0にすると無限ループ
-            duration=200,  # フレーム間隔[ms]
+            loop=0,
+            duration=200,
         )
 
         gif_buf.seek(0)
