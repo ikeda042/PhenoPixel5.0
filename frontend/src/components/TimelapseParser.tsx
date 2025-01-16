@@ -146,6 +146,7 @@ const TimelapseParser: React.FC = () => {
     if (!fileName) return;
     setIsLoading(true);
     try {
+      // ★ 全フィールド対象。selectedField は使用せず、/cells に直接 GET を投げる
       await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}/cells`, {
         params: { param_1: Number(param1), crop_size: Number(cropSize) }
       });
@@ -271,7 +272,7 @@ const TimelapseParser: React.FC = () => {
                       sx={{ mb: 2 }}
                     />
 
-                    {/* Extract cells ボタン */}
+                    {/* Extract cells ボタン（全てのFieldを対象） */}
                     <Button
                       variant="contained"
                       color="primary"
