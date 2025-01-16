@@ -107,7 +107,7 @@ def _draw_graph_from_memory(
 
             # 散布図 (全体)
             if mu_value is not None:
-                plt.scatter(x_arr, y_arr, label=f"{key} (mu={mu_value:.3f}/h)", s=6)
+                plt.scatter(x_arr, y_arr, label=f"{key} (μ={mu_value:.3f}/h)", s=6)
             else:
                 plt.scatter(x_arr, y_arr, label=f"{key} (no fit)", s=6)
 
