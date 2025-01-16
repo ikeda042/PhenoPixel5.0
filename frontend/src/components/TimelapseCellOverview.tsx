@@ -25,28 +25,37 @@ import {
   FormControlLabel,
   Grid,
 } from "@mui/material";
-import { ArrowBack, ArrowForward } from "@mui/icons-material"; // ← アイコンを追加
+import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import { settings } from "../settings";
 
-/**
- * /databases/{db_name}/fields のレスポンス
- */
+// Chart.js 関連
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ChartOptions,
+  ChartData,
+} from "chart.js";
+import { Line } from "react-chartjs-2";
+
+// Chart.js に必要なプラグイン等を登録
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
 interface GetFieldsResponse {
   fields: string[];
 }
 
-/**
- * /databases/{db_name}/fields/{field}/cell_numbers のレスポンス
- */
 interface GetCellNumbersResponse {
   cell_numbers: number[];
 }
 
-/**
- * /databases/{db_name}/cells/by_field/{field}/cell_number/{cell_number} の簡易レスポンス
- */
 interface CellDataByFieldNumber {
   id: number;
   cell_id: string;
@@ -57,16 +66,10 @@ interface CellDataByFieldNumber {
   perimeter: number;
 }
 
-/**
- * 上記のエンドポイントのレスポンス
- */
 interface GetCellsResponseByFieldNumber {
   cells: CellDataByFieldNumber[];
 }
 
-/**
- * /databases/{db_name}/cells/by_id/{cell_id} のレスポンス
- */
 interface CellDataById {
   id: number;
   cell_id: string;
@@ -77,6 +80,16 @@ interface CellDataById {
   perimeter: number;
   manual_label?: number;
   is_dead?: number;
+}
+
+// API 側が { "areas": number[] } で返却してくるので、
+// フロントで下記のような変換用インターフェースを用意
+interface ContourArea {
+  frame: number;
+  area: number;
+}
+interface GetContourAreasResponse {
+  areas: number[]; // ← 本来は number[] だが、後で {frame, area} に変換する
 }
 
 const url_prefix = settings.url_prefix;
@@ -96,9 +109,7 @@ const TimelapseViewer: React.FC = () => {
   const [selectedCellNumber, setSelectedCellNumber] = useState<number>(0);
 
   // 今表示中のセル情報（by_id から取得した詳細）
-  const [currentCellData, setCurrentCellData] = useState<CellDataById | null>(
-    null
-  );
+  const [currentCellData, setCurrentCellData] = useState<CellDataById | null>(null);
 
   // manual_label のセレクトボックス用
   const manualLabelOptions = ["N/A", "1", "2", "3", "4"];
@@ -114,15 +125,15 @@ const TimelapseViewer: React.FC = () => {
   // 表示したいチャネル（ph, fluo1, fluo2）
   const channels = ["ph", "fluo1", "fluo2"] as const;
 
+  // 輪郭面積（frame, area）に変換後の配列
+  const [contourAreas, setContourAreas] = useState<ContourArea[]>([]);
+
   useEffect(() => {
     if (!dbName) {
       console.error("No db_name is specified in query parameters.");
     }
   }, [dbName]);
 
-  /**
-   * DBのフィールド一覧を取得
-   */
   const fetchFields = async (dbName: string) => {
     try {
       const response = await axios.get<GetFieldsResponse>(
@@ -137,9 +148,6 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  /**
-   * 指定フィールドのセル番号一覧を取得
-   */
   const fetchCellNumbers = async (dbName: string, field: string) => {
     try {
       const response = await axios.get<GetCellNumbersResponse>(
@@ -155,9 +163,6 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  /**
-   * cell_id を指定して詳細 (is_dead 等) を取得
-   */
   const fetchCellDataById = async (cellId: string) => {
     if (!dbName) return null;
     try {
@@ -171,9 +176,6 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  /**
-   * 現在選択中の Field & Cell Number から cell_id を取得後、is_dead 等を含む詳細を再取得
-   */
   const fetchCurrentCellData = async () => {
     if (!dbName || !selectedField || !selectedCellNumber) {
       setCurrentCellData(null);
@@ -181,7 +183,6 @@ const TimelapseViewer: React.FC = () => {
     }
 
     try {
-      // field & cell_number から cell_id を取得
       const response = await axios.get<GetCellsResponseByFieldNumber>(
         `${url_prefix}/tlengine/databases/${dbName}/cells/by_field/${selectedField}/cell_number/${selectedCellNumber}`
       );
@@ -192,7 +193,6 @@ const TimelapseViewer: React.FC = () => {
       }
       const baseCellId = cells[0].cell_id;
 
-      // cell_id で詳細を取得
       const detail = await fetchCellDataById(baseCellId);
       if (detail) {
         setCurrentCellData(detail);
@@ -205,9 +205,6 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  /**
-   * manual_label を変更したら自動的にPATCH
-   */
   const handleChangeManualLabel = async (value: string) => {
     if (!dbName || !currentCellData) return;
     const patchLabel = value === "N/A" ? "N/A" : value;
@@ -217,16 +214,12 @@ const TimelapseViewer: React.FC = () => {
       await axios.patch(
         `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/label?label=${patchLabel}`
       );
-      // 成功後、最新データを再取得
       fetchCurrentCellData();
     } catch (error) {
       console.error("Failed to update manual_label:", error);
     }
   };
 
-  /**
-   * is_dead のチェックが変わったら自動的にPATCH
-   */
   const handleChangeIsDead = async (checked: boolean) => {
     if (!dbName || !currentCellData) return;
     try {
@@ -241,34 +234,22 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  /**
-   * コンポーネント初回表示時にフィールド一覧を取得
-   */
   useEffect(() => {
     if (dbName) {
       fetchFields(dbName);
     }
   }, [dbName]);
 
-  /**
-   * フィールドが変わったらセル番号を取得
-   */
   useEffect(() => {
     if (dbName && selectedField) {
       fetchCellNumbers(dbName, selectedField);
     }
   }, [dbName, selectedField]);
 
-  /**
-   * フィールド or セル番号が変わったら細胞情報を取得
-   */
   useEffect(() => {
     fetchCurrentCellData();
   }, [dbName, selectedField, selectedCellNumber]);
 
-  /**
-   * セル番号を前後に移動する
-   */
   const handlePrevCell = () => {
     if (cellNumbers.length === 0) return;
     const currentIndex = cellNumbers.indexOf(selectedCellNumber);
@@ -285,28 +266,19 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  /**
-   * いずれかが変わったら GIF を再同期する (Key を変える)
-   */
   useEffect(() => {
     setReloadKey((prev) => prev + 1);
   }, [dbName, selectedField, selectedCellNumber]);
 
-  /**
-   * キーボードイベントで各操作を行う
-   */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!currentCellData) return;
-
       switch (e.key) {
         case "d":
-          // is_dead のオン/オフ切り替え
           e.preventDefault();
           handleChangeIsDead(currentCellData.is_dead !== 1);
           break;
         case "n":
-          // manual_label = N/A
           e.preventDefault();
           handleChangeManualLabel("N/A");
           break;
@@ -314,17 +286,14 @@ const TimelapseViewer: React.FC = () => {
         case "2":
         case "3":
         case "4":
-          // manual_label = 1 / 2 / 3 / 4
           e.preventDefault();
           handleChangeManualLabel(e.key);
           break;
         case "Enter":
-          // Next Cell
           e.preventDefault();
           handleNextCell();
           break;
         case " ":
-          // Prev Cell
           e.preventDefault();
           handlePrevCell();
           break;
@@ -345,18 +314,12 @@ const TimelapseViewer: React.FC = () => {
     handlePrevCell,
   ]);
 
-  /**
-   * チャネルごとにタイムラプスGIFの URL を組み立て
-   */
   const gifUrls = channels.map((ch) =>
     dbName
       ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}`
       : ""
   );
 
-  /**
-   * 「Field すべての細胞の GIF プレビュー」を取得するボタン
-   */
   const handlePreviewAllCells = async () => {
     if (!dbName || !selectedField) {
       console.error("DB名やFieldが未選択です。");
@@ -381,6 +344,70 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
+  // ★ ここで number[] → ContourArea[] に変換してから setContourAreas する
+  const fetchContourAreas = async () => {
+    if (!dbName || !selectedField || !selectedCellNumber) {
+      setContourAreas([]);
+      return;
+    }
+    try {
+      const response = await axios.get<GetContourAreasResponse>(
+        `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/contour_areas`
+      );
+      // 受け取った数値配列を { frame, area } の形に変換
+      const converted = response.data.areas.map((value, index) => ({
+        frame: index,
+        area: value,
+      }));
+      setContourAreas(converted);
+    } catch (error) {
+      console.error("Failed to fetch contour areas:", error);
+      setContourAreas([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchContourAreas();
+  }, [dbName, selectedField, selectedCellNumber]);
+
+  const contourAreasChartData: ChartData<"line"> = {
+    labels: contourAreas.map((ca) => ca.frame),
+    datasets: [
+      {
+        label: "Contour Area",
+        data: contourAreas.map((ca) => ca.area),
+        fill: false,
+        borderColor: "rgba(75,192,192,1)",
+        tension: 0.1,
+      },
+    ],
+  };
+
+  const contourAreasChartOptions: ChartOptions<"line"> = {
+    responsive: true,
+    plugins: {
+      title: {
+        display: true,
+        text: "Contour Areas (frame vs. area)",
+      },
+    },
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: "Frame (Index)",
+        },
+      },
+      y: {
+        title: {
+          display: true,
+          text: "Area",
+        },
+        min: 0,
+      },
+    },
+  };
+
   return (
     <>
       <Container
@@ -403,7 +430,6 @@ const TimelapseViewer: React.FC = () => {
           </Breadcrumbs>
         </Box>
 
-        {/* フィールド＆セル番号選択、manual_label、is_dead、ボタン類を同じ行に */}
         <Box
           display="flex"
           flexWrap="wrap"
@@ -444,7 +470,6 @@ const TimelapseViewer: React.FC = () => {
             </Select>
           </FormControl>
 
-          {/* manual_label セレクトボックスと is_dead チェックボックス (currentCellData があるときのみ) */}
           {currentCellData && (
             <>
               <FormControl sx={{ minWidth: 120 }}>
@@ -472,7 +497,7 @@ const TimelapseViewer: React.FC = () => {
               <FormControlLabel
                 control={
                   <Checkbox
-                    color="error" // チェックボックスを赤に
+                    color="error"
                     checked={currentCellData.is_dead === 1}
                     onChange={(e) => handleChangeIsDead(e.target.checked)}
                   />
@@ -482,7 +507,6 @@ const TimelapseViewer: React.FC = () => {
             </>
           )}
 
-          {/* Prev/Next ボタンをアイコン付きに */}
           <Button
             variant="contained"
             startIcon={<ArrowBack />}
@@ -512,7 +536,6 @@ const TimelapseViewer: React.FC = () => {
             Next
           </Button>
 
-          {/* 全細胞の GIF を取得するボタン */}
           <Button
             variant="contained"
             sx={{
@@ -528,13 +551,13 @@ const TimelapseViewer: React.FC = () => {
           </Button>
         </Box>
 
-        {/* タイムラプスGIFの表示（3チャネル） */}
         {dbName ? (
           <Card
             sx={{
               borderRadius: 2,
               boxShadow: 2,
               backgroundColor: "#fff",
+              mb: 4,
             }}
           >
             <CardHeader
@@ -575,9 +598,38 @@ const TimelapseViewer: React.FC = () => {
             データがありません。DB名やフィールドが正しく指定されているか確認してください。
           </Typography>
         )}
+
+        <Card
+          sx={{
+            borderRadius: 2,
+            boxShadow: 2,
+            backgroundColor: "#fff",
+          }}
+        >
+          <CardHeader
+            title="Contour Areas"
+            sx={{
+              pb: 1,
+              "& .MuiCardHeader-title": {
+                fontWeight: "bold",
+              },
+            }}
+          />
+          <CardContent>
+            {contourAreas.length > 0 ? (
+              <Line
+                data={contourAreasChartData}
+                options={contourAreasChartOptions}
+              />
+            ) : (
+              <Typography variant="body1" mt={2}>
+                輪郭面積データがありません。
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
       </Container>
 
-      {/* すべての Cells GIF プレビュー用モーダル */}
       <Dialog
         open={openModal}
         onClose={() => setOpenModal(false)}

@@ -1058,7 +1058,6 @@ class TimelapseDatabaseCrud:
                 status_code=404,
                 detail=f"No data found for field={field}, cell={cell_number}",
             )
-
         areas = []
         for row in cells:
             contour_area = 0.0
