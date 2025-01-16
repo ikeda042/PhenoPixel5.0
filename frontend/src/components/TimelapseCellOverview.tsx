@@ -344,7 +344,7 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  // ★ ここで number[] → ContourArea[] に変換してから setContourAreas する
+  // ★ number[] → ContourArea[] に変換してから setContourAreas する
   const fetchContourAreas = async () => {
     if (!dbName || !selectedField || !selectedCellNumber) {
       setContourAreas([]);
@@ -561,7 +561,7 @@ const TimelapseViewer: React.FC = () => {
             }}
           >
             <CardHeader
-              title="Channels: ph / fluo1 / fluo2"
+              title="Channels / Contour Areas"
               sx={{
                 pb: 1,
                 "& .MuiCardHeader-title": {
@@ -574,10 +574,16 @@ const TimelapseViewer: React.FC = () => {
                 container
                 spacing={2}
                 justifyContent="center"
-                alignItems="center"
+                alignItems="flex-start"
               >
+                {/* 3つのGIFを表示 */}
                 {gifUrls.map((url, idx) => (
-                  <Grid item xs={12} sm={4} key={`${channels[idx]}-${reloadKey}`}>
+                  <Grid
+                    item
+                    xs={12}
+                    md={3}
+                    key={`${channels[idx]}-${reloadKey}`}
+                  >
                     <CardMedia
                       component="img"
                       image={url}
@@ -590,6 +596,20 @@ const TimelapseViewer: React.FC = () => {
                     />
                   </Grid>
                 ))}
+
+                {/* 同じ行にグラフを表示 */}
+                <Grid item xs={12} md={3}>
+                  {contourAreas.length > 0 ? (
+                    <Line
+                      data={contourAreasChartData}
+                      options={contourAreasChartOptions}
+                    />
+                  ) : (
+                    <Typography variant="body1" mt={2}>
+                      輪郭面積データがありません。
+                    </Typography>
+                  )}
+                </Grid>
               </Grid>
             </CardContent>
           </Card>
@@ -598,38 +618,9 @@ const TimelapseViewer: React.FC = () => {
             データがありません。DB名やフィールドが正しく指定されているか確認してください。
           </Typography>
         )}
-
-        <Card
-          sx={{
-            borderRadius: 2,
-            boxShadow: 2,
-            backgroundColor: "#fff",
-          }}
-        >
-          <CardHeader
-            title="Contour Areas"
-            sx={{
-              pb: 1,
-              "& .MuiCardHeader-title": {
-                fontWeight: "bold",
-              },
-            }}
-          />
-          <CardContent>
-            {contourAreas.length > 0 ? (
-              <Line
-                data={contourAreasChartData}
-                options={contourAreasChartOptions}
-              />
-            ) : (
-              <Typography variant="body1" mt={2}>
-                輪郭面積データがありません。
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
       </Container>
 
+      {/* All Cells プレビュー用ダイアログ */}
       <Dialog
         open={openModal}
         onClose={() => setOpenModal(false)}
