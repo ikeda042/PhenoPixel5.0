@@ -918,6 +918,7 @@ class AsyncChores:
     ) -> io.BytesIO:
         """
         (u1,u2) 平面に生データを散布し、多項式近似した曲線と輪郭を表示。
+        重心 (u1_c, u2_c) を (0,0) に平行移動して描画する。
         """
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
@@ -935,8 +936,8 @@ class AsyncChores:
 
         X = np.array(
             [
-                [i[1] for i in coords_inside_cell_1],
-                [i[0] for i in coords_inside_cell_1],
+                [i[1] for i in coords_inside_cell_1],  # x 座標
+                [i[0] for i in coords_inside_cell_1],  # y 座標
             ]
         )
 
@@ -959,38 +960,59 @@ class AsyncChores:
             coords_inside_cell_1,
         )
 
+        u1_shifted = u1 - u1_c
+        u2_shifted = u2 - u2_c
+
+        u1_contour_shifted = u1_contour - u1_c
+        u2_contour_shifted = u2_contour - u2_c
+
+        U_shifted = []
+        for y_val, x_val in U:
+            x_val_shifted = x_val - u1_c
+            y_val_shifted = y_val - u2_c
+            U_shifted.append([y_val_shifted, x_val_shifted])
+
+        contour_U_shifted = []
+        for y_val, x_val in contour_U:
+            x_val_shifted = x_val - u1_c
+            y_val_shifted = y_val - u2_c
+            contour_U_shifted.append([y_val_shifted, x_val_shifted])
+
+        min_u1_shifted = np.min(u1_shifted)
+        max_u1_shifted = np.max(u1_shifted)
+        min_u2_shifted = np.min(u2_shifted)
+        max_u2_shifted = np.max(u2_shifted)
+
         fig = plt.figure(figsize=(6, 6))
-        plt.scatter(u1, u2, s=5)
-        plt.scatter(u1_c, u2_c, color="red", s=100)
+
+        plt.scatter(u1_shifted, u2_shifted, s=5, label="Points in cell")
+
+        plt.scatter([0], [0], color="red", s=100, label="Centroid (0,0)")
+
         plt.axis("equal")
         margin_width = 50
         margin_height = 50
         plt.scatter(
-            [i[1] for i in U],
-            [i[0] for i in U],
-            points_inside_cell_1,
+            [i[1] for i in U_shifted],  # x
+            [i[0] for i in U_shifted],  # y
             c=points_inside_cell_1,
             cmap="inferno",
             marker="o",
+            s=20,
+            label="Intensity",
         )
-        plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
-        plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
+
+        plt.xlim([min_u1_shifted - margin_width, max_u1_shifted + margin_width])
+        plt.ylim([min_u2_shifted - margin_height, max_u2_shifted + margin_height])
 
         max_val = np.max(points_inside_cell_1) if len(points_inside_cell_1) else 1
         normalized_points = [i / max_val for i in points_inside_cell_1]
 
+        # テキストで統計量を表示
         plt.text(
             0.5,
-            0.2,
+            0.20,
             f"Median: {np.median(points_inside_cell_1):.2f}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
-        plt.text(
-            0.5,
-            0.1,
-            f"Normalized median: {np.median(normalized_points):.2f}",
             horizontalalignment="center",
             verticalalignment="center",
             transform=plt.gca().transAxes,
@@ -1005,6 +1027,14 @@ class AsyncChores:
         )
         plt.text(
             0.5,
+            0.10,
+            f"Normalized median: {np.median(normalized_points):.2f}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
+        plt.text(
+            0.5,
             0.05,
             f"Normalized mean: {np.mean(normalized_points):.2f}",
             horizontalalignment="center",
@@ -1012,18 +1042,30 @@ class AsyncChores:
             transform=plt.gca().transAxes,
         )
 
-        x = np.linspace(min_u1, max_u1, 1000)
-        theta = await AsyncChores.poly_fit(U, degree=degree)
-        y = np.polyval(theta, x)
-        plt.plot(x, y, color="red")
-        plt.scatter(u1_contour, u2_contour, color="lime", s=20)
+        # 多項式近似のための x 軸生成: シフト後の範囲で
+        x_for_fit = np.linspace(min_u1_shifted, max_u1_shifted, 1000)
+        # シフト後の U を渡してフィッティング
+        theta = await AsyncChores.poly_fit(U_shifted, degree=degree)
+        y_for_fit = np.polyval(theta, x_for_fit)
+
+        # 多項式近似曲線をプロット
+        plt.plot(x_for_fit, y_for_fit, color="red", label="Poly fit")
+
+        # 輪郭を lime 色で描画 (シフト済み)
+        plt.scatter(
+            u1_contour_shifted, u2_contour_shifted, color="lime", s=20, label="Contour"
+        )
+
         plt.tick_params(direction="in")
         plt.grid(True)
+        plt.legend()
 
+        # 出力用バッファ
         buf = io.BytesIO()
         plt.savefig(buf, format="png")
         buf.seek(0)
         plt.close(fig)
+
         return buf
 
     @staticmethod

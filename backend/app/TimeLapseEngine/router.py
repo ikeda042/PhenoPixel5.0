@@ -4,6 +4,7 @@ import os
 import aiofiles
 from TimeLapseEngine.crud import TimelapseDatabaseCrud
 import io
+from typing import Literal
 
 # 上で定義した TimelapseEngineCrudBase をインポート
 from .crud import TimelapseEngineCrudBase
@@ -311,8 +312,8 @@ async def replot_cell(
     db_name: str,
     field: str,
     cell_number: int,
-    channel: str,
-    degree: int,
+    channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+    degree: int = 4,
 ):
     """
     指定した field, cell_number, channel の全フレームを取得し、
