@@ -162,7 +162,7 @@ class SyncChores:
     def extract_timelapse_nd2(cls, file_name: str):
         """
         タイムラプス nd2 ファイルを Field ごと・時系列ごとに TIFF で保存（補正後を上書き保存）。
-        (チャンネル0 -> fluo, チャンネル1 -> ph の想定)
+        (チャンネル0 -> ph, チャンネル1 -> fluo1, チャンネル2 -> fluo2 の想定)
         """
         base_output_dir = "uploaded_files/"
         # 既存の作業用フォルダがあれば削除し、再作成
@@ -189,13 +189,16 @@ class SyncChores:
                 )
                 os.makedirs(field_folder, exist_ok=True)
                 base_output_subdir_ph = os.path.join(field_folder, "ph")
-                base_output_subdir_fluo = os.path.join(field_folder, "fluo")
+                base_output_subdir_fluo1 = os.path.join(field_folder, "fluo1")
+                base_output_subdir_fluo2 = os.path.join(field_folder, "fluo2")
                 os.makedirs(base_output_subdir_ph, exist_ok=True)
-                os.makedirs(base_output_subdir_fluo, exist_ok=True)
+                os.makedirs(base_output_subdir_fluo1, exist_ok=True)
+                os.makedirs(base_output_subdir_fluo2, exist_ok=True)
 
-                # ph, fluo それぞれの参照画像を初期化
+                # 3チャンネル分の参照画像を初期化
                 reference_image_ph = None
-                reference_image_fluo = None
+                reference_image_fluo1 = None
+                reference_image_fluo2 = None
 
                 # 並列実行のためのキュー
                 tasks = []
@@ -208,22 +211,20 @@ class SyncChores:
                             )
                             channel_image = cls.process_image(frame_data)
 
-                            # 保存先のパスを作成
-                            if channel_idx == 1:  # ph チャンネル
+                            # 保存先のパスを作成＆ドリフト補正の参照画像を扱う
+                            if channel_idx == 0:  # ph
                                 tiff_filename = os.path.join(
                                     base_output_subdir_ph,
                                     f"time_{time_idx + 1}.tif",
                                 )
                                 if time_idx == 0:
-                                    # 1フレーム目：参照画像をセット
                                     reference_image_ph = channel_image
-                                    # ※もし1フレーム目も補正したい場合は下の行をコメントアウトして、
-                                    #   'corrected_image = cls.correct_drift(...)' を呼び出すように変更してください
-                                    corrected_image = channel_image
+                                    corrected_image = (
+                                        channel_image  # 1フレーム目はそのまま
+                                    )
                                     Image.fromarray(corrected_image).save(tiff_filename)
                                     print(f"Saved (ph, first): {tiff_filename}")
                                 else:
-                                    # 2フレーム目以降は drift 補正して上書き保存
                                     tasks.append(
                                         executor.submit(
                                             cls._drift_and_save,
@@ -232,25 +233,46 @@ class SyncChores:
                                             tiff_filename,
                                         )
                                     )
-                            else:  # fluo チャンネル
+
+                            elif channel_idx == 1:  # fluo1
                                 tiff_filename = os.path.join(
-                                    base_output_subdir_fluo,
+                                    base_output_subdir_fluo1,
                                     f"time_{time_idx + 1}.tif",
                                 )
                                 if time_idx == 0:
-                                    # 1フレーム目：参照画像をセット
-                                    reference_image_fluo = channel_image
-                                    # ※もし1フレーム目も補正したい場合は下の行をコメントアウトして、
-                                    #   'corrected_image = cls.correct_drift(...)' を呼び出すように変更してください
-                                    corrected_image = channel_image
+                                    reference_image_fluo1 = channel_image
+                                    corrected_image = (
+                                        channel_image  # 1フレーム目はそのまま
+                                    )
                                     Image.fromarray(corrected_image).save(tiff_filename)
-                                    print(f"Saved (fluo, first): {tiff_filename}")
+                                    print(f"Saved (fluo1, first): {tiff_filename}")
                                 else:
-                                    # 2フレーム目以降は drift 補正して上書き保存
                                     tasks.append(
                                         executor.submit(
                                             cls._drift_and_save,
-                                            reference_image_fluo,
+                                            reference_image_fluo1,
+                                            channel_image,
+                                            tiff_filename,
+                                        )
+                                    )
+
+                            elif channel_idx == 2:  # fluo2
+                                tiff_filename = os.path.join(
+                                    base_output_subdir_fluo2,
+                                    f"time_{time_idx + 1}.tif",
+                                )
+                                if time_idx == 0:
+                                    reference_image_fluo2 = channel_image
+                                    corrected_image = (
+                                        channel_image  # 1フレーム目はそのまま
+                                    )
+                                    Image.fromarray(corrected_image).save(tiff_filename)
+                                    print(f"Saved (fluo2, first): {tiff_filename}")
+                                else:
+                                    tasks.append(
+                                        executor.submit(
+                                            cls._drift_and_save,
+                                            reference_image_fluo2,
                                             channel_image,
                                             tiff_filename,
                                         )
@@ -279,10 +301,13 @@ class SyncChores:
     ) -> io.BytesIO:
         """
         ph と fluo を横並びに合成した GIF をメモリ上 (BytesIO) に作成して返す。
+        この例では元コードと同じく ph, fluo の2チャンネルを前提とする
         """
 
         ph_folder = os.path.join(field_folder, "ph")
-        fluo_folder = os.path.join(field_folder, "fluo")
+        fluo_folder = os.path.join(
+            field_folder, "fluo1"
+        )  # 例: fluo1 を GIF で合成する場合に使用
 
         # 時間インデックスを取り出すための正規表現
         def extract_time_index(path: str) -> int:
