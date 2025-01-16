@@ -85,19 +85,6 @@ async def delete_nd2_file(file_path: str):
     return JSONResponse(content={"detail": f"{file_path} deleted successfully."})
 
 
-# @router_tl_engine.get("/nd2_files/{file_name}/cells/{Field}")
-# async def extract_cells(file_name: str, Field: str, param_1: int):
-#     """
-#     セルを抽出し、データベースに保存するエンドポイント。
-#     デバッグ用途で使う。
-#     """
-#     db_name = file_name.split(".")[0] + f"_{Field}_cells.db"
-#     await TimelapseEngineCrudBase(file_name).extract_cells(
-#         field=Field, dbname=db_name, param1=param_1
-#     )
-#     return JSONResponse(content={"message": "Cells extracted and saved to database."})
-
-
 @router_tl_engine.get("/nd2_files/{file_name}/cells")
 async def extract_all_cells(file_name: str, param_1: int, crop_size: int = 200):
     """
