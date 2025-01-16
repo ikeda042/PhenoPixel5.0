@@ -125,7 +125,7 @@ const GraphEngine: React.FC = () => {
               mb: 2,
             }}
           >
-            <FormControl sx={{ flex: 1 }}>
+            {/* <FormControl sx={{ flex: 1 }}>
               <TextField
                 label="blank_index"
                 type="number"
@@ -133,7 +133,7 @@ const GraphEngine: React.FC = () => {
                 onChange={(e) => setBlankIndex(e.target.value)}
                 disabled={isLoading}
               />
-            </FormControl>
+            </FormControl> */}
 
             <FormControl sx={{ flex: 1 }}>
               <TextField
