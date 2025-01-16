@@ -9,7 +9,6 @@ import {
   InputLabel,
   Button,
   Card,
-  CardHeader,
   CardContent,
   CardMedia,
   Breadcrumbs,
@@ -114,7 +113,7 @@ const TimelapseViewer: React.FC = () => {
   // manual_label のセレクトボックス用
   const manualLabelOptions = ["N/A", "1", "2", "3", "4"];
 
-  // GIF の再生タイミングを揃えるためのキー
+  // 「全 GIF を同じタイミングで再生開始する」ため、URLパラメータに利用するキー
   const [reloadKey, setReloadKey] = useState<number>(0);
 
   // 「All Cells」プレビュー用のモーダル管理
@@ -122,15 +121,18 @@ const TimelapseViewer: React.FC = () => {
   const [loadingAllCells, setLoadingAllCells] = useState<boolean>(false);
   const [allCellsGifUrl, setAllCellsGifUrl] = useState<string>("");
 
-  // 表示したいチャネル（ph, fluo1, fluo2）
+  // 表示したいチャネル（ph, fluo1, fluo2） - 通常 GIF 用
   const channels = ["ph", "fluo1", "fluo2"] as const;
 
   // 輪郭面積（frame, area）に変換後の配列
   const [contourAreas, setContourAreas] = useState<ContourArea[]>([]);
 
   // ★ 描画モードの状態を管理
-  type DrawMode = "ContourAreas" | "AnotherMode";
+  type DrawMode = "ContourAreas" | "Replot";
   const [drawMode, setDrawMode] = useState<DrawMode>("ContourAreas");
+
+  // ★ Replot 用に、ph, fluo1, fluo2 のどれかを選択できるようにする
+  const [replotChannel, setReplotChannel] = useState<"ph" | "fluo1" | "fluo2">("ph");
 
   useEffect(() => {
     if (!dbName) {
@@ -286,6 +288,7 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
+  // ★ Field や Cell 番号などが変化したとき、全てのGIFを強制リロードして「最初から同時再生」させたい
   useEffect(() => {
     setReloadKey((prev) => prev + 1);
   }, [dbName, selectedField, selectedCellNumber]);
@@ -334,11 +337,19 @@ const TimelapseViewer: React.FC = () => {
     handlePrevCell,
   ]);
 
+  // 通常 GIF (3 枚表示する場合)
+  // duration=200 に加え、&_syncKey=reloadKey を付与してキャッシュを回避し、同時リロードできるようにする
   const gifUrls = channels.map((ch) =>
     dbName
-      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}`
+      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200&_syncKey=${reloadKey}`
       : ""
   );
+
+  // Replot 用 GIF (モードが Replot の時に表示)
+  // 同様に &_syncKey を付与
+  const replotGifUrl = dbName
+    ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/replot?channel=${replotChannel}&degree=4&duration=200&_syncKey=${reloadKey}`
+    : "";
 
   const handlePreviewAllCells = async () => {
     if (!dbName || !selectedField) {
@@ -406,7 +417,7 @@ const TimelapseViewer: React.FC = () => {
   // maintainAspectRatio を false にして、親要素のサイズに合わせられるようにする
   const contourAreasChartOptions: ChartOptions<"line"> = {
     responsive: true,
-    maintainAspectRatio: false, // これで親要素に合わせて拡大縮小
+    maintainAspectRatio: false,
     plugins: {
       title: {
         display: true,
@@ -573,7 +584,7 @@ const TimelapseViewer: React.FC = () => {
           </Button>
         </Box>
 
-        {/* ★ 新たに描画モード切り替え用のSelectを追加 */}
+        {/* ★ 描画モード切り替え用のSelect */}
         <Box mb={2} display="flex" alignItems="center" gap={2}>
           <FormControl sx={{ minWidth: 180 }}>
             <InputLabel id="draw-mode-select-label">DrawMode</InputLabel>
@@ -584,9 +595,28 @@ const TimelapseViewer: React.FC = () => {
               onChange={(e) => setDrawMode(e.target.value as DrawMode)}
             >
               <MenuItem value="ContourAreas">ContourAreas</MenuItem>
-              <MenuItem value="AnotherMode">AnotherMode</MenuItem>
+              <MenuItem value="Replot">Replot</MenuItem>
             </Select>
           </FormControl>
+
+          {/* Replot のチャンネル選択用 */}
+          {drawMode === "Replot" && (
+            <FormControl sx={{ minWidth: 120 }}>
+              <InputLabel id="replot-channel-label">Channel</InputLabel>
+              <Select
+                labelId="replot-channel-label"
+                value={replotChannel}
+                label="Channel"
+                onChange={(e) =>
+                  setReplotChannel(e.target.value as "ph" | "fluo1" | "fluo2")
+                }
+              >
+                <MenuItem value="ph">ph</MenuItem>
+                <MenuItem value="fluo1">fluo1</MenuItem>
+                <MenuItem value="fluo2">fluo2</MenuItem>
+              </Select>
+            </FormControl>
+          )}
         </Box>
 
         {dbName ? (
@@ -602,10 +632,16 @@ const TimelapseViewer: React.FC = () => {
               <Grid
                 container
                 spacing={2}
+                // 幅がある画面ではなるべく 1 行で 4 枚並ぶようにする
+                // （小さい画面では折り返す場合もあります）
                 justifyContent="center"
                 alignItems="flex-start"
               >
-                {/* 3つのGIFを表示 */}
+                {/* 
+                  いつも 3つの通常GIF を先に表示
+                  key に reloadKey を含めることで、リロード時に再描画を強制して、
+                  GIF を一斉に最初から再生します。
+                */}
                 {gifUrls.map((url, idx) => (
                   <Grid
                     item
@@ -626,7 +662,27 @@ const TimelapseViewer: React.FC = () => {
                   </Grid>
                 ))}
 
-                {/* 描画モードごとに表示を切り替え */}
+                {/* 
+                  Replotモードのときは 4 枚目として Replot GIF を同じ行に表示
+                  ContourAreas モードのときはグラフを表示
+                */}
+                {drawMode === "Replot" && (
+                  <Grid item xs={12} md={3}>
+                    <CardMedia
+                      component="img"
+                      image={replotGifUrl}
+                      alt={`replot-${replotChannel}`}
+                      key={`replot-${replotChannel}-${reloadKey}`}
+                      sx={{
+                        width: "100%",
+                        borderRadius: 2,
+                        objectFit: "contain",
+                      }}
+                    />
+                  </Grid>
+                )}
+
+                {/* ContourAreas モードのときにグラフ表示 */}
                 {drawMode === "ContourAreas" && (
                   <Grid item xs={12} md={3}>
                     <Box
@@ -659,29 +715,6 @@ const TimelapseViewer: React.FC = () => {
                           輪郭面積データがありません。
                         </Typography>
                       )}
-                    </Box>
-                  </Grid>
-                )}
-
-                {drawMode === "AnotherMode" && (
-                  <Grid item xs={12} md={3}>
-                    <Box
-                      sx={{
-                        // GIFと同じように幅100%で、縦横比1:1に調整
-                        position: "relative",
-                        width: "100%",
-                        paddingBottom: "100%",
-                        borderRadius: 2,
-                        overflow: "hidden",
-                        backgroundColor: "#fafafa",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Typography variant="body1">
-                        ここに別の描画モードのコンテンツを表示
-                      </Typography>
                     </Box>
                   </Grid>
                 )}

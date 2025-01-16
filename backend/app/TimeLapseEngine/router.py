@@ -4,6 +4,7 @@ import os
 import aiofiles
 from TimeLapseEngine.crud import TimelapseDatabaseCrud
 import io
+from typing import Literal
 
 # 上で定義した TimelapseEngineCrudBase をインポート
 from .crud import TimelapseEngineCrudBase
@@ -304,3 +305,26 @@ async def get_contour_areas_by_cell_number(db_name: str, field: str, cell_number
     crud = TimelapseDatabaseCrud(dbname=db_name)
     areas = await crud.get_contour_areas_by_cell_number(field, cell_number)
     return JSONResponse(content={"areas": areas})
+
+
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/replot")
+async def replot_cell(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+    degree: int = 4,
+):
+    """
+    指定した field, cell_number, channel の全フレームを取得し、
+    replot で生成した画像を GIF 化して返すエンドポイント。
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    gif_buffer = await crud.replot_cell(field, cell_number, channel, degree)
+    return StreamingResponse(
+        gif_buffer,
+        media_type="image/gif",
+        headers={
+            "Content-Disposition": f"attachment; filename={field}_{cell_number}_{channel}.gif"
+        },
+    )
