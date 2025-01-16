@@ -576,7 +576,7 @@ const TimelapseViewer: React.FC = () => {
         {/* ★ 新たに描画モード切り替え用のSelectを追加 */}
         <Box mb={2} display="flex" alignItems="center" gap={2}>
           <FormControl sx={{ minWidth: 180 }}>
-            <InputLabel id="draw-mode-select-label">描画モード</InputLabel>
+            <InputLabel id="draw-mode-select-label">DrawMode</InputLabel>
             <Select
               labelId="draw-mode-select-label"
               value={drawMode}
