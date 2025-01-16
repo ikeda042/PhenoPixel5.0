@@ -306,65 +306,6 @@ async def get_contour_areas_by_cell_number(db_name: str, field: str, cell_number
     return JSONResponse(content={"areas": areas})
 
 
-# async def replot_cell(
-#         self,
-#         field: str,
-#         cell_number: int,
-#         channel: str,
-#         degree: int,
-#     ) -> io.BytesIO:
-#         """
-#         指定した field, cell_number, channel の先頭フレームを取り出し、
-#         蛍光画像と輪郭 contour を用いて SyncChores/AsyncChores.replot の
-#         グラフを生成して返す例。
-#         """
-#         # データベースから最初のフレームを取得 (time昇順)
-#         async with get_session(self.dbname) as session:
-#             result = await session.execute(
-#                 select(Cell)
-#                 .filter_by(field=field, cell=cell_number)
-#                 .order_by(Cell.time)
-#             )
-#             cell = result.scalars().first()
-
-#         if not cell:
-#             raise HTTPException(
-#                 status_code=404,
-#                 detail=f"No data found for field={field}, cell={cell_number}",
-#             )
-
-#         # チャネルごとの画像バイナリを取得（PH 以外を想定）
-#         if channel == "ph":
-#             # このままだと相当する蛍光画像がないので例外を投げるか、
-#             # 実際にPHでも構わないなら、このまま使う。
-#             # ただし replot は蛍光画像を使う想定のため注意。
-#             image_fluo_raw = cell.img_ph
-#         elif channel == "fluo1":
-#             image_fluo_raw = cell.img_fluo1
-#         else:
-#             image_fluo_raw = cell.img_fluo2
-
-#         if not image_fluo_raw:
-#             raise HTTPException(
-#                 status_code=404,
-#                 detail=f"No {channel} data found for field={field}, cell={cell_number}",
-#             )
-
-#         if not cell.contour:
-#             raise HTTPException(
-#                 status_code=404,
-#                 detail=f"No contour data found for field={field}, cell={cell_number}",
-#             )
-
-#         # 輪郭バイナリ
-#         contour_raw = cell.contour
-
-#         # replot関数を実行し、返ってきた画像を io.BytesIO として受け取る
-#         buf = await CellDBAsyncChores.replot(image_fluo_raw, contour_raw, degree)
-
-#         return buf
-
-
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/replot")
 async def replot_cell(
     db_name: str,
