@@ -45,6 +45,9 @@ const TimelapseParser: React.FC = () => {
   // param1 を文字列で管理
   const [param1, setParam1] = useState<string>("");
 
+  // cropSize を文字列で管理
+  const [cropSize, setCropSize] = useState<string>("200");
+
   // GIF 表示関連 (raw, extracted それぞれの URL)
   const [gifUrlRaw, setGifUrlRaw] = useState<string>("");
   const [gifUrlExtracted, setGifUrlExtracted] = useState<string>("");
@@ -136,18 +139,19 @@ const TimelapseParser: React.FC = () => {
 
   /**
    * "Extract cells"ボタン押下時に呼び出す
-   * 全ての Field を対象にセルを抽出するが、param1 を必ず指定
-   * GET /tlengine/nd2_files/{file_name}/cells?param_1=...
+   * 全ての Field を対象にセルを抽出するが、param1, crop_size をクエリパラメータで指定
+   * GET /tlengine/nd2_files/{file_name}/cells?param_1=...&crop_size=...
    */
   const handleExtractAllCells = async () => {
     if (!fileName) return;
     setIsLoading(true);
     try {
-      // param1 をクエリに付与 (サーバ側は param_1 の名前で受け取る)
       await axios.get(`${url_prefix}/tlengine/nd2_files/${fileName}/cells`, {
-        params: { param_1: Number(param1) }
+        params: { param_1: Number(param1), crop_size: Number(cropSize) }
       });
-      alert(`Cells have been extracted successfully! (param1=${param1})`);
+      alert(
+        `Cells have been extracted successfully! (param1=${param1}, crop_size=${cropSize})`
+      );
     } catch (error) {
       console.error("Failed to extract cells", error);
     } finally {
@@ -252,6 +256,17 @@ const TimelapseParser: React.FC = () => {
                       inputMode="numeric"
                       value={param1}
                       onChange={(e) => setParam1(e.target.value)}
+                      fullWidth
+                      sx={{ mb: 2 }}
+                    />
+
+                    {/* cropSize入力フォーム */}
+                    <TextField
+                      label="cropSize"
+                      type="text"
+                      inputMode="numeric"
+                      value={cropSize}
+                      onChange={(e) => setCropSize(e.target.value)}
                       fullWidth
                       sx={{ mb: 2 }}
                     />
