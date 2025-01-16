@@ -73,10 +73,12 @@ def _draw_graph_from_memory(
         plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
         plt.xlabel("time(h)")
         plt.ylabel("OD600(-)")
+
         for i in data[key_char]:
             key = [j for j in i.keys()][0]
             y = i[key]
             plt.scatter(x, y, label=f"{key}", s=6)
+
         plt.legend(title="Series")
         buf = io.BytesIO()
         fig.savefig(buf, dpi=300, format="png")
@@ -88,26 +90,39 @@ def _draw_graph_from_memory(
 
 
 def _blocking_combine_images_in_memory(image_bytes: List[bytes], per_row: int) -> bytes:
+    """
+    今回は per_row を「1列あたりの画像数（縦方向の数）」として利用し、
+    列数が多くなるように画像を配置する。
+    """
     images = []
     for img_data in image_bytes:
         arr = np.frombuffer(img_data, np.uint8)
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
         images.append(img)
 
+    # それぞれの画像の最大の幅・高さを取得
     max_width = max(img.shape[1] for img in images)
     max_height = max(img.shape[0] for img in images)
-    num_images = len(images)
-    num_rows = num_images // per_row
-    if num_images % per_row != 0:
-        num_rows += 1
 
-    final_image = np.zeros(
-        (num_rows * max_height, per_row * max_width, 3), dtype=np.uint8
+    # 画像の総数
+    num_images = len(images)
+    # 今回は「縦 = per_row」でそろえ、横方向に枚数が増える形にする
+    num_cols = num_images // per_row
+    if num_images % per_row != 0:
+        num_cols += 1
+
+    # 背景を白(255)で埋める
+    final_image = np.full(
+        (per_row * max_height, num_cols * max_width, 3), 255, dtype=np.uint8  # 白
     )
 
+    # 画像を final_image に貼り付け
     for i, img in enumerate(images):
-        top = (i // per_row) * max_height
-        left = (i % per_row) * max_width
+        row_idx = i % per_row
+        col_idx = i // per_row
+
+        top = row_idx * max_height
+        left = col_idx * max_width
         final_image[top : top + img.shape[0], left : left + img.shape[1]] = img
 
     _, encoded_img = cv2.imencode(".png", final_image)
@@ -121,3 +136,24 @@ async def combine_images_in_memory(image_bytes: List[bytes], per_row: int) -> by
             pool, _blocking_combine_images_in_memory, image_bytes, per_row
         )
     return result
+
+
+@app.post("/upload-and-combine/")
+async def upload_and_combine(
+    files: List[UploadFile],
+    blank_index: str = Query(...),
+    per_row: int = Query(2),  # ここで1列あたりの画像数（縦方向の画像数）を指定
+):
+    """
+    複数の CSV を受け取り、グラフ化してまとめて返すエンドポイント
+    """
+    # まず CSV を順番にグラフ化
+    all_image_bytes = []
+    for file in files:
+        images = _draw_graph_from_memory(file, blank_index)
+        all_image_bytes.extend(images)
+
+    # 生成したグラフを一つに結合
+    combined_image = await combine_images_in_memory(all_image_bytes, per_row)
+
+    return StreamingResponse(io.BytesIO(combined_image), media_type="image/png")
