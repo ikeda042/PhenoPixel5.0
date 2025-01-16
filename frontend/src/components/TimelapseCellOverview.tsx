@@ -113,7 +113,7 @@ const TimelapseViewer: React.FC = () => {
   // manual_label のセレクトボックス用
   const manualLabelOptions = ["N/A", "1", "2", "3", "4"];
 
-  // GIF の再生タイミングを揃えるためのキー
+  // 「全 GIF を同じタイミングで再生開始する」ため、URLパラメータに利用するキー
   const [reloadKey, setReloadKey] = useState<number>(0);
 
   // 「All Cells」プレビュー用のモーダル管理
@@ -288,6 +288,7 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
+  // ★ Field や Cell 番号などが変化したとき、全てのGIFを強制リロードして「最初から同時再生」させたい
   useEffect(() => {
     setReloadKey((prev) => prev + 1);
   }, [dbName, selectedField, selectedCellNumber]);
@@ -337,17 +338,17 @@ const TimelapseViewer: React.FC = () => {
   ]);
 
   // 通常 GIF (3 枚表示する場合)
-  // ★ duration=200 をパラメータに付与してタイミングを揃える
+  // duration=200 に加え、&_syncKey=reloadKey を付与してキャッシュを回避し、同時リロードできるようにする
   const gifUrls = channels.map((ch) =>
     dbName
-      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200`
+      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200&_syncKey=${reloadKey}`
       : ""
   );
 
   // Replot 用 GIF (モードが Replot の時に表示)
-  // 同様に duration=200 を付与
+  // 同様に &_syncKey を付与
   const replotGifUrl = dbName
-    ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/replot?channel=${replotChannel}&degree=4&duration=200`
+    ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/replot?channel=${replotChannel}&degree=4&duration=200&_syncKey=${reloadKey}`
     : "";
 
   const handlePreviewAllCells = async () => {
@@ -638,6 +639,8 @@ const TimelapseViewer: React.FC = () => {
               >
                 {/* 
                   いつも 3つの通常GIF を先に表示
+                  key に reloadKey を含めることで、リロード時に再描画を強制して、
+                  GIF を一斉に最初から再生します。
                 */}
                 {gifUrls.map((url, idx) => (
                   <Grid
