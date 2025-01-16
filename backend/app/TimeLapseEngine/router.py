@@ -306,6 +306,90 @@ async def get_contour_areas_by_cell_number(db_name: str, field: str, cell_number
     return JSONResponse(content={"areas": areas})
 
 
+# async def replot_cell(
+#         self,
+#         field: str,
+#         cell_number: int,
+#         channel: str,
+#         degree: int,
+#     ) -> io.BytesIO:
+#         """
+#         指定した field, cell_number, channel の全フレームを取得し、
+#         replot で生成した画像を GIF 化して返す例。
+#         """
+
+#         # データベースから frame の一覧を time 昇順に取得
+#         async with get_session(self.dbname) as session:
+#             result = await session.execute(
+#                 select(Cell)
+#                 .filter_by(field=field, cell=cell_number)
+#                 .order_by(Cell.time)
+#             )
+#             cells = result.scalars().all()
+
+#         if not cells:
+#             raise HTTPException(
+#                 status_code=404,
+#                 detail=f"No cells found for field={field}, cell_number={cell_number}",
+#             )
+
+#         frames: t.List[Image.Image] = []  # Pillow Image のリスト
+
+#         for i, cell in enumerate(cells):
+#             # チャネルごとの画像バイナリを取得 (PH 以外を想定)
+#             if channel == "ph":
+#                 # replot で正しく扱える蛍光画像がない場合、別途例外を投げるか
+#                 # そのまま PH でも使うかは運用次第
+#                 image_fluo_raw = cell.img_ph
+#             elif channel == "fluo1":
+#                 image_fluo_raw = cell.img_fluo1
+#             else:
+#                 image_fluo_raw = cell.img_fluo2
+
+#             if not image_fluo_raw:
+#                 raise HTTPException(
+#                     status_code=404,
+#                     detail=f"No {channel} data found for field={field}, cell={cell_number} (frame index={i})",
+#                 )
+
+#             if not cell.contour:
+#                 raise HTTPException(
+#                     status_code=404,
+#                     detail=f"No contour data found for field={field}, cell={cell_number} (frame index={i})",
+#                 )
+
+#             contour_raw = cell.contour
+
+#             # replot 関数を実行し、返ってきた画像を io.BytesIO として受け取り
+#             buf = await CellDBAsyncChores.replot(image_fluo_raw, contour_raw, degree)
+#             buf.seek(0)
+
+#             # Pillow Image として開き、frames に追加
+#             frames.append(Image.open(buf))
+
+#         if not frames:
+#             raise HTTPException(
+#                 status_code=404,
+#                 detail=f"No frames were generated for field={field}, cell={cell_number}",
+#             )
+
+#         # GIF 用の BytesIO を作成
+#         gif_buf = io.BytesIO()
+
+#         # 先頭のフレームに残りを連結して GIF を書き込み
+#         frames[0].save(
+#             gif_buf,
+#             format="GIF",
+#             save_all=True,
+#             append_images=frames[1:],
+#             loop=0,  # 0にすると無限ループ
+#             duration=200,  # フレーム間隔[ms]
+#         )
+
+#         gif_buf.seek(0)
+#         return gif_buf
+
+
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/replot")
 async def replot_cell(
     db_name: str,
@@ -315,16 +399,15 @@ async def replot_cell(
     degree: int,
 ):
     """
-    指定した field, cell_number, channel の先頭フレームを取り出し、
-    蛍光画像と輪郭 contour を用いて SyncChores/AsyncChores.replot の
-    グラフを生成して返すエンドポイント。
+    指定した field, cell_number, channel の全フレームを取得し、
+    replot で生成した画像を GIF 化して返すエンドポイント。
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
-    buf = await crud.replot_cell(field, cell_number, channel, degree)
+    gif_buffer = await crud.replot_cell(field, cell_number, channel, degree)
     return StreamingResponse(
-        buf,
-        media_type="image/png",
+        gif_buffer,
+        media_type="image/gif",
         headers={
-            "Content-Disposition": f"attachment; filename={field}_{cell_number}_{channel}.png"
+            "Content-Disposition": f"attachment; filename={field}_{cell_number}_{channel}.gif"
         },
     )
