@@ -25,10 +25,28 @@ import {
   FormControlLabel,
   Grid,
 } from "@mui/material";
-import { ArrowBack, ArrowForward } from "@mui/icons-material"; // ← アイコンを追加
+import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import { settings } from "../settings";
+
+// Chart.js 関連
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ChartOptions,
+  ChartData,
+} from "chart.js";
+import { Line } from "react-chartjs-2";
+
+// Chart.js に必要なプラグイン等を登録
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 /**
  * /databases/{db_name}/fields のレスポンス
@@ -79,6 +97,17 @@ interface CellDataById {
   is_dead?: number;
 }
 
+/**
+ * /databases/{db_name}/cells/{field}/{cell_number}/contour_areas のレスポンス
+ */
+interface ContourArea {
+  frame: number;
+  area: number;
+}
+interface GetContourAreasResponse {
+  areas: ContourArea[];
+}
+
 const url_prefix = settings.url_prefix;
 
 const TimelapseViewer: React.FC = () => {
@@ -113,6 +142,9 @@ const TimelapseViewer: React.FC = () => {
 
   // 表示したいチャネル（ph, fluo1, fluo2）
   const channels = ["ph", "fluo1", "fluo2"] as const;
+
+  // 輪郭面積（frame, area）の配列
+  const [contourAreas, setContourAreas] = useState<ContourArea[]>([]);
 
   useEffect(() => {
     if (!dbName) {
@@ -242,7 +274,7 @@ const TimelapseViewer: React.FC = () => {
   };
 
   /**
-   * コンポーネント初回表示時にフィールド一覧を取得
+   * フィールド一覧を取得（初回表示時）
    */
   useEffect(() => {
     if (dbName) {
@@ -381,6 +413,69 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
+  /**
+   * 輪郭面積 (frame, area) の折れ線グラフを取得・表示
+   */
+  const fetchContourAreas = async () => {
+    if (!dbName || !selectedField || !selectedCellNumber) {
+      setContourAreas([]);
+      return;
+    }
+    try {
+      const response = await axios.get<GetContourAreasResponse>(
+        `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/contour_areas`
+      );
+      setContourAreas(response.data.areas);
+    } catch (error) {
+      console.error("Failed to fetch contour areas:", error);
+      setContourAreas([]);
+    }
+  };
+
+  // selectedField, selectedCellNumber が決まるたびに輪郭面積情報を再取得
+  useEffect(() => {
+    fetchContourAreas();
+  }, [dbName, selectedField, selectedCellNumber]);
+
+  // Chart.js のデータ定義
+  const contourAreasChartData: ChartData<"line"> = {
+    labels: contourAreas.map((d) => d.frame),
+    datasets: [
+      {
+        label: "Contour Area",
+        data: contourAreas.map((d) => d.area),
+        fill: false,
+        borderColor: "rgba(75,192,192,1)",
+        tension: 0.1,
+      },
+    ],
+  };
+
+  // Chart.js のオプション
+  const contourAreasChartOptions: ChartOptions<"line"> = {
+    responsive: true,
+    plugins: {
+      title: {
+        display: true,
+        text: "Contour Areas (frame vs. area)",
+      },
+    },
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: "Frame",
+        },
+      },
+      y: {
+        title: {
+          display: true,
+          text: "Area",
+        },
+      },
+    },
+  };
+
   return (
     <>
       <Container
@@ -482,7 +577,7 @@ const TimelapseViewer: React.FC = () => {
             </>
           )}
 
-          {/* Prev/Next ボタンをアイコン付きに */}
+          {/* Prev/Next ボタン */}
           <Button
             variant="contained"
             startIcon={<ArrowBack />}
@@ -535,6 +630,7 @@ const TimelapseViewer: React.FC = () => {
               borderRadius: 2,
               boxShadow: 2,
               backgroundColor: "#fff",
+              mb: 4,
             }}
           >
             <CardHeader
@@ -575,6 +671,37 @@ const TimelapseViewer: React.FC = () => {
             データがありません。DB名やフィールドが正しく指定されているか確認してください。
           </Typography>
         )}
+
+        {/* 輪郭面積の折れ線グラフ */}
+        <Card
+          sx={{
+            borderRadius: 2,
+            boxShadow: 2,
+            backgroundColor: "#fff",
+          }}
+        >
+          <CardHeader
+            title="Contour Areas"
+            sx={{
+              pb: 1,
+              "& .MuiCardHeader-title": {
+                fontWeight: "bold",
+              },
+            }}
+          />
+          <CardContent>
+            {contourAreas.length > 0 ? (
+              <Line
+                data={contourAreasChartData}
+                options={contourAreasChartOptions}
+              />
+            ) : (
+              <Typography variant="body1" mt={2}>
+                輪郭面積データがありません。
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
       </Container>
 
       {/* すべての Cells GIF プレビュー用モーダル */}
