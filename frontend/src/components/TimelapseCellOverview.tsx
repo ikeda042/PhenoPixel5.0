@@ -316,7 +316,6 @@ const TimelapseViewer: React.FC = () => {
       setSelectedCellNumber(cellNumbers[currentIndex + 1]);
     }
   };
-
   /**
    * いずれかが変わったら GIF を再同期する (Key を変える)
    */
@@ -671,7 +670,6 @@ const TimelapseViewer: React.FC = () => {
             データがありません。DB名やフィールドが正しく指定されているか確認してください。
           </Typography>
         )}
-
         {/* 輪郭面積の折れ線グラフ */}
         <Card
           sx={{
