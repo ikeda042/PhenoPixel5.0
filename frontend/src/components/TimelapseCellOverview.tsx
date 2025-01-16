@@ -451,7 +451,6 @@ const TimelapseViewer: React.FC = () => {
     ],
   };
 
-  // Chart.js のオプション
   const contourAreasChartOptions: ChartOptions<"line"> = {
     responsive: true,
     plugins: {
@@ -472,6 +471,7 @@ const TimelapseViewer: React.FC = () => {
           display: true,
           text: "Area",
         },
+        min: 0,
       },
     },
   };
