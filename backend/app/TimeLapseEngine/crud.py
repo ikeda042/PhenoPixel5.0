@@ -1255,52 +1255,77 @@ class TimelapseDatabaseCrud:
         degree: int,
     ) -> io.BytesIO:
         """
-        指定した field, cell_number, channel の先頭フレームを取り出し、
-        蛍光画像と輪郭 contour を用いて SyncChores/AsyncChores.replot の
-        グラフを生成して返す例。
+        指定した field, cell_number, channel の全フレームを取得し、
+        replot で生成した画像を GIF 化して返す例。
         """
-        # データベースから最初のフレームを取得 (time昇順)
+
+        # データベースから frame の一覧を time 昇順に取得
         async with get_session(self.dbname) as session:
             result = await session.execute(
                 select(Cell)
                 .filter_by(field=field, cell=cell_number)
                 .order_by(Cell.time)
             )
-            cell = result.scalars().first()
+            cells = result.scalars().all()
 
-        if not cell:
+        if not cells:
             raise HTTPException(
                 status_code=404,
-                detail=f"No data found for field={field}, cell={cell_number}",
+                detail=f"No cells found for field={field}, cell_number={cell_number}",
             )
 
-        # チャネルごとの画像バイナリを取得（PH 以外を想定）
-        if channel == "ph":
-            # このままだと相当する蛍光画像がないので例外を投げるか、
-            # 実際にPHでも構わないなら、このまま使う。
-            # ただし replot は蛍光画像を使う想定のため注意。
-            image_fluo_raw = cell.img_ph
-        elif channel == "fluo1":
-            image_fluo_raw = cell.img_fluo1
-        else:
-            image_fluo_raw = cell.img_fluo2
+        frames: t.List[Image.Image] = []  # Pillow Image のリスト
 
-        if not image_fluo_raw:
+        for i, cell in enumerate(cells):
+            # チャネルごとの画像バイナリを取得 (PH 以外を想定)
+            if channel == "ph":
+                # replot で正しく扱える蛍光画像がない場合、別途例外を投げるか
+                # そのまま PH でも使うかは運用次第
+                image_fluo_raw = cell.img_ph
+            elif channel == "fluo1":
+                image_fluo_raw = cell.img_fluo1
+            else:
+                image_fluo_raw = cell.img_fluo2
+
+            if not image_fluo_raw:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No {channel} data found for field={field}, cell={cell_number} (frame index={i})",
+                )
+
+            if not cell.contour:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No contour data found for field={field}, cell={cell_number} (frame index={i})",
+                )
+
+            contour_raw = cell.contour
+
+            # replot 関数を実行し、返ってきた画像を io.BytesIO として受け取り
+            buf = await CellDBAsyncChores.replot(image_fluo_raw, contour_raw, degree)
+            buf.seek(0)
+
+            # Pillow Image として開き、frames に追加
+            frames.append(Image.open(buf))
+
+        if not frames:
             raise HTTPException(
                 status_code=404,
-                detail=f"No {channel} data found for field={field}, cell={cell_number}",
+                detail=f"No frames were generated for field={field}, cell={cell_number}",
             )
 
-        if not cell.contour:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No contour data found for field={field}, cell={cell_number}",
-            )
+        # GIF 用の BytesIO を作成
+        gif_buf = io.BytesIO()
 
-        # 輪郭バイナリ
-        contour_raw = cell.contour
+        # 先頭のフレームに残りを連結して GIF を書き込み
+        frames[0].save(
+            gif_buf,
+            format="GIF",
+            save_all=True,
+            append_images=frames[1:],
+            loop=0,  # 0にすると無限ループ
+            duration=200,  # フレーム間隔[ms]
+        )
 
-        # replot関数を実行し、返ってきた画像を io.BytesIO として受け取る
-        buf = await CellDBAsyncChores.replot(image_fluo_raw, contour_raw, degree)
-
-        return buf
+        gif_buf.seek(0)
+        return gif_buf
