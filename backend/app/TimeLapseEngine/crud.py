@@ -65,6 +65,11 @@ class Cell(Base):
     # 死細胞判定用カラム
     is_dead = Column(Integer, nullable=True)
 
+    # gifのバイナリデータを保存するカラム
+    gid_ph = Column(BLOB, nullable=True)
+    gid_fluo1 = Column(BLOB, nullable=True)
+    gid_fluo2 = Column(BLOB, nullable=True)
+
 
 @asynccontextmanager
 async def get_session(dbname: str):
