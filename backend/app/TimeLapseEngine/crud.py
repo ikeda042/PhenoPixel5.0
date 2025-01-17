@@ -28,11 +28,11 @@ from sqlalchemy import (
     delete,
     func,
     distinct,
+    select,
     update,
 )
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.sql import select
 import ulid
 import os
 from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
@@ -162,8 +162,6 @@ class SyncChores:
           - cv2.MOTION_EUCLIDEAN: 回転＋平行移動
           - cv2.MOTION_AFFINE: アフィン変換
           - cv2.MOTION_HOMOGRAPHY: 射影変換
-
-        細胞が大きく回転するシーンが少なければ MOTION_TRANSLATION や MOTION_AFFINE が軽量かつ安定しやすい。
         """
         # ECC ではグレースケール画像が前提
         ref_gray = (
@@ -526,7 +524,7 @@ class TimelapseEngineCrudBase:
         return True
 
     async def main(self, drift_method: str = "orb"):
-        # ND2ファイルを TIFF に分割保存 (ドリフト補正込み) - drift_method を指定
+        # ND2ファイルを TIFF に分割保存 (ドリフト補正込み)
         await AsyncChores().extract_timelapse_nd2(
             self.nd2_path, drift_method=drift_method
         )
@@ -560,6 +558,11 @@ class TimelapseEngineCrudBase:
         min_area: int = 300,
         crop_size: int = 200,
     ):
+        """
+        指定した Field の TIFF から輪郭検出・セル切り出しを行い、DB に保存する。
+        base_cell (=最初に登場したフレームのセル) のみ GIF を作成して、
+        gid_ph / gid_fluo1 / gid_fluo2 カラムに格納する。
+        """
         db_path = f"timelapse_databases/{dbname}"
 
         engine = create_async_engine(
@@ -599,9 +602,6 @@ class TimelapseEngineCrudBase:
             else []
         )
 
-        # 3 チャンネル共通でフレーム数を扱うなら、ph_files / fluo1_files / fluo2_files の
-        # うち最小長のものを全体フレーム数とみなす or いずれかをベースとする等、要件次第です。
-        # ここでは ph をベースにしています。
         if not ph_files:
             print("No TIFF files found for ph.")
             return
@@ -609,19 +609,19 @@ class TimelapseEngineCrudBase:
         total_frames = len(ph_files)
         output_size = (crop_size, crop_size)
 
-        # 前フレームで追跡していた細胞の {cell番号: (中心x, 中心y)} を持つ辞書
+        # 前フレームで追跡していた細胞 (cell番号 -> (中心x, 中心y))
         active_cells = {}
         # 次に新規セルが見つかった時の cell 番号割り当て用カウンタ
         next_cell_idx = 1
-        # 追加：base_cell_id をセル番号ごとに記憶する辞書 {cell番号: 最初のフレームで生成された cell_id}
+        # base_cell_id をセル番号ごとに記憶する辞書 (cell番号 -> 最初のULID)
         base_ids = {}
 
+        # ===== 全フレームを走査し、各セル画像を DB に保存 =====
         for i, ph_file in enumerate(ph_files):
-            # fluo1 / fluo2 側に同じ time_i+1 があるかを検索
             ph_time_idx = extract_time_index(ph_file)
             ph_path = os.path.join(ph_folder, ph_file)
 
-            # fluo1
+            # fluo1 と fluo2 側に同じ time_XX がある場合のパスを検索
             fluo1_path = None
             candidates_fluo1 = [
                 f for f in fluo1_files if extract_time_index(f) == ph_time_idx
@@ -629,7 +629,6 @@ class TimelapseEngineCrudBase:
             if candidates_fluo1:
                 fluo1_path = os.path.join(fluo1_folder, candidates_fluo1[0])
 
-            # fluo2
             fluo2_path = None
             candidates_fluo2 = [
                 f for f in fluo2_files if extract_time_index(f) == ph_time_idx
@@ -742,7 +741,7 @@ class TimelapseEngineCrudBase:
                     # 毎フレームごとにユニークな cell_id を生成
                     new_ulid = ulid.new().str
 
-                    # もしこのセル番号の base_cell_id が未登録なら、新しく登録
+                    # もしこのセル番号の base_cell_id が未登録なら (= 初登場なら) 登録
                     if assigned_cell_idx not in base_ids:
                         base_ids[assigned_cell_idx] = new_ulid
 
@@ -750,7 +749,6 @@ class TimelapseEngineCrudBase:
                     cell_obj = Cell(
                         cell_id=new_ulid,
                         label_experiment=field,
-                        # manual_label は文字列カラムなので "N/A" 等
                         manual_label="N/A",
                         perimeter=perimeter,
                         area=area,
@@ -765,9 +763,10 @@ class TimelapseEngineCrudBase:
                         cell=assigned_cell_idx,
                         base_cell_id=base_ids[assigned_cell_idx],
                         is_dead=0,
-                        gif_ph=None,
-                        gif_fluo1=None,
-                        gif_fluo2=None,
+                        # base_cell 以外は GIF は None のまま
+                        gid_ph=None,
+                        gid_fluo1=None,
+                        gid_fluo2=None,
                     )
 
                     # 重複チェック
@@ -783,7 +782,7 @@ class TimelapseEngineCrudBase:
             # 次のフレーム用に active_cells を更新
             active_cells = new_active_cells
 
-        # 全フレームに揃っていない細胞を削除
+        # ===== すべてのフレームに登場しなかったセルを削除 =====
         async with async_session() as session:
             subquery = (
                 select(Cell.cell)
@@ -803,8 +802,103 @@ class TimelapseEngineCrudBase:
                 await session.execute(delete_stmt)
                 await session.commit()
 
+        # ===== base_cell (=初登場フレーム) のみ GIF を作成して DB に格納 =====
+        # すべての不要セル削除後に、本当に存在するセルだけを改めて処理する
+        async with async_session() as session:
+            for cell_num, base_id in base_ids.items():
+                # このセルが削除対象になっていなければ GIF を作る
+                # → すでに削除されていれば該当なしになるはず
+                q_cells = (
+                    select(Cell)
+                    .where(Cell.field == field)
+                    .where(Cell.cell == cell_num)
+                    .order_by(Cell.time.asc())
+                )
+                rows_result = await session.execute(q_cells)
+                cell_rows = rows_result.scalars().all()
+
+                if not cell_rows:
+                    # 全フレームに満たなかった = 削除済み
+                    continue
+
+                # 3チャンネルごとにフレームを収集 (gray 画像を PIL.Image にしておく)
+                frames_ph = []
+                frames_fluo1 = []
+                frames_fluo2 = []
+
+                for r in cell_rows:
+                    # ph
+                    if r.img_ph is not None:
+                        np_img = cv2.imdecode(
+                            np.frombuffer(r.img_ph, dtype=np.uint8),
+                            cv2.IMREAD_GRAYSCALE,
+                        )
+                        if np_img is not None:
+                            frames_ph.append(Image.fromarray(np_img))
+
+                    # fluo1
+                    if r.img_fluo1 is not None:
+                        np_img = cv2.imdecode(
+                            np.frombuffer(r.img_fluo1, dtype=np.uint8),
+                            cv2.IMREAD_GRAYSCALE,
+                        )
+                        if np_img is not None:
+                            frames_fluo1.append(Image.fromarray(np_img))
+
+                    # fluo2
+                    if r.img_fluo2 is not None:
+                        np_img = cv2.imdecode(
+                            np.frombuffer(r.img_fluo2, dtype=np.uint8),
+                            cv2.IMREAD_GRAYSCALE,
+                        )
+                        if np_img is not None:
+                            frames_fluo2.append(Image.fromarray(np_img))
+
+                # base_cell (=最初の1回) のレコードを探す
+                # いちばん最初に挿入した cell_id=base_id を持つレコードが対象
+                base_cell_row = None
+                for r in cell_rows:
+                    if r.cell_id == base_id:
+                        base_cell_row = r
+                        break
+                if base_cell_row is None:
+                    # 念のため（理論上ここには来ないはず）
+                    continue
+
+                # GIF を作るヘルパー関数
+                def frames_to_gif_bytes(frames_list, duration=200):
+                    if not frames_list:
+                        return None
+                    buf = io.BytesIO()
+                    frames_list[0].save(
+                        buf,
+                        format="GIF",
+                        save_all=True,
+                        append_images=frames_list[1:],
+                        duration=duration,
+                        loop=0,
+                    )
+                    buf.seek(0)
+                    return buf.getvalue()
+
+                # 各チャンネルの GIF バイナリ
+                gif_ph = frames_to_gif_bytes(frames_ph)
+                gif_fluo1 = frames_to_gif_bytes(frames_fluo1)
+                gif_fluo2 = frames_to_gif_bytes(frames_fluo2)
+
+                # base_cell_row の gid_ph/gid_fluo1/gid_fluo2 に格納
+                base_cell_row.gid_ph = gif_ph
+                base_cell_row.gid_fluo1 = gif_fluo1
+                base_cell_row.gid_fluo2 = gif_fluo2
+
+                session.add(base_cell_row)
+
+            await session.commit()
+
         print("Cell extraction finished (with cropping).")
         print("Removed cells that did not appear in every frame.")
+        print("GIFs stored in base_cell rows.")
+
         return
 
     async def create_gif_for_cell(
