@@ -805,6 +805,41 @@ class TimelapseEngineCrudBase:
 
         print("Cell extraction finished (with cropping).")
         print("Removed cells that did not appear in every frame.")
+
+        """
+        それぞれの細胞のgifを作成する処理を追加する。この時、gifはblobとしてbaseのcellのレコードのみに保存する。
+        self.create_gif_for_cell を活用すると良い。
+        """
+        base_cells = await session.execute(select(Cell).where(Cell.time == 1))
+        base_cells = base_cells.scalars().all()
+        base_cell_ids = [cell.cell_id for cell in base_cells]
+        print(base_cell_ids)
+        for base_id in base_cell_ids:
+            print(base_id)
+            for channel in ["ph", "fluo1", "fluo2"]:
+                cells = result = await session.execute(
+                    select(Cell).filter_by(cell_id=base_id)
+                )
+                cell = cells.scalar()
+
+                gif_buffer = await self.create_gif_for_cell(
+                    field=cell.field,
+                    cell_number=cell.cell,
+                    dbname=dbname,
+                    channel=channel,
+                    duration_ms=200,
+                )
+                gif_binary = gif_buffer.getvalue()
+
+                if channel == "ph":
+                    cell.gif_ph = gif_binary
+                elif channel == "fluo1":
+                    cell.gif_fluo1 = gif_binary
+                else:
+                    cell.gif_fluo2 = gif_binary
+
+                await session.commit()
+
         return
 
     async def create_gif_for_cell(
