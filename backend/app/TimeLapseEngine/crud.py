@@ -862,6 +862,24 @@ class TimelapseEngineCrudBase:
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
         )
+        # cell_numberとfieldが一致するレコードを取得
+        result = await session.execute(
+            select(Cell).filter_by(field=field, cell=cell_number, time=1)
+        )
+        cell = result.scalar()
+        if cell is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+        print(cell)
+        if cell.gif_ph:
+            if channel == "ph":
+                return io.BytesIO(cell.gif_ph)
+            elif channel == "fluo1":
+                return io.BytesIO(cell.gif_fluo1)
+            else:
+                return io.BytesIO(cell.gif_fluo2)
 
         frames = []
         async with async_session() as session:
@@ -922,6 +940,14 @@ class TimelapseEngineCrudBase:
         channel: str = "ph",  # "ph", "fluo1", "fluo2"
         duration_ms: int = 200,
     ):
+        print("+++++++++++++++++++")
+        print("+++++++++++++++++++")
+        print("+++++++++++++++++++")
+        print("+++++++++++++++++++")
+        print("+++++++++++++++++++")
+        print("+++++++++++++++++++")
+        print("+++++++++++++++++++")
+        print("+++++++++++++++++++")
         # channel 入力チェック
         if channel not in ["ph", "fluo1", "fluo2"]:
             raise HTTPException(
