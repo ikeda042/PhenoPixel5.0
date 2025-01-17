@@ -940,14 +940,6 @@ class TimelapseEngineCrudBase:
         channel: str = "ph",  # "ph", "fluo1", "fluo2"
         duration_ms: int = 200,
     ):
-        print("+++++++++++++++++++")
-        print("+++++++++++++++++++")
-        print("+++++++++++++++++++")
-        print("+++++++++++++++++++")
-        print("+++++++++++++++++++")
-        print("+++++++++++++++++++")
-        print("+++++++++++++++++++")
-        print("+++++++++++++++++++")
         # channel 入力チェック
         if channel not in ["ph", "fluo1", "fluo2"]:
             raise HTTPException(
