@@ -1136,23 +1136,24 @@ class TimelapseDatabaseCrud:
         draw_contour=True の場合は DB に格納されている contour を描画した画像を返す。
         draw_frame_number=True の場合はフレーム左上にフレーム番号を描画する。
         """
-        async with get_session(self.dbname) as session:
-            result = await session.execute(
-                select(Cell).filter_by(field=field, cell=cell_number, time=1)
-            )
-            base_cell = result.scalar_one()
-            if base_cell is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"No data found for field={field}, cell={cell_number}",
-                )
-            if base_cell.gif_ph:
-                if channel == "ph":
-                    return io.BytesIO(base_cell.gif_ph)
-                elif channel == "fluo1":
-                    return io.BytesIO(base_cell.gif_fluo1)
-                elif channel == "fluo2":
-                    return io.BytesIO(base_cell.gif_fluo2)
+        # gifを格納
+        # async with get_session(self.dbname) as session:
+        #     result = await session.execute(
+        #         select(Cell).filter_by(field=field, cell=cell_number, time=1)
+        #     )
+        #     base_cell = result.scalar_one()
+        #     if base_cell is None:
+        #         raise HTTPException(
+        #             status_code=404,
+        #             detail=f"No data found for field={field}, cell={cell_number}",
+        #         )
+        #     if base_cell.gif_ph:
+        #         if channel == "ph":
+        #             return io.BytesIO(base_cell.gif_ph)
+        #         elif channel == "fluo1":
+        #             return io.BytesIO(base_cell.gif_fluo1)
+        #         elif channel == "fluo2":
+        #             return io.BytesIO(base_cell.gif_fluo2)
         # セッションからデータ取得
         async with get_session(self.dbname) as session:
             result = await session.execute(
