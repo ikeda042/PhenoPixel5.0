@@ -65,6 +65,11 @@ class Cell(Base):
     # 死細胞判定用カラム
     is_dead = Column(Integer, nullable=True)
 
+    # GIFを保存するためのカラム
+    gif_ph = Column(BLOB, nullable=True)
+    gif_fluo1 = Column(BLOB, nullable=True)
+    gif_fluo2 = Column(BLOB, nullable=True)
+
 
 @asynccontextmanager
 async def get_session(dbname: str):
@@ -760,6 +765,9 @@ class TimelapseEngineCrudBase:
                         cell=assigned_cell_idx,
                         base_cell_id=base_ids[assigned_cell_idx],
                         is_dead=0,
+                        gif_ph=None,
+                        gif_fluo1=None,
+                        gif_fluo2=None,
                     )
 
                     # 重複チェック
