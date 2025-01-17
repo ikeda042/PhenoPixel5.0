@@ -847,7 +847,7 @@ class TimelapseEngineCrudBase:
         field: str,
         cell_number: int,
         dbname: str,
-        channel: str = "ph",  # "ph", "fluo1", "fluo2"
+        channel: str = "ph",
         duration_ms: int = 200,
     ):
         if channel not in ["ph", "fluo1", "fluo2"]:
