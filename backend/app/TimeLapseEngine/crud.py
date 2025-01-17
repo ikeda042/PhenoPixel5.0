@@ -765,6 +765,9 @@ class TimelapseEngineCrudBase:
                         cell=assigned_cell_idx,
                         base_cell_id=base_ids[assigned_cell_idx],
                         is_dead=0,
+                        gif_ph=None,
+                        gif_fluo1=None,
+                        gif_fluo2=None,
                     )
 
                     # 重複チェック
