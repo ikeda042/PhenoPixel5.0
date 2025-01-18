@@ -65,6 +65,11 @@ class Cell(Base):
     # 死細胞判定用カラム
     is_dead = Column(Integer, nullable=True)
 
+    # GIFを保存するためのカラム
+    gif_ph = Column(BLOB, nullable=True)
+    gif_fluo1 = Column(BLOB, nullable=True)
+    gif_fluo2 = Column(BLOB, nullable=True)
+
 
 @asynccontextmanager
 async def get_session(dbname: str):
@@ -760,6 +765,9 @@ class TimelapseEngineCrudBase:
                         cell=assigned_cell_idx,
                         base_cell_id=base_ids[assigned_cell_idx],
                         is_dead=0,
+                        gif_ph=None,
+                        gif_fluo1=None,
+                        gif_fluo2=None,
                     )
 
                     # 重複チェック
@@ -797,6 +805,41 @@ class TimelapseEngineCrudBase:
 
         print("Cell extraction finished (with cropping).")
         print("Removed cells that did not appear in every frame.")
+
+        """
+        それぞれの細胞のgifを作成する処理を追加する。この時、gifはblobとしてbaseのcellのレコードのみに保存する。
+        self.create_gif_for_cell を活用すると良い。
+        """
+        base_cells = await session.execute(select(Cell).where(Cell.time == 1))
+        base_cells = base_cells.scalars().all()
+        base_cell_ids = [cell.cell_id for cell in base_cells]
+        print(base_cell_ids)
+        for base_id in base_cell_ids:
+            print(base_id)
+            for channel in ["ph", "fluo1", "fluo2"]:
+                cells = result = await session.execute(
+                    select(Cell).filter_by(cell_id=base_id)
+                )
+                cell = cells.scalar()
+
+                gif_buffer = await self.create_gif_for_cell(
+                    field=cell.field,
+                    cell_number=cell.cell,
+                    dbname=dbname,
+                    channel=channel,
+                    duration_ms=200,
+                )
+                gif_binary = gif_buffer.getvalue()
+
+                if channel == "ph":
+                    cell.gif_ph = gif_binary
+                elif channel == "fluo1":
+                    cell.gif_fluo1 = gif_binary
+                else:
+                    cell.gif_fluo2 = gif_binary
+
+                await session.commit()
+
         return
 
     async def create_gif_for_cell(
@@ -804,7 +847,7 @@ class TimelapseEngineCrudBase:
         field: str,
         cell_number: int,
         dbname: str,
-        channel: str = "ph",  # "ph", "fluo1", "fluo2"
+        channel: str = "ph",
         duration_ms: int = 200,
     ):
         if channel not in ["ph", "fluo1", "fluo2"]:
@@ -819,6 +862,24 @@ class TimelapseEngineCrudBase:
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
         )
+        # cell_numberとfieldが一致するレコードを取得
+        result = await session.execute(
+            select(Cell).filter_by(field=field, cell=cell_number, time=1)
+        )
+        cell = result.scalar()
+        if cell is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+        print(cell)
+        if cell.gif_ph:
+            if channel == "ph":
+                return io.BytesIO(cell.gif_ph)
+            elif channel == "fluo1":
+                return io.BytesIO(cell.gif_fluo1)
+            else:
+                return io.BytesIO(cell.gif_fluo2)
 
         frames = []
         async with async_session() as session:
@@ -1075,6 +1136,24 @@ class TimelapseDatabaseCrud:
         draw_contour=True の場合は DB に格納されている contour を描画した画像を返す。
         draw_frame_number=True の場合はフレーム左上にフレーム番号を描画する。
         """
+        # gifを格納
+        # async with get_session(self.dbname) as session:
+        #     result = await session.execute(
+        #         select(Cell).filter_by(field=field, cell=cell_number, time=1)
+        #     )
+        #     base_cell = result.scalar_one()
+        #     if base_cell is None:
+        #         raise HTTPException(
+        #             status_code=404,
+        #             detail=f"No data found for field={field}, cell={cell_number}",
+        #         )
+        #     if base_cell.gif_ph:
+        #         if channel == "ph":
+        #             return io.BytesIO(base_cell.gif_ph)
+        #         elif channel == "fluo1":
+        #             return io.BytesIO(base_cell.gif_fluo1)
+        #         elif channel == "fluo2":
+        #             return io.BytesIO(base_cell.gif_fluo2)
         # セッションからデータ取得
         async with get_session(self.dbname) as session:
             result = await session.execute(

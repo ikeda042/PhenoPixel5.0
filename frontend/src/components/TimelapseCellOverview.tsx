@@ -134,6 +134,10 @@ const TimelapseViewer: React.FC = () => {
   // ★ Replot 用に、ph, fluo1, fluo2 のどれかを選択できるようにする
   const [replotChannel, setReplotChannel] = useState<"ph" | "fluo1" | "fluo2">("ph");
 
+  // 画像のロード完了数を管理
+  const [imagesLoadedCount, setImagesLoadedCount] = useState(0);
+
+  // ========= 初期化・データ取得関連 =========
   useEffect(() => {
     if (!dbName) {
       console.error("No db_name is specified in query parameters.");
@@ -257,6 +261,7 @@ const TimelapseViewer: React.FC = () => {
     fetchCurrentCellData();
   }, [dbName, selectedField, selectedCellNumber]);
 
+  // ========= Prev / Next =========
   const handlePrevCell = () => {
     if (cellNumbers.length === 0) return;
     const currentIndex = cellNumbers.indexOf(selectedCellNumber);
@@ -288,11 +293,39 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  // ★ Field や Cell 番号などが変化したとき、全てのGIFを強制リロードして「最初から同時再生」させたい
+  // ========= GIF 再生をそろえるための処理 =========
+  // Field や Cell 番号などが変化したとき、全てのGIFを強制リロードして「最初から同時再生」させたい
+  // → reloadKey を変化させるだけでなく、画像の読み込み数もリセットする
   useEffect(() => {
+    setImagesLoadedCount(0);
     setReloadKey((prev) => prev + 1);
-  }, [dbName, selectedField, selectedCellNumber]);
+  }, [dbName, selectedField, selectedCellNumber, drawMode, replotChannel]);
 
+  // 画像が読み込まれたらカウントを増やす
+  const handleImageLoad = () => {
+    setImagesLoadedCount((prev) => prev + 1);
+  };
+
+  // ========= GIF の URL を作成 (3 or 4 枚分) =========
+  // duration=200 & _syncKey=reloadKey を付与してキャッシュ回避、同時リロード
+  const normalGifUrls = channels.map((ch) =>
+    dbName
+      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200&_syncKey=${reloadKey}`
+      : ""
+  );
+
+  // Replot 用 GIF (モードが Replot の時に表示する)
+  const replotGifUrl = dbName
+    ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/replot?channel=${replotChannel}&degree=4&duration=200&_syncKey=${reloadKey}`
+    : "";
+
+  // すべての GIF を配列化 (drawMode が Replot の時は 4 枚、それ以外は 3 枚)
+  const allGifUrls = drawMode === "Replot" ? [...normalGifUrls, replotGifUrl] : normalGifUrls;
+
+  // 全部読み込みが終わったかどうか
+  const allLoaded = imagesLoadedCount === allGifUrls.length;
+
+  // ========= キーボードショートカット =========
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!currentCellData) return;
@@ -337,20 +370,7 @@ const TimelapseViewer: React.FC = () => {
     handlePrevCell,
   ]);
 
-  // 通常 GIF (3 枚表示する場合)
-  // duration=200 に加え、&_syncKey=reloadKey を付与してキャッシュを回避し、同時リロードできるようにする
-  const gifUrls = channels.map((ch) =>
-    dbName
-      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200&_syncKey=${reloadKey}`
-      : ""
-  );
-
-  // Replot 用 GIF (モードが Replot の時に表示)
-  // 同様に &_syncKey を付与
-  const replotGifUrl = dbName
-    ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/replot?channel=${replotChannel}&degree=4&duration=200&_syncKey=${reloadKey}`
-    : "";
-
+  // ========= Preview All Cells Modal =========
   const handlePreviewAllCells = async () => {
     if (!dbName || !selectedField) {
       console.error("DB名やFieldが未選択です。");
@@ -375,7 +395,8 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  // ★ number[] → ContourArea[] に変換してから setContourAreas する
+  // ========= ContourAreas データ取得・グラフ設定 =========
+  // number[] → ContourArea[] に変換してから setContourAreas する
   const fetchContourAreas = async () => {
     if (!dbName || !selectedField || !selectedCellNumber) {
       setContourAreas([]);
@@ -638,86 +659,117 @@ const TimelapseViewer: React.FC = () => {
                 alignItems="flex-start"
               >
                 {/* 
-                  いつも 3つの通常GIF を先に表示
-                  key に reloadKey を含めることで、リロード時に再描画を強制して、
-                  GIF を一斉に最初から再生します。
+                  GIF を一斉に最初から再生するため、
+                  ロード完了数 (imagesLoadedCount) と 
+                  allGifUrls.length が一致してから表示するようにする。
                 */}
-                {gifUrls.map((url, idx) => (
-                  <Grid
-                    item
-                    xs={12}
-                    md={3}
-                    key={`${channels[idx]}-${reloadKey}`}
-                  >
-                    <CardMedia
-                      component="img"
-                      image={url}
-                      alt={`timelapse-${channels[idx]}`}
-                      sx={{
-                        width: "100%",
-                        borderRadius: 2,
-                        objectFit: "contain",
-                      }}
-                    />
-                  </Grid>
-                ))}
-
-                {/* 
-                  Replotモードのときは 4 枚目として Replot GIF を同じ行に表示
-                  ContourAreas モードのときはグラフを表示
-                */}
-                {drawMode === "Replot" && (
-                  <Grid item xs={12} md={3}>
-                    <CardMedia
-                      component="img"
-                      image={replotGifUrl}
-                      alt={`replot-${replotChannel}`}
-                      key={`replot-${replotChannel}-${reloadKey}`}
-                      sx={{
-                        width: "100%",
-                        borderRadius: 2,
-                        objectFit: "contain",
-                      }}
-                    />
-                  </Grid>
-                )}
-
-                {/* ContourAreas モードのときにグラフ表示 */}
-                {drawMode === "ContourAreas" && (
-                  <Grid item xs={12} md={3}>
+                {!allLoaded && (
+                  <Grid item xs={12}>
                     <Box
-                      sx={{
-                        // GIFと同じように幅100%で、縦横比1:1に調整
-                        position: "relative",
-                        width: "100%",
-                        paddingBottom: "100%",
-                        borderRadius: 2,
-                        overflow: "hidden",
-                      }}
+                      display="flex"
+                      justifyContent="center"
+                      alignItems="center"
+                      minHeight="200px"
                     >
-                      {contourAreas.length > 0 ? (
-                        <Box
-                          sx={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                          }}
-                        >
-                          <Line
-                            data={contourAreasChartData}
-                            options={contourAreasChartOptions}
-                          />
-                        </Box>
-                      ) : (
-                        <Typography variant="body1" mt={2}>
-                          輪郭面積データがありません。
-                        </Typography>
-                      )}
+                      <CircularProgress />
+                      <Typography ml={2}>GIF を読み込み中です...</Typography>
                     </Box>
                   </Grid>
                 )}
+
+                {allLoaded && (
+                  <>
+                    {/* 通常 GIF (3枚) */}
+                    {normalGifUrls.map((url, idx) => (
+                      <Grid
+                        item
+                        xs={12}
+                        md={drawMode === "Replot" ? 3 : 4}
+                        key={`normal-gif-${idx}-${reloadKey}`}
+                      >
+                        <CardMedia
+                          component="img"
+                          image={url}
+                          alt={`timelapse-${channels[idx]}`}
+                          sx={{
+                            width: "100%",
+                            borderRadius: 2,
+                            objectFit: "contain",
+                          }}
+                        />
+                      </Grid>
+                    ))}
+
+                    {/* Replotモードのときのみ 4枚目として Replot GIF を表示 */}
+                    {drawMode === "Replot" && (
+                      <Grid item xs={12} md={3}>
+                        <CardMedia
+                          component="img"
+                          image={replotGifUrl}
+                          alt={`replot-${replotChannel}`}
+                          key={`replot-${replotChannel}-${reloadKey}`}
+                          sx={{
+                            width: "100%",
+                            borderRadius: 2,
+                            objectFit: "contain",
+                          }}
+                        />
+                      </Grid>
+                    )}
+
+                    {/* ContourAreas モードのときはグラフを表示 */}
+                    {drawMode === "ContourAreas" && (
+                      <Grid item xs={12} md={4}>
+                        <Box
+                          sx={{
+                            // GIFと同じように幅100%で、縦横比1:1に調整
+                            position: "relative",
+                            width: "100%",
+                            paddingBottom: "100%",
+                            borderRadius: 2,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {contourAreas.length > 0 ? (
+                            <Box
+                              sx={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                              }}
+                            >
+                              <Line
+                                data={contourAreasChartData}
+                                options={contourAreasChartOptions}
+                              />
+                            </Box>
+                          ) : (
+                            <Typography variant="body1" mt={2}>
+                              輪郭面積データがありません。
+                            </Typography>
+                          )}
+                        </Box>
+                      </Grid>
+                    )}
+                  </>
+                )}
+
+                {/* 
+                  <img> 要素に onLoad を仕込み、読み込み完了をカウントするための隠しタグ。
+                  画面表示には使わないが、ロードだけをトリガーする。
+                */}
+                {allGifUrls.map((url, idx) => (
+                  <img
+                    key={`preload-${idx}-${reloadKey}`}
+                    src={url}
+                    alt="preload"
+                    style={{ display: "none" }}
+                    onLoad={handleImageLoad}
+                    onError={handleImageLoad} // エラー時でもカウントを進める
+                  />
+                ))}
               </Grid>
             </CardContent>
           </Card>
