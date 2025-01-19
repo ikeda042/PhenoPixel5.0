@@ -675,7 +675,7 @@ class TimelapseEngineCrudBase:
 
                     assigned_cell_idx = None
                     min_dist = float("inf")
-                    distance_threshold = 60
+                    distance_threshold = 200
 
                     # 前フレームの細胞中心との距離を見て同一セルかどうか判定
                     for prev_idx, (px, py) in active_cells.items():
@@ -908,13 +908,38 @@ class TimelapseEngineCrudBase:
                 if img_binary is None:
                     continue
 
-                np_img = cv2.imdecode(
+                np_img_gray = cv2.imdecode(
                     np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
                 )
-                if np_img is None:
+                if np_img_gray is None:
                     continue
 
-                pil_img = Image.fromarray(np_img)
+                # OpenCVで扱うために BGR 画像に変換
+                np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
+
+                # 輪郭描画
+                if row.contour is not None:
+                    try:
+                        contours = pickle.loads(row.contour)
+                        if not isinstance(contours, list):
+                            contours = [contours]
+
+                        for c in contours:
+                            c = np.array(c, dtype=np.float32)
+                            if len(c.shape) == 2:
+                                # OpenCV の drawContours の仕様に合わせて [N,1,2] に整形
+                                c = c[:, np.newaxis, :]
+
+                            # create_gif_for_cell では特にリサイズを行っていないため、
+                            # スケールは (1.0, 1.0) のままとする
+                            c = c.astype(np.int32)
+                            cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
+                    except Exception as e:
+                        print(f"[WARN] Contour parse error: {e}")
+
+                # OpenCV BGR → PIL RGB
+                np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
+                pil_img = Image.fromarray(np_img_rgb)
                 frames.append(pil_img)
 
             if not frames:
