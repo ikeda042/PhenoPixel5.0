@@ -10,6 +10,7 @@ import re
 import shutil
 from functools import partial
 from PIL import Image, ImageDraw, ImageFont
+from typing import Literal
 
 # Third-party imports
 import cv2
@@ -119,7 +120,7 @@ class SyncChores:
         matches = bf.match(des1, des2)
 
         # マッチングがあまりに少ない場合は補正を行わない
-        if len(matches) < 500:
+        if len(matches) < 300:
             print("Insufficient matches, skipping drift correction.")
             return target_image
 
@@ -565,19 +566,19 @@ class TimelapseEngineCrudBase:
         engine = create_async_engine(
             f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
         )
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
         )
 
-        # 3 チャンネルの TIFF ディレクトリ
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        # 3チャンネルの TIFF ディレクトリ
         ph_folder = os.path.join("TimelapseParserTemp", field, "ph")
         fluo1_folder = os.path.join("TimelapseParserTemp", field, "fluo1")
         fluo2_folder = os.path.join("TimelapseParserTemp", field, "fluo2")
 
-        # 時間インデックスを抜き出すヘルパー
+        # 時間インデックスを抜き出すヘルパー関数
         def extract_time_index(filename: str) -> int:
             match = re.search(r"time_(\d+)\.tif", filename)
             return int(match.group(1)) if match else 0
@@ -599,9 +600,6 @@ class TimelapseEngineCrudBase:
             else []
         )
 
-        # 3 チャンネル共通でフレーム数を扱うなら、ph_files / fluo1_files / fluo2_files の
-        # うち最小長のものを全体フレーム数とみなす or いずれかをベースとする等、要件次第です。
-        # ここでは ph をベースにしています。
         if not ph_files:
             print("No TIFF files found for ph.")
             return
@@ -609,19 +607,17 @@ class TimelapseEngineCrudBase:
         total_frames = len(ph_files)
         output_size = (crop_size, crop_size)
 
-        # 前フレームで追跡していた細胞の {cell番号: (中心x, 中心y)} を持つ辞書
+        # 前フレームで追跡していた細胞の中心座標管理用
         active_cells = {}
-        # 次に新規セルが見つかった時の cell 番号割り当て用カウンタ
         next_cell_idx = 1
-        # 追加：base_cell_id をセル番号ごとに記憶する辞書 {cell番号: 最初のフレームで生成された cell_id}
         base_ids = {}
 
+        # 各フレームの処理
         for i, ph_file in enumerate(ph_files):
-            # fluo1 / fluo2 側に同じ time_i+1 があるかを検索
             ph_time_idx = extract_time_index(ph_file)
             ph_path = os.path.join(ph_folder, ph_file)
 
-            # fluo1
+            # fluo1パスの取得
             fluo1_path = None
             candidates_fluo1 = [
                 f for f in fluo1_files if extract_time_index(f) == ph_time_idx
@@ -629,7 +625,7 @@ class TimelapseEngineCrudBase:
             if candidates_fluo1:
                 fluo1_path = os.path.join(fluo1_folder, candidates_fluo1[0])
 
-            # fluo2
+            # fluo2パスの取得
             fluo2_path = None
             candidates_fluo2 = [
                 f for f in fluo2_files if extract_time_index(f) == ph_time_idx
@@ -658,6 +654,7 @@ class TimelapseEngineCrudBase:
 
             new_active_cells = {}
 
+            # セッションを開いてDBに書き込み
             async with async_session() as session:
                 for contour in contours:
                     area = cv2.contourArea(contour)
@@ -668,21 +665,20 @@ class TimelapseEngineCrudBase:
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
 
-                    # 画像の上下左右をそれぞれ 10% 除外した範囲を定義
+                    # 画像の上下左右をそれぞれ10%除外
                     x_min = int(width * 0.1)
                     x_max = int(width * 0.9)
                     y_min = int(height * 0.1)
                     y_max = int(height * 0.9)
 
-                    # 10% ~ 90% の範囲に入っていなければスキップ
                     if not (x_min < cx < x_max and y_min < cy < y_max):
                         continue
 
                     assigned_cell_idx = None
                     min_dist = float("inf")
-                    distance_threshold = 60
+                    distance_threshold = 100
 
-                    # 前フレームの細胞中心との距離を見て同一セルかどうかを判定
+                    # 前フレームの細胞中心との距離を見て同一セルかどうか判定
                     for prev_idx, (px, py) in active_cells.items():
                         dist = math.sqrt((cx - px) ** 2 + (cy - py) ** 2)
                         if dist < distance_threshold and dist < min_dist:
@@ -694,7 +690,7 @@ class TimelapseEngineCrudBase:
                         assigned_cell_idx = next_cell_idx
                         next_cell_idx += 1
 
-                    # 今フレームでも追跡対象として登録
+                    # 今フレームで追跡対象登録
                     if assigned_cell_idx not in new_active_cells:
                         new_active_cells[assigned_cell_idx] = (cx, cy)
 
@@ -746,11 +742,10 @@ class TimelapseEngineCrudBase:
                     if assigned_cell_idx not in base_ids:
                         base_ids[assigned_cell_idx] = new_ulid
 
-                    # DB に保存するオブジェクトを作成
+                    # DB 保存用のオブジェクト作成
                     cell_obj = Cell(
                         cell_id=new_ulid,
                         label_experiment=field,
-                        # manual_label は文字列カラムなので "N/A" 等
                         manual_label="N/A",
                         perimeter=perimeter,
                         area=area,
@@ -770,14 +765,14 @@ class TimelapseEngineCrudBase:
                         gif_fluo2=None,
                     )
 
-                    # 重複チェック
+                    # 重複チェック (念のため)
                     existing = await session.execute(
                         select(Cell).filter_by(cell_id=new_ulid, time=i + 1)
                     )
                     if existing.scalar() is None:
                         session.add(cell_obj)
 
-                # フレーム内の処理が全部終わったらコミット
+                # フレーム内処理が終わったらコミット
                 await session.commit()
 
             # 次のフレーム用に active_cells を更新
@@ -807,38 +802,42 @@ class TimelapseEngineCrudBase:
         print("Removed cells that did not appear in every frame.")
 
         """
-        それぞれの細胞のgifを作成する処理を追加する。この時、gifはblobとしてbaseのcellのレコードのみに保存する。
-        self.create_gif_for_cell を活用すると良い。
+        ここから、各 base セルに対して GIF を作成して BLOB として保存する処理
+        self.create_gif_for_cell を使う
         """
-        base_cells = await session.execute(select(Cell).where(Cell.time == 1))
-        base_cells = base_cells.scalars().all()
-        base_cell_ids = [cell.cell_id for cell in base_cells]
-        print(base_cell_ids)
-        for base_id in base_cell_ids:
-            print(base_id)
-            for channel in ["ph", "fluo1", "fluo2"]:
-                cells = result = await session.execute(
-                    select(Cell).filter_by(cell_id=base_id)
-                )
-                cell = cells.scalar()
+        async with async_session() as session:
+            # time=1 のレコードが「ベース」として扱われる想定
+            base_cells = await session.execute(select(Cell).where(Cell.time == 1))
+            base_cells = base_cells.scalars().all()
+            base_cell_ids = [cell.cell_id for cell in base_cells]
 
-                gif_buffer = await self.create_gif_for_cell(
-                    field=cell.field,
-                    cell_number=cell.cell,
-                    dbname=dbname,
-                    channel=channel,
-                    duration_ms=200,
-                )
-                gif_binary = gif_buffer.getvalue()
+            print(base_cell_ids)
 
-                if channel == "ph":
-                    cell.gif_ph = gif_binary
-                elif channel == "fluo1":
-                    cell.gif_fluo1 = gif_binary
-                else:
-                    cell.gif_fluo2 = gif_binary
+            for base_id in base_cell_ids:
+                print(base_id)
+                for channel in ["ph", "fluo1", "fluo2"]:
+                    cells = await session.execute(
+                        select(Cell).filter_by(cell_id=base_id)
+                    )
+                    cell = cells.scalar()
 
-                await session.commit()
+                    gif_buffer = await self.create_gif_for_cell(
+                        field=cell.field,
+                        cell_number=cell.cell,
+                        dbname=dbname,
+                        channel=channel,
+                        duration_ms=200,
+                    )
+                    gif_binary = gif_buffer.getvalue()
+
+                    if channel == "ph":
+                        cell.gif_ph = gif_binary
+                    elif channel == "fluo1":
+                        cell.gif_fluo1 = gif_binary
+                    else:
+                        cell.gif_fluo2 = gif_binary
+
+                    await session.commit()
 
         return
 
@@ -862,33 +861,37 @@ class TimelapseEngineCrudBase:
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
         )
-        # cell_numberとfieldが一致するレコードを取得
-        result = await session.execute(
-            select(Cell).filter_by(field=field, cell=cell_number, time=1)
-        )
-        cell = result.scalar()
-        if cell is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No data found for field={field}, cell={cell_number}",
+
+        # session の中で処理を行う
+        async with async_session() as session:
+            # cell_number と field が一致するレコードを1フレーム目で検索
+            result = await session.execute(
+                select(Cell).filter_by(field=field, cell=cell_number, time=1)
             )
-        print(cell)
-        if cell.gif_ph:
-            if channel == "ph":
+            cell = result.scalar()
+            if cell is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No data found for field={field}, cell={cell_number}",
+                )
+
+            # 既に GIF が作成済みならそれを返す
+            if channel == "ph" and cell.gif_ph:
                 return io.BytesIO(cell.gif_ph)
-            elif channel == "fluo1":
+            elif channel == "fluo1" and cell.gif_fluo1:
                 return io.BytesIO(cell.gif_fluo1)
-            else:
+            elif channel == "fluo2" and cell.gif_fluo2:
                 return io.BytesIO(cell.gif_fluo2)
 
-        frames = []
-        async with async_session() as session:
+            # GIF 用フレーム作成
+            frames = []
             result = await session.execute(
                 select(Cell)
                 .filter_by(field=field, cell=cell_number)
                 .order_by(Cell.time)
             )
             cells = result.scalars().all()
+
             if not cells:
                 raise HTTPException(
                     status_code=404,
@@ -906,38 +909,66 @@ class TimelapseEngineCrudBase:
                 if img_binary is None:
                     continue
 
-                np_img = cv2.imdecode(
+                np_img_gray = cv2.imdecode(
                     np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
                 )
-                if np_img is None:
+                if np_img_gray is None:
                     continue
 
-                pil_img = Image.fromarray(np_img)
+                # OpenCVで扱うために BGR 画像に変換
+                np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
+
+                # 輪郭描画
+                if row.contour is not None:
+                    try:
+                        contours = pickle.loads(row.contour)
+                        if not isinstance(contours, list):
+                            contours = [contours]
+
+                        for c in contours:
+                            c = np.array(c, dtype=np.float32)
+                            if len(c.shape) == 2:
+                                # OpenCV の drawContours の仕様に合わせて [N,1,2] に整形
+                                c = c[:, np.newaxis, :]
+
+                            # create_gif_for_cell では特にリサイズを行っていないため、
+                            # スケールは (1.0, 1.0) のままとする
+                            c = c.astype(np.int32)
+                            cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
+                    except Exception as e:
+                        print(f"[WARN] Contour parse error: {e}")
+
+                # OpenCV BGR → PIL RGB
+                np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
+                pil_img = Image.fromarray(np_img_rgb)
                 frames.append(pil_img)
 
-        if not frames:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No valid frames found for field={field}, cell={cell_number}, channel={channel}",
-            )
+            if not frames:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        f"No valid frames found for field={field}, "
+                        f"cell={cell_number}, channel={channel}"
+                    ),
+                )
 
-        gif_buffer = io.BytesIO()
-        frames[0].save(
-            gif_buffer,
-            format="GIF",
-            save_all=True,
-            append_images=frames[1:],
-            duration=duration_ms,
-            loop=0,
-        )
-        gif_buffer.seek(0)
-        return gif_buffer
+            gif_buffer = io.BytesIO()
+            frames[0].save(
+                gif_buffer,
+                format="GIF",
+                save_all=True,
+                append_images=frames[1:],
+                duration=duration_ms,
+                loop=0,
+            )
+            gif_buffer.seek(0)
+            return gif_buffer
 
     async def create_gif_for_cells(
         self,
         field: str,
         dbname: str,
-        channel: str = "ph",  # "ph", "fluo1", "fluo2"
+        channel: Literal["ph", "fluo1", "fluo2"] = "ph",
         duration_ms: int = 200,
     ):
         # channel 入力チェック
@@ -955,11 +986,11 @@ class TimelapseEngineCrudBase:
         )
 
         async with async_session() as session:
-            all_cells_query = (
-                select(Cell)
-                .filter_by(field=field)
-                .order_by(Cell.time.asc(), Cell.cell.asc())
+            all_cells_query = select(Cell).order_by(
+                Cell.time.asc(), Cell.cell.asc(), Cell.time == 1
             )
+            if field != "all":
+                all_cells_query = all_cells_query.filter_by(field=field)
             result = await session.execute(all_cells_query)
             all_cells = result.scalars().all()
 

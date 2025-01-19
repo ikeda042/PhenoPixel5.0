@@ -124,13 +124,15 @@ async def create_gif_for_cell_endpoint(
 
 
 @router_tl_engine.get("/nd2_files/{file_name}/cells/{field_name}/gif")
-async def create_gif_for_cells_endpoint(file_name: str, field_name: str):
+async def create_gif_for_cells_endpoint(
+    file_name: str, field_name: str, channel: Literal["ph", "fluo1", "fluo2"] = "ph"
+):
     """
     指定したフィールド内の全セルについて、GIF を生成し、ストリーミングで返すエンドポイント。
     """
     db_name = file_name.split(".")[0] + f"_cells.db"
     gif_buffer = await TimelapseEngineCrudBase(file_name).create_gif_for_cells(
-        field=field_name, dbname=db_name
+        field=field_name, dbname=db_name, channel=channel
     )
 
     return StreamingResponse(
