@@ -986,7 +986,9 @@ class TimelapseEngineCrudBase:
         )
 
         async with async_session() as session:
-            all_cells_query = select(Cell).order_by(Cell.time.asc(), Cell.cell.asc())
+            all_cells_query = select(Cell).order_by(
+                Cell.time.asc(), Cell.cell.asc(), Cell.time == 1
+            )
             if field != "all":
                 all_cells_query = all_cells_query.filter_by(field=field)
             result = await session.execute(all_cells_query)
