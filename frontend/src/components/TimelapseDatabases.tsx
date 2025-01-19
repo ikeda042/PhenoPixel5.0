@@ -53,7 +53,17 @@ const TimelapseDatabases: React.FC = () => {
    * key: データベース名, value: 選択されたフィールド
    * 例) { "some_db.db": "Field_1", ... }
    */
-  const [selectedFields, setSelectedFields] = useState<Record<string, string>>({});
+  const [selectedFields, setSelectedFields] = useState<Record<string, string>>(
+    {}
+  );
+
+  /**
+   * key: データベース名, value: 選択されたチャンネル
+   * 例) { "some_db.db": "ph", ... }
+   */
+  const [selectedChannels, setSelectedChannels] = useState<
+    Record<string, string>
+  >({});
 
   /**
    * モーダル関連のステート
@@ -128,10 +138,12 @@ const TimelapseDatabases: React.FC = () => {
 
   /**
    * Previewボタン押下時に呼ばれる想定の関数
-   * 指定したフィールドのGIFを作成APIを呼び、モーダルでプレビュー表示する
+   * 指定したフィールド & チャンネルのGIFを作成APIを呼び、モーダルでプレビュー表示する
    */
   const handlePreview = async (dbName: string) => {
     const field = selectedFields[dbName];
+    const channel = selectedChannels[dbName] || "ph";
+
     if (!field) {
       alert(`No field selected for ${dbName}`);
       return;
@@ -144,7 +156,7 @@ const TimelapseDatabases: React.FC = () => {
       setLoading(true);
       // GIFを取得 (バイナリ)
       const response = await axios.get(
-        `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${field}/gif`,
+        `${url_prefix}/tlengine/nd2_files/${fileName}/cells/${field}/gif?channel=${channel}`,
         {
           responseType: "arraybuffer",
         }
@@ -166,10 +178,17 @@ const TimelapseDatabases: React.FC = () => {
   };
 
   /**
-   * プレビューで使用するフィールドがユーザにより切り替えられたとき
+   * フィールドがユーザにより切り替えられたとき
    */
   const handleFieldChange = (dbName: string, newField: string) => {
     setSelectedFields((prev) => ({ ...prev, [dbName]: newField }));
+  };
+
+  /**
+   * チャンネルがユーザにより切り替えられたとき
+   */
+  const handleChannelChange = (dbName: string, newChannel: string) => {
+    setSelectedChannels((prev) => ({ ...prev, [dbName]: newChannel }));
   };
 
   /**
@@ -202,14 +221,6 @@ const TimelapseDatabases: React.FC = () => {
             </Link>
           </Breadcrumbs>
         </Box>
-        {/* タイトル */}
-        <Box
-          display="flex"
-          alignItems="center"
-          justifyContent="space-between"
-          mb={2}
-        >
-        </Box>
 
         {/* データベース一覧テーブル */}
         <TableContainer component={Paper}>
@@ -233,25 +244,29 @@ const TimelapseDatabases: React.FC = () => {
                     <Tooltip title="Copy to clipboard">
                       <IconButton
                         onClick={() => handleCopyToClipboard(database)}
-                        sx={{
-                          color: "#000", // アイコンも黒色に
-                        }}
+                        sx={{ color: "#000" }}
                       >
                         <ContentCopyIcon />
                       </IconButton>
                     </Tooltip>
                   </TableCell>
-                   {/* Preview */}
-                   <TableCell align="center">
+
+                  {/* Preview */}
+                  <TableCell align="center">
                     {/* フィールドの選択ドロップダウン */}
                     <FormControl size="small" sx={{ minWidth: 120 }}>
-                      <InputLabel id={`select-label-${database}`}>Field</InputLabel>
+                      <InputLabel id={`select-field-label-${database}`}>
+                        Field
+                      </InputLabel>
                       <Select
-                        labelId={`select-label-${database}`}
+                        labelId={`select-field-label-${database}`}
                         label="Field"
                         value={selectedFields[database] || ""}
                         onChange={(e) => handleFieldChange(database, e.target.value)}
                       >
+                        {/* 「all」オプションを先頭に追加 */}
+                        <MenuItem value="all">All</MenuItem>
+
                         {(dbFields[database] || []).length === 0 && (
                           <MenuItem value="" disabled>
                             No fields
@@ -265,13 +280,35 @@ const TimelapseDatabases: React.FC = () => {
                       </Select>
                     </FormControl>
 
+                    {/* チャンネルの選択ドロップダウン */}
+                    <FormControl
+                      size="small"
+                      sx={{ minWidth: 80, ml: 1 }}
+                    >
+                      <InputLabel id={`select-channel-label-${database}`}>
+                        Ch
+                      </InputLabel>
+                      <Select
+                        labelId={`select-channel-label-${database}`}
+                        label="Ch"
+                        value={selectedChannels[database] || "ph"}
+                        onChange={(e) =>
+                          handleChannelChange(database, e.target.value)
+                        }
+                      >
+                        <MenuItem value="ph">ph</MenuItem>
+                        <MenuItem value="fluo1">fluo1</MenuItem>
+                        <MenuItem value="fluo2">fluo2</MenuItem>
+                      </Select>
+                    </FormControl>
+
                     {/* プレビューボタン */}
                     <Button
                       variant="contained"
                       size="small"
                       sx={{
                         ml: 2,
-                        backgroundColor: "#000", // ボタンを黒色に
+                        backgroundColor: "#000",
                         color: "#fff",
                         minHeight: "36px",
                         fontSize: "0.8rem",
@@ -284,13 +321,12 @@ const TimelapseDatabases: React.FC = () => {
                       Preview
                     </Button>
                   </TableCell>
+
                   {/* Access database */}
                   <TableCell align="center">
                     <IconButton
                       onClick={() => handleNavigate(database)}
-                      sx={{
-                        color: "#000", // アイコンも黒色に
-                      }}
+                      sx={{ color: "#000" }}
                     >
                       <Typography
                         sx={{
@@ -303,8 +339,6 @@ const TimelapseDatabases: React.FC = () => {
                       <NavigateNextIcon />
                     </IconButton>
                   </TableCell>
-
-                 
                 </TableRow>
               ))}
             </TableBody>
