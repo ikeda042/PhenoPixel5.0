@@ -287,15 +287,12 @@ const TimelapseViewer: React.FC = () => {
         // ※ useEffect 内の fetchCellNumbers で次フィールドの最初のセルが自動的に選択される
       } else {
         // 最後のフィールドかつ最後のセル
-        // 必要に応じて「もう最後です」などの挙動を入れてください
         console.log("すべてのフィールドとセルを見終わりました。");
       }
     }
   };
 
   // ========= GIF 再生をそろえるための処理 =========
-  // Field や Cell 番号などが変化したとき、全てのGIFを強制リロードして「最初から同時再生」させたい
-  // → reloadKey を変化させるだけでなく、画像の読み込み数もリセットする
   useEffect(() => {
     setImagesLoadedCount(0);
     setReloadKey((prev) => prev + 1);
@@ -396,7 +393,6 @@ const TimelapseViewer: React.FC = () => {
   };
 
   // ========= ContourAreas データ取得・グラフ設定 =========
-  // number[] → ContourArea[] に変換してから setContourAreas する
   const fetchContourAreas = async () => {
     if (!dbName || !selectedField || !selectedCellNumber) {
       setContourAreas([]);
@@ -653,8 +649,6 @@ const TimelapseViewer: React.FC = () => {
               <Grid
                 container
                 spacing={2}
-                // 幅がある画面ではなるべく 1 行で 4 枚並ぶようにする
-                // （小さい画面では折り返す場合もあります）
                 justifyContent="center"
                 alignItems="flex-start"
               >
@@ -679,12 +673,12 @@ const TimelapseViewer: React.FC = () => {
 
                 {allLoaded && (
                   <>
-                    {/* 通常 GIF (3枚) */}
+                    {/* 1) 通常 GIF (3枚) */}
                     {normalGifUrls.map((url, idx) => (
                       <Grid
                         item
                         xs={12}
-                        md={drawMode === "Replot" ? 3 : 4}
+                        md={3}
                         key={`normal-gif-${idx}-${reloadKey}`}
                       >
                         <CardMedia
@@ -700,7 +694,7 @@ const TimelapseViewer: React.FC = () => {
                       </Grid>
                     ))}
 
-                    {/* Replotモードのときのみ 4枚目として Replot GIF を表示 */}
+                    {/* 2) Replot モードのときは 4 枚目として Replot GIF を表示 */}
                     {drawMode === "Replot" && (
                       <Grid item xs={12} md={3}>
                         <CardMedia
@@ -717,9 +711,9 @@ const TimelapseViewer: React.FC = () => {
                       </Grid>
                     )}
 
-                    {/* ContourAreas モードのときはグラフを表示 */}
+                    {/* 3) ContourAreas モードのときは 4 枚目としてグラフを表示 */}
                     {drawMode === "ContourAreas" && (
-                      <Grid item xs={12} md={4}>
+                      <Grid item xs={12} md={3}>
                         <Box
                           sx={{
                             // GIFと同じように幅100%で、縦横比1:1に調整
