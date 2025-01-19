@@ -1069,6 +1069,159 @@ class AsyncChores:
         return buf
 
     @staticmethod
+    async def replot_cv2(
+        image_fluo_raw: bytes,
+        contour_raw: bytes,
+        degree: int,
+    ) -> io.BytesIO:
+        """
+        (u1,u2) 平面に生データを散布し、多項式近似した曲線と輪郭を表示。
+        重心 (u1_c, u2_c) を (0,0) に平行移動して描画。
+        Matplotlib を使わず、cv2 で直接描画する版の例。
+        """
+        # 1) 画像を読み込み
+        image_fluo = cv2.imdecode(
+            np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
+        )
+        image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+
+        # 2) 輪郭を読み込み
+        unpickled_contour = pickle.loads(contour_raw)
+
+        # 3) マスクを作成
+        mask = np.zeros_like(image_fluo_gray)
+        cv2.fillPoly(mask, [unpickled_contour], 255)
+
+        coords_inside_cell_1 = np.column_stack(np.where(mask))
+        points_inside_cell_1 = image_fluo_gray[
+            coords_inside_cell_1[:, 0],
+            coords_inside_cell_1[:, 1],
+        ]
+
+        # 4) basis_conversion 相当
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = SyncChores.basis_conversion(
+            [list(i[0]) for i in unpickled_contour],
+            np.array(
+                [
+                    [i[1] for i in coords_inside_cell_1],  # x
+                    [i[0] for i in coords_inside_cell_1],  # y
+                ]
+            ),
+            image_fluo.shape[0] / 2,
+            image_fluo.shape[1] / 2,
+            coords_inside_cell_1,
+        )
+
+        # 5) 重心シフト後の座標を作る
+        u1_shifted = u1 - u1_c
+        u2_shifted = u2 - u2_c
+        u1_contour_shifted = u1_contour - u1_c
+        u2_contour_shifted = u2_contour - u2_c
+
+        U_shifted = []
+        for y_val, x_val in U:
+            x_val_shifted = x_val - u1_c
+            y_val_shifted = y_val - u2_c
+            U_shifted.append([y_val_shifted, x_val_shifted])
+
+        # 6) 多項式近似
+        theta = await AsyncChores.poly_fit(U_shifted, degree=degree)
+
+        # x 軸を作り、polyval
+        x_for_fit = np.linspace(min_u1 - u1_c, max_u1 - u1_c, 1000)
+        y_for_fit = np.polyval(theta, x_for_fit)
+
+        # 7) 出力用キャンバス (BGR) を作り、可視化する
+        #    元画像サイズに合わせるなど適宜調整
+        h, w, _ = image_fluo.shape
+        canvas = np.ones((h, w, 3), dtype=np.uint8) * 255  # 白で初期化
+
+        # 7-1) セル内部の点を描画 (簡易実装で、重心シフト座標をそのまま2D投影する)
+        #      シフト後座標にオフセットを足して描画位置を決める
+        offset_x = w // 2
+        offset_y = h // 2
+
+        # intensity を色に反映 (簡易実装)
+        max_val = np.max(points_inside_cell_1) if len(points_inside_cell_1) else 1
+        for (y_val, x_val), intensity in zip(U_shifted, points_inside_cell_1):
+            draw_x = int(x_val + offset_x)
+            draw_y = int(y_val + offset_y)
+            if 0 <= draw_x < w and 0 <= draw_y < h:
+                color = (0, 0, int(255 * (intensity / max_val)))  # 青〜
+                canvas = cv2.circle(canvas, (draw_x, draw_y), 2, color, -1)
+
+        # 7-2) 輪郭を lime で描画
+        contour_points_shifted = []
+        for c_y, c_x in zip(u2_contour_shifted, u1_contour_shifted):
+            contour_points_shifted.append(
+                [
+                    int(c_x + offset_x),
+                    int(c_y + offset_y),
+                ]
+            )
+        contour_points_shifted = np.array(contour_points_shifted, dtype=np.int32)
+        cv2.polylines(
+            canvas,
+            [contour_points_shifted],
+            isClosed=True,
+            color=(0, 255, 0),
+            thickness=1,
+        )
+
+        # 7-3) 多項式近似曲線を赤で描画
+        fit_points = []
+        for i in range(len(x_for_fit)):
+            px = x_for_fit[i] + offset_x
+            py = y_for_fit[i] + offset_y
+            fit_points.append((int(px), int(py)))
+        for i in range(len(fit_points) - 1):
+            cv2.line(canvas, fit_points[i], fit_points[i + 1], (0, 0, 255), 1)
+
+        # 7-4) Centroid (0,0) を赤の大きい点で描画
+        cv2.circle(canvas, (offset_x, offset_y), 5, (0, 0, 255), -1)
+
+        # 7-5) 統計量をテキストで表示 (適当に左上に)
+        median_val = np.median(points_inside_cell_1) if len(points_inside_cell_1) else 0
+        mean_val = np.mean(points_inside_cell_1) if len(points_inside_cell_1) else 0
+        normalized_points = points_inside_cell_1 / max_val if max_val != 0 else [0]
+        text_lines = [
+            f"Median: {median_val:.2f}",
+            f"Mean: {mean_val:.2f}",
+            f"Normalized median: {np.median(normalized_points):.2f}",
+            f"Normalized mean: {np.mean(normalized_points):.2f}",
+        ]
+        start_y = 20
+        for i, line in enumerate(text_lines):
+            cv2.putText(
+                canvas,
+                line,
+                (10, start_y + 20 * i),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0, 0, 0),
+                2,
+                cv2.LINE_AA,
+            )
+
+        # 8) PNG 化して BytesIO に格納して返す
+        buf = io.BytesIO()
+        _, encoded_img = cv2.imencode(".png", canvas)
+        buf.write(encoded_img.tobytes())
+        buf.seek(0)
+        return buf
+
+    @staticmethod
     async def find_path_return_list(
         image_fluo_raw: bytes, contour_raw: bytes, degree: int
     ) -> list[float]:
