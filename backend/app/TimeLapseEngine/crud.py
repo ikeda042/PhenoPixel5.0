@@ -675,7 +675,7 @@ class TimelapseEngineCrudBase:
 
                     assigned_cell_idx = None
                     min_dist = float("inf")
-                    distance_threshold = 200
+                    distance_threshold = 100
 
                     # 前フレームの細胞中心との距離を見て同一セルかどうか判定
                     for prev_idx, (px, py) in active_cells.items():
