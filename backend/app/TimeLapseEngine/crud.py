@@ -10,6 +10,7 @@ import re
 import shutil
 from functools import partial
 from PIL import Image, ImageDraw, ImageFont
+from typing import Literal
 
 # Third-party imports
 import cv2
@@ -967,7 +968,7 @@ class TimelapseEngineCrudBase:
         self,
         field: str,
         dbname: str,
-        channel: str = "ph",  # "ph", "fluo1", "fluo2"
+        channel: Literal["ph", "fluo1", "fluo2"],
         duration_ms: int = 200,
     ):
         # channel 入力チェック
