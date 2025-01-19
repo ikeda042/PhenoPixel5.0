@@ -968,7 +968,7 @@ class TimelapseEngineCrudBase:
         self,
         field: str,
         dbname: str,
-        channel: Literal["ph", "fluo1", "fluo2"],
+        channel: Literal["ph", "fluo1", "fluo2"] = "ph",
         duration_ms: int = 200,
     ):
         # channel 入力チェック
@@ -986,11 +986,9 @@ class TimelapseEngineCrudBase:
         )
 
         async with async_session() as session:
-            all_cells_query = (
-                select(Cell)
-                .filter_by(field=field)
-                .order_by(Cell.time.asc(), Cell.cell.asc())
-            )
+            all_cells_query = select(Cell).order_by(Cell.time.asc(), Cell.cell.asc())
+            if field != "all":
+                all_cells_query = all_cells_query.filter_by(field=field)
             result = await session.execute(all_cells_query)
             all_cells = result.scalars().all()
 
