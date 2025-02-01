@@ -1,7 +1,5 @@
 # Setup 
 
-This program presupposes that Node.js and Python 3.10 are installed on the user's computer
-
 
 ## start up back-end
 
