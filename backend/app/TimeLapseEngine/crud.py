@@ -1,4 +1,3 @@
-# Standard library imports
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
