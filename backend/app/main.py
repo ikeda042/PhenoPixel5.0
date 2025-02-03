@@ -19,7 +19,7 @@ from Dev.crud import HINETLogin
 
 load_dotenv()
 
-api_title = os.getenv("API_TITLE", "FastAPI")
+api_title = os.getenv("API_TITLE", "PhenoPixel5.0API")
 api_prefix = os.getenv("API_PREFIX", "/api")
 test_env = os.getenv("TEST_ENV", "")
 app = FastAPI(
