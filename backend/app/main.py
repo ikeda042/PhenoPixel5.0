@@ -15,7 +15,6 @@ from TimeLapseEngine.router import router_tl_engine
 from results.router import router_results
 from Auth.router import router_auth
 from Admin.router import router_admin
-from Dev.crud import HINETLogin
 
 load_dotenv()
 
