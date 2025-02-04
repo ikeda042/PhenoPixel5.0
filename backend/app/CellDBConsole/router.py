@@ -285,6 +285,19 @@ async def get_fluo_distribution_normalized(db_name: str, cell_id: str):
 
 
 @router_cell.get(
+    "/{db_name}/{label}/{cell_id}/distribution_normalized/raw_points",
+)
+async def get_fluo_distribution_normalized_raw_points(db_name: str, cell_id: str):
+    await AsyncChores().validate_database_name(db_name)
+    raw_points: list[float] = await CellCrudBase(
+        db_name=db_name
+    ).extract_normalized_intensities_raw(
+        label="", cell_id=cell_id, return_raw_points=True
+    )
+    return JSONResponse(content={"raw_points": raw_points})
+
+
+@router_cell.get(
     "/{db_name}/{label}/{cell_id}/heatmap_all_abs", response_class=StreamingResponse
 )
 async def get_heatmap_all_abs(db_name: str, label: str, cell_id: str):
