@@ -1500,6 +1500,14 @@ class CellCrudBase:
         )
         return StreamingResponse(ret, media_type="image/png")
 
+    async def extract_normalized_intensities_raw(self, cell_id: str) -> list[float]:
+        cell = await self.read_cell(cell_id)
+        intensity_values = await AsyncChores.get_points_inside_cell(
+            cell.img_fluo1, cell.contour
+        )
+        max_val = np.max(intensity_values) if len(intensity_values) else 1
+        return [i / max_val for i in intensity_values]
+
     async def get_all_mean_normalized_fluo_intensities_csv(
         self, label: str | None = None
     ) -> StreamingResponse:
