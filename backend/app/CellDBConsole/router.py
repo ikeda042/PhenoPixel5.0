@@ -293,9 +293,7 @@ async def get_fluo_distribution_normalized_raw_points(db_name: str, cell_id: str
         content={
             "raw_points": await CellCrudBase(
                 db_name=db_name
-            ).extract_normalized_intensities_raw(
-                label="", cell_id=cell_id, return_raw_points=True
-            )
+            ).extract_normalized_intensities_raw(cell_id=cell_id)
         }
     )
 
