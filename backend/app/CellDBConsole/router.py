@@ -1,7 +1,7 @@
 import os
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, UploadFile, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from CellDBConsole.crud import AsyncChores, CellCrudBase
