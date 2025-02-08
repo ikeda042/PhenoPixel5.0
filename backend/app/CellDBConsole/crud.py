@@ -25,7 +25,6 @@ from scipy.optimize import minimize
 from sqlalchemy import update
 from sqlalchemy.future import select
 from typing import Literal
-
 from CellDBConsole.schemas import CellId, CellMorhology, ListDBresponse
 from Dropbox.crud import DropboxCrud
 from database import get_session, Cell
