@@ -778,24 +778,24 @@ class TimelapseEngineCrudBase:
             active_cells = new_active_cells
 
         # 全フレームに揃っていない細胞を削除
-        async with async_session() as session:
-            subquery = (
-                select(Cell.cell)
-                .where(Cell.field == field)
-                .group_by(Cell.cell)
-                .having(func.count(distinct(Cell.time)) < total_frames)
-            )
-            result = await session.execute(subquery)
-            cells_to_delete = [row[0] for row in result]
+        # async with async_session() as session:
+        #     subquery = (
+        #         select(Cell.cell)
+        #         .where(Cell.field == field)
+        #         .group_by(Cell.cell)
+        #         .having(func.count(distinct(Cell.time)) < total_frames)
+        #     )
+        #     result = await session.execute(subquery)
+        #     cells_to_delete = [row[0] for row in result]
 
-            if cells_to_delete:
-                delete_stmt = (
-                    delete(Cell)
-                    .where(Cell.field == field)
-                    .where(Cell.cell.in_(cells_to_delete))
-                )
-                await session.execute(delete_stmt)
-                await session.commit()
+        #     if cells_to_delete:
+        #         delete_stmt = (
+        #             delete(Cell)
+        #             .where(Cell.field == field)
+        #             .where(Cell.cell.in_(cells_to_delete))
+        #         )
+        #         await session.execute(delete_stmt)
+        #         await session.commit()
 
         print("Cell extraction finished (with cropping).")
         print("Removed cells that did not appear in every frame.")
