@@ -319,10 +319,8 @@ const TimelapseViewer: React.FC = () => {
   // すべての GIF を配列化 (drawMode が Replot の時は 4 枚、それ以外は 3 枚)
   const allGifUrls = drawMode === "Replot" ? [...normalGifUrls, replotGifUrl] : normalGifUrls;
 
-  // 全部読み込みが終わったかどうか
   const allLoaded = imagesLoadedCount === allGifUrls.length;
 
-  // ========= キーボードショートカット =========
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!currentCellData) return;
