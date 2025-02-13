@@ -675,7 +675,7 @@ class TimelapseEngineCrudBase:
 
                     assigned_cell_idx = None
                     min_dist = float("inf")
-                    distance_threshold = 100
+                    distance_threshold = 50
 
                     # 前フレームの細胞中心との距離を見て同一セルかどうか判定
                     for prev_idx, (px, py) in active_cells.items():
@@ -777,25 +777,27 @@ class TimelapseEngineCrudBase:
             # 次のフレーム用に active_cells を更新
             active_cells = new_active_cells
 
-        # 全フレームに揃っていない細胞を削除
+        # 最初のフレームに存在しない細胞を削除
         async with async_session() as session:
-            subquery = (
-                select(Cell.cell)
-                .where(Cell.field == field)
-                .group_by(Cell.cell)
-                .having(func.count(distinct(Cell.time)) < total_frames)
+            # first_frame を適切な値に設定してください (例: 0 または 1)
+            first_frame = 0  # 適宜変更
+
+            # 最初のフレームに存在する細胞の一覧を取得する
+            subquery = select(Cell.cell).where(
+                Cell.field == field,
+                Cell.time == first_frame,
             )
             result = await session.execute(subquery)
-            cells_to_delete = [row[0] for row in result]
+            cells_with_first_frame = [row[0] for row in result]
 
-            if cells_to_delete:
-                delete_stmt = (
-                    delete(Cell)
-                    .where(Cell.field == field)
-                    .where(Cell.cell.in_(cells_to_delete))
-                )
-                await session.execute(delete_stmt)
-                await session.commit()
+            # 最初のフレームに存在しない細胞を削除する
+            delete_stmt = (
+                delete(Cell)
+                .where(Cell.field == field)
+                .where(~Cell.cell.in_(cells_with_first_frame))
+            )
+            await session.execute(delete_stmt)
+            await session.commit()
 
         print("Cell extraction finished (with cropping).")
         print("Removed cells that did not appear in every frame.")
