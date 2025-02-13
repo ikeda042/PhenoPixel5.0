@@ -779,8 +779,7 @@ class TimelapseEngineCrudBase:
 
         # 最初のフレームに存在しない細胞を削除
         async with async_session() as session:
-            # first_frame を適切な値に設定してください (例: 0 または 1)
-            first_frame = 0  # 適宜変更
+            first_frame = 1
 
             # 最初のフレームに存在する細胞の一覧を取得する
             subquery = select(Cell.cell).where(
