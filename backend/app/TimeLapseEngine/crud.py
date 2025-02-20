@@ -23,11 +23,8 @@ from sqlalchemy import (
     Column,
     FLOAT,
     Integer,
-    Boolean,
     String,
     delete,
-    func,
-    distinct,
     update,
 )
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
