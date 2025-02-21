@@ -65,6 +65,26 @@ class IbpaGfpLoc:
             cells = result.scalars().all()
             return cells
 
+    @classmethod
+    async def _parse_image(
+        cls,
+        data: bytes,
+        contour: bytes | None = None,
+        brightness_factor: float = 1.0,
+    ):
+        img = await cls._async_imdecode(data)
+        if contour:
+            img = await cls._draw_contour(img, contour)
+        if brightness_factor != 1.0:
+            img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
+
+        ret, buffer = cv2.imencode(".png", img)
+        if ret:
+            with open("output_image.png", "wb") as f:
+                f.write(buffer)
+
+        return {"status": "success", "message": "Image saved to output_image.png"}
+
 
 async def main():
     engine = create_async_engine(
