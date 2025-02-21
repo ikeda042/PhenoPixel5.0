@@ -12,6 +12,8 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 
 from scipy.optimize import curve_fit
 
@@ -552,40 +554,48 @@ class IbpaGfpLoc:
 
 async def analyze_databases(db_paths: List[str]) -> None:
     """
-    各データベースごとに細胞のピークスコア（総合スコア）の分布を取得し、ヒストグラムとしてプロットする関数。
+    各データベースごとに細胞のピークスコア（総合スコア）の分布を取得し、Seabornのバイオリンプロットで可視化する関数。
     """
-    distributions: Dict[str, List[float]] = {}
+    distributions: List[Dict[str, Union[str, float]]] = []
     for db in db_paths:
         print(f"Analyzing database: {db}")
         ibpa = IbpaGfpLoc(db)
         scores = await ibpa.get_score_distribution()
-        distributions[db] = scores
         if scores:
             print(
                 f"Database {db}: Count = {len(scores)}, Mean = {np.mean(scores):.2f}, Median = {np.median(scores):.2f}"
             )
+            # 各スコアに対してデータベース名を紐づけて保存
+            for s in scores:
+                distributions.append({"Database": db, "Score": s})
         else:
             print(f"Database {db}: No scores found.")
 
-    # ヒストグラムをプロット（データベースごとにサブプロット）
-    num_dbs = len(db_paths)
-    fig, axes = plt.subplots(1, num_dbs, figsize=(5 * num_dbs, 4))
-    if num_dbs == 1:
-        axes = [axes]
-    for ax, db in zip(axes, db_paths):
-        ax.hist(distributions[db], bins=20, color="blue", alpha=0.7)
-        ax.set_title(f"Score Distribution\n{db}")
-        ax.set_xlabel("Score")
-        ax.set_ylabel("Frequency")
-    plt.tight_layout()
-    plt.show()
+    if distributions:
+        df = pd.DataFrame(distributions)
+        plt.figure(figsize=(8, 6))
+        sns.violinplot(
+            x="Database", y="Score", data=df, inner="quartile", palette="Set2"
+        )
+        plt.title("Cell Score Distribution by Database")
+        plt.ylabel("Peak Score")
+        plt.xlabel("Database")
+        plt.tight_layout()
+        plt.show()
 
 
 if __name__ == "__main__":
-    # ここでは例として複数のデータベースパスを指定
+    # 例として複数のデータベースパスを指定
+    # db_paths = [
+    #     "experimental/IbpA-GFPLoc/sk326gen120min.db",
+    #     "experimental/IbpA-GFPLoc/other_db.db",
+    # ]
+    import os
+
     db_paths = [
-        "experimental/IbpA-GFPLoc/sk326gen120min.db",
-        "experimental/IbpA-GFPLoc/other_db.db",
+        os.path.join("experimental/IbpA-GFPLoc", db)
+        for db in os.listdir("experimental/IbpA-GFPLoc")
+        if db.endswith(".db")
     ]
 
     # 分布解析の場合は analyze_databases を実行
