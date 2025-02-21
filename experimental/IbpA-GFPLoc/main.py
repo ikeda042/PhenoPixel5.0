@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 import cv2
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
+import pickle
 
 Base = declarative_base()
 
@@ -44,6 +45,22 @@ async def async_imdecode(data: bytes) -> np.ndarray:
             executor, cv2.imdecode, np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR
         )
     return img
+
+
+async def draw_contour(
+    image: np.ndarray, contour: bytes, thickness: int = 1
+) -> np.ndarray:
+    """
+    輪郭を画像上に描画。
+    """
+    loop = asyncio.get_running_loop()
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        contour = pickle.loads(contour)
+        image = await loop.run_in_executor(
+            executor,
+            lambda: cv2.drawContours(image, contour, -1, (0, 255, 0), thickness),
+        )
+    return image
 
 
 async def parse_image(
