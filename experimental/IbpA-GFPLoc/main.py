@@ -30,7 +30,7 @@ class Cell(Base):
         label_experiment (str): Experiment label.
         manual_label (int): Manual label assigned to the cell.
         perimeter (float): Perimeter of the cell.
-        area (float): Area of the cell.
+        area (float): Area of the cell (以前はデータベース上の値を使用していたが、今回の定量化では輪郭から計算するため使用しません)。
         img_ph (bytes): Phase image data.
         img_fluo1 (Optional[bytes]): Fluorescence image data (channel 1).
         img_fluo2 (Optional[bytes]): Fluorescence image data (channel 2).
@@ -44,8 +44,8 @@ class Cell(Base):
     cell_id: str = Column(String)
     label_experiment: str = Column(String)
     manual_label: int = Column(Integer)
-    perimeter: float = Column(FLOAT)
     area: float = Column(FLOAT)
+    perimeter: float = Column(FLOAT)
     img_ph: bytes = Column(BLOB)
     img_fluo1: Optional[bytes] = Column(BLOB, nullable=True)
     img_fluo2: Optional[bytes] = Column(BLOB, nullable=True)
@@ -391,18 +391,23 @@ class IbpaGfpLoc:
 
     def quantify_cell_simple(self, processed_img: np.ndarray, cell: Cell) -> float:
         """
-        細胞内の合計輝度を細胞面積で割ることで蛋白質凝集強度を定量化する関数。
+        細胞内の合計輝度を輪郭内の面積で割ることで蛋白質凝集強度を定量化する関数。
 
         数式:
-            score = (細胞内の総輝度) / (細胞面積)
+            score = (細胞内の総輝度) / (輪郭内の面積)
 
         LaTeX生コード:
         ```
-        \text{score} = \frac{\sum I_{\text{cell}}}{\text{area}}
+        \text{score} = \frac{\sum I_{\text{cell}}}{\text{contour area}}
         ```
         """
         total_intensity = float(np.sum(processed_img))
-        return total_intensity / cell.area if cell.area != 0 else 0.0
+        # 輪郭から細胞面積を計算
+        loaded_contour = pickle.loads(cell.contour)
+        if not isinstance(loaded_contour, list):
+            loaded_contour = [loaded_contour]
+        contour_area = sum(cv2.contourArea(cnt) for cnt in loaded_contour)
+        return total_intensity / contour_area if contour_area != 0 else 0.0
 
     async def main(self) -> None:
         """
@@ -444,7 +449,7 @@ class IbpaGfpLoc:
             )
             processed_img: Optional[np.ndarray] = result.get("image")  # type: ignore
             if processed_img is not None:
-                # 従来の4種の定量化は使用せず、シンプルスコアで計算する
+                # シンプルスコアで計算する
                 intensity_simple = self.quantify_cell_simple(processed_img, cell)
                 print(f"Cell {cell.cell_id}: Simple Intensity = {intensity_simple}")
                 cell_images.append(
