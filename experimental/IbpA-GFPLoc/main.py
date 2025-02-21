@@ -126,7 +126,7 @@ class IbpaGfpLoc:
     @classmethod
     def _subtract_background(
         cls, gray_img: np.ndarray, kernel_size: int = 21
-    ) -> np.ndarray:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Subtract the background from a grayscale image using morphological opening.
 
@@ -144,14 +144,16 @@ class IbpaGfpLoc:
             kernel_size (int, optional): Size of the elliptical kernel used for the morphological operation. Defaults to 21.
 
         Returns:
-            np.ndarray: Background-subtracted grayscale image.
+            tuple[np.ndarray, np.ndarray]:
+                - Background-subtracted grayscale image.
+                - Estimated background image.
         """
         kernel = cv2.getStructuringElement(
             cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
         )
         background = cv2.morphologyEx(gray_img, cv2.MORPH_OPEN, kernel)
         subtracted = cv2.subtract(gray_img, background)
-        return subtracted
+        return subtracted, background
 
     @classmethod
     async def _parse_image(
@@ -161,15 +163,17 @@ class IbpaGfpLoc:
         brightness_factor: float = 1.0,
         save_name: str = "output_image.png",
         fill: bool = False,
+        save_background: bool = False,
     ):
         """
         Process an image by decoding, converting to grayscale, subtracting background, adjusting brightness,
         and optionally processing contours.
 
         The image is decoded and converted to grayscale. Background subtraction is performed by estimating the background
-        with a morphological opening and subtracting it from the original grayscale image. If brightness correction is required,
-        it is applied next. If contour data is provided, the function either applies a mask to retain only the interior of
-        the contour (if fill is True) or draws the contour on the image (if fill is False).
+        with a morphological opening and subtracting it from the original grayscale image. Optionally, the estimated
+        background image is saved for visualization. If brightness correction is required, it is applied next. If contour
+        data is provided, the function either applies a mask to retain only the interior of the contour (if fill is True)
+        or draws the contour on the image (if fill is False).
 
         Args:
             data (bytes): Encoded image data.
@@ -177,13 +181,21 @@ class IbpaGfpLoc:
             brightness_factor (float, optional): Factor for brightness adjustment. Defaults to 1.0.
             save_name (str, optional): File name for saving the processed image. Defaults to "output_image.png".
             fill (bool, optional): If True, applies a mask to keep only the interior of the contour. Defaults to False.
+            save_background (bool, optional): If True, saves the estimated background image for visualization. Defaults to False.
 
         Returns:
             dict: Dictionary containing the status and message regarding the image processing.
         """
         img = await cls._async_imdecode(data)
         gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        gray_img = cls._subtract_background(gray_img)
+        # 背景推定と差し引き
+        subtracted, background = cls._subtract_background(gray_img)
+        if save_background:
+            cv2.imwrite(
+                f"experimental/IbpA-GFPLoc/images/{save_name}_background.png",
+                background,
+            )
+        gray_img = subtracted
         if brightness_factor != 1.0:
             gray_img = cv2.convertScaleAbs(gray_img, alpha=brightness_factor, beta=0)
         if contour:
@@ -212,7 +224,8 @@ class IbpaGfpLoc:
         Retrieve cell data from the database and process the first cell's image.
 
         This function gets the list of cells, selects the first cell, and processes its fluorescence image (img_fluo1)
-        with contour processing (using the fill option).
+        with contour processing (using the fill option). Additionally, if required, the estimated background image
+        is saved for visualization.
         """
         cells: list[Cell] = await self._get_cells()
         print(cells)
@@ -222,6 +235,7 @@ class IbpaGfpLoc:
             contour=cell.contour,
             save_name=f"{cell.cell_id}.png",
             fill=True,
+            save_background=True,
         )
 
 
