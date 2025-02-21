@@ -58,7 +58,8 @@ class IbpaGfpLoc:
             )
         return image
 
-    async def get_cells(self) -> list[Cell]:
+    @classmethod
+    async def _get_cells(self) -> list[Cell]:
         async with self._async_session() as session:
             result = await session.execute(select(Cell))
             cells = result.scalars().all()
