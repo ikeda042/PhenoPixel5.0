@@ -280,7 +280,7 @@ class IbpaGfpLoc:
             result = await self._parse_image(
                 data=cell.img_fluo1,
                 contour=cell.contour,
-                brightness_factor=10,
+                brightness_factor=1,
                 save_name=f"{cell.cell_id}.png",
                 fill=True,
                 save_background=False,
