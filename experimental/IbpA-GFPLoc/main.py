@@ -4,7 +4,7 @@ import numpy as np
 import math
 import pickle
 import os
-from typing import Optional, List, Tuple, Dict, Any, Union, Callable
+from typing import Optional, List, Tuple, Dict, Any, Union
 
 from sqlalchemy import Column, Integer, String, BLOB, FLOAT, select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
@@ -14,6 +14,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
+
+from scipy.optimize import curve_fit
 
 Base = declarative_base()
 
@@ -70,12 +72,6 @@ class IbpaGfpLoc:
     async def _async_imdecode(cls, data: bytes) -> np.ndarray:
         """
         Asynchronously decode image data from bytes.
-
-        Args:
-            data (bytes): Encoded image data.
-
-        Returns:
-            np.ndarray: Decoded image in BGR format.
         """
         loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -90,14 +86,6 @@ class IbpaGfpLoc:
     ) -> np.ndarray:
         """
         Asynchronously draw contours on an image.
-
-        Args:
-            image (np.ndarray): The input image.
-            contour (bytes): Pickled contour data.
-            thickness (int, optional): Thickness of the drawn contour. Defaults to 1.
-
-        Returns:
-            np.ndarray: Image with the contours drawn.
         """
         loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -115,9 +103,6 @@ class IbpaGfpLoc:
     async def _get_cells(self, label: str = "1") -> List[Cell]:
         """
         Asynchronously retrieve cell data from the database.
-
-        Returns:
-            List[Cell]: A list of Cell objects.
         """
         async with self._async_session() as session:
             result: Any = await session.execute(
@@ -133,11 +118,6 @@ class IbpaGfpLoc:
         r"""
         Subtract the background from a grayscale image using morphological opening.
 
-        The background is estimated by applying a morphological opening operation with an elliptical kernel.
-        This operation removes small bright regions (such as cells) while preserving the larger background structure.
-        The estimated background is then subtracted from the original grayscale image using cv2.subtract,
-        which clips negative values to zero.
-
         Mathematical formulation:
             B(x,y) = \mathrm{morph\_open}(I(x,y))
             I\_sub(x,y) = I(x,y) - B(x,y)
@@ -147,15 +127,6 @@ class IbpaGfpLoc:
         B(x,y) = \mathrm{morph\_open}(I(x,y))
         I\_sub(x,y) = I(x,y) - B(x,y)
         ```
-
-        Args:
-            gray_img (np.ndarray): Grayscale image.
-            kernel_size (int, optional): Size of the elliptical kernel used for the morphological operation. Defaults to 21.
-
-        Returns:
-            Tuple[np.ndarray, np.ndarray]:
-                - Background-subtracted grayscale image.
-                - Estimated background image.
         """
         kernel: np.ndarray = cv2.getStructuringElement(
             cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
@@ -175,23 +146,11 @@ class IbpaGfpLoc:
         save_background: bool = False,
     ) -> Dict[str, Union[str, np.ndarray]]:
         """
-        Process an image by decoding, converting to grayscale, subtracting background, adjusting brightness,
-        and optionally processing contours.
-
-        Args:
-            data (bytes): Encoded image data.
-            contour (Optional[bytes], optional): Pickled contour data. Defaults to None.
-            brightness_factor (float, optional): Factor for brightness adjustment. Defaults to 1.0.
-            save_name (str, optional): File name for saving the processed image. Defaults to "output_image.png".
-            fill (bool, optional): If True, applies a mask to keep only the interior of the contour. Defaults to False.
-            save_background (bool, optional): If True, saves the estimated background image for visualization. Defaults to False.
-
-        Returns:
-            Dict[str, Union[str, np.ndarray]]: Dictionary containing the status, message, and the processed image array.
+        Process an image by decoding, converting to grayscale, subtracting background,
+        adjusting brightness, and optionally processing contours.
         """
         img: np.ndarray = await cls._async_imdecode(data)
         gray_img: np.ndarray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # 背景推定と差し引き
         subtracted: np.ndarray
         background: np.ndarray
         subtracted, background = cls._subtract_background(gray_img)
@@ -235,13 +194,6 @@ class IbpaGfpLoc:
     ) -> None:
         """
         Combine a list of images into a single grid image and save it.
-
-        各画像サイズが異なる場合、最大の高さ・幅に合わせて黒いパディングを追加します。
-        グリッドは、画像数の平方根を元に自動計算されます。
-
-        Args:
-            images (List[np.ndarray]): 処理済み画像のリスト。
-            output_filename (str, optional): 保存するファイル名。 Defaults to "combined.png".
         """
         converted_images: List[np.ndarray] = []
         for img in images:
@@ -287,19 +239,7 @@ class IbpaGfpLoc:
         """
         Generate a jet colormap image array of the processed image,
         ensuring that the cell centroid is at (0,0) and the axis scale is unified.
-        輝度は各画像中の絶対値 (0～global_max_brightness) を用いてマッピングします。
-
-        Args:
-            processed_img (np.ndarray): Grayscale image (after background subtraction etc.).
-            cell (Cell): Cellオブジェクト。cell.center_x, cell.center_yを利用して重心位置を決定。
-            global_extent (float): 全細胞での最大半径。すべての画像の軸範囲として使用。
-            global_max_brightness (float): 全細胞中で最大の輝度値。これをvmaxとして用います。
-
-        Returns:
-            np.ndarray: Jet colormapを適用した画像（RGB形式）。
         """
-        h: int
-        w: int
         h, w = processed_img.shape
         extent: List[float] = [
             -cell.center_x,
@@ -307,8 +247,6 @@ class IbpaGfpLoc:
             -cell.center_y,
             h - cell.center_y,
         ]
-        fig: Figure
-        ax: Axes
         fig, ax = plt.subplots()
         ax.imshow(
             processed_img,
@@ -323,21 +261,130 @@ class IbpaGfpLoc:
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_title(f"Cell {cell.cell_id}")
-        # 描画をキャンバスに反映
         fig.canvas.draw()
         jet_img: np.ndarray = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
         jet_img = jet_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         plt.close(fig)
         return jet_img
 
+    @staticmethod
+    def twoD_Gaussian(
+        coordinates: Tuple[np.ndarray, np.ndarray],
+        A: float,
+        x0: float,
+        y0: float,
+        sigma_x: float,
+        sigma_y: float,
+        offset: float,
+    ) -> np.ndarray:
+        """
+        2次元ガウス関数モデル
+
+        数式:
+            f(x,y) = A * exp(-(((x-x0)^2/(2*sigma_x^2)) + ((y-y0)^2/(2*sigma_y^2)))) + offset
+
+        LaTeX生コード:
+        ```
+        f(x,y) = A \exp\left(-\left(\frac{(x-x_0)^2}{2\sigma_x^2} + \frac{(y-y_0)^2}{2\sigma_y^2}\right)\right) + \text{offset}
+        ```
+        """
+        x, y = coordinates
+        exp_component = np.exp(
+            -(((x - x0) ** 2) / (2 * sigma_x**2) + ((y - y0) ** 2) / (2 * sigma_y**2))
+        )
+        return A * exp_component + offset
+
+    @staticmethod
+    def fit_gaussian_to_roi(roi_img: np.ndarray) -> Optional[Dict[str, float]]:
+        """
+        ROI内の画像に対して2次元ガウスフィッティングを実施する関数。
+
+        Returns:
+            dict: フィッティングパラメータと、ガウスの積分強度
+                  integrated_intensity = A * 2πσ_xσ_y
+        """
+        h, w = roi_img.shape
+        x = np.arange(0, w, 1)
+        y = np.arange(0, h, 1)
+        x, y = np.meshgrid(x, y)
+        xdata = np.vstack((x.ravel(), y.ravel()))
+        ydata = roi_img.ravel()
+        A_init = np.max(roi_img) - np.min(roi_img)
+        x0_init = w / 2
+        y0_init = h / 2
+        sigma_x_init = w / 4
+        sigma_y_init = h / 4
+        offset_init = np.min(roi_img)
+        initial_guess = (
+            A_init,
+            x0_init,
+            y0_init,
+            sigma_x_init,
+            sigma_y_init,
+            offset_init,
+        )
+        try:
+            popt, _ = curve_fit(
+                IbpaGfpLoc.twoD_Gaussian, xdata, ydata, p0=initial_guess
+            )
+        except Exception as e:
+            print(f"フィッティングに失敗しました: {e}")
+            return None
+        A, x0, y0, sigma_x, sigma_y, offset = popt
+        integrated_intensity = A * 2 * np.pi * sigma_x * sigma_y
+        return {
+            "A": A,
+            "x0": x0,
+            "y0": y0,
+            "sigma_x": sigma_x,
+            "sigma_y": sigma_y,
+            "offset": offset,
+            "integrated_intensity": integrated_intensity,
+        }
+
+    @staticmethod
+    def detect_dots(image: np.ndarray) -> List[cv2.KeyPoint]:
+        """
+        ドット（蛋白質凝集箇所）を検出するためにSimpleBlobDetectorを使用する関数。
+        """
+        params = cv2.SimpleBlobDetector_Params()
+        params.minThreshold = 10
+        params.maxThreshold = 255
+        params.filterByArea = True
+        params.minArea = 5
+        params.maxArea = 500
+        params.filterByCircularity = False
+        params.filterByConvexity = False
+        params.filterByInertia = False
+        detector = cv2.SimpleBlobDetector_create(params)
+        keypoints = detector.detect(image)
+        return keypoints
+
+    def quantify_cell(self, processed_img: np.ndarray) -> float:
+        """
+        画像内の各ドットに対して2次元ガウスフィッティングを行い、
+        各ドットの積分値を合計することで、蛋白質凝集強度を定量化する関数。
+        """
+        keypoints = IbpaGfpLoc.detect_dots(processed_img)
+        total_intensity = 0.0
+        for kp in keypoints:
+            x_center, y_center = int(round(kp.pt[0])), int(round(kp.pt[1]))
+            half_size = int(round(kp.size / 2)) if kp.size > 0 else 10
+            x1 = max(x_center - half_size, 0)
+            y1 = max(y_center - half_size, 0)
+            x2 = min(x_center + half_size, processed_img.shape[1])
+            y2 = min(y_center + half_size, processed_img.shape[0])
+            roi = processed_img[y1:y2, x1:x2]
+            result = IbpaGfpLoc.fit_gaussian_to_roi(roi)
+            if result is not None:
+                total_intensity += result["integrated_intensity"]
+        return total_intensity
+
     async def main(self) -> None:
         """
         Retrieve cell data from the database, process each cell's image,
         generate jet-colormap plots with unified scale and cell centroid at (0,0),
-        and combine all processed images into one image file.
-
-        ・生画像の結合は "combined_raw.png" として保存
-        ・jet画像の結合は "combined_jet.png" として保存
+        combine all processed images into one image file, and quantify protein aggregation.
         """
         jet_dir: str = "experimental/IbpA-GFPLoc/jet"
         os.makedirs(jet_dir, exist_ok=True)
@@ -348,8 +395,6 @@ class IbpaGfpLoc:
             # Assume cell.img_fluo1 is not None
             img: np.ndarray = await self._async_imdecode(cell.img_fluo1)  # type: ignore
             gray_img: np.ndarray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            h: int
-            w: int
             h, w = gray_img.shape
             left: float = cell.center_x
             right: float = w - cell.center_x
@@ -375,7 +420,11 @@ class IbpaGfpLoc:
             if processed_img is not None:
                 cell_images.append((cell, processed_img))
                 processed_images.append(processed_img)
-
+                # 蛋白質凝集強度の定量化
+                aggregation_intensity = self.quantify_cell(processed_img)
+                print(
+                    f"Cell {cell.cell_id}: Aggregated protein intensity = {aggregation_intensity}"
+                )
         if processed_images:
             global_max_brightness: float = max(np.max(img) for _, img in cell_images)
             for cell, processed_img in cell_images:
