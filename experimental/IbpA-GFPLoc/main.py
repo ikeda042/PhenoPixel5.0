@@ -273,22 +273,35 @@ class IbpaGfpLoc:
 
     @staticmethod
     def _generate_jet_image(
-        processed_img: np.ndarray, cell: Cell, global_extent: float
+        processed_img: np.ndarray,
+        cell: Cell,
+        global_extent: float,
+        global_max_brightness: float,
     ) -> None:
         """
         Generate and save a jet colormap plot of the processed image,
         ensuring that the cell centroid is at (0,0) and the axis scale is unified.
+        輝度は各画像中の絶対値 (0～global_max_brightness) を用いてマッピングします。
 
         Args:
             processed_img (np.ndarray): Grayscale image (after background subtraction etc.).
             cell (Cell): Cellオブジェクト。cell.center_x, cell.center_yを利用して重心位置を決定。
             global_extent (float): 全細胞での最大半径。すべての画像の軸範囲として使用。
+            global_max_brightness (float): 全細胞中で最大の輝度値。これをvmaxとして用います。
         """
         h, w = processed_img.shape
         # 自然な座標は、(0,0)から始まる画像座標系から、重心を引くことでシフトする
         extent = [-cell.center_x, w - cell.center_x, -cell.center_y, h - cell.center_y]
         fig, ax = plt.subplots()
-        ax.imshow(processed_img, cmap="jet", extent=extent, origin="lower")
+        # vmin=0, vmax=global_max_brightnessを指定して絶対輝度を適用
+        ax.imshow(
+            processed_img,
+            cmap="jet",
+            extent=extent,
+            origin="lower",
+            vmin=0,
+            vmax=global_max_brightness,
+        )
         ax.set_xlim([-global_extent, global_extent])
         ax.set_ylim([-global_extent, global_extent])
         ax.set_xlabel("X")
@@ -325,6 +338,8 @@ class IbpaGfpLoc:
             if cell_extent > global_extent:
                 global_extent = cell_extent
 
+        # 各細胞の画像とCell情報を保存するリスト
+        cell_images: list[tuple[Cell, np.ndarray]] = []
         processed_images = []
         for cell in tqdm(cells):
             result = await self._parse_image(
@@ -337,10 +352,17 @@ class IbpaGfpLoc:
             )
             processed_img = result.get("image")
             if processed_img is not None:
+                cell_images.append((cell, processed_img))
                 processed_images.append(processed_img)
-                # jetカラーマップでプロット（細胞重心が(0,0)かつ軸スケールはglobal_extentで統一）
-                IbpaGfpLoc._generate_jet_image(processed_img, cell, global_extent)
+
         if processed_images:
+            # 全細胞中での最大輝度値を求める
+            global_max_brightness = max(np.max(img) for _, img in cell_images)
+            # 各細胞についてjetプロットを生成
+            for cell, processed_img in cell_images:
+                IbpaGfpLoc._generate_jet_image(
+                    processed_img, cell, global_extent, global_max_brightness
+                )
             IbpaGfpLoc.combine_images(
                 processed_images,
                 output_filename="experimental/IbpA-GFPLoc/combined.png",
