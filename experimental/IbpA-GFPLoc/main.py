@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from concurrent.futures import ThreadPoolExecutor
 import pickle
+from tqdm import tqdm
 
 Base = declarative_base()
 
@@ -251,7 +252,7 @@ class IbpaGfpLoc:
         grid_cols = math.ceil(math.sqrt(num_images))
         grid_rows = math.ceil(num_images / grid_cols)
         rows = []
-        for i in range(grid_rows):
+        for i in tqdm(range(grid_rows)):
             row_imgs = []
             for j in range(grid_cols):
                 idx = i * grid_cols + j
@@ -273,8 +274,7 @@ class IbpaGfpLoc:
         """
         cells: list[Cell] = await self._get_cells()
         processed_images = []
-        for cell in cells:
-            print(cell.cell_id)
+        for cell in tqdm(cells):
             result = await self._parse_image(
                 data=cell.img_fluo1,
                 contour=cell.contour,
