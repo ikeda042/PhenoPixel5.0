@@ -151,8 +151,6 @@ class IbpaGfpLoc:
         """
         img: np.ndarray = await cls._async_imdecode(data)
         gray_img: np.ndarray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        subtracted: np.ndarray
-        background: np.ndarray
         subtracted, background = cls._subtract_background(gray_img)
         if save_background:
             cv2.imwrite(
@@ -177,8 +175,6 @@ class IbpaGfpLoc:
                 gray_img = cv2.drawContours(
                     gray_img, loaded_contour, -1, (0,), thickness=1
                 )
-        ret: bool
-        buffer: np.ndarray
         ret, buffer = cv2.imencode(".png", gray_img)
         if ret:
             cv2.imwrite(f"experimental/IbpA-GFPLoc/images/{save_name}", gray_img)
@@ -406,27 +402,25 @@ class IbpaGfpLoc:
         return total_intensity / contour_area if contour_area != 0 else 0.0
 
     @staticmethod
-    def quantify_cell_peak(
-        processed_img: np.ndarray, cell: Cell, top_n: int = 10
-    ) -> float:
+    def quantify_cell_peak(processed_img: np.ndarray, cell: Cell) -> float:
         """
-        細胞内の輝度が高い上位top_n個のピクセルの平均値を返す関数。
+        細胞内の輝度が高い上位10%のピクセルの平均値を返す関数。
 
         数式:
-            \text{peak} = \frac{1}{n} \sum_{i=1}^{n} I_{(i)}
-        （ただし、I_{(i)} は細胞内の輝度を高い順に並べた値）
+            \text{peak} = \frac{1}{N_{top}} \sum_{i=1}^{N_{top}} I_{(i)}
+        （ただし、N_{top} は細胞内のピクセル数の10%を表し、I_{(i)} は細胞内の輝度を高い順に並べた値）
 
         LaTeX生コード:
         ```
-        \text{peak} = \frac{1}{n} \sum_{i=1}^{n} I_{(i)}
+        \text{peak} = \frac{1}{N_{top}} \sum_{i=1}^{N_{top}} I_{(i)}
         ```
         """
-        # 細胞領域のみの輝度値を抽出（背景は0としているため、0でない値を使用）
         cell_pixels = processed_img[processed_img > 0]
         if cell_pixels.size == 0:
             return 0.0
         sorted_pixels = np.sort(cell_pixels)[::-1]
-        top_pixels = sorted_pixels[: min(top_n, len(sorted_pixels))]
+        num_top = int(np.ceil(0.1 * len(sorted_pixels)))
+        top_pixels = sorted_pixels[:num_top]
         return float(np.mean(top_pixels))
 
     def quantify_cell_composite(
@@ -437,26 +431,22 @@ class IbpaGfpLoc:
         global_max_peak: float,
     ) -> float:
         """
-        シンプルスコアとピークスコアを正規化した上で、総合スコアとして組み合わせる関数。
+        総合スコアはピークスコアのみを用いる。
 
-        ここでは、各細胞のシンプルスコアを global_max_simple で、ピークスコアを global_max_peak で正規化し、
-        それぞれの平均を総合スコアとする。
-
-        数式:
-            \text{composite} = \frac{ \frac{\text{simple}}{\text{global\_max\_simple}} + \frac{\text{peak}}{\text{global\_max\_peak}} }{2}
+        LaTeX生コード:
+        ```
+        \text{composite} = \text{peak}
+        ```
         """
-        normalized_simple = (
-            simple / global_max_simple if global_max_simple != 0 else 0.0
-        )
-        normalized_peak = peak / global_max_peak if global_max_peak != 0 else 0.0
-        return (normalized_simple + normalized_peak) / 2
+        return peak
 
     async def main(self) -> None:
         """
         Retrieve cell data from the database, process each cell's image,
         generate jet-colormap plots with unified scale and cell centroid at (0,0),
         combine all processed images into one image file, and quantify protein aggregation.
-        各セルのjet画像には、定量化したシンプルスコア、ピークスコア、総合スコアを注釈として描画する。
+        各セルのjet画像には、定量化したシンプルスコア、ピークスコア、総合スコア（＝ピークスコア）を注釈として描画する。
+        最終的に、総合スコア順にraw画像とjet画像の両方を結合して出力する。
         """
         jet_dir: str = "experimental/IbpA-GFPLoc/jet"
         os.makedirs(jet_dir, exist_ok=True)
@@ -477,8 +467,6 @@ class IbpaGfpLoc:
                 global_extent = cell_extent
 
         cell_images: List[Tuple[Cell, np.ndarray, Dict[str, float]]] = []
-        processed_images: List[np.ndarray] = []
-        jet_images: List[np.ndarray] = []
         for cell in tqdm(cells):
             result: Dict[str, Union[str, np.ndarray]] = await self._parse_image(
                 data=cell.img_fluo1,  # type: ignore
@@ -502,11 +490,15 @@ class IbpaGfpLoc:
                         {"simple": intensity_simple, "peak": intensity_peak},
                     )
                 )
-                processed_images.append(processed_img)
-        if processed_images:
+
+        if cell_images:
             global_max_brightness: float = max(np.max(img) for _, img, _ in cell_images)
             global_max_simple: float = max(info["simple"] for _, _, info in cell_images)
             global_max_peak: float = max(info["peak"] for _, _, info in cell_images)
+
+            cell_images_with_jet: List[
+                Tuple[Cell, np.ndarray, Dict[str, float], np.ndarray]
+            ] = []
             for cell, processed_img, intensities in cell_images:
                 composite = self.quantify_cell_composite(
                     intensities["simple"],
@@ -515,11 +507,8 @@ class IbpaGfpLoc:
                     global_max_peak,
                 )
                 intensities["composite"] = composite
-                annotation = (
-                    f"S: {intensities['simple']:.2f}, "
-                    f"P: {intensities['peak']:.2f}, "
-                    f"C: {composite:.2f}"
-                )
+                # annotationでは総合スコアはピークスコアのみなので、シンプルスコアは省略可
+                annotation = f"P: {intensities['peak']:.2f}, C: {composite:.2f}"
                 jet_img: np.ndarray = IbpaGfpLoc._generate_jet_image_array(
                     processed_img,
                     cell,
@@ -527,13 +516,25 @@ class IbpaGfpLoc:
                     global_max_brightness,
                     annotation,
                 )
-                jet_images.append(jet_img)
+                cell_images_with_jet.append((cell, processed_img, intensities, jet_img))
+
+            # 総合スコア(composite)の降順にソート（＝ピークスコア順にソート）
+            cell_images_sorted = sorted(
+                cell_images_with_jet, key=lambda x: x[2]["composite"], reverse=True
+            )
+            processed_images_sorted: List[np.ndarray] = [
+                entry[1] for entry in cell_images_sorted
+            ]
+            jet_images_sorted: List[np.ndarray] = [
+                entry[3] for entry in cell_images_sorted
+            ]
+
             IbpaGfpLoc.combine_images(
-                processed_images,
+                processed_images_sorted,
                 output_filename="experimental/IbpA-GFPLoc/combined_raw.png",
             )
             IbpaGfpLoc.combine_images(
-                jet_images,
+                jet_images_sorted,
                 output_filename="experimental/IbpA-GFPLoc/combined_jet.png",
             )
 
