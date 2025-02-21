@@ -272,14 +272,14 @@ class IbpaGfpLoc:
         print(f"Combined image saved to {output_filename}")
 
     @staticmethod
-    def _generate_jet_image(
+    def _generate_jet_image_array(
         processed_img: np.ndarray,
         cell: Cell,
         global_extent: float,
         global_max_brightness: float,
-    ) -> None:
+    ) -> np.ndarray:
         """
-        Generate and save a jet colormap plot of the processed image,
+        Generate a jet colormap image array of the processed image,
         ensuring that the cell centroid is at (0,0) and the axis scale is unified.
         輝度は各画像中の絶対値 (0～global_max_brightness) を用いてマッピングします。
 
@@ -288,12 +288,13 @@ class IbpaGfpLoc:
             cell (Cell): Cellオブジェクト。cell.center_x, cell.center_yを利用して重心位置を決定。
             global_extent (float): 全細胞での最大半径。すべての画像の軸範囲として使用。
             global_max_brightness (float): 全細胞中で最大の輝度値。これをvmaxとして用います。
+
+        Returns:
+            np.ndarray: Jet colormapを適用した画像（RGB形式）。
         """
         h, w = processed_img.shape
-        # 自然な座標は、(0,0)から始まる画像座標系から、重心を引くことでシフトする
         extent = [-cell.center_x, w - cell.center_x, -cell.center_y, h - cell.center_y]
         fig, ax = plt.subplots()
-        # vmin=0, vmax=global_max_brightnessを指定して絶対輝度を適用
         ax.imshow(
             processed_img,
             cmap="jet",
@@ -307,18 +308,23 @@ class IbpaGfpLoc:
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_title(f"Cell {cell.cell_id}")
-        out_path = f"experimental/IbpA-GFPLoc/jet/{cell.cell_id}_jet.png"
-        fig.savefig(out_path)
+        # 描画をキャンバスに反映
+        fig.canvas.draw()
+        jet_img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        jet_img = jet_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         plt.close(fig)
-        print(f"Jet image saved to {out_path}")
+        return jet_img
 
     async def main(self):
         """
         Retrieve cell data from the database, process each cell's image,
         generate jet-colormap plots with unified scale and cell centroid at (0,0),
-        and combine all processed images into one image file ("combined.png").
+        and combine all processed images into one image file.
+
+        ・生画像の結合は "combined_raw.png" として保存
+        ・jet画像の結合は "combined_jet.png" として保存
         """
-        # /imagesと同じ階層に/jetディレクトリを作成
+        # /imagesディレクトリと/jetディレクトリを作成
         jet_dir = "experimental/IbpA-GFPLoc/jet"
         os.makedirs(jet_dir, exist_ok=True)
 
@@ -329,7 +335,6 @@ class IbpaGfpLoc:
             img = await self._async_imdecode(cell.img_fluo1)
             gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             h, w = gray_img.shape
-            # 各細胞で、重心から画像端までの距離の最大値を計算
             left = cell.center_x
             right = w - cell.center_x
             bottom = cell.center_y
@@ -341,6 +346,7 @@ class IbpaGfpLoc:
         # 各細胞の画像とCell情報を保存するリスト
         cell_images: list[tuple[Cell, np.ndarray]] = []
         processed_images = []
+        jet_images = []
         for cell in tqdm(cells):
             result = await self._parse_image(
                 data=cell.img_fluo1,
@@ -358,20 +364,29 @@ class IbpaGfpLoc:
         if processed_images:
             # 全細胞中での最大輝度値を求める
             global_max_brightness = max(np.max(img) for _, img in cell_images)
-            # 各細胞についてjetプロットを生成
+            # 各細胞についてjetプロットの画像配列を生成
             for cell, processed_img in cell_images:
-                IbpaGfpLoc._generate_jet_image(
+                jet_img = IbpaGfpLoc._generate_jet_image_array(
                     processed_img, cell, global_extent, global_max_brightness
                 )
+                jet_images.append(jet_img)
+            # 生画像の結合画像を保存
             IbpaGfpLoc.combine_images(
                 processed_images,
-                output_filename="experimental/IbpA-GFPLoc/combined.png",
+                output_filename="experimental/IbpA-GFPLoc/combined_raw.png",
+            )
+            # jet画像の結合画像を保存
+            IbpaGfpLoc.combine_images(
+                jet_images,
+                output_filename="experimental/IbpA-GFPLoc/combined_jet.png",
             )
 
 
 if __name__ == "__main__":
     # /imagesフォルダ内の既存ファイルを削除
-    for file in os.listdir("experimental/IbpA-GFPLoc/images/"):
-        os.remove(f"experimental/IbpA-GFPLoc/images/{file}")
+    images_dir = "experimental/IbpA-GFPLoc/images/"
+    if os.path.exists(images_dir):
+        for file in os.listdir(images_dir):
+            os.remove(os.path.join(images_dir, file))
     ibpa_gfp_loc = IbpaGfpLoc()
     asyncio.run(ibpa_gfp_loc.main())
