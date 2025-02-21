@@ -287,7 +287,7 @@ class IbpaGfpLoc:
         if processed_images:
             self.combine_images(
                 processed_images,
-                output_filename="experimental/IbpA-GFPLoc/images/combined.png",
+                output_filename="experimental/IbpA-GFPLoc/combined.png",
             )
 
 
