@@ -8,6 +8,8 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from concurrent.futures import ThreadPoolExecutor
 import pickle
 from tqdm import tqdm
+import os
+import matplotlib.pyplot as plt
 
 Base = declarative_base()
 
@@ -269,12 +271,60 @@ class IbpaGfpLoc:
         cv2.imwrite(output_filename, combined_image)
         print(f"Combined image saved to {output_filename}")
 
+    @staticmethod
+    def _generate_jet_image(
+        processed_img: np.ndarray, cell: Cell, global_extent: float
+    ) -> None:
+        """
+        Generate and save a jet colormap plot of the processed image,
+        ensuring that the cell centroid is at (0,0) and the axis scale is unified.
+
+        Args:
+            processed_img (np.ndarray): Grayscale image (after background subtraction etc.).
+            cell (Cell): Cellオブジェクト。cell.center_x, cell.center_yを利用して重心位置を決定。
+            global_extent (float): 全細胞での最大半径。すべての画像の軸範囲として使用。
+        """
+        h, w = processed_img.shape
+        # 自然な座標は、(0,0)から始まる画像座標系から、重心を引くことでシフトする
+        extent = [-cell.center_x, w - cell.center_x, -cell.center_y, h - cell.center_y]
+        fig, ax = plt.subplots()
+        ax.imshow(processed_img, cmap="jet", extent=extent, origin="lower")
+        ax.set_xlim([-global_extent, global_extent])
+        ax.set_ylim([-global_extent, global_extent])
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_title(f"Cell {cell.cell_id}")
+        out_path = f"experimental/IbpA-GFPLoc/jet/{cell.cell_id}_jet.png"
+        fig.savefig(out_path)
+        plt.close(fig)
+        print(f"Jet image saved to {out_path}")
+
     async def main(self):
         """
         Retrieve cell data from the database, process each cell's image,
+        generate jet-colormap plots with unified scale and cell centroid at (0,0),
         and combine all processed images into one image file ("combined.png").
         """
+        # /imagesと同じ階層に/jetディレクトリを作成
+        jet_dir = "experimental/IbpA-GFPLoc/jet"
+        os.makedirs(jet_dir, exist_ok=True)
+
         cells: list[Cell] = await self._get_cells()
+        # 全細胞で統一するための軸スケール（global_extent）を計算
+        global_extent = 0.0
+        for cell in cells:
+            img = await self._async_imdecode(cell.img_fluo1)
+            gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            h, w = gray_img.shape
+            # 各細胞で、重心から画像端までの距離の最大値を計算
+            left = cell.center_x
+            right = w - cell.center_x
+            bottom = cell.center_y
+            top = h - cell.center_y
+            cell_extent = max(left, right, bottom, top)
+            if cell_extent > global_extent:
+                global_extent = cell_extent
+
         processed_images = []
         for cell in tqdm(cells):
             result = await self._parse_image(
@@ -288,16 +338,17 @@ class IbpaGfpLoc:
             processed_img = result.get("image")
             if processed_img is not None:
                 processed_images.append(processed_img)
+                # jetカラーマップでプロット（細胞重心が(0,0)かつ軸スケールはglobal_extentで統一）
+                IbpaGfpLoc._generate_jet_image(processed_img, cell, global_extent)
         if processed_images:
-            self.combine_images(
+            IbpaGfpLoc.combine_images(
                 processed_images,
                 output_filename="experimental/IbpA-GFPLoc/combined.png",
             )
 
 
 if __name__ == "__main__":
-    import os
-
+    # /imagesフォルダ内の既存ファイルを削除
     for file in os.listdir("experimental/IbpA-GFPLoc/images/"):
         os.remove(f"experimental/IbpA-GFPLoc/images/{file}")
     ibpa_gfp_loc = IbpaGfpLoc()
