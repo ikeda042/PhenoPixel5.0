@@ -71,10 +71,7 @@ async def parse_image(
 ):
     img = await async_imdecode(data)
     if contour:
-        # Example: decode contour data and draw
-        # contour_pts = np.frombuffer(contour, dtype=np.int32).reshape(-1, 1, 2)
-        # cv2.drawContours(img, [contour_pts], -1, (0, 255, 0), 2)
-        pass
+        img = await draw_contour(img, contour)
     if brightness_factor != 1.0:
         img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
 
