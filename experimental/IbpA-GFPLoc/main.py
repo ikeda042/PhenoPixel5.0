@@ -1,9 +1,10 @@
 import asyncio
+import cv2
+import numpy as np
+import math
 from sqlalchemy import Column, Integer, String, BLOB, FLOAT, select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-import cv2
-import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import pickle
 
@@ -47,16 +48,9 @@ class Cell(Base):
 class IbpaGfpLoc:
     """
     Class for handling image processing and database operations for the IbpA-GFPLoc experiment.
-
-    This class connects to an SQLite database asynchronously using SQLAlchemy,
-    retrieves cell data, and processes images by decoding, converting to grayscale,
-    subtracting the background, and handling contour processing.
     """
 
     def __init__(self) -> None:
-        """
-        Initialize the IbpaGfpLoc instance by creating the async engine and sessionmaker.
-        """
         self._engine = create_async_engine(
             "sqlite+aiosqlite:///experimental/IbpA-GFPLoc/sk326gen120min.db?timeout=30",
             echo=False,
@@ -127,7 +121,7 @@ class IbpaGfpLoc:
     def _subtract_background(
         cls, gray_img: np.ndarray, kernel_size: int = 21
     ) -> tuple[np.ndarray, np.ndarray]:
-        """
+        r"""
         Subtract the background from a grayscale image using morphological opening.
 
         The background is estimated by applying a morphological opening operation with an elliptical kernel.
@@ -136,8 +130,14 @@ class IbpaGfpLoc:
         which clips negative values to zero.
 
         Mathematical formulation:
-            B(x,y) = morph_open(I(x,y))
-            I_sub(x,y) = I(x,y) - B(x,y)
+            B(x,y) = \mathrm{morph\_open}(I(x,y))
+            I\_sub(x,y) = I(x,y) - B(x,y)
+
+        LaTeX生コード:
+        ```
+        B(x,y) = \mathrm{morph\_open}(I(x,y))
+        I\_sub(x,y) = I(x,y) - B(x,y)
+        ```
 
         Args:
             gray_img (np.ndarray): Grayscale image.
@@ -169,12 +169,6 @@ class IbpaGfpLoc:
         Process an image by decoding, converting to grayscale, subtracting background, adjusting brightness,
         and optionally processing contours.
 
-        The image is decoded and converted to grayscale. Background subtraction is performed by estimating the background
-        with a morphological opening and subtracting it from the original grayscale image. Optionally, the estimated
-        background image is saved for visualization. If brightness correction is required, it is applied next. If contour
-        data is provided, the function either applies a mask to retain only the interior of the contour (if fill is True)
-        or draws the contour on the image (if fill is False).
-
         Args:
             data (bytes): Encoded image data.
             contour (bytes | None, optional): Pickled contour data. Defaults to None.
@@ -184,7 +178,7 @@ class IbpaGfpLoc:
             save_background (bool, optional): If True, saves the estimated background image for visualization. Defaults to False.
 
         Returns:
-            dict: Dictionary containing the status and message regarding the image processing.
+            dict: Dictionary containing the status, message, and the processed image array.
         """
         img = await cls._async_imdecode(data)
         gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -217,26 +211,84 @@ class IbpaGfpLoc:
         ret, buffer = cv2.imencode(".png", gray_img)
         if ret:
             cv2.imwrite(f"experimental/IbpA-GFPLoc/images/{save_name}", gray_img)
-        return {"status": "success", "message": f"Image saved to {save_name}"}
+        return {
+            "status": "success",
+            "message": f"Image saved to {save_name}",
+            "image": gray_img,
+        }
+
+    @staticmethod
+    def combine_images(
+        images: list[np.ndarray], output_filename: str = "combined.png"
+    ) -> None:
+        """
+        Combine a list of images into a single grid image and save it.
+
+        各画像サイズが異なる場合、最大の高さ・幅に合わせて黒いパディングを追加します。
+        グリッドは、画像数の平方根を元に自動計算されます。
+
+        Args:
+            images (list[np.ndarray]): 処理済み画像のリスト。
+            output_filename (str, optional): 保存するファイル名。 Defaults to "combined.png".
+        """
+        # グレースケールの場合はBGRに変換
+        converted_images = []
+        for img in images:
+            if len(img.shape) == 2:
+                img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            converted_images.append(img)
+
+        # 各画像の最大の高さと幅を取得
+        max_h = max(img.shape[0] for img in converted_images)
+        max_w = max(img.shape[1] for img in converted_images)
+        padded_images = []
+        for img in converted_images:
+            h, w = img.shape[:2]
+            padded = np.zeros((max_h, max_w, 3), dtype=img.dtype)
+            padded[:h, :w] = img
+            padded_images.append(padded)
+        num_images = len(padded_images)
+        grid_cols = math.ceil(math.sqrt(num_images))
+        grid_rows = math.ceil(num_images / grid_cols)
+        rows = []
+        for i in range(grid_rows):
+            row_imgs = []
+            for j in range(grid_cols):
+                idx = i * grid_cols + j
+                if idx < num_images:
+                    row_imgs.append(padded_images[idx])
+                else:
+                    row_imgs.append(
+                        np.zeros((max_h, max_w, 3), dtype=converted_images[0].dtype)
+                    )
+            rows.append(np.hstack(row_imgs))
+        combined_image = np.vstack(rows)
+        cv2.imwrite(output_filename, combined_image)
+        print(f"Combined image saved to {output_filename}")
 
     async def main(self):
         """
-        Retrieve cell data from the database and process the first cell's image.
-
-        This function gets the list of cells, selects the first cell, and processes its fluorescence image (img_fluo1)
-        with contour processing (using the fill option). Additionally, if required, the estimated background image
-        is saved for visualization.
+        Retrieve cell data from the database, process each cell's image,
+        and combine all processed images into one image file ("combined.png").
         """
         cells: list[Cell] = await self._get_cells()
-        print(cells)
-        cell: Cell = cells[0]
-        await self._parse_image(
-            data=cell.img_fluo1,
-            contour=cell.contour,
-            save_name=f"{cell.cell_id}.png",
-            fill=True,
-            save_background=True,
-        )
+        processed_images = []
+        for cell in cells:
+            result = await self._parse_image(
+                data=cell.img_fluo1,
+                contour=cell.contour,
+                save_name=f"{cell.cell_id}.png",
+                fill=True,
+                save_background=True,
+            )
+            processed_img = result.get("image")
+            if processed_img is not None:
+                processed_images.append(processed_img)
+        if processed_images:
+            self.combine_images(
+                processed_images,
+                output_filename="experimental/IbpA-GFPLoc/images/combined.png",
+            )
 
 
 if __name__ == "__main__":
