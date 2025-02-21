@@ -11,6 +11,24 @@ Base = declarative_base()
 
 
 class Cell(Base):
+    """
+    ORM model representing a cell.
+
+    Attributes:
+        id (int): Primary key.
+        cell_id (str): Identifier of the cell.
+        label_experiment (str): Experiment label.
+        manual_label (int): Manual label assigned to the cell.
+        perimeter (float): Perimeter of the cell.
+        area (float): Area of the cell.
+        img_ph (bytes): Phase image data.
+        img_fluo1 (bytes): Fluorescence image data (channel 1).
+        img_fluo2 (bytes): Fluorescence image data (channel 2).
+        contour (bytes): Pickled contour data.
+        center_x (float): X coordinate of the cell center.
+        center_y (float): Y coordinate of the cell center.
+    """
+
     __tablename__ = "cells"
     id = Column(Integer, primary_key=True)
     cell_id = Column(String)
@@ -27,7 +45,18 @@ class Cell(Base):
 
 
 class IbpaGfpLoc:
+    """
+    Class for handling image processing and database operations for the IbpA-GFPLoc experiment.
+
+    This class connects to an SQLite database asynchronously using SQLAlchemy,
+    retrieves cell data, and processes images by decoding, converting to grayscale,
+    subtracting the background, and handling contour processing.
+    """
+
     def __init__(self) -> None:
+        """
+        Initialize the IbpaGfpLoc instance by creating the async engine and sessionmaker.
+        """
         self._engine = create_async_engine(
             "sqlite+aiosqlite:///experimental/IbpA-GFPLoc/sk326gen120min.db?timeout=30",
             echo=False,
@@ -38,6 +67,15 @@ class IbpaGfpLoc:
 
     @classmethod
     async def _async_imdecode(cls, data: bytes) -> np.ndarray:
+        """
+        Asynchronously decode image data from bytes.
+
+        Args:
+            data (bytes): Encoded image data.
+
+        Returns:
+            np.ndarray: Decoded image in BGR format.
+        """
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             img = await loop.run_in_executor(
@@ -49,6 +87,17 @@ class IbpaGfpLoc:
     async def _draw_contour(
         cls, image: np.ndarray, contour: bytes, thickness: int = 1
     ) -> np.ndarray:
+        """
+        Asynchronously draw contours on an image.
+
+        Args:
+            image (np.ndarray): The input image.
+            contour (bytes): Pickled contour data.
+            thickness (int, optional): Thickness of the drawn contour. Defaults to 1.
+
+        Returns:
+            np.ndarray: Image with the contours drawn.
+        """
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             loaded_contour = pickle.loads(contour)
@@ -63,6 +112,12 @@ class IbpaGfpLoc:
         return image
 
     async def _get_cells(self) -> list[Cell]:
+        """
+        Asynchronously retrieve cell data from the database.
+
+        Returns:
+            list[Cell]: A list of Cell objects.
+        """
         async with self._async_session() as session:
             result = await session.execute(select(Cell))
             cells = result.scalars().all()
@@ -72,13 +127,29 @@ class IbpaGfpLoc:
     def _subtract_background(
         cls, gray_img: np.ndarray, kernel_size: int = 21
     ) -> np.ndarray:
-        # エリプス形状のカーネルを生成
+        """
+        Subtract the background from a grayscale image using morphological opening.
+
+        The background is estimated by applying a morphological opening operation with an elliptical kernel.
+        This operation removes small bright regions (such as cells) while preserving the larger background structure.
+        The estimated background is then subtracted from the original grayscale image using cv2.subtract,
+        which clips negative values to zero.
+
+        Mathematical formulation:
+            B(x,y) = morph_open(I(x,y))
+            I_sub(x,y) = I(x,y) - B(x,y)
+
+        Args:
+            gray_img (np.ndarray): Grayscale image.
+            kernel_size (int, optional): Size of the elliptical kernel used for the morphological operation. Defaults to 21.
+
+        Returns:
+            np.ndarray: Background-subtracted grayscale image.
+        """
         kernel = cv2.getStructuringElement(
             cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
         )
-        # モルフォロジーオープニングで背景を推定
         background = cv2.morphologyEx(gray_img, cv2.MORPH_OPEN, kernel)
-        # 背景を引き算（cv2.subtractは負の値を0にしてくれる）
         subtracted = cv2.subtract(gray_img, background)
         return subtracted
 
@@ -91,50 +162,61 @@ class IbpaGfpLoc:
         save_name: str = "output_image.png",
         fill: bool = False,
     ):
-        # 画像をデコード
-        img = await cls._async_imdecode(data)
-        # 絶対輝度解析のため、グレースケールに変換
-        gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # 背景を推定して引き算
-        gray_img = cls._subtract_background(gray_img)
+        """
+        Process an image by decoding, converting to grayscale, subtracting background, adjusting brightness,
+        and optionally processing contours.
 
-        # 輝度補正が必要な場合
+        The image is decoded and converted to grayscale. Background subtraction is performed by estimating the background
+        with a morphological opening and subtracting it from the original grayscale image. If brightness correction is required,
+        it is applied next. If contour data is provided, the function either applies a mask to retain only the interior of
+        the contour (if fill is True) or draws the contour on the image (if fill is False).
+
+        Args:
+            data (bytes): Encoded image data.
+            contour (bytes | None, optional): Pickled contour data. Defaults to None.
+            brightness_factor (float, optional): Factor for brightness adjustment. Defaults to 1.0.
+            save_name (str, optional): File name for saving the processed image. Defaults to "output_image.png".
+            fill (bool, optional): If True, applies a mask to keep only the interior of the contour. Defaults to False.
+
+        Returns:
+            dict: Dictionary containing the status and message regarding the image processing.
+        """
+        img = await cls._async_imdecode(data)
+        gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gray_img = cls._subtract_background(gray_img)
         if brightness_factor != 1.0:
             gray_img = cv2.convertScaleAbs(gray_img, alpha=brightness_factor, beta=0)
-
         if contour:
             if fill:
                 loaded_contour = pickle.loads(contour)
                 if not isinstance(loaded_contour, list):
                     loaded_contour = [loaded_contour]
-                # 画像と同じサイズのマスク（初期値0）を作成
                 mask = np.zeros(gray_img.shape, dtype=np.uint8)
-                # 輪郭内部を255で塗りつぶし
                 cv2.fillPoly(mask, loaded_contour, 255)
-                # 輪郭線のみを黒（0）で描画（輪郭内部は保持）
                 cv2.polylines(mask, loaded_contour, isClosed=True, color=0, thickness=1)
-                # マスク適用：内部のみ輝度を保持
                 gray_img = cv2.bitwise_and(gray_img, gray_img, mask=mask)
             else:
-                # オプション：輪郭を画像上に描画（視覚確認用）
                 loaded_contour = pickle.loads(contour)
                 if not isinstance(loaded_contour, list):
                     loaded_contour = [loaded_contour]
                 gray_img = cv2.drawContours(
                     gray_img, loaded_contour, -1, (0,), thickness=1
                 )
-
         ret, buffer = cv2.imencode(".png", gray_img)
         if ret:
             cv2.imwrite(f"experimental/IbpA-GFPLoc/images/{save_name}", gray_img)
-
         return {"status": "success", "message": f"Image saved to {save_name}"}
 
     async def main(self):
+        """
+        Retrieve cell data from the database and process the first cell's image.
+
+        This function gets the list of cells, selects the first cell, and processes its fluorescence image (img_fluo1)
+        with contour processing (using the fill option).
+        """
         cells: list[Cell] = await self._get_cells()
         print(cells)
         cell: Cell = cells[0]
-        # 例として、塗りつぶしオプション有効の場合
         await self._parse_image(
             data=cell.img_fluo1,
             contour=cell.contour,
