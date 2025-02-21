@@ -279,7 +279,7 @@ class IbpaGfpLoc:
                 contour=cell.contour,
                 save_name=f"{cell.cell_id}.png",
                 fill=True,
-                save_background=True,
+                save_background=False,
             )
             processed_img = result.get("image")
             if processed_img is not None:
@@ -292,5 +292,9 @@ class IbpaGfpLoc:
 
 
 if __name__ == "__main__":
+    import os
+
+    for file in os.listdir("experimental/IbpA-GFPLoc/images/"):
+        os.remove(f"experimental/IbpA-GFPLoc/images/{file}")
     ibpa_gfp_loc = IbpaGfpLoc()
     asyncio.run(ibpa_gfp_loc.main())
