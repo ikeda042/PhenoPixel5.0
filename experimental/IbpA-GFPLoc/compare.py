@@ -585,11 +585,6 @@ async def analyze_databases(db_paths: List[str]) -> None:
 
 
 if __name__ == "__main__":
-    # 例として複数のデータベースパスを指定
-    # db_paths = [
-    #     "experimental/IbpA-GFPLoc/sk326gen120min.db",
-    #     "experimental/IbpA-GFPLoc/other_db.db",
-    # ]
     import os
 
     db_paths = [
