@@ -281,7 +281,7 @@ class IbpaGfpLoc:
         2次元ガウス関数モデル
 
         数式:
-            f(x,y) = A * exp(-(((x-x0)^2/(2*sigma_x^2)) + ((y-y0)^2/(2*sigma_y^2)))) + offset
+            f(x,y) = A * exp(-(((x-x0)^2/(2\sigma_x^2)) + ((y-y0)^2/(2\sigma_y^2)))) + offset
 
         LaTeX生コード:
         ```
@@ -395,6 +395,56 @@ class IbpaGfpLoc:
                 total_intensity += result["integrated_intensity"]
         return total_intensity
 
+    def quantify_cell_sum(self, processed_img: np.ndarray) -> float:
+        """
+        画素値総和による蛋白質凝集強度の定量化。
+        """
+        keypoints = IbpaGfpLoc.detect_dots(processed_img)
+        total_intensity = 0.0
+        for kp in keypoints:
+            x_center, y_center = int(round(kp.pt[0])), int(round(kp.pt[1]))
+            half_size = int(round(kp.size / 2)) if kp.size > 0 else 10
+            x1 = max(x_center - half_size, 0)
+            y1 = max(y_center - half_size, 0)
+            x2 = min(x_center + half_size, processed_img.shape[1])
+            y2 = min(y_center + half_size, processed_img.shape[0])
+            roi = processed_img[y1:y2, x1:x2]
+            total_intensity += float(np.sum(roi))
+        return total_intensity
+
+    def quantify_cell_area_weighted(self, processed_img: np.ndarray) -> float:
+        """
+        面積加重平均による蛋白質凝集強度の定量化。
+        """
+        keypoints = IbpaGfpLoc.detect_dots(processed_img)
+        total_intensity = 0.0
+        for kp in keypoints:
+            x_center, y_center = int(round(kp.pt[0])), int(round(kp.pt[1]))
+            half_size = int(round(kp.size / 2)) if kp.size > 0 else 10
+            x1 = max(x_center - half_size, 0)
+            y1 = max(y_center - half_size, 0)
+            x2 = min(x_center + half_size, processed_img.shape[1])
+            y2 = min(y_center + half_size, processed_img.shape[0])
+            roi = processed_img[y1:y2, x1:x2]
+            area = roi.size
+            mean_intensity = float(np.mean(roi))
+            total_intensity += mean_intensity * area
+        return total_intensity
+
+    def quantify_cell_connected_components(
+        self, processed_img: np.ndarray, threshold: int = 50
+    ) -> float:
+        """
+        しきい値処理と連結成分解析による蛋白質凝集強度の定量化。
+        """
+        _, binary_img = cv2.threshold(processed_img, threshold, 255, cv2.THRESH_BINARY)
+        num_labels, labels = cv2.connectedComponents(binary_img.astype(np.uint8))
+        total_intensity = 0.0
+        for label in range(1, num_labels):
+            mask = labels == label
+            total_intensity += float(np.sum(processed_img[mask]))
+        return total_intensity
+
     async def main(self) -> None:
         """
         Retrieve cell data from the database, process each cell's image,
@@ -435,10 +485,18 @@ class IbpaGfpLoc:
             if processed_img is not None:
                 cell_images.append((cell, processed_img))
                 processed_images.append(processed_img)
-                # 蛋白質凝集強度の定量化
-                aggregation_intensity = self.quantify_cell(processed_img)
+                # 蛋白質凝集強度の定量化（各手法による評価）
+                intensity_gaussian = self.quantify_cell(processed_img)
+                intensity_sum = self.quantify_cell_sum(processed_img)
+                intensity_area = self.quantify_cell_area_weighted(processed_img)
+                intensity_cc = self.quantify_cell_connected_components(processed_img)
+                print(f"Cell {cell.cell_id}: Gaussian Intensity = {intensity_gaussian}")
+                print(f"Cell {cell.cell_id}: Sum Intensity = {intensity_sum}")
                 print(
-                    f"Cell {cell.cell_id}: Aggregated protein intensity = {aggregation_intensity}"
+                    f"Cell {cell.cell_id}: Area Weighted Intensity = {intensity_area}"
+                )
+                print(
+                    f"Cell {cell.cell_id}: Connected Components Intensity = {intensity_cc}"
                 )
         if processed_images:
             global_max_brightness: float = max(np.max(img) for _, img in cell_images)
