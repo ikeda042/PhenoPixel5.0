@@ -263,7 +263,6 @@ class IbpaGfpLoc:
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_title(f"Cell {cell.cell_id}")
-        # annotation をfig上に描画（左上に半透明の背景付きテキスト）
         if annotation is not None:
             ax.text(
                 0.05,
@@ -318,10 +317,9 @@ class IbpaGfpLoc:
                   integrated_intensity = A * 2πσ_xσ_y
         """
         h, w = roi_img.shape
-        # ROI画像を浮動小数点に変換してスケール調整
         roi_float = roi_img.astype(np.float64)
         scale_factor = 1.0
-        low_threshold = 50.0  # スケーリング対象の閾値（必要に応じて調整）
+        low_threshold = 50.0
         if np.max(roi_float) < low_threshold and np.max(roi_float) != 0:
             scale_factor = low_threshold / np.max(roi_float)
             roi_scaled = roi_float * scale_factor
@@ -356,7 +354,6 @@ class IbpaGfpLoc:
             print(f"フィッティングに失敗しました: {e}")
             return None
         A, x0, y0, sigma_x, sigma_y, offset = popt
-        # スケーリング前の値に戻す
         A_original = A / scale_factor
         offset_original = offset / scale_factor
         integrated_intensity = A_original * 2 * np.pi * sigma_x * sigma_y
@@ -402,19 +399,64 @@ class IbpaGfpLoc:
         ```
         """
         total_intensity = float(np.sum(processed_img))
-        # 輪郭から細胞面積を計算
         loaded_contour = pickle.loads(cell.contour)
         if not isinstance(loaded_contour, list):
             loaded_contour = [loaded_contour]
         contour_area = sum(cv2.contourArea(cnt) for cnt in loaded_contour)
         return total_intensity / contour_area if contour_area != 0 else 0.0
 
+    @staticmethod
+    def quantify_cell_peak(
+        processed_img: np.ndarray, cell: Cell, top_n: int = 10
+    ) -> float:
+        """
+        細胞内の輝度が高い上位top_n個のピクセルの平均値を返す関数。
+
+        数式:
+            \text{peak} = \frac{1}{n} \sum_{i=1}^{n} I_{(i)}
+        （ただし、I_{(i)} は細胞内の輝度を高い順に並べた値）
+
+        LaTeX生コード:
+        ```
+        \text{peak} = \frac{1}{n} \sum_{i=1}^{n} I_{(i)}
+        ```
+        """
+        # 細胞領域のみの輝度値を抽出（背景は0としているため、0でない値を使用）
+        cell_pixels = processed_img[processed_img > 0]
+        if cell_pixels.size == 0:
+            return 0.0
+        sorted_pixels = np.sort(cell_pixels)[::-1]
+        top_pixels = sorted_pixels[: min(top_n, len(sorted_pixels))]
+        return float(np.mean(top_pixels))
+
+    def quantify_cell_composite(
+        self,
+        simple: float,
+        peak: float,
+        global_max_simple: float,
+        global_max_peak: float,
+    ) -> float:
+        """
+        シンプルスコアとピークスコアを正規化した上で、総合スコアとして組み合わせる関数。
+
+        ここでは、各細胞のシンプルスコアを global_max_simple で、ピークスコアを global_max_peak で正規化し、
+        それぞれの平均を総合スコアとする。
+
+        数式:
+            \text{composite} = \frac{ \frac{\text{simple}}{\text{global\_max\_simple}} + \frac{\text{peak}}{\text{global\_max\_peak}} }{2}
+        """
+        normalized_simple = (
+            simple / global_max_simple if global_max_simple != 0 else 0.0
+        )
+        normalized_peak = peak / global_max_peak if global_max_peak != 0 else 0.0
+        return (normalized_simple + normalized_peak) / 2
+
     async def main(self) -> None:
         """
         Retrieve cell data from the database, process each cell's image,
         generate jet-colormap plots with unified scale and cell centroid at (0,0),
         combine all processed images into one image file, and quantify protein aggregation.
-        各セルのjet画像には、定量化したシンプルスコアを注釈として描画する。
+        各セルのjet画像には、定量化したシンプルスコア、ピークスコア、総合スコアを注釈として描画する。
         """
         jet_dir: str = "experimental/IbpA-GFPLoc/jet"
         os.makedirs(jet_dir, exist_ok=True)
@@ -434,7 +476,6 @@ class IbpaGfpLoc:
             if cell_extent > global_extent:
                 global_extent = cell_extent
 
-        # cell_images に (cell, processed_img, intensities dict) を保存
         cell_images: List[Tuple[Cell, np.ndarray, Dict[str, float]]] = []
         processed_images: List[np.ndarray] = []
         jet_images: List[np.ndarray] = []
@@ -449,21 +490,36 @@ class IbpaGfpLoc:
             )
             processed_img: Optional[np.ndarray] = result.get("image")  # type: ignore
             if processed_img is not None:
-                # シンプルスコアで計算する
                 intensity_simple = self.quantify_cell_simple(processed_img, cell)
-                print(f"Cell {cell.cell_id}: Simple Intensity = {intensity_simple}")
+                intensity_peak = IbpaGfpLoc.quantify_cell_peak(processed_img, cell)
+                print(
+                    f"Cell {cell.cell_id}: Simple = {intensity_simple:.2f}, Peak = {intensity_peak:.2f}"
+                )
                 cell_images.append(
                     (
                         cell,
                         processed_img,
-                        {"simple": intensity_simple},
+                        {"simple": intensity_simple, "peak": intensity_peak},
                     )
                 )
                 processed_images.append(processed_img)
         if processed_images:
             global_max_brightness: float = max(np.max(img) for _, img, _ in cell_images)
+            global_max_simple: float = max(info["simple"] for _, _, info in cell_images)
+            global_max_peak: float = max(info["peak"] for _, _, info in cell_images)
             for cell, processed_img, intensities in cell_images:
-                annotation = f"Simple: {intensities['simple']:.2f}"
+                composite = self.quantify_cell_composite(
+                    intensities["simple"],
+                    intensities["peak"],
+                    global_max_simple,
+                    global_max_peak,
+                )
+                intensities["composite"] = composite
+                annotation = (
+                    f"S: {intensities['simple']:.2f}, "
+                    f"P: {intensities['peak']:.2f}, "
+                    f"C: {composite:.2f}"
+                )
                 jet_img: np.ndarray = IbpaGfpLoc._generate_jet_image_array(
                     processed_img,
                     cell,
