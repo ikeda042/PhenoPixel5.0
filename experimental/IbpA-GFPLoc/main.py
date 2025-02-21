@@ -52,7 +52,6 @@ class IbpaGfpLoc:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
             loaded_contour = pickle.loads(contour)
-            # loaded_contourがリストでない場合はリストに変換
             if not isinstance(loaded_contour, list):
                 loaded_contour = [loaded_contour]
             image = await loop.run_in_executor(
@@ -70,6 +69,20 @@ class IbpaGfpLoc:
             return cells
 
     @classmethod
+    def _subtract_background(
+        cls, gray_img: np.ndarray, kernel_size: int = 21
+    ) -> np.ndarray:
+        # エリプス形状のカーネルを生成
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
+        )
+        # モルフォロジーオープニングで背景を推定
+        background = cv2.morphologyEx(gray_img, cv2.MORPH_OPEN, kernel)
+        # 背景を引き算（cv2.subtractは負の値を0にしてくれる）
+        subtracted = cv2.subtract(gray_img, background)
+        return subtracted
+
+    @classmethod
     async def _parse_image(
         cls,
         data: bytes,
@@ -78,33 +91,42 @@ class IbpaGfpLoc:
         save_name: str = "output_image.png",
         fill: bool = False,
     ):
-        # 画像のデコード
+        # 画像をデコード
         img = await cls._async_imdecode(data)
+        # 絶対輝度解析のため、グレースケールに変換
+        gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # 背景を推定して引き算
+        gray_img = cls._subtract_background(gray_img)
 
-        # 輝度調整（brightness_factorが1.0でなければ調整）
+        # 輝度補正が必要な場合
         if brightness_factor != 1.0:
-            img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
+            gray_img = cv2.convertScaleAbs(gray_img, alpha=brightness_factor, beta=0)
 
         if contour:
             if fill:
                 loaded_contour = pickle.loads(contour)
-                # 輪郭がリストでない場合はリストに変換
                 if not isinstance(loaded_contour, list):
                     loaded_contour = [loaded_contour]
-                # 画像サイズと同じシングルチャネルのマスクを生成（初期値0）
-                mask = np.zeros(img.shape[:2], dtype=np.uint8)
-                # 輪郭内部を255で塗りつぶす
+                # 画像と同じサイズのマスク（初期値0）を作成
+                mask = np.zeros(gray_img.shape, dtype=np.uint8)
+                # 輪郭内部を255で塗りつぶし
                 cv2.fillPoly(mask, loaded_contour, 255)
-                # 輪郭線のみを黒（0）で描画する（輪郭内部は保持される）
+                # 輪郭線のみを黒（0）で描画（輪郭内部は保持）
                 cv2.polylines(mask, loaded_contour, isClosed=True, color=0, thickness=1)
-                # マスク適用：内部は元画像、外部は黒にする
-                img = cv2.bitwise_and(img, img, mask=mask)
+                # マスク適用：内部のみ輝度を保持
+                gray_img = cv2.bitwise_and(gray_img, gray_img, mask=mask)
             else:
-                img = await cls._draw_contour(img, contour)
+                # オプション：輪郭を画像上に描画（視覚確認用）
+                loaded_contour = pickle.loads(contour)
+                if not isinstance(loaded_contour, list):
+                    loaded_contour = [loaded_contour]
+                gray_img = cv2.drawContours(
+                    gray_img, loaded_contour, -1, (0,), thickness=1
+                )
 
-        ret, buffer = cv2.imencode(".png", img)
+        ret, buffer = cv2.imencode(".png", gray_img)
         if ret:
-            cv2.imwrite(f"experimental/IbpA-GFPLoc/images/{save_name}", img)
+            cv2.imwrite(f"experimental/IbpA-GFPLoc/images/{save_name}", gray_img)
 
         return {"status": "success", "message": f"Image saved to {save_name}"}
 
@@ -112,7 +134,7 @@ class IbpaGfpLoc:
         cells: list[Cell] = await self._get_cells()
         print(cells)
         cell: Cell = cells[0]
-        # 塗りつぶしオプション有効の場合の例
+        # 例として、塗りつぶしオプション有効の場合
         await self._parse_image(
             data=cell.img_fluo1,
             contour=cell.contour,
