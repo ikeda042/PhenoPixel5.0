@@ -26,6 +26,39 @@ class Cell(Base):
     center_y = Column(FLOAT)
 
 
+class IbpaGfpLoc:
+    def __init__(self) -> None:
+        self._engine = create_async_engine(
+            "sqlite+aiosqlite:///experimental/IbpA-GFPLoc/sk326gen120min.db?timeout=30",
+            echo=False,
+        )
+        self._async_session = sessionmaker(
+            self._engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+    @classmethod
+    async def _async_imdecode(cls, data: bytes) -> np.ndarray:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            img = await loop.run_in_executor(
+                executor, cv2.imdecode, np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR
+            )
+        return img
+
+    @classmethod
+    async def _draw_contour(
+        cls, image: np.ndarray, contour: bytes, thickness: int = 1
+    ) -> np.ndarray:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            contour = pickle.loads(contour)
+            image = await loop.run_in_executor(
+                executor,
+                lambda: cv2.drawContours(image, contour, -1, (0, 255, 0), thickness),
+            )
+        return image
+
+
 async def main():
     engine = create_async_engine(
         "sqlite+aiosqlite:///experimental/IbpA-GFPLoc/sk326gen120min.db?timeout=30",
