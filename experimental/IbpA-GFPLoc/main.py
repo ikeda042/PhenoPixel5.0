@@ -84,9 +84,9 @@ class IbpaGfpLoc:
         return {"status": "success", "message": "Image saved to output_image.png"}
 
     async def main(self):
-        cells = await self._get_cells()
+        cells: list[Cell] = await self._get_cells()
         print(cells)
-        cell1 = cells[0]
+        cell1: Cell = cells[0]
         await self._parse_image(cell1.img_ph, cell1.contour)
 
 
