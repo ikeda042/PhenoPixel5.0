@@ -274,6 +274,7 @@ class IbpaGfpLoc:
         cells: list[Cell] = await self._get_cells()
         processed_images = []
         for cell in cells:
+            print(cell.cell_id)
             result = await self._parse_image(
                 data=cell.img_fluo1,
                 contour=cell.contour,
