@@ -69,7 +69,7 @@ class IbpaGfpLoc:
         cls,
         data: bytes,
         contour: bytes | None = None,
-        brightness_factor: float = 1.0,
+        brightness_factor: float = 10.0,
         save_name: str = "output_image.png",
         fill: bool = False,
     ):
