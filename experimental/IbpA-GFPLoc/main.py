@@ -52,30 +52,17 @@ async def parse_image(
     scale_bar: bool = False,
     brightness_factor: float = 1.0,
 ):
-    # Decode the main image using async_imdecode
     img = await async_imdecode(data)
-
-    # Draw contour if provided (implement your own logic here)
     if contour:
         # Example: decode contour data and draw
         # contour_pts = np.frombuffer(contour, dtype=np.int32).reshape(-1, 1, 2)
         # cv2.drawContours(img, [contour_pts], -1, (0, 255, 0), 2)
         pass
-
-    # Adjust brightness if needed
     if brightness_factor != 1.0:
         img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
 
-    # Draw scale bar if needed (implement your own logic here)
-    if scale_bar:
-        # Example placeholder function call
-        # img = draw_scale_bar_with_centered_text(img)
-        pass
-
-    # Encode the image to PNG in a blocking call
     ret, buffer = cv2.imencode(".png", img)
     if ret:
-        # Save the image locally
         with open("output_image.png", "wb") as f:
             f.write(buffer)
 
