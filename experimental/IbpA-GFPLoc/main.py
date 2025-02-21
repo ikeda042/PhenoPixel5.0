@@ -304,17 +304,28 @@ class IbpaGfpLoc:
                   integrated_intensity = A * 2πσ_xσ_y
         """
         h, w = roi_img.shape
+        # ROI画像を浮動小数点に変換してスケール調整
+        roi_float = roi_img.astype(np.float64)
+        scale_factor = 1.0
+        low_threshold = 50.0  # スケーリング対象の閾値（必要に応じて調整）
+        if np.max(roi_float) < low_threshold and np.max(roi_float) != 0:
+            scale_factor = low_threshold / np.max(roi_float)
+            roi_scaled = roi_float * scale_factor
+        else:
+            roi_scaled = roi_float
+
         x = np.arange(0, w, 1)
         y = np.arange(0, h, 1)
         x, y = np.meshgrid(x, y)
         xdata = np.vstack((x.ravel(), y.ravel()))
-        ydata = roi_img.ravel()
-        A_init = np.max(roi_img) - np.min(roi_img)
+        ydata = roi_scaled.ravel()
+
+        A_init = np.max(roi_scaled) - np.min(roi_scaled)
         x0_init = w / 2
         y0_init = h / 2
         sigma_x_init = w / 4
         sigma_y_init = h / 4
-        offset_init = np.min(roi_img)
+        offset_init = np.min(roi_scaled)
         initial_guess = (
             A_init,
             x0_init,
@@ -331,14 +342,17 @@ class IbpaGfpLoc:
             print(f"フィッティングに失敗しました: {e}")
             return None
         A, x0, y0, sigma_x, sigma_y, offset = popt
-        integrated_intensity = A * 2 * np.pi * sigma_x * sigma_y
+        # スケーリング前の値に戻す
+        A_original = A / scale_factor
+        offset_original = offset / scale_factor
+        integrated_intensity = A_original * 2 * np.pi * sigma_x * sigma_y
         return {
-            "A": A,
+            "A": A_original,
             "x0": x0,
             "y0": y0,
             "sigma_x": sigma_x,
             "sigma_y": sigma_y,
-            "offset": offset,
+            "offset": offset_original,
             "integrated_intensity": integrated_intensity,
         }
 
@@ -346,9 +360,10 @@ class IbpaGfpLoc:
     def detect_dots(image: np.ndarray) -> List[cv2.KeyPoint]:
         """
         ドット（蛋白質凝集箇所）を検出するためにSimpleBlobDetectorを使用する関数。
+        低輝度のドットも検出できるよう、minThreshold を 1 に設定。
         """
         params = cv2.SimpleBlobDetector_Params()
-        params.minThreshold = 10
+        params.minThreshold = 1
         params.maxThreshold = 255
         params.filterByArea = True
         params.minArea = 5
