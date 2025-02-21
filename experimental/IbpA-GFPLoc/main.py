@@ -51,10 +51,15 @@ class IbpaGfpLoc:
     ) -> np.ndarray:
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor(max_workers=10) as executor:
-            contour = pickle.loads(contour)
+            loaded_contour = pickle.loads(contour)
+            # loaded_contourがリストでない場合はリストに変換
+            if not isinstance(loaded_contour, list):
+                loaded_contour = [loaded_contour]
             image = await loop.run_in_executor(
                 executor,
-                lambda: cv2.drawContours(image, contour, -1, (0, 255, 0), thickness),
+                lambda: cv2.drawContours(
+                    image, loaded_contour, -1, (0, 255, 0), thickness
+                ),
             )
         return image
 
@@ -69,24 +74,30 @@ class IbpaGfpLoc:
         cls,
         data: bytes,
         contour: bytes | None = None,
-        brightness_factor: float = 10.0,
+        brightness_factor: float = 1.0,
         save_name: str = "output_image.png",
         fill: bool = False,
     ):
+        # 画像のデコード
         img = await cls._async_imdecode(data)
+
+        # 輝度調整（brightness_factorが1.0でなければ調整）
         if brightness_factor != 1.0:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
 
         if contour:
             if fill:
-
                 loaded_contour = pickle.loads(contour)
-
+                # 輪郭がリストでない場合はリストに変換
+                if not isinstance(loaded_contour, list):
+                    loaded_contour = [loaded_contour]
+                # 画像サイズと同じシングルチャネルのマスクを生成（初期値0）
                 mask = np.zeros(img.shape[:2], dtype=np.uint8)
-
+                # 輪郭内部を255で塗りつぶす
                 cv2.fillPoly(mask, loaded_contour, 255)
-
-                cv2.drawContours(mask, loaded_contour, -1, 0, thickness=1)
+                # 輪郭線のみを黒（0）で描画する（輪郭内部は保持される）
+                cv2.polylines(mask, loaded_contour, isClosed=True, color=0, thickness=1)
+                # マスク適用：内部は元画像、外部は黒にする
                 img = cv2.bitwise_and(img, img, mask=mask)
             else:
                 img = await cls._draw_contour(img, contour)
@@ -101,6 +112,7 @@ class IbpaGfpLoc:
         cells: list[Cell] = await self._get_cells()
         print(cells)
         cell: Cell = cells[0]
+        # 塗りつぶしオプション有効の場合の例
         await self._parse_image(
             data=cell.img_fluo1,
             contour=cell.contour,
