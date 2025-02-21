@@ -71,25 +71,41 @@ class IbpaGfpLoc:
         contour: bytes | None = None,
         brightness_factor: float = 1.0,
         save_name: str = "output_image.png",
+        fill: bool = False,
     ):
         img = await cls._async_imdecode(data)
-        if contour:
-            img = await cls._draw_contour(img, contour)
         if brightness_factor != 1.0:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
+
+        if contour:
+            if fill:
+
+                loaded_contour = pickle.loads(contour)
+
+                mask = np.zeros(img.shape[:2], dtype=np.uint8)
+
+                cv2.fillPoly(mask, loaded_contour, 255)
+
+                cv2.drawContours(mask, loaded_contour, -1, 0, thickness=1)
+                img = cv2.bitwise_and(img, img, mask=mask)
+            else:
+                img = await cls._draw_contour(img, contour)
 
         ret, buffer = cv2.imencode(".png", img)
         if ret:
             cv2.imwrite(f"experimental/IbpA-GFPLoc/images/{save_name}", img)
 
-        return {"status": "success", "message": "Image saved to output_image.png"}
+        return {"status": "success", "message": f"Image saved to {save_name}"}
 
     async def main(self):
         cells: list[Cell] = await self._get_cells()
         print(cells)
         cell: Cell = cells[0]
         await self._parse_image(
-            data=cell.img_fluo1, contour=cell.contour, save_name=f"{cell.cell_id}.png"
+            data=cell.img_fluo1,
+            contour=cell.contour,
+            save_name=f"{cell.cell_id}.png",
+            fill=True,
         )
 
 
