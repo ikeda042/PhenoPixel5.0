@@ -573,7 +573,7 @@ async def analyze_databases(db_paths: List[str]) -> None:
 
     if distributions:
         df = pd.DataFrame(distributions)
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(39, 6))
         sns.violinplot(
             x="Database", y="Score", data=df, inner="quartile", palette="Set2"
         )
@@ -581,7 +581,7 @@ async def analyze_databases(db_paths: List[str]) -> None:
         plt.ylabel("Peak Score")
         plt.xlabel("Database")
         plt.tight_layout()
-        plt.show()
+        plt.savefig("experimental/IbpA-GFPLoc/score_distribution.png")
 
 
 if __name__ == "__main__":
@@ -592,7 +592,7 @@ if __name__ == "__main__":
         for db in os.listdir("experimental/IbpA-GFPLoc")
         if db.endswith(".db")
     ]
-
+    db_paths = sorted(db_paths)
     # 分布解析の場合は analyze_databases を実行
     asyncio.run(analyze_databases(db_paths))
 
