@@ -592,10 +592,36 @@ if __name__ == "__main__":
         for db in os.listdir("experimental/IbpA-GFPLoc")
         if db.endswith(".db")
     ]
-    db_paths = sorted(db_paths)
+
+    def sort_key(path: str):
+        # ファイル名例: "sk326gen0min.db"
+        basename = os.path.basename(path)
+        # "sk326" の後ろの部分を取り出す → "gen0min.db"
+        s = basename[5:]
+        drug = ""
+        time_str = ""
+        # 薬剤部分は数字が現れるまでのアルファベットとする
+        for char in s:
+            if char.isalpha():
+                if not time_str:
+                    drug += char
+                else:
+                    # すでに数字が始まっていたら終了
+                    break
+            elif char.isdigit():
+                time_str += char
+            else:
+                # "min" などの文字は無視
+                pass
+        time_val = int(time_str) if time_str else 0
+        # 薬剤ごとにソートし、同じ薬剤内では培養時間（min）の昇順にソート
+        return (drug, time_val)
+
+    sorted_files = sorted(db_paths, key=sort_key)
+    db_paths = sorted_files
     # 分布解析の場合は analyze_databases を実行
     asyncio.run(analyze_databases(db_paths))
-
+    print(db_paths)
     # 従来の画像処理・結合処理を実行する場合は下記も併せて利用可能
     # ibpa_gfp_loc: IbpaGfpLoc = IbpaGfpLoc()
     # asyncio.run(ibpa_gfp_loc.main())
