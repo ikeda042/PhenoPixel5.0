@@ -70,6 +70,7 @@ class IbpaGfpLoc:
         data: bytes,
         contour: bytes | None = None,
         brightness_factor: float = 1.0,
+        save_name: str = "output_image.png",
     ):
         img = await cls._async_imdecode(data)
         if contour:
@@ -79,15 +80,17 @@ class IbpaGfpLoc:
 
         ret, buffer = cv2.imencode(".png", img)
         if ret:
-            cv2.imwrite("experimental/IbpA-GFPLoc/images/output_image.png", img)
+            cv2.imwrite(f"experimental/IbpA-GFPLoc/images/{save_name}", img)
 
         return {"status": "success", "message": "Image saved to output_image.png"}
 
     async def main(self):
         cells: list[Cell] = await self._get_cells()
         print(cells)
-        cell1: Cell = cells[0]
-        await self._parse_image(cell1.img_ph, cell1.contour)
+        cell: Cell = cells[0]
+        await self._parse_image(
+            data=cell.img_ph, contour=cell.contour, save_name=f"{cell.cell_id}.png"
+        )
 
 
 if __name__ == "__main__":
