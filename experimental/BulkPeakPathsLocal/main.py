@@ -1,6 +1,6 @@
 import aiohttp
 import asyncio
-
+import os
 
 async def fetch_heatmap_data(session, db_name, cell_id=""):
     url = f"http://localhost:8000/api/cells/{db_name}/1/F0C16/heatmap/bulk/csv"
@@ -23,9 +23,6 @@ async def fetch_bulk_heatmap_data(db_names, cell_id):
 
 def run_fetch_bulk_heatmap_data(db_names, cell_id):
     return asyncio.run(fetch_bulk_heatmap_data(db_names, cell_id))
-
-
-import os
 
 db_names = [
     i
