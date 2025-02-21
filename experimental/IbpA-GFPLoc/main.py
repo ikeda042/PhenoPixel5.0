@@ -297,7 +297,7 @@ class IbpaGfpLoc:
         fig, ax = plt.subplots()
         ax.imshow(
             processed_img,
-            cmap="jet",
+            cmap="jet_r",
             extent=extent,
             origin="lower",
             vmin=0,
