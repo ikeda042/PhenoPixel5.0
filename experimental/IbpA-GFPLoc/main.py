@@ -106,7 +106,7 @@ class IbpaGfpLoc:
             )
         return image
 
-    async def _get_cells(self) -> list[Cell]:
+    async def _get_cells(self, label: str = "1") -> list[Cell]:
         """
         Asynchronously retrieve cell data from the database.
 
@@ -114,7 +114,9 @@ class IbpaGfpLoc:
             list[Cell]: A list of Cell objects.
         """
         async with self._async_session() as session:
-            result = await session.execute(select(Cell))
+            result = await session.execute(
+                select(Cell).where(Cell.manual_label == label)
+            )
             cells = result.scalars().all()
             return cells
 
@@ -278,6 +280,7 @@ class IbpaGfpLoc:
             result = await self._parse_image(
                 data=cell.img_fluo1,
                 contour=cell.contour,
+                brightness_factor=10,
                 save_name=f"{cell.cell_id}.png",
                 fill=True,
                 save_background=False,
