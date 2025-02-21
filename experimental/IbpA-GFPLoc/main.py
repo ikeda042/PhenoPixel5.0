@@ -79,8 +79,7 @@ class IbpaGfpLoc:
 
         ret, buffer = cv2.imencode(".png", img)
         if ret:
-            with open("experimental/IbpA-GFPLoc/images/output_image.png", "wb") as f:
-                f.write(buffer)
+            cv2.imwrite("experimental/IbpA-GFPLoc/images/output_image.png", img)
 
         return {"status": "success", "message": "Image saved to output_image.png"}
 
