@@ -89,7 +89,7 @@ class IbpaGfpLoc:
         print(cells)
         cell: Cell = cells[0]
         await self._parse_image(
-            data=cell.img_ph, contour=cell.contour, save_name=f"{cell.cell_id}.png"
+            data=cell.img_fluo1, contour=cell.contour, save_name=f"{cell.cell_id}.png"
         )
 
 
