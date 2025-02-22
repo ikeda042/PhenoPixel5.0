@@ -264,10 +264,14 @@ class IbpaGfpLoc:
                 bbox=dict(facecolor="black", alpha=0.5),
             )
         fig.canvas.draw()
-        # buffer_rgbaを使ってRGBAのバッファを取得
+        # 実際のピクセルサイズを取得する
+        size = (np.array(fig.get_size_inches()) * fig.dpi).astype(
+            int
+        )  # (width, height)
+        # Latex生コード:
+        # \text{shape} = (\text{height}, \text{width}, 4)
         jet_img: np.ndarray = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
-        # RGBAの形状にreshapeする（4チャネルなので）
-        jet_img = jet_img.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+        jet_img = jet_img.reshape((size[1], size[0], 4))
         # αチャネルを削除してRGB画像に変換する
         jet_img = jet_img[..., :3]
         plt.close(fig)
