@@ -264,8 +264,12 @@ class IbpaGfpLoc:
                 bbox=dict(facecolor="black", alpha=0.5),
             )
         fig.canvas.draw()
-        jet_img: np.ndarray = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        jet_img = jet_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        # buffer_rgbaを使ってRGBAのバッファを取得
+        jet_img: np.ndarray = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+        # RGBAの形状にreshapeする（4チャネルなので）
+        jet_img = jet_img.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+        # αチャネルを削除してRGB画像に変換する
+        jet_img = jet_img[..., :3]
         plt.close(fig)
         return jet_img
 
@@ -523,11 +527,10 @@ class IbpaGfpLoc:
             )
 
 
-if __name__ == "__main__":
-    images_dir: str = "experimental/IbpA-GFPLoc/images/"
-    if os.path.exists(images_dir):
-        for file in os.listdir(images_dir):
-            file_path: str = os.path.join(images_dir, file)
-            os.remove(file_path)
-    ibpa_gfp_loc: IbpaGfpLoc = IbpaGfpLoc()
-    asyncio.run(ibpa_gfp_loc.main())
+images_dir: str = "experimental/IbpA-GFPLoc/images/"
+if os.path.exists(images_dir):
+    for file in os.listdir(images_dir):
+        file_path: str = os.path.join(images_dir, file)
+        os.remove(file_path)
+ibpa_gfp_loc: IbpaGfpLoc = IbpaGfpLoc()
+asyncio.run(ibpa_gfp_loc.main())
