@@ -12,8 +12,6 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.axes import Axes
 
 from scipy.optimize import curve_fit
 
