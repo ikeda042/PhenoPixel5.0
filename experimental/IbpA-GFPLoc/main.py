@@ -122,11 +122,6 @@ class IbpaGfpLoc:
             B(x,y) = \mathrm{morph\_open}(I(x,y))
             I\_sub(x,y) = I(x,y) - B(x,y)
 
-        LaTeX生コード:
-        ```
-        B(x,y) = \mathrm{morph\_open}(I(x,y))
-        I\_sub(x,y) = I(x,y) - B(x,y)
-        ```
         """
         kernel: np.ndarray = cv2.getStructuringElement(
             cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
@@ -291,11 +286,6 @@ class IbpaGfpLoc:
 
         数式:
             f(x,y) = A * exp(-(((x-x0)^2/(2\sigma_x^2)) + ((y-y0)^2/(2\sigma_y^2)))) + offset
-
-        LaTeX生コード:
-        ```
-        f(x,y) = A \exp\left(-\left(\frac{(x-x_0)^2}{2\sigma_x^2} + \frac{(y-y_0)^2}{2\sigma_y^2}\right)\right) + \text{offset}
-        ```
         """
         x, y = coordinates
         exp_component = np.exp(
@@ -388,10 +378,6 @@ class IbpaGfpLoc:
 
         数式:
             score = (細胞内の総輝度) / (輪郭内の面積)
-
-        LaTeX生コード:
-        ```
-        \text{score} = \frac{\sum I_{\text{cell}}}{\text{contour area}}
         ```
         """
         total_intensity = float(np.sum(processed_img))
