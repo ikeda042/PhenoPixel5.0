@@ -10,8 +10,6 @@ import shutil
 from functools import partial
 from PIL import Image, ImageDraw, ImageFont
 from typing import Literal
-
-# Third-party imports
 import cv2
 import nd2reader
 import numpy as np
@@ -37,7 +35,6 @@ from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
 Base = declarative_base()
 
 
-# 既存の DB テーブル定義 (細胞情報を保存するための例)
 class Cell(Base):
     __tablename__ = "cells"
     id = Column(Integer, primary_key=True)
