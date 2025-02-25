@@ -106,8 +106,15 @@ def main(db: str):
     map64: Map64 = Map64()
     vectors = []
     for cell in tqdm(cells):
-        # map64.extract_map で処理を行い、その結果を vectors に格納
-        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
+        # cell.img_fluo1 は画像のバイト列と仮定
+        img_array: np.ndarray = np.frombuffer(cell.img_fluo1, dtype=np.uint8)
+        img: np.ndarray = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        # カラー画像をグレースケールに変換
+        gray_img: np.ndarray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # 背景を引いた画像を取得
+        img_fluo: np.ndarray = subtract_background(gray_img)
+        # 加工済みの画像を渡して map64.extract_map を実行
+        vectors.append(map64.extract_map(img_fluo, cell.contour, 4, cell.cell_id))
 
     # map64.combine_images で各画像をまとめたものを出力
     map64.combine_images(out_name=db.replace(".db", ".png"))
