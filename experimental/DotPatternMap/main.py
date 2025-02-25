@@ -14,87 +14,6 @@ from tqdm import tqdm
 import os
 
 
-# ------------------------------------------------------------------------------
-# 新しいドット検出関数: detect_dot()
-# 画像パスから画像を読み込み、グレースケール変換・正規化、中央値と97パーセンタイルの差分により
-# ドットが存在すると判断された場合、しきい値180で2値化し輪郭検出を行います。
-#
-# 数式: 正規化
-# \[
-# I_{\text{norm}}(x,y) = \frac{I(x,y) - I_{\min}}{I_{\max} - I_{\min}} \times 255
-# \]
-# Latex生コード:
-# ```
-# \[
-# I_{\text{norm}}(x,y) = \frac{I(x,y) - I_{\min}}{I_{\max} - I_{\min}} \times 255
-# \]
-# ```
-#
-# 数式: 二値化処理
-# \[
-# T(x,y) = \begin{cases}
-# 255, & \text{if } I_{\text{norm}}(x,y) \geq 180 \\
-# 0, & \text{otherwise}
-# \end{cases}
-# \]
-# Latex生コード:
-# ```
-# \[
-# T(x,y) = \begin{cases}
-# 255, & \text{if } I_{\text{norm}}(x,y) \geq 180 \\
-# 0, & \text{otherwise}
-# \end{cases}
-# \]
-# ```
-#
-# :param image_path: 画像ファイルのパス
-# :return: 検出されたドットの中心座標リスト [(x1, y1), (x2, y2), ...]
-# ------------------------------------------------------------------------------
-def detect_dot(image_path: str) -> list[tuple[int, int]]:
-    image = cv2.imread(image_path)
-
-    # グレースケール変換
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    norm_gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
-
-    median_val = np.median(norm_gray)
-    top97_val = np.percentile(norm_gray, 97)
-    diff = top97_val - median_val
-    print(f"diff: {diff}")
-    dot_diff_threshold = 70
-
-    coordinates: list[tuple[int, int]] = []
-
-    if diff > dot_diff_threshold:
-        # ドットがある場合：しきい値180で2値化
-        ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
-
-        # 輪郭検出（外側の輪郭のみ取得）
-        contours, _ = cv2.findContours(
-            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
-        for cnt in contours:
-            # モーメントを計算し、重心を求める
-            M = cv2.moments(cnt)
-            if M["m00"] != 0:
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
-                coordinates.append((cX, cY))
-
-        # 検出された輪郭をそのまま表示する画像を生成（黒背景）
-        detected_img = np.zeros_like(image)
-        cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
-
-        cv2.imwrite(f"{image_path[:-4]}_detected.png", detected_img)
-        cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
-    else:
-        # ドットがない場合：全て黒の画像を生成して保存
-        thresh = np.zeros_like(norm_gray)
-        cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
-
-    return coordinates
-
-
 def subtract_background(gray_img: np.ndarray, kernel_size: int = 21) -> np.ndarray:
     """
     背景引き算を行う関数
@@ -532,6 +451,68 @@ class Map64:
             f"experimental/DotPatternMap/images/{out_name}_combined_image_jet.png",
             combined_map64_jet_image,
         )
+
+
+def delete_pngs(dir: str) -> None:
+    for filename in [
+        i
+        for i in os.listdir(f"experimental/DotPatternMap/images/{dir}")
+        if i.endswith(".png")
+    ]:
+        os.remove(os.path.join(f"experimental/DotPatternMap/images/{dir}", filename))
+
+
+def main(db: str):
+    for i in ["map64", "points_box", "fluo_raw", "map64_jet", "map64_raw"]:
+        delete_pngs(i)
+    cells: list[Cell] = database_parser(db)
+    map64: Map64 = Map64()
+    vectors = []
+    for cell in tqdm(cells[:10]):
+        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
+    map64.combine_images(out_name=db.replace(".db", ".png"))
+    # 修正: Map64インスタンスではなく、モジュールレベルの関数として呼び出す
+    extract_probability_map(db.replace(".db", ""))
+    return vectors
+
+
+def extract_probability_map(out_name: str) -> np.ndarray:
+    def augment_image(image: np.ndarray) -> list[np.ndarray]:
+        augmented_images = []
+        augmented_images.append(image)
+        augmented_images.append(cv2.flip(image, 0))
+        augmented_images.append(cv2.flip(image, 1))
+        augmented_images.append(cv2.flip(image, -1))
+        for i in range(1, 4):
+            augmented_images.append(cv2.rotate(image, i))
+        return augmented_images
+
+    map64_dir = "experimental/DotPatternMap/images/map64"
+    map64_images = [
+        cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
+        for filename in os.listdir(map64_dir)
+        if cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
+        is not None
+    ]
+    augmented_images = []
+    for image in map64_images:
+        augmented_images.extend(augment_image(image))
+    probability_map = np.mean(augmented_images, axis=0).astype(np.uint8)
+    cv2.imwrite(
+        f"experimental/DotPatternMap/images/probability_map_{out_name}.png",
+        probability_map,
+    )
+    probability_map_jet = cv2.applyColorMap(probability_map, cv2.COLORMAP_VIRIDIS)
+    cv2.imwrite(
+        f"experimental/DotPatternMap/images/probability_map_{out_name}_jet.png",
+        probability_map_jet,
+    )
+    return probability_map
+
+
+# ------------------------------------------------------------------------------
+# 以下、dot検出と相対位置プロットの追加処理
+# ------------------------------------------------------------------------------
 
 
 def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
