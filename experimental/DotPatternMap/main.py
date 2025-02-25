@@ -43,10 +43,7 @@ def ensure_dirs():
     必要なディレクトリが存在しなければ作成する関数。
     実験用のDotPatternMap配下のimagesディレクトリ、およびサブディレクトリを生成。
     """
-    # ベースとなるディレクトリ
     base_dir = "experimental/DotPatternMap/images"
-
-    # サブディレクトリの一覧
     subdirs = [
         "map64",
         "points_box",
@@ -57,12 +54,8 @@ def ensure_dirs():
         "map64_raw",
         # "polar",   # polar 処理はコメントアウト
     ]
-
-    # ベースディレクトリが存在しない場合は作成
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
-
-    # サブディレクトリが存在しない場合は作成
     for subdir in subdirs:
         target_path = os.path.join(base_dir, subdir)
         if not os.path.exists(target_path):
@@ -113,19 +106,14 @@ class Map64:
 
     @classmethod
     def flip_image_if_needed(cls: Map64, image: np.ndarray) -> np.ndarray:
-        # 画像がカラーの場合、グレースケールに変換
         if len(image.shape) == 3:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
         h, w = image.shape
         left_half = image[:, : w // 2]
         right_half = image[:, w // 2 :]
-
         left_brightness = np.mean(left_half)
         right_brightness = np.mean(right_half)
-
         if right_brightness > left_brightness:
-            # 右の輝度が高い場合は左右反転
             image = cv2.flip(image, 1)
         return image
 
@@ -144,11 +132,9 @@ class Map64:
         result = minimize(
             distance, 0, method="Nelder-Mead", options={"xatol": 1e-4, "fatol": 1e-2}
         )
-
         x_min = result.x[0]
         min_distance = distance(x_min)
         min_point = (x_min, f_x(x_min))
-
         return min_distance, min_point
 
     @classmethod
@@ -186,7 +172,6 @@ class Map64:
             contour_U = [Q.transpose() @ np.array([i, j]) for i, j in contour]
             center = [center_x, center_y]
             u2_c, u1_c = center @ Q
-
         u1 = [i[1] for i in U]
         u2 = [i[0] for i in U]
         u1_contour = [i[1] for i in contour_U]
@@ -201,29 +186,23 @@ class Map64:
         contour_raw: bytes,
         degree: int,
     ) -> None:
-
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
         )
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
-
         mask = np.zeros_like(image_fluo_gray)
-
         unpickled_contour = pickle.loads(contour_raw)
         cv2.fillPoly(mask, [unpickled_contour], 255)
-
         coords_inside_cell_1 = np.column_stack(np.where(mask))
         points_inside_cell_1 = image_fluo_gray[
             coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
         ]
-
         X = np.array(
             [
                 [i[1] for i in coords_inside_cell_1],
                 [i[0] for i in coords_inside_cell_1],
             ]
         )
-
         (
             u1,
             u2,
@@ -242,7 +221,6 @@ class Map64:
             image_fluo.shape[1] / 2,
             coords_inside_cell_1,
         )
-
         fig = plt.figure(figsize=(6, 6))
         plt.scatter(u1, u2, s=5)
         plt.scatter(u1_c, u2_c, color="red", s=100)
@@ -259,7 +237,6 @@ class Map64:
         )
         plt.xlim([min_u1 - margin_width, max_u1 + margin_width])
         plt.ylim([min(u2) - margin_height, max(u2) + margin_height])
-
         x = np.linspace(min_u1, max_u1, 1000)
         theta = cls.poly_fit(U, degree=degree)
         y = np.polyval(theta, x)
@@ -275,7 +252,6 @@ class Map64:
         cls, high_res_image: np.ndarray, output_path_2d: str, output_path_1d: str
     ):
         # PCA処理はコメントアウトして高速化（ダミーの戻り値を返す）
-        # 元のコードでは3D点群からPCAを行い可視化していたが、今回はスキップします。
         return None
 
     @classmethod
@@ -299,17 +275,15 @@ class Map64:
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
         )
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
-
+        # 必要に応じて以下で subtract_background を利用可能
+        # image_fluo_gray = subtract_background(image_fluo_gray)
         mask = np.zeros_like(image_fluo_gray)
         unpickled_contour = pickle.loads(contour_raw)
         cv2.fillPoly(mask, [unpickled_contour], 255)
-
         coords_inside_cell_1 = np.column_stack(np.where(mask))
         points_inside_cell_1 = image_fluo_gray[
             coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
         ]
-
-        # 画像に輪郭を描画して保存
         cv2.polylines(
             image_fluo,
             [unpickled_contour],
@@ -321,14 +295,12 @@ class Map64:
             f"experimental/DotPatternMap/images/fluo_raw/{cell_id}.png",
             image_fluo,
         )
-
         X = np.array(
             [
                 [i[1] for i in coords_inside_cell_1],
                 [i[0] for i in coords_inside_cell_1],
             ]
         )
-
         (
             u1,
             u2,
@@ -347,7 +319,6 @@ class Map64:
             image_fluo.shape[1] / 2,
             coords_inside_cell_1,
         )
-
         theta = cls.poly_fit(U, degree=degree)
         raw_points: list[cls.Point] = []
         for i, j, p in zip(u1, u2, points_inside_cell_1):
@@ -368,21 +339,15 @@ class Map64:
 
         fig = plt.figure(figsize=(6, 6))
         plt.axis("equal")
-
         ps = np.array([i.p for i in raw_points])
         dists = np.array([i.dist * i.sign for i in raw_points])
         gs = np.array([i.G for i in raw_points])
-        gs_norm = (
-            (gs - np.min(gs)) / (np.max(gs) - np.min(gs)) * 255
-            if np.max(gs) > np.min(gs)
-            else np.zeros(len(gs))
-        )
+        # 輝度正規化処理を削除し、元の8bit輝度をそのまま使用
+        gs_used = gs
 
         min_p, max_p = np.min(ps), np.max(ps)
         min_dist, max_dist = np.min(dists), np.max(dists)
-
-        # vmin, vmaxを固定（0～255）に設定
-        plt.scatter(ps, dists, s=80, c=gs_norm, cmap="jet", vmin=0, vmax=255)
+        plt.scatter(ps, dists, s=80, c=gs_used, cmap="jet", vmin=0, vmax=255)
         plt.xlabel(r"$L(u_{1_i}^\star)$ (px)")
         plt.ylabel(r"$\text{min\_dist}$ (px)")
         plt.plot([min_p, max_p], [min_dist, min_dist], color="red")
@@ -396,34 +361,11 @@ class Map64:
         plt.close(fig)
         plt.clf()
 
-        # 以下、polarに関する処理はコメントアウトして高速化
-        """
-        # psとdistsを曲座標変換
-        r = [np.sqrt(p**2 + dist**2) for p, dist in zip(ps, dists)]
-        theta_vals = [np.arctan2(dist, p) for p, dist in zip(ps, dists)]
-
-        # rとthetaを正規化(0-1)
-        r = (r - min(r)) / (max(r) - min(r))
-        theta_vals = (theta_vals - min(theta_vals)) / (max(theta_vals) - min(theta_vals))
-
-        # プロット
-        fig = plt.figure(figsize=(6, 6))
-        plt.axis("equal")
-        plt.scatter(theta_vals, gs, s=80, c=gs_norm, cmap="jet")
-        plt.ylabel(r"$r_i$ (px)")
-        plt.xlabel(r"$\theta_i$ (rad)")
-        fig.savefig(f"experimental/DotPatternMap/images/polar/{cell_id}.png", dpi=300)
-        plt.close(fig)
-        plt.clf()
-        """
-
-        # 画像サイズを元の範囲に厳密に設定
         scale_factor = 1
         scaled_width = int((max_p - min_p) * scale_factor)
         scaled_height = int((max_dist - min_dist) * scale_factor)
         high_res_image = np.zeros((scaled_height, scaled_width), dtype=np.uint8)
-
-        for p, dist, G in zip(ps, dists, gs_norm):
+        for p, dist, G in zip(ps, dists, gs_used):
             p_scaled = int((p - min_p) * scale_factor)
             dist_scaled = int((dist - min_dist) * scale_factor)
             cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
@@ -439,12 +381,7 @@ class Map64:
             f"experimental/DotPatternMap/images/map64/{cell_id}.png",
             high_res_image,
         )
-        # 固定の最大値255に合わせるため、最大輝度が255未満の場合は線形補正を行う
-        max_val = np.max(high_res_image)
-        if max_val < 255 and max_val > 0:
-            high_res_image = (
-                high_res_image.astype(np.float32) * (255.0 / max_val)
-            ).astype(np.uint8)
+        # 輝度正規化処理を削除（元の8bit輝度をそのまま使用）
         high_res_image_colormap = cv2.applyColorMap(high_res_image, cv2.COLORMAP_JET)
         cv2.imwrite(
             f"experimental/DotPatternMap/images/map64_jet/{cell_id}.png",
@@ -462,7 +399,6 @@ class Map64:
             f"experimental/DotPatternMap/images/pca_1d/{cell_id}.png",
         )
         """
-        # 代わりに、処理済み画像を返す
         return high_res_image
 
     @classmethod
@@ -485,7 +421,6 @@ class Map64:
             if cv2.imread(os.path.join(points_box_dir, filename), cv2.IMREAD_COLOR)
             is not None
         ]
-        # 以下のPCA関連画像は処理対象外とする
         """
         pca_2d_images = [
             cv2.imread(os.path.join(pca_2d_dir, filename), cv2.IMREAD_COLOR)
@@ -511,8 +446,6 @@ class Map64:
         sorted_indices = np.argsort(brightness)[::-1]
         map64_images = [map64_images[i] for i in sorted_indices]
         points_box_images = [points_box_images[i] for i in sorted_indices]
-        # pca_2d_images = [pca_2d_images[i] for i in sorted_indices]  # コメントアウト
-        # pca_1d_images = [pca_1d_images[i] for i in sorted_indices]  # コメントアウト
         map64_jet_images = [map64_jet_images[i] for i in sorted_indices]
 
         def calculate_grid_size(n):
@@ -542,14 +475,11 @@ class Map64:
             f"experimental/DotPatternMap/images/{out_name}",
             combined_map64_image,
         )
-
         combined_points_box_image = combine_images_grid(points_box_images, 256, 3)
         cv2.imwrite(
             f"experimental/DotPatternMap/images/{out_name}_combined_image_box.png",
             combined_points_box_image,
         )
-
-        # PCA関連の画像は結合処理から除外
         combined_map64_jet_image = combine_images_grid(map64_jet_images, 64, 3)
         cv2.imwrite(
             f"experimental/DotPatternMap/images/{out_name}_combined_image_jet.png",
@@ -588,7 +518,6 @@ def main(db: str):
 
 
 def extract_probability_map(cls, out_name: str) -> np.ndarray:
-    # 64x64の画像を左右反転、上下反転、回転させた画像を作成する処理
     def augment_image(image: np.ndarray) -> list[np.ndarray]:
         augmented_images = []
         augmented_images.append(image)
@@ -606,7 +535,6 @@ def extract_probability_map(cls, out_name: str) -> np.ndarray:
         if cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
         is not None
     ]
-
     augmented_images = []
     for image in map64_images:
         augmented_images.extend(augment_image(image))
@@ -629,7 +557,6 @@ if __name__ == "__main__":
         if i.endswith(".db"):
             with open(f"experimental/DotPatternMap/images/{i}_vectors.txt", "w") as f:
                 for vector in main(f"{i}"):
-                    # vectorが ndarray の場合、カンマ区切りに変換して出力
                     if isinstance(vector, np.ndarray):
                         f.write(f"{','.join(map(str, vector.flatten()))}\n")
                     else:
