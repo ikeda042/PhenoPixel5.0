@@ -53,7 +53,7 @@ def ensure_dirs():
         "map64_jet",
         "map64_raw",
         # "polar",   # polar 処理はコメントアウト
-        "dot_loc",  # 追加：dot位置結果の出力先
+        "dot_loc",  # dot位置結果の出力先
     ]
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
@@ -494,72 +494,6 @@ class Map64:
         )
 
 
-def delete_pngs(dir: str) -> None:
-    for filename in [
-        i
-        for i in os.listdir(f"experimental/DotPatternMap/images/{dir}")
-        if i.endswith(".png")
-    ]:
-        os.remove(os.path.join(f"experimental/DotPatternMap/images/{dir}", filename))
-
-
-def main(db: str):
-    for i in ["map64", "points_box", "fluo_raw", "map64_jet", "map64_raw"]:
-        delete_pngs(i)
-    cells: list[Cell] = database_parser(db)
-    map64: Map64 = Map64()
-    vectors = []
-    for cell in tqdm(cells[:50]):
-        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
-    map64.combine_images(out_name=db.replace(".db", ".png"))
-    # 修正: Map64インスタンスではなく、モジュールレベルの関数として呼び出す
-    extract_probability_map(db.replace(".db", ""))
-    return vectors
-
-
-def extract_probability_map(out_name: str) -> np.ndarray:
-    """
-    64x64の map64 をAugmentationして、単純平均した確率マップを作る例
-    """
-
-    def augment_image(image: np.ndarray) -> list[np.ndarray]:
-        augmented_images = []
-        augmented_images.append(image)
-        augmented_images.append(cv2.flip(image, 0))
-        augmented_images.append(cv2.flip(image, 1))
-        augmented_images.append(cv2.flip(image, -1))
-        for i in range(1, 4):
-            augmented_images.append(cv2.rotate(image, i))
-        return augmented_images
-
-    map64_dir = "experimental/DotPatternMap/images/map64"
-    map64_images = [
-        cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
-        for filename in os.listdir(map64_dir)
-        if cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
-        is not None
-    ]
-    augmented_images = []
-    for image in map64_images:
-        augmented_images.extend(augment_image(image))
-    probability_map = np.mean(augmented_images, axis=0).astype(np.uint8)
-    cv2.imwrite(
-        f"experimental/DotPatternMap/images/probability_map_{out_name}.png",
-        probability_map,
-    )
-    probability_map_jet = cv2.applyColorMap(probability_map, cv2.COLORMAP_VIRIDIS)
-    cv2.imwrite(
-        f"experimental/DotPatternMap/images/probability_map_{out_name}_jet.png",
-        probability_map_jet,
-    )
-    return probability_map
-
-
-# ------------------------------------------------------------------------------
-# 以下、dot検出と相対位置プロットの追加処理
-# ------------------------------------------------------------------------------
-
-
 def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     """
     map64_raw の画像を読み込み、輝度の高いドットを検出し、
@@ -768,6 +702,105 @@ def process_dot_locations():
     print(f"Combined dot locations saved to {combined_save_path}")
 
 
+def combine_dot_loc_combined_images():
+    """
+    dot_loc 内の _binary, _detected, _norm の各種画像をグリッド状に結合し、
+    combined_binary.png, combined_detected.png, combined_norm.png を生成する。
+    """
+    dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
+    suffixes = ["_binary", "_detected", "_norm"]
+
+    def calculate_grid_size(n: int) -> tuple[int, int]:
+        row = int(np.sqrt(n))
+        col = (n + row - 1) // row
+        return row, col
+
+    for suffix in suffixes:
+        files = [f for f in os.listdir(dot_loc_dir) if f.endswith(suffix + ".png")]
+        if not files:
+            print(f"No files found for suffix {suffix}")
+            continue
+        images = []
+        for filename in files:
+            img = cv2.imread(os.path.join(dot_loc_dir, filename), cv2.IMREAD_UNCHANGED)
+            if img is not None:
+                images.append(img)
+        if images:
+            image_size = 256  # 結合後の各画像サイズ（ピクセル）
+            row, col = calculate_grid_size(len(images))
+            # カラー画像が含まれている場合は3チャンネル、それ以外は1チャンネルとする
+            channels = (
+                3 if any((img.ndim == 3 and img.shape[2] == 3) for img in images) else 1
+            )
+            combined_image = np.zeros(
+                (row * image_size, col * image_size, channels), dtype=np.uint8
+            )
+            for idx, img in enumerate(images):
+                resized = cv2.resize(
+                    img, (image_size, image_size), interpolation=cv2.INTER_LINEAR
+                )
+                if channels == 3 and resized.ndim == 2:
+                    resized = cv2.cvtColor(resized, cv2.COLOR_GRAY2BGR)
+                x = (idx % col) * image_size
+                y = (idx // col) * image_size
+                combined_image[y : y + image_size, x : x + image_size] = resized
+            combined_filename = os.path.join(dot_loc_dir, f"combined{suffix}.png")
+            cv2.imwrite(combined_filename, combined_image)
+            print(f"Saved combined image for {suffix} as {combined_filename}")
+
+
+def main(db: str):
+    for i in ["map64", "points_box", "fluo_raw", "map64_jet", "map64_raw"]:
+        delete_pngs(i)
+    cells: list[Cell] = database_parser(db)
+    map64: Map64 = Map64()
+    vectors = []
+    for cell in tqdm(cells[:50]):
+        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
+    map64.combine_images(out_name=db.replace(".db", ".png"))
+    # 修正: Map64インスタンスではなく、モジュールレベルの関数として呼び出す
+    extract_probability_map(db.replace(".db", ""))
+    return vectors
+
+
+def extract_probability_map(out_name: str) -> np.ndarray:
+    """
+    64x64の map64 をAugmentationして、単純平均した確率マップを作る例
+    """
+
+    def augment_image(image: np.ndarray) -> list[np.ndarray]:
+        augmented_images = []
+        augmented_images.append(image)
+        augmented_images.append(cv2.flip(image, 0))
+        augmented_images.append(cv2.flip(image, 1))
+        augmented_images.append(cv2.flip(image, -1))
+        for i in range(1, 4):
+            augmented_images.append(cv2.rotate(image, i))
+        return augmented_images
+
+    map64_dir = "experimental/DotPatternMap/images/map64"
+    map64_images = [
+        cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
+        for filename in os.listdir(map64_dir)
+        if cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
+        is not None
+    ]
+    augmented_images = []
+    for image in map64_images:
+        augmented_images.extend(augment_image(image))
+    probability_map = np.mean(augmented_images, axis=0).astype(np.uint8)
+    cv2.imwrite(
+        f"experimental/DotPatternMap/images/probability_map_{out_name}.png",
+        probability_map,
+    )
+    probability_map_jet = cv2.applyColorMap(probability_map, cv2.COLORMAP_VIRIDIS)
+    cv2.imwrite(
+        f"experimental/DotPatternMap/images/probability_map_{out_name}_jet.png",
+        probability_map_jet,
+    )
+    return probability_map
+
+
 # ------------------------------------------------------------------------------
 # エントリポイント
 # ------------------------------------------------------------------------------
@@ -782,3 +815,4 @@ if __name__ == "__main__":
                     else:
                         f.write(f"{vector}\n")
     process_dot_locations()
+    combine_dot_loc_combined_images()
