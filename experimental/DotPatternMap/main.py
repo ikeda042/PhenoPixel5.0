@@ -551,6 +551,101 @@ def extract_probability_map(cls, out_name: str) -> np.ndarray:
     return probability_map
 
 
+#############################################
+# 以下、dot検出と相対位置プロットの追加処理
+#############################################
+
+
+def detect_dots(image: np.ndarray, threshold: int = 200) -> list[tuple[float, float]]:
+    """
+    画像中のdot（GFP蛍光スポット）を単純閾値処理と輪郭抽出で検出し，
+    各dotの重心(centroid)の(x,y)座標を返す関数。
+
+    :param image: 8bitグレースケール画像（例: 64x64）
+    :param threshold: 閾値 (default=200)
+    :return: dot の中心座標リスト [(x1, y1), (x2, y2), ...]
+    """
+    # 閾値処理
+    ret, thresh = cv2.threshold(image, threshold, 255, cv2.THRESH_BINARY)
+    # 輪郭抽出
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    dot_centers = []
+    for cnt in contours:
+        M = cv2.moments(cnt)
+        if M["m00"] != 0:
+            cX = M["m10"] / M["m00"]
+            cY = M["m01"] / M["m00"]
+            dot_centers.append((cX, cY))
+    return dot_centers
+
+
+def process_dot_locations():
+    """
+    experimental/DotPatternMap/images/map64_raw 内の各画像に対し，
+    dot検出を行い，画像中心からの相対位置（正規化済み）をプロットして
+    experimental/DotPatternMap/images/dot_loc に保存する関数。
+
+    正規化は以下の式で計算:
+    Relative X = (x - center_x) / (width/2)
+    Relative Y = (y - center_y) / (height/2)
+    """
+    map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
+    dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
+    if not os.path.exists(dot_loc_dir):
+        os.makedirs(dot_loc_dir)
+
+    for filename in os.listdir(map64_raw_dir):
+        if filename.endswith(".png"):
+            image_path = os.path.join(map64_raw_dir, filename)
+            image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+            if image is None:
+                continue
+
+            # dot検出
+            dots = detect_dots(image)
+            # 画像サイズと中心を取得
+            h, w = image.shape
+            center_x, center_y = w / 2, h / 2
+            # 各dotの相対位置（正規化: -1～1）を計算
+            normalized_dots = [
+                ((x - center_x) / (w / 2), (y - center_y) / (h / 2)) for x, y in dots
+            ]
+
+            # matplotlibでプロット
+            fig, ax = plt.subplots(figsize=(4, 4))
+            # dot位置を散布図でプロット（赤丸）
+            if normalized_dots:
+                xs = [p[0] for p in normalized_dots]
+                ys = [p[1] for p in normalized_dots]
+                ax.scatter(xs, ys, color="red", s=100, label="Dot")
+            else:
+                ax.text(
+                    0.5,
+                    0.5,
+                    "No dot detected",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
+            # 中心を示す補助線
+            ax.axhline(0, color="gray", linestyle="--")
+            ax.axvline(0, color="gray", linestyle="--")
+            ax.set_title(f"Dot Locations for {filename}")
+            ax.set_xlabel("Relative X (normalized)")
+            ax.set_ylabel("Relative Y (normalized)")
+            ax.set_xlim(-1, 1)
+            ax.set_ylim(-1, 1)
+            ax.grid(True)
+            ax.legend()
+            save_path = os.path.join(dot_loc_dir, filename)
+            fig.savefig(save_path, dpi=300)
+            plt.close(fig)
+            print(f"Processed {filename}: {normalized_dots}")
+
+
+#############################################
+# エントリポイント
+#############################################
 if __name__ == "__main__":
     ensure_dirs()
     for i in os.listdir("experimental/DotPatternMap"):
@@ -561,3 +656,5 @@ if __name__ == "__main__":
                         f.write(f"{','.join(map(str, vector.flatten()))}\n")
                     else:
                         f.write(f"{vector}\n")
+    # dot_loc ディレクトリ作成＆各画像毎のdot検出結果をプロット
+    process_dot_locations()
