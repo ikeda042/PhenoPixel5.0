@@ -53,6 +53,7 @@ def ensure_dirs():
         "map64_jet",
         "map64_raw",
         # "polar",   # polar 処理はコメントアウト
+        "dot_loc",  # 追加：dot位置結果の出力先
     ]
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
@@ -563,6 +564,8 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     """
     map64_raw の画像を読み込み、輝度の高いドットを検出し、
     各ドットの(x, y, ドット領域の平均輝度)を返す。
+    また、2値化画像（binary）と正規化画像（norm）、
+    ドット検出結果（detected）の各画像を dot_loc フォルダに保存する。
     """
     print(f"Detecting dots in {image_path}")
     image = cv2.imread(image_path)
@@ -577,6 +580,12 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     dot_diff_threshold = 70
 
     coordinates: list[tuple[int, int, float]] = []
+
+    # 保存先ディレクトリ(dot_loc)とファイル名のベースを設定
+    dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
+    if not os.path.exists(dot_loc_dir):
+        os.makedirs(dot_loc_dir)
+    base_name = os.path.splitext(os.path.basename(image_path))[0]
 
     if diff > dot_diff_threshold:
         # ドットがある場合：しきい値180で2値化
@@ -598,15 +607,18 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
                 avg_brightness = cv2.mean(norm_gray, mask=mask)[0]
                 coordinates.append((cX, cY, avg_brightness))
 
-        # 検出結果の可視化用
+        # 検出結果の可視化用画像作成
         detected_img = np.zeros_like(image)
         cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
-        cv2.imwrite(f"{image_path[:-4]}_detected.png", detected_img)
-        cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
     else:
-        # ドットがない場合：全て黒の画像を生成して保存
+        # ドットがない場合
         thresh = np.zeros_like(norm_gray)
-        cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
+        detected_img = np.zeros_like(image)
+
+    # 出力画像を dot_loc フォルダに保存
+    cv2.imwrite(os.path.join(dot_loc_dir, f"{base_name}_detected.png"), detected_img)
+    cv2.imwrite(os.path.join(dot_loc_dir, f"{base_name}_binary.png"), thresh)
+    cv2.imwrite(os.path.join(dot_loc_dir, f"{base_name}_norm.png"), norm_gray)
 
     return coordinates
 
