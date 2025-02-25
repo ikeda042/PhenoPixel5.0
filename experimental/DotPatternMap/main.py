@@ -534,84 +534,73 @@ class Map64:
         )
 
 
-def delete_pngs(dir: str) -> None:
-    for filename in [
-        i
-        for i in os.listdir(f"experimental/DotPatternMap/images/{dir}")
-        if i.endswith(".png")
-    ]:
-        os.remove(os.path.join(f"experimental/DotPatternMap/images/{dir}", filename))
+def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
+    image = cv2.imread(image_path)
+    # グレースケール変換
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    norm_gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
+
+    median_val = np.median(norm_gray)
+    top97_val = np.percentile(norm_gray, 97)
+    diff = top97_val - median_val
+    print(f"diff: {diff}")
+    dot_diff_threshold = 70
+
+    coordinates: list[tuple[int, int, float]] = []
+
+    if diff > dot_diff_threshold:
+        # ドットがある場合：しきい値180で2値化
+        ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
+
+        # 輪郭検出（外側の輪郭のみ取得）
+        contours, _ = cv2.findContours(
+            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        for cnt in contours:
+            # モーメントを計算し、重心を求める
+            M = cv2.moments(cnt)
+            if M["m00"] != 0:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+                # ドット領域の平均輝度を算出
+                mask = np.zeros_like(norm_gray)
+                cv2.drawContours(mask, [cnt], -1, 255, thickness=-1)
+                avg_brightness = cv2.mean(norm_gray, mask=mask)[0]
+                coordinates.append((cX, cY, avg_brightness))
+
+        # 検出された輪郭をそのまま表示する画像を生成（黒背景）
+        detected_img = np.zeros_like(image)
+        cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
+
+        cv2.imwrite(f"{image_path[:-4]}_detected.png", detected_img)
+        cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
+    else:
+        # ドットがない場合：全て黒の画像を生成して保存
+        thresh = np.zeros_like(norm_gray)
+        cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
+
+    return coordinates
 
 
-def main(db: str):
-    for i in ["map64", "points_box", "fluo_raw", "map64_jet", "map64_raw"]:
-        delete_pngs(i)
-    cells: list[Cell] = database_parser(db)
-    map64: Map64 = Map64()
-    vectors = []
-    for cell in tqdm(cells[:10]):
-        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
-    map64.combine_images(out_name=db.replace(".db", ".png"))
-    # 修正: Map64インスタンスではなく、モジュールレベルの関数として呼び出す
-    extract_probability_map(db.replace(".db", ""))
-    return vectors
-
-
-def extract_probability_map(out_name: str) -> np.ndarray:
-    def augment_image(image: np.ndarray) -> list[np.ndarray]:
-        augmented_images = []
-        augmented_images.append(image)
-        augmented_images.append(cv2.flip(image, 0))
-        augmented_images.append(cv2.flip(image, 1))
-        augmented_images.append(cv2.flip(image, -1))
-        for i in range(1, 4):
-            augmented_images.append(cv2.rotate(image, i))
-        return augmented_images
-
-    map64_dir = "experimental/DotPatternMap/images/map64"
-    map64_images = [
-        cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
-        for filename in os.listdir(map64_dir)
-        if cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
-        is not None
-    ]
-    augmented_images = []
-    for image in map64_images:
-        augmented_images.extend(augment_image(image))
-    probability_map = np.mean(augmented_images, axis=0).astype(np.uint8)
-    cv2.imwrite(
-        f"experimental/DotPatternMap/images/probability_map_{out_name}.png",
-        probability_map,
-    )
-    probability_map_jet = cv2.applyColorMap(probability_map, cv2.COLORMAP_VIRIDIS)
-    cv2.imwrite(
-        f"experimental/DotPatternMap/images/probability_map_{out_name}_jet.png",
-        probability_map_jet,
-    )
-    return probability_map
-
-
-# ------------------------------------------------------------------------------
-# 以下、dot検出と相対位置プロットの追加処理
-# ------------------------------------------------------------------------------
 def process_dot_locations():
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
-    detect_dot() を用いてドットを検出し、結果を個別に散布図として保存するとともに、
-    全画像のドット位置を保持し、最後に一枚のグラフにまとめてscatterプロットします。
+    detect_dot() を用いてドットを検出し、各ドットの中心座標とそのエリアの平均輝度を算出します。
+    その結果を個別の散布図として保存するとともに、全画像のドット位置と強度を保持し、
+    最終的にヒートマップとしてscatterプロットで表示します。
     """
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
     if not os.path.exists(dot_loc_dir):
         os.makedirs(dot_loc_dir)
 
-    all_normalized_dots: list[tuple[float, float]] = []  # 全てのドット位置を保持
+    all_normalized_dots: list[tuple[float, float, float]] = []  # (x, y, avg_brightness)
 
     for filename in os.listdir(map64_raw_dir):
         if filename.endswith(".png"):
             image_path = os.path.join(map64_raw_dir, filename)
-            # detect_dot() を使用してドットの中心座標を取得
-            dots = detect_dot(image_path)
+            # detect_dot() を使用してドットの中心座標と平均輝度を取得
+            dots = detect_dot(image_path)  # 各要素: (x, y, avg_brightness)
 
             # 画像を読み込み、中心座標からの相対位置（-1～1）を計算
             image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -620,10 +609,11 @@ def process_dot_locations():
             h, w = image.shape
             center_x, center_y = w / 2, h / 2
             normalized_dots = [
-                ((x - center_x) / (w / 2), (y - center_y) / (h / 2)) for x, y in dots
+                (((x - center_x) / (w / 2)), ((y - center_y) / (h / 2)), brightness)
+                for x, y, brightness in dots
             ]
 
-            # 各画像のドット位置を累積
+            # 各画像のドット位置と輝度を累積
             all_normalized_dots.extend(normalized_dots)
 
             # 個別のプロット（オプション）
@@ -631,7 +621,11 @@ def process_dot_locations():
             if normalized_dots:
                 xs = [p[0] for p in normalized_dots]
                 ys = [p[1] for p in normalized_dots]
-                ax.scatter(xs, ys, color="red", s=100, label="Dot")
+                brightness_vals = [p[2] for p in normalized_dots]
+                sc = ax.scatter(
+                    xs, ys, c=brightness_vals, cmap="jet", s=100, label="Dot"
+                )
+                plt.colorbar(sc, ax=ax, label="Avg Brightness")
             else:
                 ax.text(
                     0.5,
@@ -658,12 +652,14 @@ def process_dot_locations():
 
             print(f"Processed {filename}: {normalized_dots}")
 
-    # 全ドット位置を一枚のグラフにscatterプロット
+    # 全ドット位置と輝度を一枚のグラフにscatterプロット（ヒートマップ）
     fig, ax = plt.subplots(figsize=(6, 6))
     if all_normalized_dots:
         xs = [p[0] for p in all_normalized_dots]
         ys = [p[1] for p in all_normalized_dots]
-        ax.scatter(xs, ys, color="blue", s=50, label="All Dots")
+        brightness_vals = [p[2] for p in all_normalized_dots]
+        sc = ax.scatter(xs, ys, c=brightness_vals, cmap="jet", s=50, label="All Dots")
+        plt.colorbar(sc, ax=ax, label="Avg Brightness")
     else:
         ax.text(
             0.5,
@@ -675,7 +671,7 @@ def process_dot_locations():
         )
     ax.axhline(0, color="gray", linestyle="--")
     ax.axvline(0, color="gray", linestyle="--")
-    ax.set_title("Combined Dot Locations")
+    ax.set_title("Combined Dot Locations with Brightness")
     ax.set_xlabel("Relative X (normalized)")
     ax.set_ylabel("Relative Y (normalized)")
     ax.set_xlim(-1, 1)
