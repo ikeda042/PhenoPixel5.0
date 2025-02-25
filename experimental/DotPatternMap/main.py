@@ -549,7 +549,7 @@ def main(db: str):
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
     vectors = []
-    for cell in tqdm(cells[:]):
+    for cell in tqdm(cells[:10]):
         vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
     map64.combine_images(out_name=db.replace(".db", ".png"))
     # 修正: Map64インスタンスではなく、モジュールレベルの関数として呼び出す
