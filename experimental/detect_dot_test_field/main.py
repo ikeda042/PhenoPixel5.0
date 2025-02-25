@@ -24,7 +24,5 @@ contours, hierarchy = cv2.findContours(
 image_contours = image.copy()
 cv2.drawContours(image_contours, contours, -1, (0, 255, 0), 2)
 
-# 結果表示
-cv2.imshow("Detected Dots", image_contours)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# 　結果を保存
+cv2.imwrite("image_contours.png", image_contours)
