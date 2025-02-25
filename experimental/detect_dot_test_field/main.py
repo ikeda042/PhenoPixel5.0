@@ -16,10 +16,10 @@ def detect_dot(image_path: str) -> np.ndarray:
     norm_gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
 
     median_val = np.median(norm_gray)
-    top5_val = np.percentile(norm_gray, 95)
+    top5_val = np.percentile(norm_gray, 97)
     diff = top5_val - median_val
-
-    dot_diff_threshold = 50
+    print(diff)
+    dot_diff_threshold = 70
 
     if diff > dot_diff_threshold:
         # ドットがある場合：しきい値180で２値化

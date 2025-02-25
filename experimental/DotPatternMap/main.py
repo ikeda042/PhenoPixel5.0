@@ -517,92 +517,101 @@ def extract_probability_map(out_name: str) -> np.ndarray:
 
 def detect_dots(
     image: np.ndarray,
-    block_size: int = 15,  # 以降は未使用
-    C: int = 2,  # 以降は未使用
+    block_size: int = 15,  # 新手法では使用しません
+    C: int = 2,  # 新手法では使用しません
     output_binary_path: str = None,
     output_norm_path: str = None,
-    output_grad_path: str = None,
+    output_grad_path: str = None,  # 本手法では未使用
     min_area: float = 5,
     max_area: float = 200,
-    min_circularity: float = 0.7,  # HoughCircles では常に円形なので未使用
+    min_circularity: float = 0.7,  # 本手法では未使用
 ) -> list[tuple[float, float]]:
     """
-    画像中の円（GFP蛍光スポット）を検出する関数。
+    画像中のドットを検出する新しい関数。
 
-    ・非ゼロ領域の最大輝度を255にする線形正規化を行い、その結果を output_norm_path に保存。
-    ・正規化画像に対してガウシアンブラーを適用し、HoughCircles を用いて円を検出する。
-    ・検出した円の中心座標を返す。
+    この関数は、画像をグレースケールに変換し、正規化後、中央値と97パーセンタイルの差分を計算します。
+    差分が所定の閾値（70）を超える場合、しきい値180で２値化を行います。そうでない場合は全て黒の画像となります。
+    その後、２値画像から連結成分（輪郭）を抽出し、各ドットの重心を計算して返します。
 
-    数式:
+    数式: 正規化
     \[
-      I_{\text{norm}}(x,y) = I(x,y) \times \frac{255}{I_{\max}}
+    I_{\text{norm}}(x,y) = \frac{I(x,y) - I_{\min}}{I_{\max} - I_{\min}} \times 255
     \]
-
-    Latex 生コード:
+    Latex生コード:
     ```
     \[
-      I_{\text{norm}}(x,y) = I(x,y) \times \frac{255}{I_{\max}}
+    I_{\text{norm}}(x,y) = \frac{I(x,y) - I_{\min}}{I_{\max} - I_{\min}} \times 255
     \]
     ```
 
-    :param image: 8bitグレースケール画像
-    :param output_binary_path: 円検出結果を描画した2値画像を保存するパス (None の場合は保存しない)
-    :param output_norm_path: 正規化後の画像を保存するパス (None の場合は保存しない)
-    :param output_grad_path: ガウシアンブラー適用後の勾配画像（Laplacian）を保存するパス (None の場合は保存しない)
-    :param min_area: 円として認識するための最小面積（円の面積 = πr²）
-    :param max_area: 円として認識するための最大面積
-    :return: 検出された円の中心座標リスト [(x₁, y₁), (x₂, y₂), ...]
+    数式: 二値化処理
+    \[
+    T(x,y) = \begin{cases}
+    255, & \text{if } I_{\text{norm}}(x,y) \geq 180 \\
+    0, & \text{otherwise}
+    \end{cases}
+    \]
+    Latex生コード:
+    ```
+    \[
+    T(x,y) = \begin{cases}
+    255, & \text{if } I_{\text{norm}}(x,y) \geq 180 \\
+    0, & \text{otherwise}
+    \end{cases}
+    \]
+    ```
+
+    :param image: 8bitグレースケールまたはBGR画像
+    :param output_binary_path: ドット検出結果の２値画像の保存パス
+    :param output_norm_path: 正規化後の画像の保存パス
+    :param output_grad_path: ガウシアンブラー適用後の勾配画像の保存パス（本手法では使用しません）
+    :param min_area: ドットとして認識する最小面積
+    :param max_area: ドットとして認識する最大面積
+    :param min_circularity: 最小円形度（本手法では使用しません）
+    :return: 検出されたドットの中心座標リスト [(x₁, y₁), (x₂, y₂), ...]
     """
-    # --- (1) 非ゼロ画素のみ対象に輝度正規化（最大値を255にする） ---
-    mask = image > 0
-    if np.any(mask):
-        max_val = image[mask].max()
-        scale = 255 / max_val
-        image_norm = (image.astype(np.float32) * scale).clip(0, 255).astype(np.uint8)
+    # 画像がカラーの場合はグレースケール変換
+    if image.ndim == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     else:
-        image_norm = image.copy()
+        gray = image.copy()
 
-    # --- (1.1) 正規化画像の保存 ---
-    if output_norm_path is not None:
-        cv2.imwrite(output_norm_path, image_norm)
+    # グレースケール画像の正規化
+    norm_gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
 
-    # --- (2) ガウシアンブラーで平滑化 ---
-    blurred = cv2.GaussianBlur(image_norm, (9, 9), 2)
+    # 中央値と97パーセンタイルの計算
+    median_val = np.median(norm_gray)
+    top_val = np.percentile(norm_gray, 97)
+    diff = top_val - median_val
+    print(diff)
+    dot_diff_threshold = 70
 
-    # --- (2.1) Laplacian による勾配画像の生成と保存 ---
-    grad = cv2.Laplacian(blurred, cv2.CV_64F)
-    grad = cv2.convertScaleAbs(grad)
-    if output_grad_path is not None:
-        cv2.imwrite(output_grad_path, grad)
+    # しきい値による２値化処理
+    if diff > dot_diff_threshold:
+        ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
+    else:
+        thresh = np.zeros_like(norm_gray)
 
-    # --- (3) HoughCircles による円検出 ---
-    # 面積から半径の範囲を計算: area = πr²  ->  r = sqrt(area/π)
-    min_radius = max(1, int(np.sqrt(min_area / np.pi)))
-    max_radius = int(np.sqrt(max_area / np.pi))
-
-    circles = cv2.HoughCircles(
-        blurred,
-        cv2.HOUGH_GRADIENT,
-        dp=1.2,
-        minDist=20,
-        param1=50,
-        param2=30,
-        minRadius=min_radius,
-        maxRadius=max_radius,
-    )
-
-    # --- (4) 検出結果の描画 ---
-    binary_img = np.zeros_like(image_norm)
-    dot_centers: list[tuple[float, float]] = []
-    if circles is not None:
-        circles = np.round(circles[0, :]).astype("int")
-        for x, y, r in circles:
-            dot_centers.append((x, y))
-            cv2.circle(binary_img, (x, y), r, 255, 2)
-            cv2.circle(binary_img, (x, y), 2, 255, 3)
-
+    # 結果画像の保存
     if output_binary_path is not None:
-        cv2.imwrite(output_binary_path, binary_img)
+        cv2.imwrite(output_binary_path, thresh)
+    if output_norm_path is not None:
+        cv2.imwrite(output_norm_path, norm_gray)
+    # output_grad_path は本手法では使用しません
+
+    # 輪郭検出によりドットの位置を抽出
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    dot_centers: list[tuple[float, float]] = []
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area < min_area or area > max_area:
+            continue
+        M = cv2.moments(cnt)
+        if M["m00"] == 0:
+            continue
+        cx = M["m10"] / M["m00"]
+        cy = M["m01"] / M["m00"]
+        dot_centers.append((cx, cy))
 
     return dot_centers
 
