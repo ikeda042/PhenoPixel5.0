@@ -517,29 +517,25 @@ def extract_probability_map(out_name: str) -> np.ndarray:
 
 def detect_dots(
     image: np.ndarray,
-    block_size: int = 15,
-    C: int = 2,
+    block_size: int = 15,  # 以降は未使用
+    C: int = 2,  # 以降は未使用
     output_binary_path: str = None,
     output_norm_path: str = None,
     output_grad_path: str = None,
     min_area: float = 5,
     max_area: float = 200,
-    min_circularity: float = 0.7,
+    min_circularity: float = 0.7,  # HoughCircles では常に円形なので未使用
 ) -> list[tuple[float, float]]:
     """
-    画像中のdot（GFP蛍光スポット）を検出する関数。
+    画像中の円（GFP蛍光スポット）を検出する関数。
 
-    ・2値化前に、非ゼロ領域の最大輝度を255にする線形正規化を行い、その結果を output_norm_path に保存。
-    ・正規化画像に対して Laplacian フィルタで勾配を強調し、その勾配画像を output_grad_path に保存。
-    ・その後、アダプティブしきい値処理とモルフォロジー演算により2値化し、output_binary_path に保存。
-    ・抽出した輪郭に対して面積・円形度フィルタを適用し、dot と判断されたものの重心座標を返す。
+    ・非ゼロ領域の最大輝度を255にする線形正規化を行い、その結果を output_norm_path に保存。
+    ・正規化画像に対してガウシアンブラーを適用し、HoughCircles を用いて円を検出する。
+    ・検出した円の中心座標を返す。
 
     数式:
     \[
       I_{\text{norm}}(x,y) = I(x,y) \times \frac{255}{I_{\max}}
-    \]
-    \[
-      G(x,y) = \text{abs}(\text{Laplacian}(I_{\text{norm}}(x,y)))
     \]
 
     Latex 生コード:
@@ -547,23 +543,17 @@ def detect_dots(
     \[
       I_{\text{norm}}(x,y) = I(x,y) \times \frac{255}{I_{\max}}
     \]
-    \[
-      G(x,y) = \text{abs}(\text{Laplacian}(I_{\text{norm}}(x,y)))
-    \]
     ```
 
     :param image: 8bitグレースケール画像
-    :param block_size: アダプティブしきい値計算時の近傍ブロックサイズ（奇数）
-    :param C: ブロック平均から差し引く定数
-    :param output_binary_path: 2値化画像を保存するパス (None の場合は保存しない)
+    :param output_binary_path: 円検出結果を描画した2値画像を保存するパス (None の場合は保存しない)
     :param output_norm_path: 正規化後の画像を保存するパス (None の場合は保存しない)
-    :param output_grad_path: Laplacian フィルタ適用後の勾配画像を保存するパス (None の場合は保存しない)
-    :param min_area: dot として認識するための最小面積
-    :param max_area: dot として認識するための最大面積
-    :param min_circularity: dot として認識するための最小円形度（1に近いほど完全な円）
-    :return: dot の重心座標リスト [(x1, y1), (x2, y2), ...]
+    :param output_grad_path: ガウシアンブラー適用後の勾配画像（Laplacian）を保存するパス (None の場合は保存しない)
+    :param min_area: 円として認識するための最小面積（円の面積 = πr²）
+    :param max_area: 円として認識するための最大面積
+    :return: 検出された円の中心座標リスト [(x₁, y₁), (x₂, y₂), ...]
     """
-    # --- (1) 非ゼロ画素のみ対象に輝度正規化（最大を255にする） ---
+    # --- (1) 非ゼロ画素のみ対象に輝度正規化（最大値を255にする） ---
     mask = image > 0
     if np.any(mask):
         max_val = image[mask].max()
@@ -576,53 +566,43 @@ def detect_dots(
     if output_norm_path is not None:
         cv2.imwrite(output_norm_path, image_norm)
 
-    # --- (2) Laplacian フィルタで勾配を強調 ---
-    grad = cv2.Laplacian(image_norm, cv2.CV_64F)
-    grad = cv2.convertScaleAbs(grad)
+    # --- (2) ガウシアンブラーで平滑化 ---
+    blurred = cv2.GaussianBlur(image_norm, (9, 9), 2)
 
-    # --- (2.1) 勾配画像の保存 ---
+    # --- (2.1) Laplacian による勾配画像の生成と保存 ---
+    grad = cv2.Laplacian(blurred, cv2.CV_64F)
+    grad = cv2.convertScaleAbs(grad)
     if output_grad_path is not None:
         cv2.imwrite(output_grad_path, grad)
 
-    # --- (3) 軽く平滑化してノイズを抑制 ---
-    blur = cv2.GaussianBlur(grad, (3, 3), 0)
+    # --- (3) HoughCircles による円検出 ---
+    # 面積から半径の範囲を計算: area = πr²  ->  r = sqrt(area/π)
+    min_radius = max(1, int(np.sqrt(min_area / np.pi)))
+    max_radius = int(np.sqrt(max_area / np.pi))
 
-    # --- (4) アダプティブしきい値で二値化 ---
-    thresh = cv2.adaptiveThreshold(
-        blur,
-        255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,  # または ADAPTIVE_THRESH_MEAN_C
-        cv2.THRESH_BINARY,
-        block_size,
-        C,
+    circles = cv2.HoughCircles(
+        blurred,
+        cv2.HOUGH_GRADIENT,
+        dp=1.2,
+        minDist=20,
+        param1=50,
+        param2=30,
+        minRadius=min_radius,
+        maxRadius=max_radius,
     )
 
-    # --- (5) ノイズ除去のためのモルフォロジー演算 ---
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    # --- (4) 検出結果の描画 ---
+    binary_img = np.zeros_like(image_norm)
+    dot_centers: list[tuple[float, float]] = []
+    if circles is not None:
+        circles = np.round(circles[0, :]).astype("int")
+        for x, y, r in circles:
+            dot_centers.append((x, y))
+            cv2.circle(binary_img, (x, y), r, 255, 2)
+            cv2.circle(binary_img, (x, y), 2, 255, 3)
 
-    # --- (6) 2値化画像の保存 ---
     if output_binary_path is not None:
-        cv2.imwrite(output_binary_path, thresh)
-
-    # --- (7) 輪郭抽出と厳しいフィルタリング ---
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    dot_centers = []
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        if area < min_area or area > max_area:
-            continue
-        perimeter = cv2.arcLength(cnt, True)
-        if perimeter == 0:
-            continue
-        circularity = 4 * np.pi * area / (perimeter * perimeter)
-        if circularity < min_circularity:
-            continue
-        M = cv2.moments(cnt)
-        if M["m00"] != 0:
-            cX = M["m10"] / M["m00"]
-            cY = M["m01"] / M["m00"]
-            dot_centers.append((cX, cY))
+        cv2.imwrite(output_binary_path, binary_img)
 
     return dot_centers
 
