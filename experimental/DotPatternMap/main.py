@@ -14,6 +14,87 @@ from tqdm import tqdm
 import os
 
 
+# ------------------------------------------------------------------------------
+# 新しいドット検出関数: detect_dot()
+# 画像パスから画像を読み込み、グレースケール変換・正規化、中央値と97パーセンタイルの差分により
+# ドットが存在すると判断された場合、しきい値180で2値化し輪郭検出を行います。
+#
+# 数式: 正規化
+# \[
+# I_{\text{norm}}(x,y) = \frac{I(x,y) - I_{\min}}{I_{\max} - I_{\min}} \times 255
+# \]
+# Latex生コード:
+# ```
+# \[
+# I_{\text{norm}}(x,y) = \frac{I(x,y) - I_{\min}}{I_{\max} - I_{\min}} \times 255
+# \]
+# ```
+#
+# 数式: 二値化処理
+# \[
+# T(x,y) = \begin{cases}
+# 255, & \text{if } I_{\text{norm}}(x,y) \geq 180 \\
+# 0, & \text{otherwise}
+# \end{cases}
+# \]
+# Latex生コード:
+# ```
+# \[
+# T(x,y) = \begin{cases}
+# 255, & \text{if } I_{\text{norm}}(x,y) \geq 180 \\
+# 0, & \text{otherwise}
+# \end{cases}
+# \]
+# ```
+#
+# :param image_path: 画像ファイルのパス
+# :return: 検出されたドットの中心座標リスト [(x1, y1), (x2, y2), ...]
+# ------------------------------------------------------------------------------
+def detect_dot(image_path: str) -> list[tuple[int, int]]:
+    image = cv2.imread(image_path)
+
+    # グレースケール変換
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    norm_gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
+
+    median_val = np.median(norm_gray)
+    top97_val = np.percentile(norm_gray, 97)
+    diff = top97_val - median_val
+    print(f"diff: {diff}")
+    dot_diff_threshold = 70
+
+    coordinates: list[tuple[int, int]] = []
+
+    if diff > dot_diff_threshold:
+        # ドットがある場合：しきい値180で2値化
+        ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
+
+        # 輪郭検出（外側の輪郭のみ取得）
+        contours, _ = cv2.findContours(
+            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        for cnt in contours:
+            # モーメントを計算し、重心を求める
+            M = cv2.moments(cnt)
+            if M["m00"] != 0:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+                coordinates.append((cX, cY))
+
+        # 検出された輪郭をそのまま表示する画像を生成（黒背景）
+        detected_img = np.zeros_like(image)
+        cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
+
+        cv2.imwrite(f"{image_path[:-4]}_detected.png", detected_img)
+        cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
+    else:
+        # ドットがない場合：全て黒の画像を生成して保存
+        thresh = np.zeros_like(norm_gray)
+        cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
+
+    return coordinates
+
+
 def subtract_background(gray_img: np.ndarray, kernel_size: int = 21) -> np.ndarray:
     """
     背景引き算を行う関数
@@ -510,116 +591,14 @@ def extract_probability_map(out_name: str) -> np.ndarray:
     return probability_map
 
 
-#############################################
+# ------------------------------------------------------------------------------
 # 以下、dot検出と相対位置プロットの追加処理
-#############################################
-def detect_dots(
-    image: np.ndarray,
-    block_size: int = 15,  # 新手法では使用しません
-    C: int = 2,  # 新手法では使用しません
-    output_binary_path: str = None,
-    output_norm_path: str = None,
-    output_grad_path: str = None,  # 本手法では使用しません
-    min_area: float = 5,
-    max_area: float = 200,
-    min_circularity: float = 0.7,  # 本手法では使用しません
-) -> list[tuple[float, float]]:
-    """
-    画像中のドットを検出する新しい関数。
-
-    この関数は、画像をグレースケールに変換し、正規化後、中央値と97パーセンタイルの差分を計算します。
-    差分が所定の閾値（70）を超える場合、しきい値180で２値化を行います。そうでない場合は全て黒の画像となります。
-    その後、２値画像から連結成分（輪郭）を抽出し、各ドットの重心を計算して返します。
-
-    数式: 正規化
-    \[
-    I_{\text{norm}}(x,y) = \frac{I(x,y) - I_{\min}}{I_{\max} - I_{\min}} \times 255
-    \]
-    Latex生コード:
-    ```
-    \[
-    I_{\text{norm}}(x,y) = \frac{I(x,y) - I_{\min}}{I_{\max} - I_{\min}} \times 255
-    \]
-    ```
-
-    数式: 二値化処理
-    \[
-    T(x,y) = \begin{cases}
-    255, & \text{if } I_{\text{norm}}(x,y) \geq 180 \\
-    0, & \text{otherwise}
-    \end{cases}
-    \]
-    Latex生コード:
-    ```
-    \[
-    T(x,y) = \begin{cases}
-    255, & \text{if } I_{\text{norm}}(x,y) \geq 180 \\
-    0, & \text{otherwise}
-    \end{cases}
-    \]
-    ```
-
-    :param image: 8bitグレースケールまたはBGR画像
-    :param output_binary_path: ドット検出結果の２値画像の保存パス
-    :param output_norm_path: 正規化後の画像の保存パス
-    :param output_grad_path: ガウシアンブラー適用後の勾配画像の保存パス（本手法では使用しません）
-    :param min_area: ドットとして認識する最小面積
-    :param max_area: ドットとして認識する最大面積
-    :param min_circularity: 最小円形度（本手法では使用しません）
-    :return: 検出されたドットの中心座標リスト [(x₁, y₁), (x₂, y₂), ...]
-    """
-    # 画像がカラーの場合はグレースケール変換
-    if image.ndim == 3:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    else:
-        gray = image.copy()
-
-    # グレースケール画像の正規化
-    norm_gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
-
-    # 中央値と97パーセンタイルの計算
-    median_val = np.median(norm_gray)
-    top_val = np.percentile(norm_gray, 97)
-    diff = top_val - median_val
-    print(diff)
-    dot_diff_threshold = 70
-
-    # しきい値による２値化処理（条件分岐）
-    if diff > dot_diff_threshold:
-        ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
-    else:
-        thresh = np.zeros_like(norm_gray)
-
-    # 結果画像の保存（grad 出力は行わない）
-    if output_binary_path is not None:
-        cv2.imwrite(output_binary_path, thresh)
-    if output_norm_path is not None:
-        cv2.imwrite(output_norm_path, norm_gray)
-    # output_grad_path は使用しません
-
-    # 輪郭検出によりドットの位置を抽出
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    dot_centers: list[tuple[float, float]] = []
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        if area < min_area or area > max_area:
-            continue
-        M = cv2.moments(cnt)
-        if M["m00"] == 0:
-            continue
-        cx = M["m10"] / M["m00"]
-        cy = M["m01"] / M["m00"]
-        dot_centers.append((cx, cy))
-
-    return dot_centers
-
-
+# ------------------------------------------------------------------------------
 def process_dot_locations():
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
-    detect_dots() でドットを検出し、結果を散布図として保存します。
-    また、正規化画像（_norm.png）および2値化画像（_binary.png）を
-    dot_loc ディレクトリに出力します。（grad画像は出力しません）
+    detect_dot() を用いてドットを検出し、結果を散布図として保存します。
+    detect_dot() 内で生成される2値化画像等は各画像に個別に出力されます。
     """
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
@@ -629,32 +608,13 @@ def process_dot_locations():
     for filename in os.listdir(map64_raw_dir):
         if filename.endswith(".png"):
             image_path = os.path.join(map64_raw_dir, filename)
+            # detect_dot() を使用してドットの中心座標を取得
+            dots = detect_dot(image_path)
+
+            # 画像を読み込み、中心座標からの相対位置（-1～1）を計算
             image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
             if image is None:
                 continue
-
-            # 出力先ファイル名の生成
-            binary_out_path = os.path.join(
-                dot_loc_dir, filename.replace(".png", "_binary.png")
-            )
-            norm_out_path = os.path.join(
-                dot_loc_dir, filename.replace(".png", "_norm.png")
-            )
-            # grad_out_path は出力しません
-
-            # dot検出（grad出力は行わず、他のパスのみ設定）
-            dots = detect_dots(
-                image,
-                block_size=15,
-                C=2,
-                output_binary_path=binary_out_path,
-                output_norm_path=norm_out_path,
-                min_area=5,
-                max_area=200,
-                min_circularity=0.7,
-            )
-
-            # 画像中心からの相対位置（-1～1）を計算
             h, w = image.shape
             center_x, center_y = w / 2, h / 2
             normalized_dots = [
@@ -694,9 +654,9 @@ def process_dot_locations():
             print(f"Processed {filename}: {normalized_dots}")
 
 
-#############################################
+# ------------------------------------------------------------------------------
 # エントリポイント
-#############################################
+# ------------------------------------------------------------------------------
 if __name__ == "__main__":
     ensure_dirs()
     for i in os.listdir("experimental/DotPatternMap"):
