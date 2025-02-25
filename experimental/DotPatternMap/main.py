@@ -604,7 +604,7 @@ def process_dot_locations():
                 ys = [p[1] for p in normalized_dots]
                 brightness_vals = [p[2] for p in normalized_dots]
                 sc = ax.scatter(
-                    xs, ys, c=brightness_vals, cmap="jet", s=100, label="Dot"
+                    xs, ys, c=brightness_vals, cmap="Blues", s=100, label="Dot"
                 )
                 plt.colorbar(sc, ax=ax, label="Avg Brightness")
             else:
@@ -639,7 +639,7 @@ def process_dot_locations():
         xs = [p[0] for p in all_normalized_dots]
         ys = [p[1] for p in all_normalized_dots]
         brightness_vals = [p[2] for p in all_normalized_dots]
-        sc = ax.scatter(xs, ys, c=brightness_vals, cmap="jet", s=50, label="All Dots")
+        sc = ax.scatter(xs, ys, c=brightness_vals, cmap="Blues", s=50, label="All Dots")
         plt.colorbar(sc, ax=ax, label="Avg Brightness")
     else:
         ax.text(
