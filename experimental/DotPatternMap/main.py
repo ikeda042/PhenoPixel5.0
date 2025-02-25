@@ -508,10 +508,10 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     norm_gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
 
     median_val = np.median(norm_gray)
-    top97_val = np.percentile(norm_gray, 97)
+    top97_val = np.percentile(norm_gray, 99)
     diff = top97_val - median_val
     print(f"diff: {diff}")
-    dot_diff_threshold = 60
+    dot_diff_threshold = 70
 
     coordinates: list[tuple[int, int, float]] = []
 
@@ -705,9 +705,11 @@ def process_dot_locations():
 def combine_dot_loc_combined_images():
     """
     dot_loc 内の _binary, _detected, _norm の各種画像をグリッド状に結合し、
-    combined_binary.png, combined_detected.png, combined_norm.png を生成する。
+    experimental/DotPatternMap/images に combined_binary.png, combined_detected.png, combined_norm.png を生成する。
+    同じ細胞の画像が各combined画像で同じ位置に来るよう、ファイル名（細胞ID）でソートしています。
     """
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
+    images_dir = "experimental/DotPatternMap/images"
     suffixes = ["_binary", "_detected", "_norm"]
 
     def calculate_grid_size(n: int) -> tuple[int, int]:
@@ -718,7 +720,6 @@ def combine_dot_loc_combined_images():
     def combine_images_grid(images, image_size, channels=1):
         n = len(images)
         row, col = calculate_grid_size(n)
-        # channelsが1の場合は2次元配列として作成
         if channels == 1:
             combined_image = np.zeros(
                 (image_size * row, image_size * col), dtype=np.uint8
@@ -733,17 +734,16 @@ def combine_dot_loc_combined_images():
             )
             if channels == 3 and resized.ndim == 2:
                 resized = cv2.cvtColor(resized, cv2.COLOR_GRAY2BGR)
-            elif channels == 1 and resized.ndim == 2:
-                # 2次元画像の場合、combined_imageは2次元なのでそのままでOK
-                pass
             x = (idx % col) * image_size
             y = (idx // col) * image_size
-            # if combined_image has 3 channels, resized must be 3-ch; if 1 channel, they are both 2D.
             combined_image[y : y + image_size, x : x + image_size] = resized
         return combined_image
 
     for suffix in suffixes:
-        files = [f for f in os.listdir(dot_loc_dir) if f.endswith(suffix + ".png")]
+        # ファイル名をソートすることで、同じ細胞の画像が同じ順序・位置に並ぶようにする
+        files = sorted(
+            [f for f in os.listdir(dot_loc_dir) if f.endswith(suffix + ".png")]
+        )
         if not files:
             print(f"No files found for suffix {suffix}")
             continue
@@ -754,12 +754,11 @@ def combine_dot_loc_combined_images():
                 images.append(img)
         if images:
             image_size = 256  # 結合後の各画像サイズ（ピクセル）
-            # チャンネル判定：3チャンネルが1枚でもあればカラー結合
             channels = (
                 3 if any((img.ndim == 3 and img.shape[2] == 3) for img in images) else 1
             )
             combined_image = combine_images_grid(images, image_size, channels)
-            combined_filename = os.path.join(dot_loc_dir, f"combined{suffix}.png")
+            combined_filename = os.path.join(images_dir, f"combined{suffix}.png")
             cv2.imwrite(combined_filename, combined_image)
             print(f"Saved combined image for {suffix} as {combined_filename}")
 
