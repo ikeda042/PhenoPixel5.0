@@ -531,9 +531,11 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
             thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
         for cnt in contours:
+            cnt_area = cv2.contourArea(cnt)
+            print(f"Contour area: {cnt_area}")
             # モーメントを計算し、重心を求める
             M = cv2.moments(cnt)
-            if M["m00"] != 0:
+            if M["m00"] != 0 and cnt_area < 20:
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
                 # ドット領域の平均輝度を算出 (もとの norm_gray で計算)
