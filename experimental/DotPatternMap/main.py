@@ -513,6 +513,8 @@ def extract_probability_map(out_name: str) -> np.ndarray:
 #############################################
 # 以下、dot検出と相対位置プロットの追加処理
 #############################################
+
+
 def detect_dots(
     image: np.ndarray,
     block_size: int = 15,  # 新手法では使用しません
@@ -581,7 +583,7 @@ def detect_dots(
     median_val = np.median(norm_gray)
     top_val = np.percentile(norm_gray, 97)
     diff = top_val - median_val
-    print(diff)
+    print(f"diff: {diff}")
     dot_diff_threshold = 70
 
     # しきい値による２値化処理（条件分岐）
@@ -604,7 +606,20 @@ def detect_dots(
         area = cv2.contourArea(cnt)
         if area < min_area or area > max_area:
             continue
-        M = cv2.moments(cnt)
+
+        # 輪郭の近似処理（必ず閉じた輪郭となるように）
+        arc_len = cv2.arcLength(cnt, True)
+        epsilon = 0.01 * arc_len
+        # LaTeXの生コード:
+        # \epsilon = 0.01 \times \text{arcLength}(cnt)
+        approx = cv2.approxPolyDP(cnt, epsilon, True)
+
+        # 近似輪郭が閉じていない場合は先頭の点を追加して閉じる
+        if not np.array_equal(approx[0], approx[-1]):
+            approx = np.vstack([approx, approx[0]])
+
+        # 近似輪郭からモーメントを計算して重心を求める
+        M = cv2.moments(approx)
         if M["m00"] == 0:
             continue
         cx = M["m10"] / M["m00"]
