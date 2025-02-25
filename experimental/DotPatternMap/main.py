@@ -106,6 +106,9 @@ class Map64:
 
     @classmethod
     def flip_image_if_needed(cls: Map64, image: np.ndarray) -> np.ndarray:
+        """
+        画像の左右輝度を見て、右側が明るければ水平反転
+        """
         if len(image.shape) == 3:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         h, w = image.shape
@@ -121,6 +124,10 @@ class Map64:
     def find_minimum_distance_and_point(
         cls, coefficients: float, x_Q: float, y_Q: float
     ) -> tuple[float, tuple[float, float]]:
+        """
+        多項式曲線 y=f(x) と任意点 (x_Q, y_Q) の最短距離を求める
+        """
+
         def f_x(x):
             return sum(
                 coefficient * x**i for i, coefficient in enumerate(coefficients[::-1])
@@ -139,6 +146,10 @@ class Map64:
 
     @classmethod
     def poly_fit(cls: Map64, U: list[list[float]], degree: int = 1) -> list[float]:
+        """
+        U = [[u2, u1], [u2, u1], ...] の2次元点から、
+        u1 を入力（x）、u2 を出力（y）として 多項式近似を行い係数を返す
+        """
         u1_values = np.array([i[1] for i in U])
         f_values = np.array([i[0] for i in U])
         W = np.vander(u1_values, degree + 1)
@@ -153,6 +164,9 @@ class Map64:
         center_y: float,
         coordinates_incide_cell: list[list[int]],
     ) -> list[list[float]]:
+        """
+        共分散行列の固有ベクトルを用いた基底変換
+        """
         Sigma = np.cov(X)
         eigenvalues, eigenvectors = eig(Sigma)
         if eigenvalues[1] < eigenvalues[0]:
@@ -183,6 +197,9 @@ class Map64:
     def replot(
         cls: Map64, image_fluo_raw: bytes, contour_raw: bytes, degree: int
     ) -> None:
+        """
+        既存の画像バッファと輪郭データから再度plotする例
+        """
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
         )
@@ -236,7 +253,9 @@ class Map64:
     def perform_pca_on_3d_point_cloud_and_save(
         cls, high_res_image: np.ndarray, output_path_2d: str, output_path_1d: str
     ):
-        # PCA処理はコメントアウトして高速化（ダミーの戻り値を返す）
+        """
+        PCA処理は重いのでコメントアウトし、ダミーを返す
+        """
         return None
 
     @classmethod
@@ -247,6 +266,12 @@ class Map64:
         degree: int,
         cell_id: str = "default_cell_id",
     ):
+        """
+        与えられた蛍光画像バイナリと輪郭を用いて、
+        基底変換＋曲線近似＋細胞内部座標の可視化を行い、
+        背景差分後の map64_raw を出力する。
+        """
+
         def calculate_arc_length(theta, x1, x_target):
             poly_derivative = np.polyder(theta)
 
@@ -256,19 +281,27 @@ class Map64:
             arc_length, _ = quad(arc_length_function, x1, x_target)
             return arc_length
 
+        # 画像デコード
         image_fluo = cv2.imdecode(
             np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
         )
+        # グレースケール化
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
-        # 必要に応じて以下で subtract_background を利用可能
-        # image_fluo_gray = subtract_background(image_fluo_gray)
+
+        # --- ここで必ず背景差分を行う ---
+        image_fluo_gray = subtract_background(image_fluo_gray)
+
+        # マスク生成
         mask = np.zeros_like(image_fluo_gray)
         unpickled_contour = pickle.loads(contour_raw)
         cv2.fillPoly(mask, [unpickled_contour], 255)
+
         coords_inside_cell_1 = np.column_stack(np.where(mask))
         points_inside_cell_1 = image_fluo_gray[
             coords_inside_cell_1[:, 0], coords_inside_cell_1[:, 1]
         ]
+
+        # 輪郭を重ね描画して fluo_raw に保存
         cv2.polylines(
             image_fluo,
             [unpickled_contour],
@@ -279,6 +312,8 @@ class Map64:
         cv2.imwrite(
             f"experimental/DotPatternMap/images/fluo_raw/{cell_id}.png", image_fluo
         )
+
+        # 基底変換
         X = np.array(
             [[i[1] for i in coords_inside_cell_1], [i[0] for i in coords_inside_cell_1]]
         )
@@ -292,6 +327,8 @@ class Map64:
             )
         )
         theta = cls.poly_fit(U, degree=degree)
+
+        # 距離計算と座標格納
         raw_points: list[cls.Point] = []
         for i, j, p in zip(u1, u2, points_inside_cell_1):
             min_distance, min_point = cls.find_minimum_distance_and_point(theta, i, j)
@@ -303,19 +340,20 @@ class Map64:
                     i,
                     j,
                     min_distance,
-                    p,
+                    p,  # 背景差分後の輝度をそのまま格納
                     sign,
                 )
             )
         raw_points.sort()
 
+        # 箱ひげ図用plot (points_box)
         fig = plt.figure(figsize=(6, 6))
         plt.axis("equal")
         ps = np.array([i.p for i in raw_points])
         dists = np.array([i.dist * i.sign for i in raw_points])
-        gs = np.array([i.G for i in raw_points])
-        # 輝度正規化処理を削除し、元の8bit輝度をそのまま使用
-        gs_used = gs
+        gs = np.array([i.G for i in raw_points])  # 背景差分後の輝度
+
+        gs_used = gs  # そのまま使用（正規化しない）
 
         min_p, max_p = np.min(ps), np.max(ps)
         min_dist, max_dist = np.min(dists), np.max(dists)
@@ -333,10 +371,10 @@ class Map64:
         plt.close(fig)
         plt.clf()
 
+        # map64_rawの作成
         scale_factor = 1
         scaled_width = int((max_p - min_p) * scale_factor)
         scaled_height = int((max_dist - min_dist) * scale_factor)
-        # 細胞内の輝度の中央値で背景をパディングする
         median_intensity = int(np.median(points_inside_cell_1))
         high_res_image = np.full(
             (scaled_height, scaled_width), median_intensity, dtype=np.uint8
@@ -345,9 +383,13 @@ class Map64:
             p_scaled = int((p - min_p) * scale_factor)
             dist_scaled = int((dist - min_dist) * scale_factor)
             cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
+
+        # 背景差分後の画像を map64_raw に保存
         cv2.imwrite(
             f"experimental/DotPatternMap/images/map64_raw/{cell_id}.png", high_res_image
         )
+
+        # 64x64に縮小 & 右側が明るければフリップ
         high_res_image = cv2.resize(
             high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST
         )
@@ -355,7 +397,8 @@ class Map64:
         cv2.imwrite(
             f"experimental/DotPatternMap/images/map64/{cell_id}.png", high_res_image
         )
-        # 輝度正規化処理を削除（元の8bit輝度をそのまま使用）
+
+        # そのままJetカラーマップで可視化
         high_res_image_colormap = cv2.applyColorMap(high_res_image, cv2.COLORMAP_JET)
         cv2.imwrite(
             f"experimental/DotPatternMap/images/map64_jet/{cell_id}.png",
@@ -364,7 +407,8 @@ class Map64:
         cv2.imwrite(
             f"experimental/DotPatternMap/images/map64_jet.png", high_res_image_colormap
         )
-        # PCA処理 (pca_2d, pca_1d)はコメントアウトして高速化
+
+        # PCA処理はコメントアウト（高速化）
         """
         return cls.perform_pca_on_3d_point_cloud_and_save(
             high_res_image,
@@ -376,10 +420,11 @@ class Map64:
 
     @classmethod
     def combine_images(cls: Map64, out_name: str = "combined_image.png") -> None:
+        """
+        map64, points_box, map64_jet の画像をそれぞれまとめて並べた画像を作成
+        """
         map64_dir = "experimental/DotPatternMap/images/map64"
         points_box_dir = "experimental/DotPatternMap/images/points_box"
-        # pca_2d_dir = "experimental/DotPatternMap/images/pca_2d"  # コメントアウト
-        # pca_1d_dir = "experimental/DotPatternMap/images/pca_1d"  # コメントアウト
         map64_jet_dir = "experimental/DotPatternMap/images/map64_jet"
 
         map64_images = [
@@ -394,14 +439,6 @@ class Map64:
             if cv2.imread(os.path.join(points_box_dir, filename), cv2.IMREAD_COLOR)
             is not None
         ]
-        """
-        pca_2d_images = [cv2.imread(os.path.join(pca_2d_dir, filename), cv2.IMREAD_COLOR)
-                         for filename in os.listdir(pca_2d_dir)
-                         if cv2.imread(os.path.join(pca_2d_dir, filename), cv2.IMREAD_COLOR) is not None]
-        pca_1d_images = [cv2.imread(os.path.join(pca_1d_dir, filename), cv2.IMREAD_COLOR)
-                         for filename in os.listdir(pca_1d_dir)
-                         if cv2.imread(os.path.join(pca_1d_dir, filename), cv2.IMREAD_COLOR) is not None]
-        """
         map64_jet_images = [
             cv2.imread(os.path.join(map64_jet_dir, filename), cv2.IMREAD_COLOR)
             for filename in os.listdir(map64_jet_dir)
@@ -409,6 +446,7 @@ class Map64:
             is not None
         ]
 
+        # 明るい順にソート（単純に和の大きいものを先頭に）
         brightness = [np.sum(img) for img in map64_images]
         sorted_indices = np.argsort(brightness)[::-1]
         map64_images = [map64_images[i] for i in sorted_indices]
@@ -441,11 +479,13 @@ class Map64:
         cv2.imwrite(
             f"experimental/DotPatternMap/images/{out_name}", combined_map64_image
         )
+
         combined_points_box_image = combine_images_grid(points_box_images, 256, 3)
         cv2.imwrite(
             f"experimental/DotPatternMap/images/{out_name}_combined_image_box.png",
             combined_points_box_image,
         )
+
         combined_map64_jet_image = combine_images_grid(map64_jet_images, 64, 3)
         cv2.imwrite(
             f"experimental/DotPatternMap/images/{out_name}_combined_image_jet.png",
@@ -477,6 +517,10 @@ def main(db: str):
 
 
 def extract_probability_map(out_name: str) -> np.ndarray:
+    """
+    64x64の map64 をAugmentationして、単純平均した確率マップを作る例
+    """
+
     def augment_image(image: np.ndarray) -> list[np.ndarray]:
         augmented_images = []
         augmented_images.append(image)
@@ -516,6 +560,10 @@ def extract_probability_map(out_name: str) -> np.ndarray:
 
 
 def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
+    """
+    map64_raw の画像を読み込み、輝度の高いドットを検出し、
+    各ドットの(x, y, ドット領域の平均輝度)を返す。
+    """
     image = cv2.imread(image_path)
     # グレースケール変換
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -543,16 +591,15 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
             if M["m00"] != 0:
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
-                # ドット領域の平均輝度を算出
+                # ドット領域の平均輝度を算出 (もとの norm_gray で計算)
                 mask = np.zeros_like(norm_gray)
                 cv2.drawContours(mask, [cnt], -1, 255, thickness=-1)
                 avg_brightness = cv2.mean(norm_gray, mask=mask)[0]
                 coordinates.append((cX, cY, avg_brightness))
 
-        # 検出された輪郭をそのまま表示する画像を生成（黒背景）
+        # 検出結果の可視化用
         detected_img = np.zeros_like(image)
         cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
-
         cv2.imwrite(f"{image_path[:-4]}_detected.png", detected_img)
         cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
     else:
@@ -563,17 +610,13 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     return coordinates
 
 
-import os
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.colors
 
 
-def compute_avg_brightness(image, x, y, radius=2):
+def compute_avg_brightness(image: np.ndarray, x: float, y: float, radius=2) -> float:
     """
     指定座標 (x, y) 周辺の (2*radius+1) x (2*radius+1) の領域の平均輝度を算出する。
-    画像の境界を考慮してパッチを抽出します。
+    画像の境界を考慮してパッチを抽出する。
     """
     x_int = int(round(x))
     y_int = int(round(y))
@@ -590,7 +633,7 @@ def process_dot_locations():
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
     detect_dot() を用いてドットの中心座標を取得し、
-    その座標をもとに元の画像（map64_raw）から小領域の平均輝度を算出します。
+    その座標をもとに map64_raw/image.png（元の画像）から小領域の平均輝度を算出します。
     各画像ごとに個別の散布図を保存し、全画像のドット位置と輝度をまとめたヒートマップを
     scatterプロットで表示します。
     """
@@ -606,11 +649,10 @@ def process_dot_locations():
     for filename in os.listdir(map64_raw_dir):
         if filename.endswith(".png"):
             image_path = os.path.join(map64_raw_dir, filename)
-            # detect_dot() によりドットの中心座標を取得
-            # ※detect_dotは (x, y) または (x, y, _) の形式で返すと仮定
+            # detect_dot() によりドットの中心座標を取得（輝度は再計算するので無視）
             dots = detect_dot(image_path)
 
-            # 元画像を読み込み（グレースケール）
+            # map64_raw/image.png を元に、グレースケール画像として再読み込み
             image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
             if image is None:
                 continue
@@ -619,14 +661,14 @@ def process_dot_locations():
 
             normalized_dots = []
             for dot in dots:
-                # dot は (x, y) または (x, y, _) とする（輝度は再計算）
+                # dot は (x, y) または (x, y, _) の形式になっているが、
+                # 輝度は map64_raw/image.png から算出する
                 x, y = dot[0], dot[1]
                 brightness = compute_avg_brightness(image, x, y, radius=2)
                 norm_x = (x - center_x) / (w / 2)
                 norm_y = (y - center_y) / (h / 2)
                 normalized_dots.append((norm_x, norm_y, brightness))
 
-            # 各画像のドット情報を累積
             all_normalized_dots.extend(normalized_dots)
 
             # 個別の散布図作成
@@ -640,7 +682,7 @@ def process_dot_locations():
                     ys,
                     c=brightness_vals,
                     cmap="Blues",
-                    norm=matplotlib.colors.NoNorm(),  # 元の輝度値をそのまま使用
+                    norm=matplotlib.colors.NoNorm(),  # 輝度は元の値をそのまま使用
                     s=100,
                     label="Dot",
                 )
@@ -682,7 +724,7 @@ def process_dot_locations():
             ys,
             c=brightness_vals,
             cmap="Blues",
-            norm=matplotlib.colors.NoNorm(),  # 元の輝度値をそのまま使用
+            norm=matplotlib.colors.NoNorm(),
             s=50,
             label="All Dots",
         )
