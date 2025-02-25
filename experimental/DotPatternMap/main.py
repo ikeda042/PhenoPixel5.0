@@ -564,6 +564,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     map64_raw の画像を読み込み、輝度の高いドットを検出し、
     各ドットの(x, y, ドット領域の平均輝度)を返す。
     """
+    print(f"Detecting dots in {image_path}")
     image = cv2.imread(image_path)
     # グレースケール変換
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -649,6 +650,7 @@ def process_dot_locations():
     for filename in os.listdir(map64_raw_dir):
         if filename.endswith(".png"):
             image_path = os.path.join(map64_raw_dir, filename)
+            print(f"Processing {filename}")
             # detect_dot() によりドットの中心座標を取得（輝度は再計算するので無視）
             dots = detect_dot(image_path)
 
