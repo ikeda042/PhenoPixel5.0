@@ -563,48 +563,86 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     return coordinates
 
 
+import os
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors
+
+
+def compute_avg_brightness(image, x, y, radius=2):
+    """
+    指定座標 (x, y) 周辺の (2*radius+1) x (2*radius+1) の領域の平均輝度を算出する。
+    画像の境界を考慮してパッチを抽出します。
+    """
+    x_int = int(round(x))
+    y_int = int(round(y))
+    h, w = image.shape
+    x0 = max(0, x_int - radius)
+    x1 = min(w, x_int + radius + 1)
+    y0 = max(0, y_int - radius)
+    y1 = min(h, y_int + radius + 1)
+    patch = image[y0:y1, x0:x1]
+    return patch.mean()
+
+
 def process_dot_locations():
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
-    detect_dot() を用いてドットを検出し、各ドットの中心座標とそのエリアの平均輝度を算出します。
-    その結果を個別の散布図として保存するとともに、全画像のドット位置と強度を保持し、
-    最終的にヒートマップとしてscatterプロットで表示します。
+    detect_dot() を用いてドットの中心座標を取得し、
+    その座標をもとに元の画像（map64_raw）から小領域の平均輝度を算出します。
+    各画像ごとに個別の散布図を保存し、全画像のドット位置と輝度をまとめたヒートマップを
+    scatterプロットで表示します。
     """
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
     if not os.path.exists(dot_loc_dir):
         os.makedirs(dot_loc_dir)
 
-    all_normalized_dots: list[tuple[float, float, float]] = []  # (x, y, avg_brightness)
+    all_normalized_dots: list[tuple[float, float, float]] = (
+        []
+    )  # (normalized x, normalized y, avg_brightness)
 
     for filename in os.listdir(map64_raw_dir):
         if filename.endswith(".png"):
             image_path = os.path.join(map64_raw_dir, filename)
-            # detect_dot() を使用してドットの中心座標と平均輝度を取得
-            dots = detect_dot(image_path)  # 各要素: (x, y, avg_brightness)
+            # detect_dot() によりドットの中心座標を取得
+            # ※detect_dotは (x, y) または (x, y, _) の形式で返すと仮定
+            dots = detect_dot(image_path)
 
-            # 画像を読み込み、中心座標からの相対位置（-1～1）を計算
+            # 元画像を読み込み（グレースケール）
             image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
             if image is None:
                 continue
             h, w = image.shape
             center_x, center_y = w / 2, h / 2
-            normalized_dots = [
-                (((x - center_x) / (w / 2)), ((y - center_y) / (h / 2)), brightness)
-                for x, y, brightness in dots
-            ]
 
-            # 各画像のドット位置と輝度を累積
+            normalized_dots = []
+            for dot in dots:
+                # dot は (x, y) または (x, y, _) とする（輝度は再計算）
+                x, y = dot[0], dot[1]
+                brightness = compute_avg_brightness(image, x, y, radius=2)
+                norm_x = (x - center_x) / (w / 2)
+                norm_y = (y - center_y) / (h / 2)
+                normalized_dots.append((norm_x, norm_y, brightness))
+
+            # 各画像のドット情報を累積
             all_normalized_dots.extend(normalized_dots)
 
-            # 個別のプロット（オプション）
+            # 個別の散布図作成
             fig, ax = plt.subplots(figsize=(4, 4))
             if normalized_dots:
                 xs = [p[0] for p in normalized_dots]
                 ys = [p[1] for p in normalized_dots]
                 brightness_vals = [p[2] for p in normalized_dots]
                 sc = ax.scatter(
-                    xs, ys, c=brightness_vals, cmap="Blues", s=100, label="Dot"
+                    xs,
+                    ys,
+                    c=brightness_vals,
+                    cmap="Blues",
+                    norm=matplotlib.colors.NoNorm(),  # 元の輝度値をそのまま使用
+                    s=100,
+                    label="Dot",
                 )
                 plt.colorbar(sc, ax=ax, label="Avg Brightness")
             else:
@@ -633,13 +671,21 @@ def process_dot_locations():
 
             print(f"Processed {filename}: {normalized_dots}")
 
-    # 全ドット位置と輝度を一枚のグラフにscatterプロット（ヒートマップ）
+    # 全画像のドット位置と輝度をまとめたヒートマップ作成
     fig, ax = plt.subplots(figsize=(6, 6))
     if all_normalized_dots:
         xs = [p[0] for p in all_normalized_dots]
         ys = [p[1] for p in all_normalized_dots]
         brightness_vals = [p[2] for p in all_normalized_dots]
-        sc = ax.scatter(xs, ys, c=brightness_vals, cmap="Blues", s=50, label="All Dots")
+        sc = ax.scatter(
+            xs,
+            ys,
+            c=brightness_vals,
+            cmap="Blues",
+            norm=matplotlib.colors.NoNorm(),  # 元の輝度値をそのまま使用
+            s=50,
+            label="All Dots",
+        )
         plt.colorbar(sc, ax=ax, label="Avg Brightness")
     else:
         ax.text(
