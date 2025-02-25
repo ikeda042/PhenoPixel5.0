@@ -13,13 +13,24 @@ def detect_dot(image_path: str) -> np.ndarray:
     # グレースケール変換
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # 輝度の正規化: グレースケール画像の最小値と最大値を用いて0～255に正規化
     norm_gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
 
-    ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
+    median_val = np.median(norm_gray)
+    top5_val = np.percentile(norm_gray, 95)
+    diff = top5_val - median_val
 
-    # 　結果を保存 (image_pathの拡張子を除いた名前で保存)
+    dot_diff_threshold = 50
+
+    if diff > dot_diff_threshold:
+        # ドットがある場合：しきい値180で２値化
+        ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
+    else:
+        # ドットがない場合：全て黒の画像を生成
+        thresh = np.zeros_like(norm_gray)
+
+    # 結果の保存（元ファイル名に _thresh を付加）
     cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
+    return thresh
 
 
 if __name__ == "__main__":
