@@ -511,16 +511,63 @@ def extract_probability_map(out_name: str) -> np.ndarray:
 #############################################
 
 
-def detect_dots(image: np.ndarray, threshold: int = 200) -> list[tuple[float, float]]:
+def detect_dots(
+    image: np.ndarray, block_size: int = 15, C: int = 2, output_binary_path: str = None
+) -> list[tuple[float, float]]:
     """
-    画像中のdot（GFP蛍光スポット）を単純閾値処理と輪郭抽出で検出し，
-    各dotの重心(centroid)の(x,y)座標を返す関数。
+    画像中のdot（GFP蛍光スポット）をアダプティブしきい値 (cv2.adaptiveThreshold) で検出する。
+    検出前に画像の輝度を正規化し、必要に応じてバイナリー画像を出力する。
 
-    :param image: 8bitグレースケール画像（例: 64x64）
-    :param threshold: 閾値 (default=200)
-    :return: dot の中心座標リスト [(x1, y1), (x2, y2), ...]
+    数式:
+    アダプティブしきい値:
+    \[
+      T(x, y) = M_{(x,y)} - C
+    \]
+    (ここで M_{(x,y)} は座標(x,y) 周辺の平均またはガウシアン加重平均)
+
+    Latex 生コード:
+    ```
+    \[
+      T(x, y) = M_{(x,y)} - C
+    \]
+    ```
+
+    :param image: 8bitグレースケール画像
+    :param block_size: アダプティブしきい値計算時の近傍ブロックサイズ (奇数)
+    :param C: ブロック平均から差し引く定数
+    :param output_binary_path: バイナリー画像を保存するファイルパス (None の場合は保存しない)
+    :return: dot の重心座標 [(x1, y1), (x2, y2), ...]
     """
-    ret, thresh = cv2.threshold(image, threshold, 255, cv2.THRESH_BINARY)
+
+    # --- (1) 画像の輝度を [0, 255] に正規化 ---
+    #      (最小画素値→0, 最大画素値→255 へ線形変換)
+    image_norm = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX)
+    image_norm = image_norm.astype(np.uint8)
+
+    # --- (2) 軽く平滑化してノイズを抑制（任意） ---
+    blur = cv2.GaussianBlur(image_norm, (3, 3), 0)
+
+    # --- (3) アダプティブしきい値で二値化 ---
+    #     - ADAPTIVE_THRESH_MEAN_C or ADAPTIVE_THRESH_GAUSSIAN_C
+    #     - block_size は必ず奇数
+    thresh = cv2.adaptiveThreshold(
+        blur,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,  # または cv2.ADAPTIVE_THRESH_MEAN_C
+        cv2.THRESH_BINARY,
+        block_size,
+        C,
+    )
+
+    # --- (4) 小さなノイズ除去のためオープニングを実行（任意） ---
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+
+    # --- (5) バイナリー画像をファイル出力（指定がある場合のみ） ---
+    if output_binary_path is not None:
+        cv2.imwrite(output_binary_path, thresh)
+
+    # --- (6) 輪郭抽出＆重心計算 ---
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     dot_centers = []
     for cnt in contours:
@@ -529,18 +576,15 @@ def detect_dots(image: np.ndarray, threshold: int = 200) -> list[tuple[float, fl
             cX = M["m10"] / M["m00"]
             cY = M["m01"] / M["m00"]
             dot_centers.append((cX, cY))
+
     return dot_centers
 
 
 def process_dot_locations():
     """
-    experimental/DotPatternMap/images/map64_raw 内の各画像に対し，
-    dot検出を行い，画像中心からの相対位置（正規化済み）をプロットして
-    experimental/DotPatternMap/images/dot_loc に保存する関数。
-
-    正規化は以下の式で計算:
-    Relative X = (x - center_x) / (width/2)
-    Relative Y = (y - center_y) / (height/2)
+    例: experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
+    detect_dots() で dot を検出し、結果を散布図として保存。
+    同時にバイナリー画像も保存。
     """
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
@@ -554,7 +598,17 @@ def process_dot_locations():
             if image is None:
                 continue
 
-            dots = detect_dots(image)
+            # バイナリー画像の保存先パスを指定（ファイル名の末尾に "_binary.png" を付ける例）
+            binary_out_path = os.path.join(
+                dot_loc_dir, filename.replace(".png", "_binary.png")
+            )
+
+            # dot 検出 (アダプティブしきい値 + 輝度正規化)
+            dots = detect_dots(
+                image, block_size=15, C=2, output_binary_path=binary_out_path
+            )
+
+            # 画像中心からの相対位置を計算 & プロット
             h, w = image.shape
             center_x, center_y = w / 2, h / 2
             normalized_dots = [
@@ -584,9 +638,12 @@ def process_dot_locations():
             ax.set_ylim(-1, 1)
             ax.grid(True)
             ax.legend()
-            save_path = os.path.join(dot_loc_dir, filename)
-            fig.savefig(save_path, dpi=300)
+
+            # 結果を保存
+            plot_save_path = os.path.join(dot_loc_dir, filename)
+            fig.savefig(plot_save_path, dpi=300)
             plt.close(fig)
+
             print(f"Processed {filename}: {normalized_dots}")
 
 
