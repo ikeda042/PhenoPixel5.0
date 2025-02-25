@@ -516,37 +516,47 @@ def detect_dots(
     block_size: int = 15,
     C: int = 2,
     output_binary_path: str = None,
+    output_norm_path: str = None,
+    output_grad_path: str = None,
     min_area: float = 5,
     max_area: float = 200,
     min_circularity: float = 0.7,
 ) -> list[tuple[float, float]]:
     """
     画像中のdot（GFP蛍光スポット）を検出する関数。
-    ・2値化前に、非ゼロ領域の最大輝度を255にする線形正規化を行います。
-    ・その後、アダプティブしきい値処理とモルフォロジー演算で2値化し、輪郭抽出を行います。
-    ・抽出した輪郭に対し、面積および円形度によるフィルタを適用し、厳密にdotを選別します。
-    ・必要に応じて2値化後のバイナリー画像を保存します。
+
+    ・2値化前に、非ゼロ領域の最大輝度を255にする線形正規化を行い、その結果を output_norm_path に保存。
+    ・正規化画像に対して Laplacian フィルタで勾配を強調し、その勾配画像を output_grad_path に保存。
+    ・その後、アダプティブしきい値処理とモルフォロジー演算により2値化し、output_binary_path に保存。
+    ・抽出した輪郭に対して面積・円形度フィルタを適用し、dot と判断されたものの重心座標を返す。
 
     数式:
     \[
       I_{\text{norm}}(x,y) = I(x,y) \times \frac{255}{I_{\max}}
     \]
-    (ただし \( I_{\max} \) は非ゼロ画素の最大値)
+    \[
+      G(x,y) = \text{abs}(\text{Laplacian}(I_{\text{norm}}(x,y)))
+    \]
 
     Latex 生コード:
     ```
     \[
       I_{\text{norm}}(x,y) = I(x,y) \times \frac{255}{I_{\max}}
     \]
+    \[
+      G(x,y) = \text{abs}(\text{Laplacian}(I_{\text{norm}}(x,y)))
+    \]
     ```
 
     :param image: 8bitグレースケール画像
     :param block_size: アダプティブしきい値計算時の近傍ブロックサイズ（奇数）
     :param C: ブロック平均から差し引く定数
-    :param output_binary_path: バイナリー画像を保存するパス (None の場合は保存しない)
-    :param min_area: dotとして認識するための最小面積
-    :param max_area: dotとして認識するための最大面積
-    :param min_circularity: dotとして認識するための最小円形度 (1に近いほど完全な円)
+    :param output_binary_path: 2値化画像を保存するパス (None の場合は保存しない)
+    :param output_norm_path: 正規化後の画像を保存するパス (None の場合は保存しない)
+    :param output_grad_path: Laplacian フィルタ適用後の勾配画像を保存するパス (None の場合は保存しない)
+    :param min_area: dot として認識するための最小面積
+    :param max_area: dot として認識するための最大面積
+    :param min_circularity: dot として認識するための最小円形度（1に近いほど完全な円）
     :return: dot の重心座標リスト [(x1, y1), (x2, y2), ...]
     """
     # --- (1) 非ゼロ画素のみ対象に輝度正規化（最大を255にする） ---
@@ -558,10 +568,22 @@ def detect_dots(
     else:
         image_norm = image.copy()
 
-    # --- (2) 軽く平滑化してノイズを抑制 ---
-    blur = cv2.GaussianBlur(image_norm, (3, 3), 0)
+    # --- (1.1) 正規化画像の保存 ---
+    if output_norm_path is not None:
+        cv2.imwrite(output_norm_path, image_norm)
 
-    # --- (3) アダプティブしきい値で二値化 ---
+    # --- (2) Laplacian フィルタで勾配を強調 ---
+    grad = cv2.Laplacian(image_norm, cv2.CV_64F)
+    grad = cv2.convertScaleAbs(grad)
+
+    # --- (2.1) 勾配画像の保存 ---
+    if output_grad_path is not None:
+        cv2.imwrite(output_grad_path, grad)
+
+    # --- (3) 軽く平滑化してノイズを抑制 ---
+    blur = cv2.GaussianBlur(grad, (3, 3), 0)
+
+    # --- (4) アダプティブしきい値で二値化 ---
     thresh = cv2.adaptiveThreshold(
         blur,
         255,
@@ -571,29 +593,27 @@ def detect_dots(
         C,
     )
 
-    # --- (4) ノイズ除去のためのモルフォロジー演算 ---
+    # --- (5) ノイズ除去のためのモルフォロジー演算 ---
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
 
-    # --- (5) バイナリー画像の保存（指定がある場合） ---
+    # --- (6) 2値化画像の保存 ---
     if output_binary_path is not None:
         cv2.imwrite(output_binary_path, thresh)
 
-    # --- (6) 輪郭抽出と厳しいフィルタリング ---
+    # --- (7) 輪郭抽出と厳しいフィルタリング ---
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     dot_centers = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
         if area < min_area or area > max_area:
             continue
-
         perimeter = cv2.arcLength(cnt, True)
         if perimeter == 0:
             continue
         circularity = 4 * np.pi * area / (perimeter * perimeter)
         if circularity < min_circularity:
             continue
-
         M = cv2.moments(cnt)
         if M["m00"] != 0:
             cX = M["m10"] / M["m00"]
@@ -606,8 +626,9 @@ def detect_dots(
 def process_dot_locations():
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
-    detect_dots() でdotを検出し、結果を散布図として保存します。
-    同時にアダプティブしきい値後のバイナリー画像も保存します。
+    detect_dots() で dot を検出し、結果を散布図として保存します。
+    同時に、正規化画像（_norm.png）、勾配画像（_grad.png）、2値化画像（_binary.png）を
+    dot_loc ディレクトリに出力します。
     """
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
@@ -621,14 +642,25 @@ def process_dot_locations():
             if image is None:
                 continue
 
+            # 出力先ファイル名の生成
             binary_out_path = os.path.join(
                 dot_loc_dir, filename.replace(".png", "_binary.png")
             )
+            norm_out_path = os.path.join(
+                dot_loc_dir, filename.replace(".png", "_norm.png")
+            )
+            grad_out_path = os.path.join(
+                dot_loc_dir, filename.replace(".png", "_grad.png")
+            )
+
+            # dot検出
             dots = detect_dots(
                 image,
                 block_size=15,
                 C=2,
                 output_binary_path=binary_out_path,
+                output_norm_path=norm_out_path,
+                output_grad_path=grad_out_path,
                 min_area=5,
                 max_area=200,
                 min_circularity=0.7,
@@ -641,6 +673,7 @@ def process_dot_locations():
                 ((x - center_x) / (w / 2), (y - center_y) / (h / 2)) for x, y in dots
             ]
 
+            # 結果のプロット
             fig, ax = plt.subplots(figsize=(4, 4))
             if normalized_dots:
                 xs = [p[0] for p in normalized_dots]
@@ -665,6 +698,7 @@ def process_dot_locations():
             ax.grid(True)
             ax.legend()
 
+            # プロット画像の保存
             plot_save_path = os.path.join(dot_loc_dir, filename)
             fig.savefig(plot_save_path, dpi=300)
             plt.close(fig)
