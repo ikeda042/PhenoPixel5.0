@@ -511,6 +511,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     top97_val = np.percentile(norm_gray, 99)
     diff = top97_val - median_val
     print(f"diff: {diff}")
+    print(f"median: {median_val}")
     dot_diff_threshold = 70
 
     coordinates: list[tuple[int, int, float]] = []
