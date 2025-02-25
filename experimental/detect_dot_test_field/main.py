@@ -3,7 +3,9 @@ import numpy as np
 import os
 
 files = [
-    i for i in os.listdir("experimental/detect_dot_test_field") if i.endswith(".png")
+    i
+    for i in os.listdir("experimental/detect_dot_test_field")
+    if i.endswith(".png") and not i.endswith("_thresh.png")
 ]
 
 
