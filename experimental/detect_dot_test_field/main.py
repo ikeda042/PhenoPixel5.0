@@ -25,7 +25,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int]]:
     coordinates: list[tuple[int, int]] = []
 
     if diff > dot_diff_threshold:
-        # ドットがある場合：しきい値180で２値化
+        # ドットがある場合：しきい値180で2値化
         ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
 
         # 輪郭検出（外側の輪郭のみ取得）
@@ -39,11 +39,12 @@ def detect_dot(image_path: str) -> list[tuple[int, int]]:
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
                 coordinates.append((cX, cY))
-                # 検出した中心に赤い円を描画
-                cv2.circle(image, (cX, cY), 5, (0, 0, 255), -1)
 
-        # 検出結果画像の保存（中心に円を描いた画像）
-        cv2.imwrite(f"{image_path[:-4]}_detected.png", image)
+        # 検出された輪郭をそのまま表示する画像を生成
+        detected_img = np.zeros_like(image)  # 黒背景の画像
+        cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
+
+        cv2.imwrite(f"{image_path[:-4]}_detected.png", detected_img)
         cv2.imwrite(f"{image_path[:-4]}_thresh.png", thresh)
     else:
         # ドットがない場合：全て黒の画像を生成して保存
