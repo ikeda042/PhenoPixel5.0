@@ -513,18 +513,16 @@ def extract_probability_map(out_name: str) -> np.ndarray:
 #############################################
 # 以下、dot検出と相対位置プロットの追加処理
 #############################################
-
-
 def detect_dots(
     image: np.ndarray,
     block_size: int = 15,  # 新手法では使用しません
     C: int = 2,  # 新手法では使用しません
     output_binary_path: str = None,
     output_norm_path: str = None,
-    output_grad_path: str = None,  # 本手法では未使用
+    output_grad_path: str = None,  # 本手法では使用しません
     min_area: float = 5,
     max_area: float = 200,
-    min_circularity: float = 0.7,  # 本手法では未使用
+    min_circularity: float = 0.7,  # 本手法では使用しません
 ) -> list[tuple[float, float]]:
     """
     画像中のドットを検出する新しい関数。
@@ -586,18 +584,18 @@ def detect_dots(
     print(diff)
     dot_diff_threshold = 70
 
-    # しきい値による２値化処理
+    # しきい値による２値化処理（条件分岐）
     if diff > dot_diff_threshold:
         ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
     else:
         thresh = np.zeros_like(norm_gray)
 
-    # 結果画像の保存
+    # 結果画像の保存（grad 出力は行わない）
     if output_binary_path is not None:
         cv2.imwrite(output_binary_path, thresh)
     if output_norm_path is not None:
         cv2.imwrite(output_norm_path, norm_gray)
-    # output_grad_path は本手法では使用しません
+    # output_grad_path は使用しません
 
     # 輪郭検出によりドットの位置を抽出
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -619,9 +617,9 @@ def detect_dots(
 def process_dot_locations():
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
-    detect_dots() で dot を検出し、結果を散布図として保存します。
-    同時に、正規化画像（_norm.png）、勾配画像（_grad.png）、2値化画像（_binary.png）を
-    dot_loc ディレクトリに出力します。
+    detect_dots() でドットを検出し、結果を散布図として保存します。
+    また、正規化画像（_norm.png）および2値化画像（_binary.png）を
+    dot_loc ディレクトリに出力します。（grad画像は出力しません）
     """
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
@@ -642,18 +640,15 @@ def process_dot_locations():
             norm_out_path = os.path.join(
                 dot_loc_dir, filename.replace(".png", "_norm.png")
             )
-            grad_out_path = os.path.join(
-                dot_loc_dir, filename.replace(".png", "_grad.png")
-            )
+            # grad_out_path は出力しません
 
-            # dot検出
+            # dot検出（grad出力は行わず、他のパスのみ設定）
             dots = detect_dots(
                 image,
                 block_size=15,
                 C=2,
                 output_binary_path=binary_out_path,
                 output_norm_path=norm_out_path,
-                output_grad_path=grad_out_path,
                 min_area=5,
                 max_area=200,
                 min_circularity=0.7,
