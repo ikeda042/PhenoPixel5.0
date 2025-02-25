@@ -508,7 +508,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     norm_gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
 
     median_val = np.median(norm_gray)
-    top97_val = np.percentile(norm_gray, 99)
+    top97_val = np.percentile(norm_gray, 97)
     diff = top97_val - median_val
     print(f"diff: {diff}")
     print(f"median: {median_val}")
