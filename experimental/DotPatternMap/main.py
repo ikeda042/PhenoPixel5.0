@@ -597,13 +597,15 @@ def extract_probability_map(out_name: str) -> np.ndarray:
 def process_dot_locations():
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
-    detect_dot() を用いてドットを検出し、結果を散布図として保存します。
-    detect_dot() 内で生成される2値化画像等は各画像に個別に出力されます。
+    detect_dot() を用いてドットを検出し、結果を個別に散布図として保存するとともに、
+    全画像のドット位置を保持し、最後に一枚のグラフにまとめてscatterプロットします。
     """
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
     if not os.path.exists(dot_loc_dir):
         os.makedirs(dot_loc_dir)
+
+    all_normalized_dots: list[tuple[float, float]] = []  # 全てのドット位置を保持
 
     for filename in os.listdir(map64_raw_dir):
         if filename.endswith(".png"):
@@ -621,7 +623,10 @@ def process_dot_locations():
                 ((x - center_x) / (w / 2), (y - center_y) / (h / 2)) for x, y in dots
             ]
 
-            # 結果のプロット
+            # 各画像のドット位置を累積
+            all_normalized_dots.extend(normalized_dots)
+
+            # 個別のプロット（オプション）
             fig, ax = plt.subplots(figsize=(4, 4))
             if normalized_dots:
                 xs = [p[0] for p in normalized_dots]
@@ -646,12 +651,42 @@ def process_dot_locations():
             ax.grid(True)
             ax.legend()
 
-            # プロット画像の保存
+            # 個別プロット画像の保存
             plot_save_path = os.path.join(dot_loc_dir, filename)
             fig.savefig(plot_save_path, dpi=300)
             plt.close(fig)
 
             print(f"Processed {filename}: {normalized_dots}")
+
+    # 全ドット位置を一枚のグラフにscatterプロット
+    fig, ax = plt.subplots(figsize=(6, 6))
+    if all_normalized_dots:
+        xs = [p[0] for p in all_normalized_dots]
+        ys = [p[1] for p in all_normalized_dots]
+        ax.scatter(xs, ys, color="blue", s=50, label="All Dots")
+    else:
+        ax.text(
+            0.5,
+            0.5,
+            "No dots detected",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+        )
+    ax.axhline(0, color="gray", linestyle="--")
+    ax.axvline(0, color="gray", linestyle="--")
+    ax.set_title("Combined Dot Locations")
+    ax.set_xlabel("Relative X (normalized)")
+    ax.set_ylabel("Relative Y (normalized)")
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
+    ax.grid(True)
+    ax.legend()
+
+    combined_save_path = os.path.join(dot_loc_dir, "combined_dot_locations.png")
+    fig.savefig(combined_save_path, dpi=300)
+    plt.close(fig)
+    print(f"Combined dot locations saved to {combined_save_path}")
 
 
 # ------------------------------------------------------------------------------
