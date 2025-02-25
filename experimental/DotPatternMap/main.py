@@ -336,7 +336,11 @@ class Map64:
         scale_factor = 1
         scaled_width = int((max_p - min_p) * scale_factor)
         scaled_height = int((max_dist - min_dist) * scale_factor)
-        high_res_image = np.zeros((scaled_height, scaled_width), dtype=np.uint8)
+        # 細胞内の輝度の中央値で背景をパディングする
+        median_intensity = int(np.median(points_inside_cell_1))
+        high_res_image = np.full(
+            (scaled_height, scaled_width), median_intensity, dtype=np.uint8
+        )
         for p, dist, G in zip(ps, dists, gs_used):
             p_scaled = int((p - min_p) * scale_factor)
             dist_scaled = int((dist - min_dist) * scale_factor)
