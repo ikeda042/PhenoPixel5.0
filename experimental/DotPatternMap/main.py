@@ -715,6 +715,33 @@ def combine_dot_loc_combined_images():
         col = (n + row - 1) // row
         return row, col
 
+    def combine_images_grid(images, image_size, channels=1):
+        n = len(images)
+        row, col = calculate_grid_size(n)
+        # channelsが1の場合は2次元配列として作成
+        if channels == 1:
+            combined_image = np.zeros(
+                (image_size * row, image_size * col), dtype=np.uint8
+            )
+        else:
+            combined_image = np.zeros(
+                (image_size * row, image_size * col, channels), dtype=np.uint8
+            )
+        for idx, img in enumerate(images):
+            resized = cv2.resize(
+                img, (image_size, image_size), interpolation=cv2.INTER_LINEAR
+            )
+            if channels == 3 and resized.ndim == 2:
+                resized = cv2.cvtColor(resized, cv2.COLOR_GRAY2BGR)
+            elif channels == 1 and resized.ndim == 2:
+                # 2次元画像の場合、combined_imageは2次元なのでそのままでOK
+                pass
+            x = (idx % col) * image_size
+            y = (idx // col) * image_size
+            # if combined_image has 3 channels, resized must be 3-ch; if 1 channel, they are both 2D.
+            combined_image[y : y + image_size, x : x + image_size] = resized
+        return combined_image
+
     for suffix in suffixes:
         files = [f for f in os.listdir(dot_loc_dir) if f.endswith(suffix + ".png")]
         if not files:
@@ -727,23 +754,11 @@ def combine_dot_loc_combined_images():
                 images.append(img)
         if images:
             image_size = 256  # 結合後の各画像サイズ（ピクセル）
-            row, col = calculate_grid_size(len(images))
-            # カラー画像が含まれている場合は3チャンネル、それ以外は1チャンネルとする
+            # チャンネル判定：3チャンネルが1枚でもあればカラー結合
             channels = (
                 3 if any((img.ndim == 3 and img.shape[2] == 3) for img in images) else 1
             )
-            combined_image = np.zeros(
-                (row * image_size, col * image_size, channels), dtype=np.uint8
-            )
-            for idx, img in enumerate(images):
-                resized = cv2.resize(
-                    img, (image_size, image_size), interpolation=cv2.INTER_LINEAR
-                )
-                if channels == 3 and resized.ndim == 2:
-                    resized = cv2.cvtColor(resized, cv2.COLOR_GRAY2BGR)
-                x = (idx % col) * image_size
-                y = (idx // col) * image_size
-                combined_image[y : y + image_size, x : x + image_size] = resized
+            combined_image = combine_images_grid(images, image_size, channels)
             combined_filename = os.path.join(dot_loc_dir, f"combined{suffix}.png")
             cv2.imwrite(combined_filename, combined_image)
             print(f"Saved combined image for {suffix} as {combined_filename}")
