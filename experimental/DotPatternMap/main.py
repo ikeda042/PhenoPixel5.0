@@ -14,6 +14,30 @@ import os
 import os
 
 
+def subtract_background(gray_img: np.ndarray, kernel_size: int = 21) -> np.ndarray:
+    """
+    背景引き算を行う関数
+
+    数式:
+        B(x,y) = morph_open(I(x,y))
+        I_sub(x,y) = I(x,y) - B(x,y)
+
+    Latex生コード:
+    \[
+    B(x,y) = \mathrm{morph\_open}(I(x,y))
+    \]
+    \[
+    I\_sub(x,y) = I(x,y) - B(x,y)
+    \]
+    """
+    kernel: np.ndarray = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)
+    )
+    background: np.ndarray = cv2.morphologyEx(gray_img, cv2.MORPH_OPEN, kernel)
+    subtracted: np.ndarray = cv2.subtract(gray_img, background)
+    return subtracted
+
+
 def ensure_dirs():
     """
     必要なディレクトリが存在しなければ作成する関数。
