@@ -528,34 +528,39 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
         # ドットがある場合：しきい値180で2値化
         ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
 
-        # 輪郭検出（外側の輪郭のみ取得）
-        contours, _ = cv2.findContours(
-            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
-        # 各輪郭の面積の合計を計算
-        total_area = sum(cv2.contourArea(cnt) for cnt in contours)
-        print(f"Total contour area: {total_area}")
-
-        if total_area > 30:
-            # 合計面積が30を超える場合はドットがないと判断
+        # thresh 後の255の面積が30以上であればドットがないと判断
+        if np.sum(thresh == 255) > 30:
             coordinates = []
             detected_img = np.zeros_like(image)
         else:
-            for cnt in contours:
-                # モーメントを計算し、重心を求める
-                M = cv2.moments(cnt)
-                if M["m00"] != 0:
-                    cX = int(M["m10"] / M["m00"])
-                    cY = int(M["m01"] / M["m00"])
-                    # ドット領域の平均輝度を算出 (もとの norm_gray で計算)
-                    mask = np.zeros_like(norm_gray)
-                    cv2.drawContours(mask, [cnt], -1, 255, thickness=-1)
-                    avg_brightness = cv2.mean(norm_gray, mask=mask)[0]
-                    coordinates.append((cX, cY, avg_brightness))
+            # 輪郭検出（外側の輪郭のみ取得）
+            contours, _ = cv2.findContours(
+                thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
+            # 各輪郭の面積の合計を計算
+            total_area = sum(cv2.contourArea(cnt) for cnt in contours)
+            print(f"Total contour area: {total_area}")
 
-            # 検出結果の可視化用画像作成
-            detected_img = np.zeros_like(image)
-            cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
+            if total_area > 30:
+                # 合計面積が30を超える場合はドットがないと判断
+                coordinates = []
+                detected_img = np.zeros_like(image)
+            else:
+                for cnt in contours:
+                    # モーメントを計算し、重心を求める
+                    M = cv2.moments(cnt)
+                    if M["m00"] != 0:
+                        cX = int(M["m10"] / M["m00"])
+                        cY = int(M["m01"] / M["m00"])
+                        # ドット領域の平均輝度を算出 (もとの norm_gray で計算)
+                        mask = np.zeros_like(norm_gray)
+                        cv2.drawContours(mask, [cnt], -1, 255, thickness=-1)
+                        avg_brightness = cv2.mean(norm_gray, mask=mask)[0]
+                        coordinates.append((cX, cY, avg_brightness))
+
+                # 検出結果の可視化用画像作成
+                detected_img = np.zeros_like(image)
+                cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
     else:
         # ドットがない場合
         thresh = np.zeros_like(norm_gray)
