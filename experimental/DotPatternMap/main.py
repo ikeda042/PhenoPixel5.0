@@ -500,6 +500,8 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     各ドットの(x, y, ドット領域の平均輝度)を返す。
     また、2値化画像（binary）と正規化画像（norm）、
     ドット検出結果（detected）の各画像を dot_loc フォルダに保存する。
+
+    ※ 各画像中の輪郭の合計面積が 30 を超えた場合は、ドットがないものと判断します。
     """
     print(f"Detecting dots in {image_path}")
     image = cv2.imread(image_path)
@@ -530,21 +532,30 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
         contours, _ = cv2.findContours(
             thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
-        for cnt in contours:
-            # モーメントを計算し、重心を求める
-            M = cv2.moments(cnt)
-            if M["m00"] != 0:
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
-                # ドット領域の平均輝度を算出 (もとの norm_gray で計算)
-                mask = np.zeros_like(norm_gray)
-                cv2.drawContours(mask, [cnt], -1, 255, thickness=-1)
-                avg_brightness = cv2.mean(norm_gray, mask=mask)[0]
-                coordinates.append((cX, cY, avg_brightness))
+        # 各輪郭の面積の合計を計算
+        total_area = sum(cv2.contourArea(cnt) for cnt in contours)
+        print(f"Total contour area: {total_area}")
 
-        # 検出結果の可視化用画像作成
-        detected_img = np.zeros_like(image)
-        cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
+        if total_area > 30:
+            # 合計面積が30を超える場合はドットがないと判断
+            coordinates = []
+            detected_img = np.zeros_like(image)
+        else:
+            for cnt in contours:
+                # モーメントを計算し、重心を求める
+                M = cv2.moments(cnt)
+                if M["m00"] != 0:
+                    cX = int(M["m10"] / M["m00"])
+                    cY = int(M["m01"] / M["m00"])
+                    # ドット領域の平均輝度を算出 (もとの norm_gray で計算)
+                    mask = np.zeros_like(norm_gray)
+                    cv2.drawContours(mask, [cnt], -1, 255, thickness=-1)
+                    avg_brightness = cv2.mean(norm_gray, mask=mask)[0]
+                    coordinates.append((cX, cY, avg_brightness))
+
+            # 検出結果の可視化用画像作成
+            detected_img = np.zeros_like(image)
+            cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
     else:
         # ドットがない場合
         thresh = np.zeros_like(norm_gray)
