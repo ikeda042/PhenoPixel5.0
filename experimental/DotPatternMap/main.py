@@ -832,6 +832,11 @@ def combine_dot_loc_combined_images():
 def main(db: str):
     global DB_PREFIX
     DB_PREFIX = os.path.splitext(os.path.basename(db))[0]
+    print("+++++++++++++++++++++++++++++++++++++++++")
+    print("+++++++++++++++++++++++++++++++++++++++++")
+    print("+++++++++++++++++++++++++++++++++++++++++")
+    print("+++++++++++++++++++++++++++++++++++++++++")
+    print(f"Processing {db}")
     for i in ["map64", "points_box", "fluo_raw", "map64_jet", "map64_raw"]:
         delete_pngs(i)
     cells: list[Cell] = database_parser(db)
@@ -917,6 +922,7 @@ if __name__ == "__main__":
 
     # clean inside experimental/DotPatternMap/images/map64_jet
     map64_jet_dir = "experimental/DotPatternMap/images/map64_jet"
+    clean_directory(map64_jet_dir)
     for i in os.listdir("experimental/DotPatternMap"):
         if i.endswith(".db"):
 
@@ -926,5 +932,6 @@ if __name__ == "__main__":
                         f.write(f"{','.join(map(str, vector.flatten()))}\n")
                     else:
                         f.write(f"{vector}\n")
-    process_dot_locations(db_name=DB_PREFIX)
-    combine_dot_loc_combined_images()
+        db_name = i.split("/")[-1].replace(".db", "")
+        process_dot_locations(db_name=db_name)
+        combine_dot_loc_combined_images()
