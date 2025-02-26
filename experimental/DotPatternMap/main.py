@@ -532,7 +532,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
 
     if diff > dot_diff_threshold:
         # ドットがある場合：しきい値180で2値化
-        ret, thresh = cv2.threshold(norm_gray, 140, 255, cv2.THRESH_BINARY)
+        ret, thresh = cv2.threshold(norm_gray, 160, 255, cv2.THRESH_BINARY)
 
         # thresh画像における255ピクセルのx軸, y軸位置の変動係数を計算する
         white_pixels = np.where(thresh == 255)
