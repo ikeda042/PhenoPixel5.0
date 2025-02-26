@@ -544,7 +544,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
         os.makedirs(dot_loc_dir)
     base_name = os.path.splitext(os.path.basename(image_path))[0]
 
-    if diff > dot_diff_threshold:
+    if True:
         # ドットがある場合：しきい値180で2値化
         ret, thresh = cv2.threshold(norm_gray, 150, 255, cv2.THRESH_BINARY)
 
