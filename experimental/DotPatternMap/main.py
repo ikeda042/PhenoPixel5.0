@@ -740,8 +740,8 @@ def process_dot_locations():
     ax.grid(True)
     ax.legend()
 
-    combined_save_path = os.path.join(dot_loc_dir, "combined_dot_locations.png")
-    fig.savefig(combined_save_path, dpi=300)
+    # combined_save_path = os.path.join(dot_loc_dir, "combined_dot_locations.png")
+    fig.savefig("experimental/DotPatternMap/images/combined_dot_locations.png", dpi=300)
     plt.close(fig)
     print(f"Combined dot locations saved to {combined_save_path}")
 
