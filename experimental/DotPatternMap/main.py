@@ -889,22 +889,26 @@ def extract_probability_map(out_name: str) -> np.ndarray:
     return probability_map
 
 
-from __future__ import annotations
 import os
 import shutil
 import numpy as np
-import cv2
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 
 
-DB_PREFIX: str = ""
+def ensure_dirs() -> None:
+    """必要なディレクトリが存在しない場合は作成する"""
+    dirs = [
+        "experimental/DotPatternMap/images/dot_loc",
+        "experimental/DotPatternMap/images/fluo_raw",
+        "experimental/DotPatternMap/images/map64",
+        "experimental/DotPatternMap/images/map64_jet",
+    ]
+    for d in dirs:
+        os.makedirs(d, exist_ok=True)
 
 
 def clean_directory(dir_path: str) -> None:
-    """
-    .gitignore を除くディレクトリ内の全ファイル・サブディレクトリを削除する。
-    ディレクトリが存在しない場合は作成する。
+    """.gitignoreを除くディレクトリ内の全ファイル・サブディレクトリを削除する
+    ディレクトリが存在しない場合は作成する
     """
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -919,157 +923,32 @@ def clean_directory(dir_path: str) -> None:
                 os.remove(full_item)
 
 
-def ensure_dirs() -> None:
-    """必要なディレクトリが存在しない場合は作成する"""
-    dirs = [
-        "experimental/DotPatternMap/images/dot_loc",
-        "experimental/DotPatternMap/images/fluo_raw",
-        "experimental/DotPatternMap/images/map64",
-        "experimental/DotPatternMap/images/map64_jet",
-        "experimental/DotPatternMap/images/map64_raw",
-        "experimental/DotPatternMap/images/points_box",
-    ]
-    for d in dirs:
-        os.makedirs(d, exist_ok=True)
-
-
-def clean_all_output_dirs() -> None:
-    """
-    出力用ディレクトリ（dot_loc, fluo_raw, map64, map64_jet, map64_raw, points_box）
-    を完全にクリーンアップする。
-    """
-    base_dir = "experimental/DotPatternMap/images"
-    dirs_to_clean = [
-        "dot_loc",
-        "fluo_raw",
-        "map64",
-        "map64_jet",
-        "map64_raw",
-        "points_box",
-    ]
-    for subdir in dirs_to_clean:
-        clean_directory(os.path.join(base_dir, subdir))
-
-
-def main(db: str):
-    global DB_PREFIX
-    DB_PREFIX = os.path.splitext(os.path.basename(db))[0]
-    print("+++++++++++++++++++++++++++++++++++++++++")
-    print("+++++++++++++++++++++++++++++++++++++++++")
-    print("+++++++++++++++++++++++++++++++++++++++++")
-    print("+++++++++++++++++++++++++++++++++++++++++")
-    print(f"Processing {db}")
-    # 各データベース処理の前に出力先ディレクトリを初期化
-    clean_all_output_dirs()
-
-    cells: list[Cell] = database_parser(db)
-    map64: Map64 = Map64()
-    vectors = []
-    for cell in tqdm(cells[:]):
-        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
-    # combine_images は DB_PREFIX を用いて保存
-    map64.combine_images(out_name=db.replace(".db", ".png"))
-    # Map64インスタンスではなく、モジュールレベルの関数として呼び出す
-    extract_probability_map(db.replace(".db", ""))
-    return vectors
-
-
-def extract_probability_map(out_name: str) -> np.ndarray:
-    """
-    64x64 の map64 を Augmentation して、単純平均した確率マップを作る例
-
-    数式:
-        $$\text{norm}_x = \frac{x}{w},\quad \text{norm}_y = \frac{y}{h}$$
-
-    Latex生コード:
-    norm_x = x / w
-    norm_y = y / h
-    """
-
-    def augment_image(image: np.ndarray) -> list[np.ndarray]:
-        augmented_images = []
-        augmented_images.append(image)
-        augmented_images.append(cv2.flip(image, 0))
-        augmented_images.append(cv2.flip(image, 1))
-        augmented_images.append(cv2.flip(image, -1))
-        for i in range(1, 4):
-            augmented_images.append(cv2.rotate(image, i))
-        return augmented_images
-
-    map64_dir = "experimental/DotPatternMap/images/map64"
-    map64_images = [
-        cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
-        for filename in os.listdir(map64_dir)
-        if cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
-        is not None
-    ]
-    augmented_images = []
-    for image in map64_images:
-        augmented_images.extend(augment_image(image))
-    probability_map = np.mean(augmented_images, axis=0).astype(np.uint8)
-    cv2.imwrite(
-        f"experimental/DotPatternMap/images/probability_map_{out_name}.png",
-        probability_map,
-    )
-    probability_map_jet = cv2.applyColorMap(probability_map, cv2.COLORMAP_VIRIDIS)
-    cv2.imwrite(
-        f"experimental/DotPatternMap/images/probability_map_{out_name}_jet.png",
-        probability_map_jet,
-    )
-    return probability_map
-
-
-def process_single_database(db_file: str) -> list:
-    """
-    1つのデータベースファイルに対して処理を実行する。
-    毎回出力ディレクトリをクリーンアップして、前回のデータが混入しないようにする。
-    """
-    clean_all_output_dirs()
-    vectors = main(db_file)
-    return vectors
-
-
-# --- 以下は、既存の処理関数（ドット位置検出、画像結合等）の実装（変更がなければそのまま） ---
-def process_dot_locations(db_name: str):
-    """
-    dot_loc 内の各画像からドットの位置と輝度を検出し、
-    個別および全体のヒートマップを作成する関数。
-    実装は既存のコードをそのまま利用。
-    """
-    # ここに既存の処理内容を記述
-    pass
-
-
-def combine_dot_loc_combined_images():
-    """
-    dot_loc 内の _binary, _detected, _norm 画像をグリッド状に結合し、
-    1枚の画像として保存する関数。
-    実装は既存のコードをそのまま利用。
-    """
-    # ここに既存の処理内容を記述
-    pass
-
-
 if __name__ == "__main__":
-    # 実行前に必要なディレクトリをすべて初期化
-    ensure_dirs()
 
-    # データベースファイルごとに個別処理を実施
-    db_dir = "experimental/DotPatternMap"
-    for filename in os.listdir(db_dir):
-        if filename.endswith(".db"):
-            db_file = os.path.join(db_dir, filename)
-            # 各データベース処理前に出力先ディレクトリを初期化するので、
-            # process_single_database 内でクリーンアップが実行される
-            vectors = process_single_database(db_file)
-            with open(
-                f"experimental/DotPatternMap/images/{filename}_vectors.txt", "w"
-            ) as f:
-                for vector in vectors:
+    # experimental/DotPatternMap内の.dbファイルに対して処理を実行
+    for i in os.listdir("experimental/DotPatternMap"):
+        if i.endswith(".db"):
+            with open(f"experimental/DotPatternMap/images/{i}_vectors.txt", "w") as f:
+                for vector in main(f"{i}"):
                     if isinstance(vector, np.ndarray):
                         f.write(f"{','.join(map(str, vector.flatten()))}\n")
                     else:
                         f.write(f"{vector}\n")
-            db_name = os.path.splitext(filename)[0]
+            # 実行前に必要なディレクトリをすべて初期化
+            ensure_dirs()
+
+            # 各ディレクトリをクリーンアップ
+            dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
+            clean_directory(dot_loc_dir)
+
+            fluo_raw_dir = "experimental/DotPatternMap/images/fluo_raw"
+            clean_directory(fluo_raw_dir)
+
+            map64_dir = "experimental/DotPatternMap/images/map64"
+            clean_directory(map64_dir)
+
+            map64_jet_dir = "experimental/DotPatternMap/images/map64_jet"
+            clean_directory(map64_jet_dir)
+            db_name = i.split("/")[-1].replace(".db", "")
             process_dot_locations(db_name=db_name)
             combine_dot_loc_combined_images()
