@@ -637,8 +637,7 @@ def compute_avg_brightness(image: np.ndarray, x: float, y: float, radius=2) -> f
 def process_dot_locations(db_name: str):
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
-    detect_dot() を用いてドットの中心座標を取得し、
-    その座標をもとに map64_raw/image.png（元の画像）から小領域の平均輝度を算出します。
+    detect_dot() を用いてドットの中心座標と輝度を取得し、
     各画像ごとに個別の散布図を保存し、全画像のドット位置と輝度をまとめたヒートマップを
     scatterプロットで表示します。
 
@@ -651,16 +650,16 @@ def process_dot_locations(db_name: str):
 
     all_normalized_dots: list[tuple[float, float, float]] = (
         []
-    )  # (normalized x, normalized y, avg_brightness)
+    )  # (normalized x, normalized y, brightness)
 
     for filename in os.listdir(map64_raw_dir):
         if filename.endswith(".png"):
             image_path = os.path.join(map64_raw_dir, filename)
             print(f"Processing {filename}")
-            # detect_dot() によりドットの中心座標を取得（輝度は再計算するので無視）
+            # detect_dot() によりドットの中心座標と輝度を取得
             dots = detect_dot(image_path)
 
-            # map64_raw/image.png を元に、グレースケール画像として再読み込み
+            # 元画像をグレースケールで再読み込み
             image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
             if image is None:
                 continue
@@ -668,11 +667,11 @@ def process_dot_locations(db_name: str):
 
             normalized_dots = []
             for dot in dots:
-                x, y = dot[0], dot[1]
-                brightness = compute_avg_brightness(image, x, y, radius=2)
+                # detect_dot の返り値から (x, y, brightness) を直接取得する
+                x, y, brightness = dot
                 # 絶対座標での正規化 (0, 1) の範囲にする:
                 # $$ \text{norm}_x = \frac{x}{w},\quad \text{norm}_y = \frac{y}{h} $$
-                # 生コード:
+                # LaTeXコード:
                 # norm_x = x / w
                 # norm_y = y / h
                 norm_x = x / w
