@@ -685,7 +685,7 @@ def process_dot_locations(db_name: str):
             if normalized_dots:
                 xs = [abs(p[0]) for p in normalized_dots]
                 ys = [abs(p[1]) for p in normalized_dots]
-                brightness_vals = [1 - abs(p[2]) / 255 for p in normalized_dots]
+                brightness_vals = [1 - abs(p[2]) for p in normalized_dots]
                 print(f"Detected dots: {brightness_vals}")
                 sc = ax.scatter(
                     xs,
@@ -729,15 +729,15 @@ def process_dot_locations(db_name: str):
     if all_normalized_dots:
         xs = [p[0] for p in all_normalized_dots]
         ys = [p[1] for p in all_normalized_dots]
-        brightness_vals = [p[2] for p in all_normalized_dots]
+        brightness_vals = [p[2] / 255 for p in all_normalized_dots]
         sc = ax.scatter(
             xs,
             ys,
             c=brightness_vals,
-            cmap="Blues",
+            cmap="jet",
             norm=matplotlib.colors.NoNorm(),
-            s=50,
-            label="All Dots",
+            s=30,
+            label="IbpA-GFP relative position",
         )
         plt.colorbar(sc, ax=ax, label="Avg Brightness")
     else:
