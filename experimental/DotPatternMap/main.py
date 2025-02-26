@@ -889,16 +889,30 @@ def extract_probability_map(out_name: str) -> np.ndarray:
     return probability_map
 
 
-# ------------------------------------------------------------------------------
-# エントリポイント
-# ------------------------------------------------------------------------------
+import os
 import shutil
+import numpy as np
 
-if __name__ == "__main__":
-    ensure_dirs()
 
-    def clean_directory(dir_path: str) -> None:
-        # Remove all files and subdirectories except .gitignore
+def ensure_dirs() -> None:
+    """必要なディレクトリが存在しない場合は作成する"""
+    dirs = [
+        "experimental/DotPatternMap/images/dot_loc",
+        "experimental/DotPatternMap/images/fluo_raw",
+        "experimental/DotPatternMap/images/map64",
+        "experimental/DotPatternMap/images/map64_jet",
+    ]
+    for d in dirs:
+        os.makedirs(d, exist_ok=True)
+
+
+def clean_directory(dir_path: str) -> None:
+    """.gitignoreを除くディレクトリ内の全ファイル・サブディレクトリを削除する
+    ディレクトリが存在しない場合は作成する
+    """
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    else:
         for item in os.listdir(dir_path):
             if item == ".gitignore":
                 continue
@@ -908,30 +922,33 @@ if __name__ == "__main__":
             else:
                 os.remove(full_item)
 
-    # clean inside experimental/DotPatternMap/images/dot_loc
+
+if __name__ == "__main__":
+    # 実行前に必要なディレクトリをすべて初期化
+    ensure_dirs()
+
+    # 各ディレクトリをクリーンアップ
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
     clean_directory(dot_loc_dir)
 
-    # clean inside experimental/DotPatternMap/images/fluo_raw
     fluo_raw_dir = "experimental/DotPatternMap/images/fluo_raw"
     clean_directory(fluo_raw_dir)
 
-    # clean inside experimental/DotPatternMap/images/map64
     map64_dir = "experimental/DotPatternMap/images/map64"
     clean_directory(map64_dir)
 
-    # clean inside experimental/DotPatternMap/images/map64_jet
     map64_jet_dir = "experimental/DotPatternMap/images/map64_jet"
     clean_directory(map64_jet_dir)
+
+    # experimental/DotPatternMap内の.dbファイルに対して処理を実行
     for i in os.listdir("experimental/DotPatternMap"):
         if i.endswith(".db"):
-
             with open(f"experimental/DotPatternMap/images/{i}_vectors.txt", "w") as f:
                 for vector in main(f"{i}"):
                     if isinstance(vector, np.ndarray):
                         f.write(f"{','.join(map(str, vector.flatten()))}\n")
                     else:
                         f.write(f"{vector}\n")
-        db_name = i.split("/")[-1].replace(".db", "")
-        process_dot_locations(db_name=db_name)
-        combine_dot_loc_combined_images()
+            db_name = i.split("/")[-1].replace(".db", "")
+            process_dot_locations(db_name=db_name)
+            combine_dot_loc_combined_images()
