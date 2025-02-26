@@ -12,6 +12,10 @@ from scipy.integrate import quad
 from dataclasses import dataclass
 from tqdm import tqdm
 import os
+import matplotlib.colors
+
+# グローバル変数（mainでdbの名前から設定）
+DB_PREFIX = ""
 
 
 def subtract_background(gray_img: np.ndarray, kernel_size: int = 21) -> np.ndarray:
@@ -247,7 +251,7 @@ class Map64:
         plt.scatter(u1_contour, u2_contour, color="lime", s=3)
         plt.tick_params(direction="in")
         plt.grid(True)
-        plt.savefig("experimental/DotPatternMap/images/contour.png")
+        plt.savefig(f"experimental/DotPatternMap/images/{DB_PREFIX}_contour.png")
         plt.close(fig)
 
     @classmethod
@@ -311,7 +315,8 @@ class Map64:
             thickness=2,
         )
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/fluo_raw/{cell_id}.png", image_fluo
+            f"experimental/DotPatternMap/images/fluo_raw/{DB_PREFIX}_{cell_id}.png",
+            image_fluo,
         )
 
         # 基底変換
@@ -366,9 +371,14 @@ class Map64:
         plt.plot([min_p, min_p], [min_dist, max_dist], color="red")
         plt.plot([max_p, max_p], [min_dist, max_dist], color="red")
         fig.savefig(
-            f"experimental/DotPatternMap/images/points_box/{cell_id}.png", dpi=300
+            f"experimental/DotPatternMap/images/points_box/{DB_PREFIX}_{cell_id}.png",
+            dpi=300,
         )
-        fig.savefig(f"experimental/DotPatternMap/images/points_box.png", dpi=300)
+        # 個別画像と全体画像の重複防止のため、別名とする
+        fig.savefig(
+            f"experimental/DotPatternMap/images/points_box/{DB_PREFIX}_points_box.png",
+            dpi=300,
+        )
         plt.close(fig)
         plt.clf()
 
@@ -387,7 +397,8 @@ class Map64:
 
         # 背景差分後の画像を map64_raw に保存
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64_raw/{cell_id}.png", high_res_image
+            f"experimental/DotPatternMap/images/map64_raw/{DB_PREFIX}_{cell_id}.png",
+            high_res_image,
         )
 
         # 64x64に縮小 & 右側が明るければフリップ
@@ -396,25 +407,27 @@ class Map64:
         )
         high_res_image = cls.flip_image_if_needed(high_res_image)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64/{cell_id}.png", high_res_image
+            f"experimental/DotPatternMap/images/map64/{DB_PREFIX}_{cell_id}.png",
+            high_res_image,
         )
 
         # そのままJetカラーマップで可視化
         high_res_image_colormap = cv2.applyColorMap(high_res_image, cv2.COLORMAP_JET)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64_jet/{cell_id}.png",
+            f"experimental/DotPatternMap/images/map64_jet/{DB_PREFIX}_{cell_id}.png",
             high_res_image_colormap,
         )
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64_jet.png", high_res_image_colormap
+            f"experimental/DotPatternMap/images/map64_jet/{DB_PREFIX}_map64_jet.png",
+            high_res_image_colormap,
         )
 
         # PCA処理はコメントアウト（高速化）
         """
         return cls.perform_pca_on_3d_point_cloud_and_save(
             high_res_image,
-            f"experimental/DotPatternMap/images/pca_2d/{cell_id}.png",
-            f"experimental/DotPatternMap/images/pca_1d/{cell_id}.png",
+            f"experimental/DotPatternMap/images/pca_2d/{DB_PREFIX}_{cell_id}.png",
+            f"experimental/DotPatternMap/images/pca_1d/{DB_PREFIX}_{cell_id}.png",
         )
         """
         return high_res_image
@@ -478,18 +491,19 @@ class Map64:
 
         combined_map64_image = combine_images_grid(map64_images, 64, 1)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/{out_name}", combined_map64_image
+            f"experimental/DotPatternMap/images/{DB_PREFIX}_combined_image.png",
+            combined_map64_image,
         )
 
         combined_points_box_image = combine_images_grid(points_box_images, 256, 3)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/{out_name}_combined_image_box.png",
+            f"experimental/DotPatternMap/images/{DB_PREFIX}_combined_image_box.png",
             combined_points_box_image,
         )
 
         combined_map64_jet_image = combine_images_grid(map64_jet_images, 64, 3)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/{out_name}_combined_image_jet.png",
+            f"experimental/DotPatternMap/images/{DB_PREFIX}_combined_image_jet.png",
             combined_map64_jet_image,
         )
 
@@ -599,9 +613,6 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     cv2.imwrite(os.path.join(dot_loc_dir, f"{base_name}_norm.png"), norm_gray)
 
     return coordinates
-
-
-import matplotlib.colors
 
 
 def compute_avg_brightness(image: np.ndarray, x: float, y: float, radius=2) -> float:
@@ -740,7 +751,6 @@ def process_dot_locations():
     ax.grid(True)
     ax.legend()
 
-    # combined_save_path = os.path.join(dot_loc_dir, "combined_dot_locations.png")
     fig.savefig("experimental/DotPatternMap/images/combined_dot_locations.png", dpi=300)
     plt.close(fig)
 
@@ -748,7 +758,7 @@ def process_dot_locations():
 def combine_dot_loc_combined_images():
     """
     dot_loc 内の _binary, _detected, _norm の各種画像をグリッド状に結合し、
-    experimental/DotPatternMap/images に combined_binary.png, combined_detected.png, combined_norm.png を生成する。
+    experimental/DotPatternMap/images に {DB_PREFIX}_combined_binary.png, {DB_PREFIX}_combined_detected.png, {DB_PREFIX}_combined_norm.png を生成する。
     同じ細胞の画像が各combined画像で同じ位置に来るよう、ファイル名（細胞ID）でソートしています。
     """
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
@@ -801,12 +811,16 @@ def combine_dot_loc_combined_images():
                 3 if any((img.ndim == 3 and img.shape[2] == 3) for img in images) else 1
             )
             combined_image = combine_images_grid(images, image_size, channels)
-            combined_filename = os.path.join(images_dir, f"combined{suffix}.png")
+            combined_filename = os.path.join(
+                images_dir, f"{DB_PREFIX}_combined{suffix}.png"
+            )
             cv2.imwrite(combined_filename, combined_image)
             print(f"Saved combined image for {suffix} as {combined_filename}")
 
 
 def main(db: str):
+    global DB_PREFIX
+    DB_PREFIX = os.path.splitext(os.path.basename(db))[0]
     for i in ["map64", "points_box", "fluo_raw", "map64_jet", "map64_raw"]:
         delete_pngs(i)
     cells: list[Cell] = database_parser(db)
@@ -814,6 +828,7 @@ def main(db: str):
     vectors = []
     for cell in tqdm(cells[:]):
         vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
+    # combine_imagesは DB_PREFIX を用いて保存
     map64.combine_images(out_name=db.replace(".db", ".png"))
     # 修正: Map64インスタンスではなく、モジュールレベルの関数として呼び出す
     extract_probability_map(db.replace(".db", ""))
