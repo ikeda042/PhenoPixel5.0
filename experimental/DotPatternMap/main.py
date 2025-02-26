@@ -751,9 +751,10 @@ def process_dot_locations(db_name: str):
         )
     # ax.axhline(0.5, color="gray", linestyle="--")
     # ax.axvline(0.5, color="gray", linestyle="--")
-    ax.set_title("Combined Dot Locations with Brightness")
-    ax.set_xlabel("Absolute X (normalized)")
-    ax.set_ylabel("Absolute Y (normalized)")
+    title = f"{db_name} Dot Locations with Brightness"
+    ax.set_title(title)
+    ax.set_xlabel("Rel. X (normalized)")
+    ax.set_ylabel("Rel. Y (normalized)")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.grid(True)
