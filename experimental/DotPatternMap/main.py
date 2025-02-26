@@ -831,7 +831,7 @@ def main(db: str):
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
     vectors = []
-    for cell in tqdm(cells[15:30]):
+    for cell in tqdm(cells[:]):
         vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
     # combine_imagesは DB_PREFIX を用いて保存
     map64.combine_images(out_name=db.replace(".db", ".png"))
