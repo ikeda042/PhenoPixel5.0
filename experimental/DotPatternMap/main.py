@@ -631,7 +631,7 @@ def compute_avg_brightness(image: np.ndarray, x: float, y: float, radius=2) -> f
     return patch.mean()
 
 
-def process_dot_locations():
+def process_dot_locations(db_name: str):
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
     detect_dot() を用いてドットの中心座標を取得し、
@@ -756,7 +756,10 @@ def process_dot_locations():
     ax.grid(True)
     ax.legend()
 
-    fig.savefig("experimental/DotPatternMap/images/combined_dot_locations.png", dpi=300)
+    fig.savefig(
+        f"experimental/DotPatternMap/images/{db_name}_combined_dot_locations.png",
+        dpi=300,
+    )
     plt.close(fig)
 
 
@@ -920,5 +923,5 @@ if __name__ == "__main__":
                         f.write(f"{','.join(map(str, vector.flatten()))}\n")
                     else:
                         f.write(f"{vector}\n")
-    process_dot_locations()
+    process_dot_locations(db_name=DB_PREFIX)
     combine_dot_loc_combined_images()
