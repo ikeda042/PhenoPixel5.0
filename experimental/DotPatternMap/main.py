@@ -502,6 +502,11 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     ドット検出結果（detected）の各画像を dot_loc フォルダに保存する。
 
     ※ 各画像中の輪郭の合計面積が 30 を超えた場合は、ドットがないものと判断します。
+
+    さらに、2値化画像（thresh）における255のピクセルのx軸, y軸位置の変動係数
+    $$\mathrm{CV} = \frac{\sigma}{\mu}$$
+    （LaTeXコード: \mathrm{CV} = \frac{\sigma}{\mu}）
+    が所定の閾値より大きい場合は、ドット検出を無効として全て0塗りします。
     """
     print(f"Detecting dots in {image_path}")
     image = cv2.imread(image_path)
@@ -528,8 +533,29 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
         # ドットがある場合：しきい値180で2値化
         ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
 
-        # thresh 後の255の面積が30以上であればドットがないと判断
-        if np.sum(thresh == 255) > 30:
+        # thresh画像における255ピクセルのx軸, y軸位置の変動係数を計算する
+        white_pixels = np.where(thresh == 255)
+        discard_based_on_cv = False
+        if white_pixels[0].size > 0:
+            # np.whereは (y座標, x座標) の順で返すため
+            x_positions = white_pixels[1]
+            y_positions = white_pixels[0]
+            mean_x = np.mean(x_positions) if np.mean(x_positions) != 0 else 1
+            mean_y = np.mean(y_positions) if np.mean(y_positions) != 0 else 1
+            cv_x = np.std(x_positions) / mean_x
+            cv_y = np.std(y_positions) / mean_y
+            print(f"cv_x: {cv_x}, cv_y: {cv_y}")
+            # 変動係数の閾値 (例として0.5を使用、必要に応じて調整)
+            cv_threshold = 0.5
+            if cv_x > cv_threshold or cv_y > cv_threshold:
+                print(
+                    "Coefficient of variation threshold exceeded. Discarding dot detection."
+                )
+                discard_based_on_cv = True
+                thresh[:] = 0  # thresh画像を全て0にする
+
+        # thresh画像中の255ピクセルの総数が多い場合も、ドットがないと判断
+        if discard_based_on_cv or np.sum(thresh == 255) > 30:
             coordinates = []
             detected_img = np.zeros_like(image)
         else:
