@@ -749,8 +749,8 @@ def process_dot_locations(db_name: str):
             va="center",
             transform=ax.transAxes,
         )
-    ax.axhline(0.5, color="gray", linestyle="--")
-    ax.axvline(0.5, color="gray", linestyle="--")
+    # ax.axhline(0.5, color="gray", linestyle="--")
+    # ax.axvline(0.5, color="gray", linestyle="--")
     ax.set_title("Combined Dot Locations with Brightness")
     ax.set_xlabel("Absolute X (normalized)")
     ax.set_ylabel("Absolute Y (normalized)")
