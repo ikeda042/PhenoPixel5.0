@@ -638,6 +638,8 @@ def process_dot_locations():
     その座標をもとに map64_raw/image.png（元の画像）から小領域の平均輝度を算出します。
     各画像ごとに個別の散布図を保存し、全画像のドット位置と輝度をまとめたヒートマップを
     scatterプロットで表示します。
+
+    全てのデータポイントを絶対座標（abs）として扱い、x, y は画像サイズで正規化して (0, 1) の範囲で描画します。
     """
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
@@ -660,16 +662,18 @@ def process_dot_locations():
             if image is None:
                 continue
             h, w = image.shape
-            center_x, center_y = w / 2, h / 2
 
             normalized_dots = []
             for dot in dots:
-                # dot は (x, y) または (x, y, _) の形式になっているが、
-                # 輝度は map64_raw/image.png から算出する
                 x, y = dot[0], dot[1]
                 brightness = compute_avg_brightness(image, x, y, radius=2)
-                norm_x = (x - center_x) / (w / 2)
-                norm_y = (y - center_y) / (h / 2)
+                # 絶対座標での正規化 (0, 1) の範囲にする:
+                # $$ \text{norm}_x = \frac{x}{w},\quad \text{norm}_y = \frac{y}{h} $$
+                # 生コード:
+                # norm_x = x / w
+                # norm_y = y / h
+                norm_x = x / w
+                norm_y = y / h
                 normalized_dots.append((norm_x, norm_y, brightness))
 
             all_normalized_dots.extend(normalized_dots)
@@ -699,13 +703,14 @@ def process_dot_locations():
                     va="center",
                     transform=ax.transAxes,
                 )
-            ax.axhline(0, color="gray", linestyle="--")
-            ax.axvline(0, color="gray", linestyle="--")
+            # 参照のため、中央に補助線を表示（x=0.5, y=0.5）
+            ax.axhline(0.5, color="gray", linestyle="--")
+            ax.axvline(0.5, color="gray", linestyle="--")
             ax.set_title(f"Dot Locations for {filename}")
-            ax.set_xlabel("Relative X (normalized)")
-            ax.set_ylabel("Relative Y (normalized)")
-            ax.set_xlim(-1, 1)
-            ax.set_ylim(-1, 1)
+            ax.set_xlabel("Absolute X (normalized)")
+            ax.set_ylabel("Absolute Y (normalized)")
+            ax.set_xlim(0, 1)
+            ax.set_ylim(0, 1)
             ax.grid(True)
             ax.legend()
 
@@ -741,13 +746,13 @@ def process_dot_locations():
             va="center",
             transform=ax.transAxes,
         )
-    ax.axhline(0, color="gray", linestyle="--")
-    ax.axvline(0, color="gray", linestyle="--")
+    ax.axhline(0.5, color="gray", linestyle="--")
+    ax.axvline(0.5, color="gray", linestyle="--")
     ax.set_title("Combined Dot Locations with Brightness")
-    ax.set_xlabel("Relative X (normalized)")
-    ax.set_ylabel("Relative Y (normalized)")
-    ax.set_xlim(-1, 1)
-    ax.set_ylim(-1, 1)
+    ax.set_xlabel("Absolute X (normalized)")
+    ax.set_ylabel("Absolute Y (normalized)")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
     ax.grid(True)
     ax.legend()
 
