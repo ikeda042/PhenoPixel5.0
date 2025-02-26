@@ -597,6 +597,9 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
                         mask = np.zeros_like(gray)
                         cv2.drawContours(mask, [cnt], -1, 255, thickness=-1)
                         avg_brightness = cv2.mean(gray, mask=mask)[0]
+                        print(
+                            f"Detected dot at ({cX}, {cY}), brightness: {avg_brightness}"
+                        )
                         coordinates.append((cX, cY, avg_brightness))
 
                 # 検出結果の可視化用画像作成
