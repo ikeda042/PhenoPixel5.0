@@ -876,10 +876,39 @@ def extract_probability_map(out_name: str) -> np.ndarray:
 # ------------------------------------------------------------------------------
 # エントリポイント
 # ------------------------------------------------------------------------------
+import shutil
+
 if __name__ == "__main__":
     ensure_dirs()
+
+    def clean_directory(dir_path: str) -> None:
+        # Remove all files and subdirectories except .gitignore
+        for item in os.listdir(dir_path):
+            if item == ".gitignore":
+                continue
+            full_item = os.path.join(dir_path, item)
+            if os.path.isdir(full_item):
+                shutil.rmtree(full_item)
+            else:
+                os.remove(full_item)
+
+    # clean inside experimental/DotPatternMap/images/dot_loc
+    dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
+    clean_directory(dot_loc_dir)
+
+    # clean inside experimental/DotPatternMap/images/fluo_raw
+    fluo_raw_dir = "experimental/DotPatternMap/images/fluo_raw"
+    clean_directory(fluo_raw_dir)
+
+    # clean inside experimental/DotPatternMap/images/map64
+    map64_dir = "experimental/DotPatternMap/images/map64"
+    clean_directory(map64_dir)
+
+    # clean inside experimental/DotPatternMap/images/map64_jet
+    map64_jet_dir = "experimental/DotPatternMap/images/map64_jet"
     for i in os.listdir("experimental/DotPatternMap"):
         if i.endswith(".db"):
+
             with open(f"experimental/DotPatternMap/images/{i}_vectors.txt", "w") as f:
                 for vector in main(f"{i}"):
                     if isinstance(vector, np.ndarray):
