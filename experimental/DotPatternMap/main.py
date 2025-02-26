@@ -685,17 +685,18 @@ def process_dot_locations(db_name: str):
             if normalized_dots:
                 xs = [abs(p[0]) for p in normalized_dots]
                 ys = [abs(p[1]) for p in normalized_dots]
-                brightness_vals = [abs(p[2]) for p in normalized_dots]
+                brightness_vals = [1 - abs(p[2]) / 255 for p in normalized_dots]
+                print(f"Detected dots: {brightness_vals}")
                 sc = ax.scatter(
                     xs,
                     ys,
                     c=brightness_vals,
+                    norm=matplotlib.colors.NoNorm(),
                     cmap="Blues",
-                    norm=matplotlib.colors.NoNorm(),  # 輝度は元の値をそのまま使用
-                    s=100,
+                    s=30,
                     label="Dot",
                 )
-                plt.colorbar(sc, ax=ax, label="Avg Brightness")
+                plt.colorbar(sc, ax=ax, label="Brightness")
             else:
                 ax.text(
                     0.5,
@@ -836,7 +837,7 @@ def main(db: str):
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
     vectors = []
-    for cell in tqdm(cells[:]):
+    for cell in tqdm(cells[10:30]):
         vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
     # combine_imagesは DB_PREFIX を用いて保存
     map64.combine_images(out_name=db.replace(".db", ".png"))
