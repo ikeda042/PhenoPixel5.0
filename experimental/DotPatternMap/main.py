@@ -547,13 +547,13 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
             cv_y = np.std(y_positions) / mean_y
             print(f"cv_x: {cv_x}, cv_y: {cv_y}")
             # 変動係数の閾値 (例として0.5を使用、必要に応じて調整)
-            cv_threshold = 50
-            # if cv_x > cv_threshold or cv_y > cv_threshold:
-            #     print(
-            #         "Coefficient of variation threshold exceeded. Discarding dot detection."
-            #     )
-            #     discard_based_on_cv = True
-            #     thresh[:] = 0  # thresh画像を全て0にする
+            cv_threshold = 0.3
+            if cv_x > cv_threshold or cv_y > cv_threshold:
+                print(
+                    "Coefficient of variation threshold exceeded. Discarding dot detection."
+                )
+                discard_based_on_cv = True
+                thresh[:] = 0  # thresh画像を全て0にする
 
         # thresh画像中の255ピクセルの総数が多い場合も、ドットがないと判断
         if discard_based_on_cv or np.sum(thresh == 255) > 300:
@@ -568,7 +568,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
             total_area = sum(cv2.contourArea(cnt) for cnt in contours)
             print(f"Total contour area: {total_area}")
 
-            if total_area > 30:
+            if total_area > 200:
                 # 合計面積が30を超える場合はドットがないと判断
                 coordinates = []
                 detected_img = np.zeros_like(image)
