@@ -508,6 +508,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     （LaTeXコード: \mathrm{CV} = \frac{\sigma}{\mu}）
     が所定の閾値より大きい場合は、ドット検出を無効として全て0塗りします。
     """
+    print("=========================================")
     print(f"Detecting dots in {image_path}")
     image = cv2.imread(image_path)
     # グレースケール変換
@@ -531,7 +532,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
 
     if diff > dot_diff_threshold:
         # ドットがある場合：しきい値180で2値化
-        ret, thresh = cv2.threshold(norm_gray, 180, 255, cv2.THRESH_BINARY)
+        ret, thresh = cv2.threshold(norm_gray, 140, 255, cv2.THRESH_BINARY)
 
         # thresh画像における255ピクセルのx軸, y軸位置の変動係数を計算する
         white_pixels = np.where(thresh == 255)
@@ -546,16 +547,16 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
             cv_y = np.std(y_positions) / mean_y
             print(f"cv_x: {cv_x}, cv_y: {cv_y}")
             # 変動係数の閾値 (例として0.5を使用、必要に応じて調整)
-            cv_threshold = 0.5
-            if cv_x > cv_threshold or cv_y > cv_threshold:
-                print(
-                    "Coefficient of variation threshold exceeded. Discarding dot detection."
-                )
-                discard_based_on_cv = True
-                thresh[:] = 0  # thresh画像を全て0にする
+            cv_threshold = 50
+            # if cv_x > cv_threshold or cv_y > cv_threshold:
+            #     print(
+            #         "Coefficient of variation threshold exceeded. Discarding dot detection."
+            #     )
+            #     discard_based_on_cv = True
+            #     thresh[:] = 0  # thresh画像を全て0にする
 
         # thresh画像中の255ピクセルの総数が多い場合も、ドットがないと判断
-        if discard_based_on_cv or np.sum(thresh == 255) > 30:
+        if discard_based_on_cv or np.sum(thresh == 255) > 300:
             coordinates = []
             detected_img = np.zeros_like(image)
         else:
