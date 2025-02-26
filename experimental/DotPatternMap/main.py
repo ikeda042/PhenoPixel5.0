@@ -681,9 +681,9 @@ def process_dot_locations():
             # 個別の散布図作成
             fig, ax = plt.subplots(figsize=(4, 4))
             if normalized_dots:
-                xs = [p[0] for p in normalized_dots]
-                ys = [p[1] for p in normalized_dots]
-                brightness_vals = [p[2] for p in normalized_dots]
+                xs = [abs(p[0]) for p in normalized_dots]
+                ys = [abs(p[1]) for p in normalized_dots]
+                brightness_vals = [abs(p[2]) for p in normalized_dots]
                 sc = ax.scatter(
                     xs,
                     ys,
