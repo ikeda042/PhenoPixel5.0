@@ -594,9 +594,9 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
                         cX = int(M["m10"] / M["m00"])
                         cY = int(M["m01"] / M["m00"])
                         # ドット領域の平均輝度を算出 (もとの norm_gray で計算)
-                        mask = np.zeros_like(norm_gray)
+                        mask = np.zeros_like(gray)
                         cv2.drawContours(mask, [cnt], -1, 255, thickness=-1)
-                        avg_brightness = cv2.mean(norm_gray, mask=mask)[0]
+                        avg_brightness = cv2.mean(gray, mask=mask)[0]
                         coordinates.append((cX, cY, avg_brightness))
 
                 # 検出結果の可視化用画像作成
