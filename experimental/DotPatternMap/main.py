@@ -534,7 +534,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     diff = top97_val - median_val
     print(f"diff: {diff}")
     print(f"median: {median_val}")
-    dot_diff_threshold = 70
+    dot_diff_threshold = 10
 
     coordinates: list[tuple[int, int, float]] = []
 
@@ -546,7 +546,7 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
 
     if diff > dot_diff_threshold:
         # ドットがある場合：しきい値180で2値化
-        ret, thresh = cv2.threshold(norm_gray, 140, 255, cv2.THRESH_BINARY)
+        ret, thresh = cv2.threshold(norm_gray, 150, 255, cv2.THRESH_BINARY)
 
         # thresh画像における255ピクセルのx軸, y軸位置の変動係数を計算する
         white_pixels = np.where(thresh == 255)
@@ -831,7 +831,7 @@ def main(db: str):
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
     vectors = []
-    for cell in tqdm(cells[:]):
+    for cell in tqdm(cells[15:30]):
         vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
     # combine_imagesは DB_PREFIX を用いて保存
     map64.combine_images(out_name=db.replace(".db", ".png"))
