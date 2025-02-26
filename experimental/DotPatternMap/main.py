@@ -710,8 +710,8 @@ def process_dot_locations(db_name: str):
             ax.axhline(0.5, color="gray", linestyle="--")
             ax.axvline(0.5, color="gray", linestyle="--")
             ax.set_title(f"Dot Locations for {filename}")
-            ax.set_xlabel("Absolute X (normalized)")
-            ax.set_ylabel("Absolute Y (normalized)")
+            ax.set_xlabel("Rel. X (normalized)")
+            ax.set_ylabel("Rel. Y (normalized)")
             ax.set_xlim(0, 1)
             ax.set_ylim(0, 1)
             ax.grid(True)
@@ -739,7 +739,7 @@ def process_dot_locations(db_name: str):
             s=30,
             label="IbpA-GFP relative position",
         )
-        plt.colorbar(sc, ax=ax, label="Avg Brightness")
+        plt.colorbar(sc, ax=ax, label="IbpA-GFP Intensity")
     else:
         ax.text(
             0.5,
