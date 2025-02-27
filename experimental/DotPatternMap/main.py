@@ -1030,8 +1030,8 @@ def process_dot_locations_relative(db_name: str) -> None:
             ax.set_xlabel("Rel. X (centered)")
             ax.set_ylabel("Rel. Y (centered)")
             # 中心を原点とした座標系（例：-0.6〜0.6）
-            ax.set_xlim(-0.6, 0.6)
-            ax.set_ylim(-0.6, 0.6)
+            ax.set_xlim(-1, 1)
+            ax.set_ylim(-1, 1)
             ax.grid(True)
             ax.legend()
 
