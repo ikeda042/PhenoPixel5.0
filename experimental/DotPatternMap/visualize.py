@@ -285,6 +285,117 @@ def plot_combined_cv_dot_locations(csv_dir: str, output_path: str) -> None:
     plt.close(fig)
 
 
+def plot_combined_average_dot_locations_with_errorbars(
+    csv_dir: str, output_path: str
+) -> None:
+    """
+    CSVファイル群から、ファイル名に "120min" を含むデータのみを対象に、
+    各薬剤ごと（gen, tri, cip）に各CSVファイルからRel X, Rel Yの平均値を算出し、
+    それら3つの値の平均と標準偏差を用いてエラーバー付きの散布図をプロットします。
+
+    数式:
+        $$ \bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i,\quad \bar{y} = \frac{1}{n} \sum_{i=1}^{n} y_i $$
+        $$ \sigma_x = \sqrt{\frac{1}{n-1} \sum_{i=1}^{n} (x_i - \bar{x})^2},\quad \sigma_y = \sqrt{\frac{1}{n-1} \sum_{i=1}^{n} (y_i - \bar{y})^2} $$
+
+    Latex生コード:
+        \[
+        \bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i
+        \]
+        \[
+        \bar{y} = \frac{1}{n} \sum_{i=1}^{n} y_i
+        \]
+        \[
+        \sigma_x = \sqrt{\frac{1}{n-1} \sum_{i=1}^{n} (x_i - \bar{x})^2}
+        \]
+        \[
+        \sigma_y = \sqrt{\frac{1}{n-1} \sum_{i=1}^{n} (y_i - \bar{y})^2}
+        \]
+
+    Parameters:
+        csv_dir (str): CSVファイルが格納されているディレクトリのパス。
+        output_path (str): 作成するグラフ画像の保存先パス。
+    """
+    # 薬剤ごとのデータを保持する辞書（各CSVから算出した平均値のリスト）
+    drug_data: dict[str, dict[str, list[float]]] = {
+        "gen": {"xs": [], "ys": []},
+        "tri": {"xs": [], "ys": []},
+        "cip": {"xs": [], "ys": []},
+    }
+
+    # 対象ファイルは "120min" を含むものとする
+    file_names: list[str] = [
+        f for f in os.listdir(csv_dir) if f.endswith(".csv") and "120min" in f
+    ]
+    file_names.sort(key=sort_key)
+    if not file_names:
+        print("対象となる120minのCSVファイルが見つかりませんでした。")
+        return
+
+    # 各CSVファイルから平均値を算出
+    for file in file_names:
+        csv_path = os.path.join(csv_dir, file)
+        xs: list[float] = []
+        ys: list[float] = []
+        with open(csv_path, mode="r", newline="") as csv_file:
+            csv_reader = csv.reader(csv_file)
+            header = next(csv_reader, None)  # ヘッダー行があればスキップ
+            for row in csv_reader:
+                try:
+                    # CSVは [RelX, RelY, Brightness] と仮定
+                    x, y, _ = map(float, row)
+                    xs.append(x)
+                    ys.append(y)
+                except ValueError:
+                    continue
+        if xs and ys:
+            avg_x = sum(xs) / len(xs)
+            avg_y = sum(ys) / len(ys)
+            file_lower = file.lower()
+            # ファイル名から薬剤種を判定
+            for key in ["gen", "tri", "cip"]:
+                if key in file_lower:
+                    drug_data[key]["xs"].append(avg_x)
+                    drug_data[key]["ys"].append(avg_y)
+                    break
+        else:
+            print(f"CSVファイル {file} から十分なデータが読み込めませんでした。")
+
+    # 薬剤ごとの平均値と標準偏差を計算し、エラーバー付きでプロット
+    drug_colors = {"gen": "orange", "cip": "blue", "tri": "green"}
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    for drug in ["gen", "cip", "tri"]:
+        rep_x = drug_data[drug]["xs"]
+        rep_y = drug_data[drug]["ys"]
+        if rep_x and rep_y:
+            mean_x = statistics.mean(rep_x)
+            mean_y = statistics.mean(rep_y)
+            std_x = statistics.stdev(rep_x) if len(rep_x) > 1 else 0
+            std_y = statistics.stdev(rep_y) if len(rep_y) > 1 else 0
+            ax.errorbar(
+                mean_x,
+                mean_y,
+                xerr=std_x,
+                yerr=std_y,
+                fmt="o",
+                color=drug_colors[drug],
+                capsize=5,
+                label=f"{drug.upper()} 120min Average",
+            )
+        else:
+            print(f"{drug.upper()} の120minデータが不足しています。")
+
+    ax.set_title("Combined 120min Average Dot Locations with Error Bars")
+    ax.set_xlabel("Rel. X (normalized)")
+    ax.set_ylabel("Rel. Y (normalized)")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.grid(True)
+    ax.legend()
+    fig.savefig(output_path, dpi=300)
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     # CSVファイルが保存されているディレクトリのパス（例: experimental/DotPatternMap/images）
     csv_directory = "experimental/DotPatternMap/images"
@@ -312,3 +423,14 @@ if __name__ == "__main__":
         output = path.replace(".csv", ".png")
         plot_combined_dot_locations_from_csv(path, output)
         print(f"散布図を {output} に保存しました。")
+
+    # 120minのデータについて、エラーバー付き平均位置グラフを作成
+    avg_err_output_file = os.path.join(
+        csv_directory, "combined_120min_average_with_errorbars.png"
+    )
+    plot_combined_average_dot_locations_with_errorbars(
+        csv_directory, avg_err_output_file
+    )
+    print(
+        f"120minデータのエラーバー付き平均位置グラフを {avg_err_output_file} に保存しました。"
+    )
