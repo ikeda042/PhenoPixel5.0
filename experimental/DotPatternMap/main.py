@@ -725,6 +725,7 @@ def process_dot_locations(db_name: str):
 
             # 個別プロット画像の保存
             plot_save_path = os.path.join(dot_loc_dir, filename)
+            print(f"Saving plot to {plot_save_path}")
             fig.savefig(plot_save_path, dpi=300)
             plt.close(fig)
 
@@ -857,7 +858,7 @@ def main(db: str):
     cells: list[Cell] = database_parser(db)
     map64: Map64 = Map64()
     vectors = []
-    for cell in tqdm(cells[:]):
+    for cell in tqdm(cells[10:20]):
         vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
     # combine_imagesは DB_PREFIX を用いて保存
     map64.combine_images(out_name=db.replace(".db", ".png"))
