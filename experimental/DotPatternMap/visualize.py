@@ -1,32 +1,8 @@
-import seaborn as sns
-import matplotlib.pyplot as plt
-import numpy as np
-
-sns.set()
-
-
-def box_plot_function(
-    data: list[np.ndarray] | list[float | int],
-    labels: list[str],
-    xlabel: str,
-    ylabel: str,
-    save_name: str,
-) -> None:
-    fig = plt.figure(figsize=[10, 7])
-    plt.boxplot(data, sym="")
-    for i, d in enumerate(data, start=1):
-        x = np.random.normal(i, 0.04, size=len(d))
-        plt.plot(x, d, "o", alpha=0.5)
-    plt.xticks([i + 1 for i in range(len(data))], [f"{i}" for i in labels])
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.grid(True)
-    fig.savefig(f"{save_name}.png", dpi=500)
-
-
 import os
 import csv
+import matplotlib.pyplot as plt
 import statistics
+import numpy as np
 import re
 
 drug_order = {"gen": 0, "tri": 1, "cip": 2}
@@ -420,66 +396,96 @@ def plot_combined_average_dot_locations_with_errorbars(
     plt.close(fig)
 
 
-def plot_boxplots_for_rel_axes(csv_files: list[str]) -> None:
+def plot_combined_n_dot_locations_for_drugs(
+    csv_files: list[str], output_path: str
+) -> None:
     """
     CSVファイル群から各ドットのRel X, Rel Yのデータを読み込み、
-    各CSVファイルごとの箱ひげ図を作成し、
-    Rel XとRel Yそれぞれに対して別々の箱ひげ図を生成して保存します。
+    各薬剤（gen, tri, cip）について、n1, n2, n3のデータを結合して散布図を作成します。
+
+    数式:
+        各ドットの位置は既に正規化されたRel X, Rel Yの値で表されています。
+
+    Latex生コード:
+        \[
+        \text{Rel X (normalized)}
+        \]
+        \[
+        \text{Rel Y (normalized)}
+        \]
 
     Parameters:
-        csv_files (list[str]): 箱ひげ図作成対象のCSVファイルのリスト。
+        csv_files (list[str]): 結合対象のCSVファイルのリスト。ファイル名には薬剤種（gen, tri, cip）およびn番号（n1, n2, n3）が含まれている必要があります。
+        output_path (str): 作成するグラフ画像の保存先パス。
     """
     import csv
     import os
     import numpy as np
+    import matplotlib.pyplot as plt
 
-    rel_x_data: list[np.ndarray] = []
-    rel_y_data: list[np.ndarray] = []
-    labels: list[str] = []
+    # 薬剤ごとのデータを保持する辞書
+    drug_data: dict[str, dict[str, list[float]]] = {
+        "gen": {"xs": [], "ys": []},
+        "tri": {"xs": [], "ys": []},
+        "cip": {"xs": [], "ys": []},
+    }
 
+    # 薬剤ごとの色のマッピング
+    drug_colors = {"gen": "orange", "tri": "green", "cip": "blue"}
+
+    # 各CSVファイルからデータを読み込み、薬剤ごとに結合
     for csv_file in csv_files:
+        if not os.path.exists(csv_file):
+            print(f"CSVファイル {csv_file} が存在しません。")
+            continue
         with open(csv_file, mode="r", newline="") as f:
             reader = csv.reader(f)
-            header = next(reader, None)
-            x_vals: list[float] = []
-            y_vals: list[float] = []
+            header = next(reader, None)  # ヘッダーがある場合はスキップ
             for row in reader:
                 try:
                     x, y, _ = map(float, row)
-                    x_vals.append(x)
-                    y_vals.append(y)
+                    # ファイル名から薬剤種を判定
+                    file_lower = os.path.basename(csv_file).lower()
+                    if "gen" in file_lower:
+                        drug_data["gen"]["xs"].append(x)
+                        drug_data["gen"]["ys"].append(y)
+                    elif "tri" in file_lower:
+                        drug_data["tri"]["xs"].append(x)
+                        drug_data["tri"]["ys"].append(y)
+                    elif "cip" in file_lower:
+                        drug_data["cip"]["xs"].append(x)
+                        drug_data["cip"]["ys"].append(y)
+                    else:
+                        print(
+                            f"CSVファイル {csv_file} から薬剤種を判定できませんでした。"
+                        )
                 except ValueError:
                     continue
-            if x_vals and y_vals:
-                rel_x_data.append(np.array(x_vals))
-                rel_y_data.append(np.array(y_vals))
-                label = os.path.basename(csv_file).replace(".csv", "")
-                labels.append(label)
-            else:
-                print(
-                    f"CSVファイル {csv_file} から有効なデータが読み込めませんでした。"
-                )
 
-    # Rel X の箱ひげ図
-    box_plot_function(
-        rel_x_data,
-        labels,
-        xlabel="Sample",
-        ylabel="Rel. X",
-        save_name=os.path.join(
-            "experimental/DotPatternMap/images", "combined_rel_x_boxplot"
-        ),
-    )
-    # Rel Y の箱ひげ図
-    box_plot_function(
-        rel_y_data,
-        labels,
-        xlabel="Sample",
-        ylabel="Rel. Y",
-        save_name=os.path.join(
-            "experimental/DotPatternMap/images", "combined_rel_y_boxplot"
-        ),
-    )
+    # プロット作成
+    fig, ax = plt.subplots(figsize=(6, 6))
+    for drug, data in drug_data.items():
+        if data["xs"] and data["ys"]:
+            ax.scatter(
+                data["xs"],
+                data["ys"],
+                s=30,
+                c=drug_colors[drug],
+                label=f"{drug.upper()} Combined",
+            )
+        else:
+            print(f"{drug.upper()} のデータが不足しています。")
+
+    ax.set_title("Combined n1, n2, n3 Dot Locations for Each Drug")
+    ax.set_xlabel("Rel. X (normalized)")
+    ax.set_ylabel("Rel. Y (normalized)")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.grid(True)
+    ax.legend()
+
+    fig.savefig(output_path, dpi=300)
+    plt.close(fig)
 
 
 if __name__ == "__main__":
@@ -521,17 +527,6 @@ if __name__ == "__main__":
         f"120minデータのエラーバー付き平均位置グラフを {avg_err_output_file} に保存しました。"
     )
 
-    # --- 新たに追加：各CSVファイルごとのRel X, Rel Yの箱ひげ図を作成 ---
-    boxplot_files = [
-        "experimental/DotPatternMap/images/sk326gen120min_n3-completed_dot_positions.csv",
-        "experimental/DotPatternMap/images/sk326gen120min_dot_positions.csv",
-        "experimental/DotPatternMap/images/sk326gen120min_n2-completed_dot_positions.csv",
-        "experimental/DotPatternMap/images/sk326tri120min_dot_positions.csv",
-        "experimental/DotPatternMap/images/sk326tri120min_n2-completed_dot_positions.csv",
-        "experimental/DotPatternMap/images/sk326tri120min_n3-completed_dot_positions.csv",
-        "experimental/DotPatternMap/images/sk326cip120min_n2-completed_dot_positions.csv",
-        "experimental/DotPatternMap/images/sk326cip120min_dot_positions.csv",
-        "experimental/DotPatternMap/images/sk326cip120min_n3-completed_dot_positions.csv",
-    ]
-    plot_boxplots_for_rel_axes(boxplot_files)
-    print("Rel XおよびRel Yの箱ひげ図を作成しました。")
+    plot_combined_n_dot_locations_for_drugs(
+        paths, os.path.join(csv_directory, "combined_n_dot_locations.png")
+    )
