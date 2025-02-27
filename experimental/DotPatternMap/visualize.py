@@ -615,9 +615,10 @@ def plot_combined_n_boxplot_for_antibiotics(
             p = stat.pvalue
             marker = significance_marker(p)
             y_max = max(max(group1), max(group2))
-            offset = 0.02 * (idx + 1)
+            # オフセットと注釈線の高さを大きくして余裕を確保
+            offset = 0.04 * (idx + 1)
             y_coord = y_max + offset
-            add_stat_annotation(ax1, i, j, y_coord, 0.005, f"p={p:.3g}\n{marker}")
+            add_stat_annotation(ax1, i, j, y_coord, 0.01, f"p={p:.3g}\n{marker}")
 
     # Rel Yについての統計的有意差の注釈（ax2）
     for idx, (i, j) in enumerate(pairs):
@@ -628,9 +629,9 @@ def plot_combined_n_boxplot_for_antibiotics(
             p = stat.pvalue
             marker = significance_marker(p)
             y_max = max(max(group1), max(group2))
-            offset = 0.02 * (idx + 1)
+            offset = 0.04 * (idx + 1)
             y_coord = y_max + offset
-            add_stat_annotation(ax2, i, j, y_coord, 0.005, f"p={p:.3g}\n{marker}")
+            add_stat_annotation(ax2, i, j, y_coord, 0.01, f"p={p:.3g}\n{marker}")
 
     fig.suptitle("Combined Box Plots for Each Antibiotic")
     fig.tight_layout(rect=[0, 0, 1, 0.95])
