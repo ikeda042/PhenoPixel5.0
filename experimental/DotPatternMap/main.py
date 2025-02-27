@@ -951,18 +951,18 @@ def process_dot_locations_relative(db_name: str) -> None:
 
     数式:
         \[
-        \text{rel}_x = \frac{x}{w} - 0.5
+        \text{rel}_x = 2\frac{x}{w} - 1
         \]
         \[
-        \text{rel}_y = \frac{y}{h} - 0.5
+        \text{rel}_y = 2\frac{y}{h} - 1
         \]
 
     Latex生コード:
         \[
-        \text{rel}_x = \frac{x}{w} - 0.5
+        \text{rel}_x = 2\frac{x}{w} - 1
         \]
         \[
-        \text{rel}_y = \frac{y}{h} - 0.5
+        \text{rel}_y = 2\frac{y}{h} - 1
         \]
     """
     import csv  # CSV出力用
@@ -995,11 +995,10 @@ def process_dot_locations_relative(db_name: str) -> None:
             relative_dots = []
             for dot in dots:
                 x, y, brightness = dot
-                # 絶対座標を正規化した後、中心 (0.5, 0.5) を原点にする
-                norm_x = x / w
-                norm_y = y / h
-                rel_x = norm_x - 0.5
-                rel_y = norm_y - 0.5
+                # 絶対座標を正規化した後、中心 (0.5, 0.5) を原点とした範囲 -1 から 1 に変換する:
+                # まず x, y をそれぞれ 0〜1 に正規化し、2倍して1を引く
+                rel_x = 2 * (x / w) - 1
+                rel_y = 2 * (y / h) - 1
                 relative_dots.append((rel_x, rel_y, brightness))
             all_relative_dots.extend(relative_dots)
 
@@ -1023,13 +1022,12 @@ def process_dot_locations_relative(db_name: str) -> None:
                     va="center",
                     transform=ax.transAxes,
                 )
-            # x=0, y=0に補助線を追加（中心線）
+            # x=0, y=0 に補助線を追加（中心線）
             ax.axhline(0, color="gray", linestyle="--")
             ax.axvline(0, color="gray", linestyle="--")
-            # ax.set_title(f"Relative Dot Locations for {filename}")
             ax.set_xlabel("Rel. X (centered)")
             ax.set_ylabel("Rel. Y (centered)")
-            # 中心を原点とした座標系（例：-0.6〜0.6）
+            # 中心を原点とした座標系 (-1〜1)
             ax.set_xlim(-1, 1)
             ax.set_ylim(-1, 1)
             ax.grid(True)
@@ -1063,8 +1061,9 @@ def process_dot_locations_relative(db_name: str) -> None:
     ax.set_title(title)
     ax.set_xlabel("Rel. X (centered)")
     ax.set_ylabel("Rel. Y (centered)")
-    ax.set_xlim(-0.6, 0.6)
-    ax.set_ylim(-0.6, 0.6)
+    # 全体ヒートマップも -1〜1 に設定
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
     ax.grid(True)
     ax.legend()
 
