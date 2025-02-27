@@ -551,7 +551,7 @@ def plot_combined_n_boxplot_for_antibiotics(
 
     fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(18, 8))
 
-    # Seabornのboxplotを用いてRel Xのプロット（widthを狭く指定）
+    # Seabornのboxplotを用いてRel Xのプロット（外れ値を表示しない）
     sns.boxplot(
         x="Antibiotic",
         y="RelX",
@@ -560,12 +560,13 @@ def plot_combined_n_boxplot_for_antibiotics(
         palette=antibiotic_colors,
         width=0.5,
         ax=ax1,
+        showfliers=False,
     )
     ax1.set_title("Box Plot of Rel. X")
     ax1.set_ylabel("Rel. X ", fontsize=16)
     ax1.grid(True)
 
-    # Seabornのboxplotを用いてRel Yのプロット（widthを狭く指定）
+    # Seabornのboxplotを用いてRel Yのプロット（外れ値を表示しない）
     sns.boxplot(
         x="Antibiotic",
         y="RelY",
