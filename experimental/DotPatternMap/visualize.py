@@ -469,7 +469,7 @@ def plot_combined_n_dot_locations_for_drugs(
             ax.scatter(
                 data["xs"],
                 data["ys"],
-                s=30,
+                s=20,
                 c=drug_colors[drug],
                 label=f"{drug.upper()} (n1, n2, n3) combined",
             )
