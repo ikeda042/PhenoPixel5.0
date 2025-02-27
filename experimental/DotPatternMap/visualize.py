@@ -48,7 +48,7 @@ def plot_combined_dot_locations_from_csv(csv_path: str, output_path: str) -> Non
             s=30,
             label="IbpA-GFP relative position",
         )
-        plt.colorbar(sc, ax=ax, label="IbpA-GFP Intensity (normalized)")
+        # plt.colorbar(sc, ax=ax, label="IbpA-GFP Intensity (normalized)")
     else:
         ax.text(
             0.5,
@@ -71,7 +71,13 @@ def plot_combined_dot_locations_from_csv(csv_path: str, output_path: str) -> Non
 
 
 if __name__ == "__main__":
-    path = "experimental/DotPatternMap/images/sk326tri30min_dot_positions.csv"
-    output = "experimental/DotPatternMap/images/sk326tri30min_combined_dot_locations_from_csv.png"
-    plot_combined_dot_locations_from_csv(path, output)
-    print(f"Saved the combined dot locations graph to {output}")
+    import os
+
+    paths = os.listdir("experimental/DotPatternMap/images")
+    csv_files = [path for path in paths if path.endswith(".csv")]
+
+    for csv_file in csv_files:
+        plot_combined_dot_locations_from_csv(
+            f"experimental/DotPatternMap/images/{csv_file}",
+            f"experimental/DotPatternMap/images/{csv_file.replace('.csv', '.png')}",
+        )
