@@ -504,6 +504,7 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
         "cip": {"xs": [], "ys": []},
     }
 
+    # 各CSVファイルからデータを読み込み
     for csv_file in csv_files:
         if not os.path.exists(csv_file):
             print(f"CSVファイル {csv_file} が存在しません。")
@@ -569,6 +570,7 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
         order=["GEN", "TRI", "CIP"],
         palette=drug_colors,
         ax=ax2,
+        showfliers=False,
     )
     ax2.set_title("Box Plot of Rel. Y (normalized)")
     ax2.set_ylabel("Rel. Y (normalized)")
@@ -623,7 +625,7 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
             y = y_max + offset
             add_stat_annotation(ax2, i, j, y, 0.005, f"p={p:.3g}\n{marker}")
 
-    fig.suptitle("Combined n1, n2, n3 Box Plots for Each Antibiotic with Significance")
+    fig.suptitle("Combined Box Plots for Each Antibiotic")
     fig.tight_layout(rect=[0, 0, 1, 0.95])
     fig.savefig(output_path, dpi=300)
     plt.close(fig)
