@@ -25,8 +25,8 @@ def sort_key(file: str) -> tuple[int, int]:
 
 def plot_combined_dot_locations_from_csv(csv_path: str, output_path: str) -> None:
     """
-    CSVファイルから各ドットの正規化されたRel X, Rel Y, Brightnessを読み込み、
-    Combined Dot Locationsグラフ（散布図）を生成して指定のパスに保存します。
+    CSVファイルから各ドットの正規化された Rel X, Rel Y, Brightness を読み込み、
+    Combined Dot Locations グラフ（散布図）を生成して指定のパスに保存します。
 
     数式:
         $$ \text{norm}_x = \frac{x}{w},\quad \text{norm}_y = \frac{y}{h} $$
@@ -60,7 +60,6 @@ def plot_combined_dot_locations_from_csv(csv_path: str, output_path: str) -> Non
     if dots:
         xs = [dot[0] for dot in dots]
         ys = [dot[1] for dot in dots]
-        # 輝度は0〜255の値として保存されているため、正規化（0〜1）します
         brightness_vals = [dot[2] / 255 for dot in dots]
         sc = ax.scatter(
             xs,
@@ -71,7 +70,6 @@ def plot_combined_dot_locations_from_csv(csv_path: str, output_path: str) -> Non
             s=30,
             label="IbpA-GFP relative position",
         )
-        # plt.colorbar(sc, ax=ax, label="IbpA-GFP Intensity (normalized)")
     else:
         ax.text(
             0.5,
@@ -95,7 +93,7 @@ def plot_combined_dot_locations_from_csv(csv_path: str, output_path: str) -> Non
 
 def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
     """
-    CSVファイル群から各ドットのRelX, RelYのデータを読み込み、各ファイルごとに平均値を計算して、
+    CSVファイル群から各ドットの Rel X, Rel Y のデータを読み込み、各ファイルごとに平均値を算出して、
     その平均点を1つのグラフ上に散布図としてプロットします。
 
     数式:
@@ -119,10 +117,8 @@ def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
         print("指定されたディレクトリにCSVファイルが見つかりませんでした。")
         return
 
-    # 薬剤ごとの色のマッピング
     drug_colors = {"gen": "tab:orange", "cip": "tab:blue", "tri": "tab:green"}
 
-    # 薬剤ごとに平均値のデータを格納する辞書
     drug_data: dict[str, dict[str, list]] = {
         "gen": {"xs": [], "ys": [], "labels": []},
         "cip": {"xs": [], "ys": [], "labels": []},
@@ -135,10 +131,9 @@ def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
         ys: list[float] = []
         with open(csv_path, mode="r", newline="") as csv_file:
             csv_reader = csv.reader(csv_file)
-            header = next(csv_reader, None)  # ヘッダー行があればスキップ
+            header = next(csv_reader, None)
             for row in csv_reader:
                 try:
-                    # CSVは [RelX, RelY, Brightness] と仮定
                     x, y, _ = map(float, row)
                     xs.append(x)
                     ys.append(y)
@@ -147,7 +142,6 @@ def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
         if xs and ys:
             avg_x = sum(xs) / len(xs)
             avg_y = sum(ys) / len(ys)
-            # ファイル名から薬剤種を判定
             file_lower = file.lower()
             drug = None
             for key in ["gen", "cip", "tri"]:
@@ -155,20 +149,18 @@ def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
                     drug = key
                     break
             if drug is None:
-                drug = "gen"  # 薬剤種が判定できない場合はgenとする
+                drug = "gen"
             drug_data[drug]["xs"].append(avg_x)
             drug_data[drug]["ys"].append(avg_y)
             drug_data[drug]["labels"].append(file.replace(".csv", ""))
         else:
             print(f"CSVファイル {file} からデータが読み込めませんでした。")
 
-    # 有効なデータがあるか確認
     if not any(len(drug_data[d]["xs"]) > 0 for d in drug_data):
         print("有効なデータがありませんでした。")
         return
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    # 薬剤ごとに散布図をプロット
     for drug in ["gen", "cip", "tri"]:
         if drug_data[drug]["xs"]:
             ax.scatter(
@@ -192,7 +184,7 @@ def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
 
 def plot_combined_cv_dot_locations(csv_dir: str, output_path: str) -> None:
     """
-    CSVファイル群から各ドットのRelX, RelYのデータを読み込み、各ファイルごとに変動係数（Coefficient of Variation）を計算して、
+    CSVファイル群から各ドットの Rel X, Rel Y のデータを読み込み、各ファイルごとに変動係数（Coefficient of Variation）を計算して、
     その結果を1つのグラフ上にグループ化された棒グラフとしてプロットします。
 
     数式:
@@ -229,7 +221,6 @@ def plot_combined_cv_dot_locations(csv_dir: str, output_path: str) -> None:
             header = next(csv_reader, None)
             for row in csv_reader:
                 try:
-                    # CSVは [RelX, RelY, Brightness] と仮定
                     x, y, _ = map(float, row)
                     xs.append(x)
                     ys.append(y)
@@ -253,7 +244,6 @@ def plot_combined_cv_dot_locations(csv_dir: str, output_path: str) -> None:
         print("有効な変動係数データがありませんでした。")
         return
 
-    # グループ化された棒グラフのプロット
     x_indices = np.arange(len(labels))
     bar_width = 0.35
 
@@ -290,8 +280,8 @@ def plot_combined_average_dot_locations_with_errorbars(
 ) -> None:
     """
     CSVファイル群から、ファイル名に "120min" を含むデータのみを対象に、
-    各薬剤ごと（gen, tri, cip）に各CSVファイルからRel X, Rel Yの平均値を算出し、
-    それら3つの値の平均と標準偏差を用いてエラーバー付きの散布図をプロットします。
+    各薬剤ごと（gen, tri, cip）に各CSVファイルから Rel X, Rel Y の平均値を算出し、
+    それら3つの値の平均と標準偏差を用いてエラーバー付きの散布図をプロットします.
 
     数式:
         $$ \bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i,\quad \bar{y} = \frac{1}{n} \sum_{i=1}^{n} y_i $$
@@ -315,14 +305,12 @@ def plot_combined_average_dot_locations_with_errorbars(
         csv_dir (str): CSVファイルが格納されているディレクトリのパス。
         output_path (str): 作成するグラフ画像の保存先パス。
     """
-    # 薬剤ごとのデータを保持する辞書（各CSVから算出した平均値のリスト）
     drug_data: dict[str, dict[str, list[float]]] = {
         "gen": {"xs": [], "ys": []},
         "tri": {"xs": [], "ys": []},
         "cip": {"xs": [], "ys": []},
     }
 
-    # 対象ファイルは "120min" を含むものとする
     file_names: list[str] = [
         f for f in os.listdir(csv_dir) if f.endswith(".csv") and "120min" in f
     ]
@@ -331,17 +319,15 @@ def plot_combined_average_dot_locations_with_errorbars(
         print("対象となる120minのCSVファイルが見つかりませんでした。")
         return
 
-    # 各CSVファイルから平均値を算出
     for file in file_names:
         csv_path = os.path.join(csv_dir, file)
         xs: list[float] = []
         ys: list[float] = []
         with open(csv_path, mode="r", newline="") as csv_file:
             csv_reader = csv.reader(csv_file)
-            header = next(csv_reader, None)  # ヘッダー行があればスキップ
+            header = next(csv_reader, None)
             for row in csv_reader:
                 try:
-                    # CSVは [RelX, RelY, Brightness] と仮定
                     x, y, _ = map(float, row)
                     xs.append(x)
                     ys.append(y)
@@ -351,7 +337,6 @@ def plot_combined_average_dot_locations_with_errorbars(
             avg_x = sum(xs) / len(xs)
             avg_y = sum(ys) / len(ys)
             file_lower = file.lower()
-            # ファイル名から薬剤種を判定
             for key in ["gen", "tri", "cip"]:
                 if key in file_lower:
                     drug_data[key]["xs"].append(avg_x)
@@ -360,7 +345,6 @@ def plot_combined_average_dot_locations_with_errorbars(
         else:
             print(f"CSVファイル {file} から十分なデータが読み込めませんでした。")
 
-    # 薬剤ごとの平均値と標準偏差を計算し、エラーバー付きでプロット
     drug_colors = {"gen": "tab:orange", "cip": "tab:blue", "tri": "tab:green"}
     fig, ax = plt.subplots(figsize=(8, 8))
 
@@ -400,13 +384,10 @@ def plot_combined_n_dot_locations_for_drugs(
     csv_files: list[str], output_path: str
 ) -> None:
     """
-    CSVファイル群から各ドットのRel X, Rel Yのデータを読み込み、
-    各薬剤（gen, tri, cip）について、n1, n2, n3のデータを結合して散布図を作成します。
+    CSVファイル群から各ドットの Rel X, Rel Y のデータを読み込み、
+    各薬剤（gen, tri, cip）について、n1, n2, n3 のデータを結合して散布図を作成します。
 
     数式:
-        各ドットの位置は既に正規化されたRel X, Rel Yの値で表されています。
-
-    Latex生コード:
         \[
         \text{Rel X (normalized)}
         \]
@@ -415,36 +396,27 @@ def plot_combined_n_dot_locations_for_drugs(
         \]
 
     Parameters:
-        csv_files (list[str]): 結合対象のCSVファイルのリスト。ファイル名には薬剤種（gen, tri, cip）およびn番号（n1, n2, n3）が含まれている必要があります。
+        csv_files (list[str]): 結合対象のCSVファイルのリスト。ファイル名には薬剤種（gen, tri, cip）および n 番号（n1, n2, n3）が含まれている必要があります。
         output_path (str): 作成するグラフ画像の保存先パス。
     """
-    import csv
-    import os
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    # 薬剤ごとのデータを保持する辞書
     drug_data: dict[str, dict[str, list[float]]] = {
         "gen": {"xs": [], "ys": []},
         "tri": {"xs": [], "ys": []},
         "cip": {"xs": [], "ys": []},
     }
 
-    # 薬剤ごとの色のマッピング
     drug_colors = {"gen": "tab:orange", "cip": "tab:blue", "tri": "tab:green"}
 
-    # 各CSVファイルからデータを読み込み、薬剤ごとに結合
     for csv_file in csv_files:
         if not os.path.exists(csv_file):
             print(f"CSVファイル {csv_file} が存在しません。")
             continue
         with open(csv_file, mode="r", newline="") as f:
             reader = csv.reader(f)
-            header = next(reader, None)  # ヘッダーがある場合はスキップ
+            header = next(reader, None)
             for row in reader:
                 try:
                     x, y, _ = map(float, row)
-                    # ファイル名から薬剤種を判定
                     file_lower = os.path.basename(csv_file).lower()
                     if "gen" in file_lower:
                         drug_data["gen"]["xs"].append(x)
@@ -462,7 +434,6 @@ def plot_combined_n_dot_locations_for_drugs(
                 except ValueError:
                     continue
 
-    # プロット作成
     fig, ax = plt.subplots(figsize=(6, 6))
     for drug, data in drug_data.items():
         if data["xs"] and data["ys"]:
@@ -476,14 +447,195 @@ def plot_combined_n_dot_locations_for_drugs(
         else:
             print(f"{drug.upper()} のデータが不足しています。")
 
-    ax.set_title("Combined Dot Locations for Each Antibiotic")
-    ax.set_xlabel("Rel. X ")
-    ax.set_ylabel("Rel. Y ")
+    ax.set_title("Combined n1, n2, n3 Dot Locations for Each Antibiotic")
+    ax.set_xlabel("Rel. X")
+    ax.set_ylabel("Rel. Y")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.grid(True)
     ax.legend()
 
+    fig.savefig(output_path, dpi=300)
+    plt.close(fig)
+
+
+def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) -> None:
+    """
+    CSVファイル群から各ドットの Rel X, Rel Y のデータを読み込み、
+    各薬剤（gen, tri, cip）について、n1, n2, n3 のデータを結合し、
+    それぞれの Rel X および Rel Y に対するボックスプロットを描画します。
+
+    ボックスプロットは以下の統計量を示します:
+        - 第1四分位数 (Q1)
+        - 中央値 (Q2)
+        - 第3四分位数 (Q3)
+
+    数式:
+        $$ Q_1 = \text{25th percentile},\quad Q_2 = \text{median},\quad Q_3 = \text{75th percentile} $$
+
+    Latex生コード:
+        \[
+        Q_1 = \text{25th percentile}
+        \]
+        \[
+        Q_2 = \text{median}
+        \]
+        \[
+        Q_3 = \text{75th percentile}
+        \]
+
+    Parameters:
+        csv_files (list[str]): 結合対象のCSVファイルのリスト。ファイル名には薬剤種（gen, tri, cip）および n 番号（n1, n2, n3）が含まれている必要があります。
+        output_path (str): 作成するボックスプロット画像の保存先パス。
+    """
+    drug_data: dict[str, dict[str, list[float]]] = {
+        "gen": {"xs": [], "ys": []},
+        "tri": {"xs": [], "ys": []},
+        "cip": {"xs": [], "ys": []},
+    }
+
+    for csv_file in csv_files:
+        if not os.path.exists(csv_file):
+            print(f"CSVファイル {csv_file} が存在しません。")
+            continue
+        with open(csv_file, mode="r", newline="") as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            for row in reader:
+                try:
+                    x, y, _ = map(float, row)
+                    file_lower = os.path.basename(csv_file).lower()
+                    if "gen" in file_lower:
+                        drug_data["gen"]["xs"].append(x)
+                        drug_data["gen"]["ys"].append(y)
+                    elif "tri" in file_lower:
+                        drug_data["tri"]["xs"].append(x)
+                        drug_data["tri"]["ys"].append(y)
+                    elif "cip" in file_lower:
+                        drug_data["cip"]["xs"].append(x)
+                        drug_data["cip"]["ys"].append(y)
+                    else:
+                        print(
+                            f"CSVファイル {csv_file} から薬剤種を判定できませんでした。"
+                        )
+                except ValueError:
+                    continue
+
+    drugs = ["gen", "tri", "cip"]
+    data_x = [drug_data[d]["xs"] for d in drugs]
+    data_y = [drug_data[d]["ys"] for d in drugs]
+
+    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 6))
+
+    # Boxplot for Rel X
+    bp1 = ax1.boxplot(data_x, patch_artist=True, labels=[d.upper() for d in drugs])
+    drug_colors = {"gen": "tab:orange", "tri": "tab:green", "cip": "tab:blue"}
+    for patch, drug in zip(bp1["boxes"], drugs):
+        patch.set_facecolor(drug_colors[drug])
+    ax1.set_title("Box Plot of Rel. X (normalized)")
+    ax1.set_ylabel("Rel. X (normalized)")
+    ax1.grid(True)
+
+    # Boxplot for Rel Y
+    bp2 = ax2.boxplot(data_y, patch_artist=True, labels=[d.upper() for d in drugs])
+    for patch, drug in zip(bp2["boxes"], drugs):
+        patch.set_facecolor(drug_colors[drug])
+    ax2.set_title("Box Plot of Rel. Y (normalized)")
+    ax2.set_ylabel("Rel. Y (normalized)")
+    ax2.grid(True)
+
+    fig.suptitle("Combined n1, n2, n3 Box Plots for Each Antibiotic")
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    fig.savefig(output_path, dpi=300)
+    plt.close(fig)
+
+
+def plot_combined_n_violin_for_drugs(csv_files: list[str], output_path: str) -> None:
+    """
+    CSVファイル群から各ドットの Rel X, Rel Y のデータを読み込み、
+    各薬剤（gen, tri, cip）について、n1, n2, n3 のデータを結合し、
+    それぞれの Rel X および Rel Y に対するバイオリンプロットを描画します。
+
+    バイオリンプロットは、データの分布をカーネル密度推定 (Kernel Density Estimate, KDE) により視覚化します。
+
+    数式 (KDE の概念):
+        $$ \hat{f}(x) = \frac{1}{nh} \sum_{i=1}^{n} K\left(\frac{x-x_i}{h}\right) $$
+
+    Latex生コード:
+        \[
+        \hat{f}(x) = \frac{1}{nh} \sum_{i=1}^{n} K\left(\frac{x-x_i}{h}\right)
+        \]
+
+    Parameters:
+        csv_files (list[str]): 結合対象のCSVファイルのリスト。ファイル名には薬剤種（gen, tri, cip）および n 番号（n1, n2, n3）が含まれている必要があります。
+        output_path (str): 作成するバイオリンプロット画像の保存先パス。
+    """
+    drug_data: dict[str, dict[str, list[float]]] = {
+        "gen": {"xs": [], "ys": []},
+        "tri": {"xs": [], "ys": []},
+        "cip": {"xs": [], "ys": []},
+    }
+
+    for csv_file in csv_files:
+        if not os.path.exists(csv_file):
+            print(f"CSVファイル {csv_file} が存在しません。")
+            continue
+        with open(csv_file, mode="r", newline="") as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            for row in reader:
+                try:
+                    x, y, _ = map(float, row)
+                    file_lower = os.path.basename(csv_file).lower()
+                    if "gen" in file_lower:
+                        drug_data["gen"]["xs"].append(x)
+                        drug_data["gen"]["ys"].append(y)
+                    elif "tri" in file_lower:
+                        drug_data["tri"]["xs"].append(x)
+                        drug_data["tri"]["ys"].append(y)
+                    elif "cip" in file_lower:
+                        drug_data["cip"]["xs"].append(x)
+                        drug_data["cip"]["ys"].append(y)
+                    else:
+                        print(
+                            f"CSVファイル {csv_file} から薬剤種を判定できませんでした。"
+                        )
+                except ValueError:
+                    continue
+
+    drugs = ["gen", "tri", "cip"]
+    data_x = [drug_data[d]["xs"] for d in drugs]
+    data_y = [drug_data[d]["ys"] for d in drugs]
+
+    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 6))
+
+    # Violin plot for Rel X
+    parts_x = ax1.violinplot(data_x, showmedians=True, showmeans=False)
+    drug_colors = {"gen": "tab:orange", "tri": "tab:green", "cip": "tab:blue"}
+    for i, body in enumerate(parts_x["bodies"]):
+        body.set_facecolor(drug_colors[drugs[i]])
+        body.set_edgecolor("black")
+        body.set_alpha(0.7)
+    ax1.set_title("Violin Plot of Rel. X (normalized)")
+    ax1.set_ylabel("Rel. X (normalized)")
+    ax1.set_xticks(np.arange(1, len(drugs) + 1))
+    ax1.set_xticklabels([d.upper() for d in drugs])
+    ax1.grid(True)
+
+    # Violin plot for Rel Y
+    parts_y = ax2.violinplot(data_y, showmedians=True, showmeans=False)
+    for i, body in enumerate(parts_y["bodies"]):
+        body.set_facecolor(drug_colors[drugs[i]])
+        body.set_edgecolor("black")
+        body.set_alpha(0.7)
+    ax2.set_title("Violin Plot of Rel. Y (normalized)")
+    ax2.set_ylabel("Rel. Y (normalized)")
+    ax2.set_xticks(np.arange(1, len(drugs) + 1))
+    ax2.set_xticklabels([d.upper() for d in drugs])
+    ax2.grid(True)
+
+    fig.suptitle("Combined n1, n2, n3 Violin Plots for Each Antibiotic")
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
     fig.savefig(output_path, dpi=300)
     plt.close(fig)
 
@@ -509,7 +661,6 @@ if __name__ == "__main__":
         if i.endswith(".csv")
     ]
     paths.sort(key=sort_key)
-    print(paths)
     for path in paths:
         print(f"CSVファイル {path} から散布図を作成しています...")
         output = path.replace(".csv", ".png")
@@ -527,6 +678,17 @@ if __name__ == "__main__":
         f"120minデータのエラーバー付き平均位置グラフを {avg_err_output_file} に保存しました。"
     )
 
+    # n1, n2, n3 のデータを結合した散布図の保存
     plot_combined_n_dot_locations_for_drugs(
         paths, os.path.join(csv_directory, "combined_n_dot_locations.png")
     )
+
+    # n1, n2, n3 の結合データに対するボックスプロットの保存
+    boxplot_output_file = os.path.join(csv_directory, "combined_n_boxplot.png")
+    plot_combined_n_boxplot_for_drugs(paths, boxplot_output_file)
+    print(f"ボックスプロットを {boxplot_output_file} に保存しました。")
+
+    # n1, n2, n3 の結合データに対するバイオリンプロットの保存
+    violin_output_file = os.path.join(csv_directory, "combined_n_violin.png")
+    plot_combined_n_violin_for_drugs(paths, violin_output_file)
+    print(f"バイオリンプロットを {violin_output_file} に保存しました。")
