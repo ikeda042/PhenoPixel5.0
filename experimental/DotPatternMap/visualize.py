@@ -549,26 +549,28 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
 
     fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(18, 6))
 
-    # Seabornのboxplotを用いてRel Xのプロット
+    # Seabornのboxplotを用いてRel Xのプロット（widthを狭く指定）
     sns.boxplot(
         x="Drug",
         y="RelX",
         data=df_x,
         order=["GEN", "TRI", "CIP"],
         palette=drug_colors,
+        width=0.5,
         ax=ax1,
     )
     ax1.set_title("Box Plot of Rel. X")
     ax1.set_ylabel("Rel. X ")
     ax1.grid(True)
 
-    # Seabornのboxplotを用いてRel Yのプロット
+    # Seabornのboxplotを用いてRel Yのプロット（widthを狭く指定）
     sns.boxplot(
         x="Drug",
         y="RelY",
         data=df_y,
         order=["GEN", "TRI", "CIP"],
         palette=drug_colors,
+        width=0.5,
         ax=ax2,
         showfliers=False,
     )
@@ -609,8 +611,8 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
             marker = significance_marker(p)
             y_max = max(max(group1), max(group2))
             offset = 0.02 * (idx + 1)
-            y = y_max + offset
-            add_stat_annotation(ax1, i, j, y, 0.005, f"p={p:.3g}\n{marker}")
+            y_coord = y_max + offset
+            add_stat_annotation(ax1, i, j, y_coord, 0.005, f"p={p:.3g}\n{marker}")
 
     # Rel Yについての統計的有意差の注釈（ax2）
     for idx, (i, j) in enumerate(pairs):
@@ -622,8 +624,8 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
             marker = significance_marker(p)
             y_max = max(max(group1), max(group2))
             offset = 0.02 * (idx + 1)
-            y = y_max + offset
-            add_stat_annotation(ax2, i, j, y, 0.005, f"p={p:.3g}\n{marker}")
+            y_coord = y_max + offset
+            add_stat_annotation(ax2, i, j, y_coord, 0.005, f"p={p:.3g}\n{marker}")
 
     fig.suptitle("Combined Box Plots for Each Antibiotic")
     fig.tight_layout(rect=[0, 0, 1, 0.95])
