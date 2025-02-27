@@ -396,6 +396,98 @@ def plot_combined_average_dot_locations_with_errorbars(
     plt.close(fig)
 
 
+def plot_combined_n_dot_locations_for_drugs(
+    csv_files: list[str], output_path: str
+) -> None:
+    """
+    CSVファイル群から各ドットのRel X, Rel Yのデータを読み込み、
+    各薬剤（gen, tri, cip）について、n1, n2, n3のデータを結合して散布図を作成します。
+
+    数式:
+        各ドットの位置は既に正規化されたRel X, Rel Yの値で表されています。
+
+    Latex生コード:
+        \[
+        \text{Rel X (normalized)}
+        \]
+        \[
+        \text{Rel Y (normalized)}
+        \]
+
+    Parameters:
+        csv_files (list[str]): 結合対象のCSVファイルのリスト。ファイル名には薬剤種（gen, tri, cip）およびn番号（n1, n2, n3）が含まれている必要があります。
+        output_path (str): 作成するグラフ画像の保存先パス。
+    """
+    import csv
+    import os
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # 薬剤ごとのデータを保持する辞書
+    drug_data: dict[str, dict[str, list[float]]] = {
+        "gen": {"xs": [], "ys": []},
+        "tri": {"xs": [], "ys": []},
+        "cip": {"xs": [], "ys": []},
+    }
+
+    # 薬剤ごとの色のマッピング
+    drug_colors = {"gen": "orange", "tri": "green", "cip": "blue"}
+
+    # 各CSVファイルからデータを読み込み、薬剤ごとに結合
+    for csv_file in csv_files:
+        if not os.path.exists(csv_file):
+            print(f"CSVファイル {csv_file} が存在しません。")
+            continue
+        with open(csv_file, mode="r", newline="") as f:
+            reader = csv.reader(f)
+            header = next(reader, None)  # ヘッダーがある場合はスキップ
+            for row in reader:
+                try:
+                    x, y, _ = map(float, row)
+                    # ファイル名から薬剤種を判定
+                    file_lower = os.path.basename(csv_file).lower()
+                    if "gen" in file_lower:
+                        drug_data["gen"]["xs"].append(x)
+                        drug_data["gen"]["ys"].append(y)
+                    elif "tri" in file_lower:
+                        drug_data["tri"]["xs"].append(x)
+                        drug_data["tri"]["ys"].append(y)
+                    elif "cip" in file_lower:
+                        drug_data["cip"]["xs"].append(x)
+                        drug_data["cip"]["ys"].append(y)
+                    else:
+                        print(
+                            f"CSVファイル {csv_file} から薬剤種を判定できませんでした。"
+                        )
+                except ValueError:
+                    continue
+
+    # プロット作成
+    fig, ax = plt.subplots(figsize=(6, 6))
+    for drug, data in drug_data.items():
+        if data["xs"] and data["ys"]:
+            ax.scatter(
+                data["xs"],
+                data["ys"],
+                s=30,
+                c=drug_colors[drug],
+                label=f"{drug.upper()} Combined",
+            )
+        else:
+            print(f"{drug.upper()} のデータが不足しています。")
+
+    ax.set_title("Combined n1, n2, n3 Dot Locations for Each Drug")
+    ax.set_xlabel("Rel. X (normalized)")
+    ax.set_ylabel("Rel. Y (normalized)")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.grid(True)
+    ax.legend()
+
+    fig.savefig(output_path, dpi=300)
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     # CSVファイルが保存されているディレクトリのパス（例: experimental/DotPatternMap/images）
     csv_directory = "experimental/DotPatternMap/images"
@@ -433,4 +525,8 @@ if __name__ == "__main__":
     )
     print(
         f"120minデータのエラーバー付き平均位置グラフを {avg_err_output_file} に保存しました。"
+    )
+
+    plot_combined_n_dot_locations_for_drugs(
+        paths, os.path.join(csv_directory, "combined_n_dot_locations.png")
     )
