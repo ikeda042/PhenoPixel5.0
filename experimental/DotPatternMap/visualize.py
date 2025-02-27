@@ -471,12 +471,12 @@ def plot_combined_n_dot_locations_for_drugs(
                 data["ys"],
                 s=20,
                 c=drug_colors[drug],
-                label=f"{drug.upper()} (n1, n2, n3) combined",
+                label=f"{drug.upper()}",
             )
         else:
             print(f"{drug.upper()} のデータが不足しています。")
 
-    ax.set_title("Combined n1, n2, n3 Dot Locations for Each Drug")
+    ax.set_title("Combined n1, n2, n3 Dot Locations for Each Antibiotic")
     ax.set_xlabel("Rel. X ")
     ax.set_ylabel("Rel. Y ")
     ax.set_xlim(0, 1)
