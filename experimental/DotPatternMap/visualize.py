@@ -564,6 +564,7 @@ def plot_combined_n_boxplot_for_antibiotics(
     )
     ax1.set_title("Box Plot of Rel. X")
     ax1.set_ylabel("Rel. X ", fontsize=16)
+    ax1.set_xlabel("Antibiotic", fontsize=16)
     ax1.grid(True)
 
     # Seabornのboxplotを用いてRel Yのプロット（外れ値を表示しない）
@@ -579,6 +580,7 @@ def plot_combined_n_boxplot_for_antibiotics(
     )
     ax2.set_title("Box Plot of Rel. Y")
     ax2.set_ylabel("Rel. Y ", fontsize=16)
+    ax2.set_xlabel("Antibiotic", fontsize=16)
     ax2.grid(True)
 
     # ヘルパー関数：p値に応じた有意性マーカーを返す
