@@ -459,10 +459,12 @@ def plot_combined_n_dot_locations_for_drugs(
     plt.close(fig)
 
 
-def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) -> None:
+def plot_combined_n_boxplot_for_antibiotics(
+    csv_files: list[str], output_path: str
+) -> None:
     """
     CSVファイル群から各ドットの Rel X, Rel Y のデータを読み込み、
-    各薬剤（gen, tri, cip）について、n1, n2, n3 のデータを結合し、
+    各抗生物質（gen, tri, cip）について、n1, n2, n3 のデータを結合し、
     それぞれの Rel X および Rel Y に対するボックスプロットをSeabornで描画し、
     各群間の統計的有意差を p 値とアスタリスクで示します。
 
@@ -486,7 +488,7 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
         \]
 
     Parameters:
-        csv_files (list[str]): 結合対象のCSVファイルのリスト。ファイル名には薬剤種（gen, tri, cip）および n 番号（n1, n2, n3）が含まれている必要があります。
+        csv_files (list[str]): 結合対象のCSVファイルのリスト。ファイル名には抗生物質種（gen, tri, cip）および n 番号（n1, n2, n3）が含まれている必要があります。
         output_path (str): 作成するボックスプロット画像の保存先パス。
     """
     import os
@@ -497,8 +499,8 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
     import seaborn as sns
     from scipy.stats import ttest_ind
 
-    # 薬剤ごとのデータを保持する辞書
-    drug_data: dict[str, dict[str, list[float]]] = {
+    # 抗生物質ごとのデータを保持する辞書
+    antibiotic_data: dict[str, dict[str, list[float]]] = {
         "gen": {"xs": [], "ys": []},
         "tri": {"xs": [], "ys": []},
         "cip": {"xs": [], "ys": []},
@@ -517,65 +519,65 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
                     x, y, _ = map(float, row)
                     file_lower = os.path.basename(csv_file).lower()
                     if "gen" in file_lower:
-                        drug_data["gen"]["xs"].append(x)
-                        drug_data["gen"]["ys"].append(y)
+                        antibiotic_data["gen"]["xs"].append(x)
+                        antibiotic_data["gen"]["ys"].append(y)
                     elif "tri" in file_lower:
-                        drug_data["tri"]["xs"].append(x)
-                        drug_data["tri"]["ys"].append(y)
+                        antibiotic_data["tri"]["xs"].append(x)
+                        antibiotic_data["tri"]["ys"].append(y)
                     elif "cip" in file_lower:
-                        drug_data["cip"]["xs"].append(x)
-                        drug_data["cip"]["ys"].append(y)
+                        antibiotic_data["cip"]["xs"].append(x)
+                        antibiotic_data["cip"]["ys"].append(y)
                     else:
                         print(
-                            f"CSVファイル {csv_file} から薬剤種を判定できませんでした。"
+                            f"CSVファイル {csv_file} から抗生物質種を判定できませんでした。"
                         )
                 except ValueError:
                     continue
 
-    drugs = ["gen", "tri", "cip"]
+    antibiotics = ["gen", "tri", "cip"]
     # DataFrameを作成（Rel X, Rel Yそれぞれ）
     records_x = []
     records_y = []
-    for drug in drugs:
-        for val in drug_data[drug]["xs"]:
-            records_x.append({"Drug": drug.upper(), "RelX": val})
-        for val in drug_data[drug]["ys"]:
-            records_y.append({"Drug": drug.upper(), "RelY": val})
+    for antibiotic in antibiotics:
+        for val in antibiotic_data[antibiotic]["xs"]:
+            records_x.append({"Antibiotic": antibiotic.upper(), "RelX": val})
+        for val in antibiotic_data[antibiotic]["ys"]:
+            records_y.append({"Antibiotic": antibiotic.upper(), "RelY": val})
     df_x = pd.DataFrame(records_x)
     df_y = pd.DataFrame(records_y)
 
     # カラーパレットの設定
-    drug_colors = {"GEN": "tab:orange", "TRI": "tab:green", "CIP": "tab:blue"}
+    antibiotic_colors = {"GEN": "tab:orange", "TRI": "tab:green", "CIP": "tab:blue"}
 
     fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(18, 8))
 
     # Seabornのboxplotを用いてRel Xのプロット（widthを狭く指定）
     sns.boxplot(
-        x="Drug",
+        x="Antibiotic",
         y="RelX",
         data=df_x,
         order=["GEN", "TRI", "CIP"],
-        palette=drug_colors,
+        palette=antibiotic_colors,
         width=0.5,
         ax=ax1,
     )
     ax1.set_title("Box Plot of Rel. X")
-    ax1.set_ylabel("Rel. X ")
+    ax1.set_ylabel("Rel. X ", fontsize=16)
     ax1.grid(True)
 
     # Seabornのboxplotを用いてRel Yのプロット（widthを狭く指定）
     sns.boxplot(
-        x="Drug",
+        x="Antibiotic",
         y="RelY",
         data=df_y,
         order=["GEN", "TRI", "CIP"],
-        palette=drug_colors,
+        palette=antibiotic_colors,
         width=0.5,
         ax=ax2,
         showfliers=False,
     )
-    ax2.set_title("Box Plot of Rel. Y ")
-    ax2.set_ylabel("Rel. Y ")
+    ax2.set_title("Box Plot of Rel. Y")
+    ax2.set_ylabel("Rel. Y ", fontsize=16)
     ax2.grid(True)
 
     # ヘルパー関数：p値に応じた有意性マーカーを返す
@@ -597,8 +599,8 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
         ax.text((x1 + x2) * 0.5, y + h, text, ha="center", va="bottom", color="k")
 
     # Seabornのboxplot上のカテゴリのx位置は0,1,2の順序に対応
-    data_x = [drug_data[d]["xs"] for d in drugs]
-    data_y = [drug_data[d]["ys"] for d in drugs]
+    data_x = [antibiotic_data[a]["xs"] for a in antibiotics]
+    data_y = [antibiotic_data[a]["ys"] for a in antibiotics]
     pairs = [(0, 1), (0, 2), (1, 2)]
 
     # Rel Xについての統計的有意差の注釈（ax1）
@@ -768,7 +770,7 @@ if __name__ == "__main__":
 
     # n1, n2, n3 の結合データに対するボックスプロットの保存
     boxplot_output_file = os.path.join(csv_directory, "combined_n_boxplot.png")
-    plot_combined_n_boxplot_for_drugs(paths, boxplot_output_file)
+    plot_combined_n_boxplot_for_antibiotics(paths, boxplot_output_file)
     print(f"ボックスプロットを {boxplot_output_file} に保存しました。")
 
     # n1, n2, n3 の結合データに対するバイオリンプロットの保存
