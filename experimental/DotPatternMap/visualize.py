@@ -70,9 +70,6 @@ def plot_combined_dot_locations_from_csv(csv_path: str, output_path: str) -> Non
     plt.close(fig)
 
 
-# 使用例:
-# plot_combined_dot_locations_from_csv("experimental/DotPatternMap/images/dbName_dot_positions.csv",
-#                                        "experimental/DotPatternMap/images/dbName_combined_dot_locations_from_csv.png")
 if __name__ == "__main__":
     path = "experimental/DotPatternMap/images/sk326tri30min_dot_positions.csv"
     output = "experimental/DotPatternMap/images/sk326tri30min_combined_dot_locations_from_csv.png"
