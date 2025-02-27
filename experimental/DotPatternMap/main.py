@@ -643,6 +643,8 @@ def process_dot_locations(db_name: str):
 
     全てのデータポイントを絶対座標（abs）として扱い、x, y は画像サイズで正規化して (0, 1) の範囲で描画します。
     """
+    import csv  # CSV出力に必要なモジュール
+
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
     if not os.path.exists(dot_loc_dir):
@@ -671,9 +673,13 @@ def process_dot_locations(db_name: str):
                 x, y, brightness = dot
                 # 絶対座標での正規化 (0, 1) の範囲にする:
                 # $$ \text{norm}_x = \frac{x}{w},\quad \text{norm}_y = \frac{y}{h} $$
-                # LaTeXコード:
-                # norm_x = x / w
-                # norm_y = y / h
+                # Latex生コード:
+                # \[
+                # \text{norm}_x = \frac{x}{w}
+                # \]
+                # \[
+                # \text{norm}_y = \frac{y}{h}
+                # \]
                 norm_x = x / w
                 norm_y = y / h
                 normalized_dots.append((norm_x, norm_y, brightness))
@@ -749,8 +755,6 @@ def process_dot_locations(db_name: str):
             va="center",
             transform=ax.transAxes,
         )
-    # ax.axhline(0.5, color="gray", linestyle="--")
-    # ax.axvline(0.5, color="gray", linestyle="--")
     title = f"{db_name} Dot Locations with Brightness"
     ax.set_title(title)
     ax.set_xlabel("Rel. X (normalized)")
@@ -760,11 +764,21 @@ def process_dot_locations(db_name: str):
     ax.grid(True)
     ax.legend()
 
-    fig.savefig(
-        f"experimental/DotPatternMap/images/{db_name}_combined_dot_locations.png",
-        dpi=300,
+    combined_heatmap_path = (
+        f"experimental/DotPatternMap/images/{db_name}_combined_dot_locations.png"
     )
+    fig.savefig(combined_heatmap_path, dpi=300)
     plt.close(fig)
+
+    # CSVとしてRel X, Rel Yの位置（Brightnessも含む）を保存
+    csv_path = f"experimental/DotPatternMap/images/{db_name}_dot_positions.csv"
+    with open(csv_path, mode="w", newline="") as csv_file:
+        csv_writer = csv.writer(csv_file)
+        # ヘッダー行（Brightnessの列が不要の場合は削除してください）
+        csv_writer.writerow(["Rel_X", "Rel_Y", "Brightness"])
+        for dot in all_normalized_dots:
+            csv_writer.writerow(dot)
+    print(f"Dot positions saved to {csv_path}")
 
 
 def combine_dot_loc_combined_images():
