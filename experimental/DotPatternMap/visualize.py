@@ -55,7 +55,7 @@ def plot_combined_dot_locations_from_csv(csv_path: str, output_path: str) -> Non
             s=30,
             label="IbpA-GFP relative position",
         )
-        plt.colorbar(sc, ax=ax, label="IbpA-GFP Intensity (normalized)")
+        # plt.colorbar(sc, ax=ax, label="IbpA-GFP Intensity (normalized)")
     else:
         ax.text(
             0.5,
