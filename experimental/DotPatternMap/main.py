@@ -938,6 +938,149 @@ def clean_directory(dir_path: str) -> None:
                 os.remove(full_item)
 
 
+def process_dot_locations_relative(db_name: str) -> None:
+    """
+    experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
+    detect_dot() を用いてドットの中心座標と輝度を取得し、
+    各画像ごとに個別の散布図を保存します。
+    また、全画像のドット位置と輝度をまとめたヒートマップをscatterプロットで表示します。
+
+    ここでは、各画像のドット位置を画像サイズで正規化した後、
+    中心 (0.5, 0.5) を原点とした相対座標（4象限）としてプロットします。
+
+    数式:
+        \[
+        \text{rel}_x = \frac{x}{w} - 0.5
+        \]
+        \[
+        \text{rel}_y = \frac{y}{h} - 0.5
+        \]
+
+    Latex生コード:
+        \[
+        \text{rel}_x = \frac{x}{w} - 0.5
+        \]
+        \[
+        \text{rel}_y = \frac{y}{h} - 0.5
+        \]
+    """
+    import csv  # CSV出力用
+    import os
+    import cv2
+    import matplotlib.pyplot as plt
+    import matplotlib.colors
+
+    map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
+    dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
+    if not os.path.exists(dot_loc_dir):
+        os.makedirs(dot_loc_dir)
+
+    all_relative_dots: list[tuple[float, float, float]] = (
+        []
+    )  # (rel_x, rel_y, brightness)
+
+    for filename in os.listdir(map64_raw_dir):
+        if filename.endswith(".png"):
+            image_path = os.path.join(map64_raw_dir, filename)
+            print(f"Processing {filename} (relative coordinates)")
+            # detect_dot() でドットの(x, y, brightness)を取得
+            dots = detect_dot(image_path)
+
+            image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+            if image is None:
+                continue
+            h, w = image.shape
+
+            relative_dots = []
+            for dot in dots:
+                x, y, brightness = dot
+                # 絶対座標を正規化した後、中心 (0.5, 0.5) を原点にする
+                norm_x = x / w
+                norm_y = y / h
+                rel_x = norm_x - 0.5
+                rel_y = norm_y - 0.5
+                relative_dots.append((rel_x, rel_y, brightness))
+            all_relative_dots.extend(relative_dots)
+
+            # 個別の散布図作成（各画像ごと）
+            fig, ax = plt.subplots(figsize=(4, 4))
+            if relative_dots:
+                xs = [p[0] for p in relative_dots]
+                ys = [p[1] for p in relative_dots]
+                # 輝度は0-255の値を0-1に正規化して色で表現
+                brightness_vals = [p[2] / 255 for p in relative_dots]
+                sc = ax.scatter(
+                    xs, ys, c=brightness_vals, cmap="Blues", s=30, label="Dot"
+                )
+                plt.colorbar(sc, ax=ax, label="Brightness")
+            else:
+                ax.text(
+                    0.5,
+                    0.5,
+                    "No dot detected",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
+            # x=0, y=0に補助線を追加（中心線）
+            ax.axhline(0, color="gray", linestyle="--")
+            ax.axvline(0, color="gray", linestyle="--")
+            ax.set_title(f"Relative Dot Locations for {filename}")
+            ax.set_xlabel("Rel. X (centered)")
+            ax.set_ylabel("Rel. Y (centered)")
+            # 中心を原点とした座標系（例：-0.6〜0.6）
+            ax.set_xlim(-0.6, 0.6)
+            ax.set_ylim(-0.6, 0.6)
+            ax.grid(True)
+            ax.legend()
+
+            plot_save_path = os.path.join(dot_loc_dir, f"relative_{filename}")
+            fig.savefig(plot_save_path, dpi=300)
+            plt.close(fig)
+            print(f"Processed {filename}: {relative_dots}")
+
+    # 全画像のドット位置と輝度をまとめたヒートマップ作成
+    fig, ax = plt.subplots(figsize=(6, 6))
+    if all_relative_dots:
+        xs = [p[0] for p in all_relative_dots]
+        ys = [p[1] for p in all_relative_dots]
+        brightness_vals = [p[2] / 255 for p in all_relative_dots]
+        sc = ax.scatter(
+            xs, ys, c=brightness_vals, cmap="jet", s=30, label="Relative Dot"
+        )
+        plt.colorbar(sc, ax=ax, label="Brightness")
+    else:
+        ax.text(
+            0.5,
+            0.5,
+            "No dots detected",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+        )
+    title = f"{db_name} Relative Dot Locations (Centered)"
+    ax.set_title(title)
+    ax.set_xlabel("Rel. X (centered)")
+    ax.set_ylabel("Rel. Y (centered)")
+    ax.set_xlim(-0.6, 0.6)
+    ax.set_ylim(-0.6, 0.6)
+    ax.grid(True)
+    ax.legend()
+
+    combined_heatmap_path = f"experimental/DotPatternMap/images/{db_name}_combined_relative_dot_locations.png"
+    fig.savefig(combined_heatmap_path, dpi=300)
+    plt.close(fig)
+
+    # CSVとして相対座標（中心原点）でのドット位置と輝度を保存
+    csv_path = f"experimental/DotPatternMap/images/{db_name}_relative_dot_positions.csv"
+    with open(csv_path, mode="w", newline="") as csv_file:
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow(["Rel_X", "Rel_Y", "Brightness"])
+        for dot in all_relative_dots:
+            csv_writer.writerow(dot)
+    print(f"Relative dot positions saved to {csv_path}")
+
+
 if __name__ == "__main__":
 
     # experimental/DotPatternMap内の.dbファイルに対して処理を実行
@@ -967,3 +1110,5 @@ if __name__ == "__main__":
             db_name = i.split("/")[-1].replace(".db", "")
             process_dot_locations(db_name=db_name)
             combine_dot_loc_combined_images()
+            process_dot_locations_relative(db_name=db_name)
+            print("+++++++++++++++++++++++++++++++++++++++++")
