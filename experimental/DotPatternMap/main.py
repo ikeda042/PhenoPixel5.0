@@ -1012,7 +1012,7 @@ def process_dot_locations_relative(db_name: str) -> None:
                 sc = ax.scatter(
                     xs, ys, c=brightness_vals, cmap="Blues", s=30, label="Dot"
                 )
-                plt.colorbar(sc, ax=ax, label="Brightness")
+                plt.colorbar(sc, ax=ax, label="Brightness(Normalized)")
             else:
                 ax.text(
                     0.5,
@@ -1025,7 +1025,7 @@ def process_dot_locations_relative(db_name: str) -> None:
             # x=0, y=0に補助線を追加（中心線）
             ax.axhline(0, color="gray", linestyle="--")
             ax.axvline(0, color="gray", linestyle="--")
-            ax.set_title(f"Relative Dot Locations for {filename}")
+            # ax.set_title(f"Relative Dot Locations for {filename}")
             ax.set_xlabel("Rel. X (centered)")
             ax.set_ylabel("Rel. Y (centered)")
             # 中心を原点とした座標系（例：-0.6〜0.6）
@@ -1035,7 +1035,7 @@ def process_dot_locations_relative(db_name: str) -> None:
             ax.legend()
 
             plot_save_path = os.path.join(dot_loc_dir, f"relative_{filename}")
-            fig.savefig(plot_save_path, dpi=300)
+            fig.savefig(plot_save_path, dpi=500)
             plt.close(fig)
             print(f"Processed {filename}: {relative_dots}")
 
