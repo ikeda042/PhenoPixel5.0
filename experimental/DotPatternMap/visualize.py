@@ -471,14 +471,14 @@ def plot_combined_n_dot_locations_for_drugs(
                 data["ys"],
                 s=30,
                 c=drug_colors[drug],
-                label=f"{drug.upper()} Combined",
+                label=f"{drug.upper()} (n1, n2, n3) combined",
             )
         else:
             print(f"{drug.upper()} のデータが不足しています。")
 
     ax.set_title("Combined n1, n2, n3 Dot Locations for Each Drug")
-    ax.set_xlabel("Rel. X (normalized)")
-    ax.set_ylabel("Rel. Y (normalized)")
+    ax.set_xlabel("Rel. X ")
+    ax.set_ylabel("Rel. Y ")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.grid(True)
