@@ -463,7 +463,7 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
     """
     CSVファイル群から各ドットの Rel X, Rel Y のデータを読み込み、
     各薬剤（gen, tri, cip）について、n1, n2, n3 のデータを結合し、
-    それぞれの Rel X および Rel Y に対するボックスプロットを描画し、
+    それぞれの Rel X および Rel Y に対するボックスプロットをSeabornで描画し、
     各群間の統計的有意差を p 値とアスタリスクで示します。
 
     ボックスプロットは以下の統計量を示します:
@@ -493,6 +493,8 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
     import csv
     import matplotlib.pyplot as plt
     import numpy as np
+    import pandas as pd
+    import seaborn as sns
     from scipy.stats import ttest_ind
 
     # 薬剤ごとのデータを保持する辞書
@@ -530,24 +532,44 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
                     continue
 
     drugs = ["gen", "tri", "cip"]
-    data_x = [drug_data[d]["xs"] for d in drugs]
-    data_y = [drug_data[d]["ys"] for d in drugs]
+    # DataFrameを作成（Rel X, Rel Yそれぞれ）
+    records_x = []
+    records_y = []
+    for drug in drugs:
+        for val in drug_data[drug]["xs"]:
+            records_x.append({"Drug": drug.upper(), "RelX": val})
+        for val in drug_data[drug]["ys"]:
+            records_y.append({"Drug": drug.upper(), "RelY": val})
+    df_x = pd.DataFrame(records_x)
+    df_y = pd.DataFrame(records_y)
+
+    # カラーパレットの設定
+    drug_colors = {"GEN": "tab:orange", "TRI": "tab:green", "CIP": "tab:blue"}
 
     fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 6))
 
-    # Boxplot for Rel X
-    bp1 = ax1.boxplot(data_x, patch_artist=True, labels=[d.upper() for d in drugs])
-    drug_colors = {"gen": "tab:orange", "tri": "tab:green", "cip": "tab:blue"}
-    for patch, drug in zip(bp1["boxes"], drugs):
-        patch.set_facecolor(drug_colors[drug])
+    # Seabornのboxplotを用いてRel Xのプロット
+    sns.boxplot(
+        x="Drug",
+        y="RelX",
+        data=df_x,
+        order=["GEN", "TRI", "CIP"],
+        palette=drug_colors,
+        ax=ax1,
+    )
     ax1.set_title("Box Plot of Rel. X (normalized)")
     ax1.set_ylabel("Rel. X (normalized)")
     ax1.grid(True)
 
-    # Boxplot for Rel Y
-    bp2 = ax2.boxplot(data_y, patch_artist=True, labels=[d.upper() for d in drugs])
-    for patch, drug in zip(bp2["boxes"], drugs):
-        patch.set_facecolor(drug_colors[drug])
+    # Seabornのboxplotを用いてRel Yのプロット
+    sns.boxplot(
+        x="Drug",
+        y="RelY",
+        data=df_y,
+        order=["GEN", "TRI", "CIP"],
+        palette=drug_colors,
+        ax=ax2,
+    )
     ax2.set_title("Box Plot of Rel. Y (normalized)")
     ax2.set_ylabel("Rel. Y (normalized)")
     ax2.grid(True)
@@ -570,7 +592,9 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
         ax.plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.5, c="k")
         ax.text((x1 + x2) * 0.5, y + h, text, ha="center", va="bottom", color="k")
 
-    # 比較する群のペア（boxplotのx軸は1,2,3）
+    # Seabornのboxplot上のカテゴリのx位置は0,1,2の順序に対応
+    data_x = [drug_data[d]["xs"] for d in drugs]
+    data_y = [drug_data[d]["ys"] for d in drugs]
     pairs = [(0, 1), (0, 2), (1, 2)]
 
     # Rel Xについての統計的有意差の注釈（ax1）
@@ -581,11 +605,10 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
             stat = ttest_ind(group1, group2)
             p = stat.pvalue
             marker = significance_marker(p)
-            # 2群の最大値にオフセットを加えた位置に線を描く
             y_max = max(max(group1), max(group2))
             offset = 0.02 * (idx + 1)
             y = y_max + offset
-            add_stat_annotation(ax1, i + 1, j + 1, y, 0.005, f"p={p:.3g}\n{marker}")
+            add_stat_annotation(ax1, i, j, y, 0.005, f"p={p:.3g}\n{marker}")
 
     # Rel Yについての統計的有意差の注釈（ax2）
     for idx, (i, j) in enumerate(pairs):
@@ -598,7 +621,7 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
             y_max = max(max(group1), max(group2))
             offset = 0.02 * (idx + 1)
             y = y_max + offset
-            add_stat_annotation(ax2, i + 1, j + 1, y, 0.005, f"p={p:.3g}\n{marker}")
+            add_stat_annotation(ax2, i, j, y, 0.005, f"p={p:.3g}\n{marker}")
 
     fig.suptitle("Combined n1, n2, n3 Box Plots for Each Antibiotic with Significance")
     fig.tight_layout(rect=[0, 0, 1, 0.95])
