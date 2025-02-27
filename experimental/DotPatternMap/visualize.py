@@ -136,10 +136,10 @@ def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
 
     fig, ax = plt.subplots(figsize=(10, 10))
     scatter = ax.scatter(avg_xs, avg_ys, s=10, c="red", label="Average Position")
-    for i, label in enumerate(labels):
-        ax.annotate(
-            label, (avg_xs[i], avg_ys[i]), textcoords="offset points", xytext=(5, 5)
-        )
+    # for i, label in enumerate(labels):
+    #     ax.annotate(
+    #         label, (avg_xs[i], avg_ys[i]), textcoords="offset points", xytext=(5, 5)
+    #     )
     ax.set_title("Combined Average Dot Locations")
     ax.set_xlabel("Rel. X (normalized)")
     ax.set_ylabel("Rel. Y (normalized)")
