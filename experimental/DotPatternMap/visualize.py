@@ -547,7 +547,7 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
     # カラーパレットの設定
     drug_colors = {"GEN": "tab:orange", "TRI": "tab:green", "CIP": "tab:blue"}
 
-    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(18, 6))
+    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(18, 8))
 
     # Seabornのboxplotを用いてRel Xのプロット（widthを狭く指定）
     sns.boxplot(
