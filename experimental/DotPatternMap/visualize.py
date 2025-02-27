@@ -120,7 +120,7 @@ def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
         return
 
     # 薬剤ごとの色のマッピング
-    drug_colors = {"gen": "orange", "cip": "blue", "tri": "green"}
+    drug_colors = {"gen": "tab:orange", "cip": "tab:blue", "tri": "tab:green"}
 
     # 薬剤ごとに平均値のデータを格納する辞書
     drug_data: dict[str, dict[str, list]] = {
@@ -262,14 +262,14 @@ def plot_combined_cv_dot_locations(csv_dir: str, output_path: str) -> None:
         x_indices - bar_width / 2,
         cv_xs,
         width=bar_width,
-        color="blue",
+        color="tab:blue",
         label="CV of Rel. X",
     )
     bars2 = ax.bar(
         x_indices + bar_width / 2,
         cv_ys,
         width=bar_width,
-        color="green",
+        color="tab:green",
         label="CV of Rel. Y",
     )
 
@@ -361,7 +361,7 @@ def plot_combined_average_dot_locations_with_errorbars(
             print(f"CSVファイル {file} から十分なデータが読み込めませんでした。")
 
     # 薬剤ごとの平均値と標準偏差を計算し、エラーバー付きでプロット
-    drug_colors = {"gen": "orange", "cip": "blue", "tri": "green"}
+    drug_colors = {"gen": "tab:orange", "cip": "tab:blue", "tri": "tab:green"}
     fig, ax = plt.subplots(figsize=(8, 8))
 
     for drug in ["gen", "cip", "tri"]:
@@ -431,7 +431,7 @@ def plot_combined_n_dot_locations_for_drugs(
     }
 
     # 薬剤ごとの色のマッピング
-    drug_colors = {"gen": "orange", "tri": "green", "cip": "blue"}
+    drug_colors = {"gen": "tab:orange", "cip": "tab:blue", "tri": "tab:green"}
 
     # 各CSVファイルからデータを読み込み、薬剤ごとに結合
     for csv_file in csv_files:
