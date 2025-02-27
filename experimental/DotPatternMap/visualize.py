@@ -3,6 +3,24 @@ import csv
 import matplotlib.pyplot as plt
 import statistics
 import numpy as np
+import re
+
+drug_order = {"gen": 0, "tri": 1, "cip": 2}
+
+
+def sort_key(file: str) -> tuple[int, int]:
+    """
+    ファイル名から薬剤種と時間を抽出し、
+    (薬剤の順序, 時間) のタプルを返します。
+    """
+    basename = os.path.basename(file)
+    # パターン: sk326(薬剤種)(時間)min 例: sk326gen30min_dot_positions.csv
+    m = re.search(r"sk326(gen|tri|cip)(\d+)min", basename)
+    if m:
+        drug = m.group(1)
+        time_val = int(m.group(2))
+        return drug_order[drug], time_val
+    return (99, 0)  # 該当しない場合は末尾に
 
 
 def plot_combined_dot_locations_from_csv(csv_path: str, output_path: str) -> None:
@@ -25,8 +43,6 @@ def plot_combined_dot_locations_from_csv(csv_path: str, output_path: str) -> Non
         csv_path (str): 入力となるCSVファイルのパス。
         output_path (str): 作成するグラフ画像の保存先パス。
     """
-    import csv
-    import matplotlib.pyplot as plt
     import matplotlib.colors
 
     dots: list[tuple[float, float, float]] = []
@@ -98,13 +114,20 @@ def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
         output_path (str): 作成するグラフ画像の保存先パス。
     """
     file_names: list[str] = [f for f in os.listdir(csv_dir) if f.endswith(".csv")]
+    file_names.sort(key=sort_key)
     if not file_names:
         print("指定されたディレクトリにCSVファイルが見つかりませんでした。")
         return
 
-    labels: list[str] = []
-    avg_xs: list[float] = []
-    avg_ys: list[float] = []
+    # 薬剤ごとの色のマッピング
+    drug_colors = {"gen": "orange", "cip": "blue", "tri": "green"}
+
+    # 薬剤ごとに平均値のデータを格納する辞書
+    drug_data: dict[str, dict[str, list]] = {
+        "gen": {"xs": [], "ys": [], "labels": []},
+        "cip": {"xs": [], "ys": [], "labels": []},
+        "tri": {"xs": [], "ys": [], "labels": []},
+    }
 
     for file in file_names:
         csv_path = os.path.join(csv_dir, file)
@@ -124,22 +147,37 @@ def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
         if xs and ys:
             avg_x = sum(xs) / len(xs)
             avg_y = sum(ys) / len(ys)
-            avg_xs.append(avg_x)
-            avg_ys.append(avg_y)
-            labels.append(file.replace(".csv", ""))
+            # ファイル名から薬剤種を判定
+            file_lower = file.lower()
+            drug = None
+            for key in ["gen", "cip", "tri"]:
+                if key in file_lower:
+                    drug = key
+                    break
+            if drug is None:
+                drug = "gen"  # 薬剤種が判定できない場合はgenとする
+            drug_data[drug]["xs"].append(avg_x)
+            drug_data[drug]["ys"].append(avg_y)
+            drug_data[drug]["labels"].append(file.replace(".csv", ""))
         else:
             print(f"CSVファイル {file} からデータが読み込めませんでした。")
 
-    if not avg_xs or not avg_ys:
+    # 有効なデータがあるか確認
+    if not any(len(drug_data[d]["xs"]) > 0 for d in drug_data):
         print("有効なデータがありませんでした。")
         return
 
     fig, ax = plt.subplots(figsize=(10, 10))
-    scatter = ax.scatter(avg_xs, avg_ys, s=50, c="red", label="Average Position")
-    # for i, label in enumerate(labels):
-    #     ax.annotate(
-    #         label, (avg_xs[i], avg_ys[i]), textcoords="offset points", xytext=(5, 5)
-    #     )
+    # 薬剤ごとに散布図をプロット
+    for drug in ["gen", "cip", "tri"]:
+        if drug_data[drug]["xs"]:
+            ax.scatter(
+                drug_data[drug]["xs"],
+                drug_data[drug]["ys"],
+                s=50,
+                c=drug_colors[drug],
+                label=f"{drug.upper()} Average Position",
+            )
     ax.set_title("Combined Average Dot Locations")
     ax.set_xlabel("Rel. X (normalized)")
     ax.set_ylabel("Rel. Y (normalized)")
@@ -173,6 +211,7 @@ def plot_combined_cv_dot_locations(csv_dir: str, output_path: str) -> None:
         output_path (str): 作成するグラフ画像の保存先パス。
     """
     file_names: list[str] = [f for f in os.listdir(csv_dir) if f.endswith(".csv")]
+    file_names.sort(key=sort_key)
     if not file_names:
         print("指定されたディレクトリにCSVファイルが見つかりませんでした。")
         return
@@ -262,13 +301,14 @@ if __name__ == "__main__":
 
     # 各ドットの位置情報の散布図の保存先
     paths = [
-        f"experimental/DotPatternMap/images/{i}"
+        os.path.join(csv_directory, i)
         for i in os.listdir(csv_directory)
         if i.endswith(".csv")
     ]
+    paths.sort(key=sort_key)
+    print(paths)
     for path in paths:
         print(f"CSVファイル {path} から散布図を作成しています...")
-        print(path)
         output = path.replace(".csv", ".png")
         plot_combined_dot_locations_from_csv(path, output)
         print(f"散布図を {output} に保存しました。")
