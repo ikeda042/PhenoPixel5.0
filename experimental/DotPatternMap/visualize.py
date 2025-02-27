@@ -463,7 +463,8 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
     """
     CSVファイル群から各ドットの Rel X, Rel Y のデータを読み込み、
     各薬剤（gen, tri, cip）について、n1, n2, n3 のデータを結合し、
-    それぞれの Rel X および Rel Y に対するボックスプロットを描画します。
+    それぞれの Rel X および Rel Y に対するボックスプロットを描画し、
+    各群間の統計的有意差を p 値とアスタリスクで示します。
 
     ボックスプロットは以下の統計量を示します:
         - 第1四分位数 (Q1)
@@ -488,6 +489,13 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
         csv_files (list[str]): 結合対象のCSVファイルのリスト。ファイル名には薬剤種（gen, tri, cip）および n 番号（n1, n2, n3）が含まれている必要があります。
         output_path (str): 作成するボックスプロット画像の保存先パス。
     """
+    import os
+    import csv
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from scipy.stats import ttest_ind
+
+    # 薬剤ごとのデータを保持する辞書
     drug_data: dict[str, dict[str, list[float]]] = {
         "gen": {"xs": [], "ys": []},
         "tri": {"xs": [], "ys": []},
@@ -544,7 +552,55 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
     ax2.set_ylabel("Rel. Y (normalized)")
     ax2.grid(True)
 
-    fig.suptitle("Combined n1, n2, n3 Box Plots for Each Antibiotic")
+    # ヘルパー関数：p値に応じた有意性マーカーを返す
+    def significance_marker(p: float) -> str:
+        if p < 0.001:
+            return "***"
+        elif p < 0.01:
+            return "**"
+        elif p < 0.05:
+            return "*"
+        else:
+            return "ns"
+
+    # ヘルパー関数：統計的有意差の線とテキストを描画する
+    def add_stat_annotation(
+        ax: plt.Axes, x1: float, x2: float, y: float, h: float, text: str
+    ) -> None:
+        ax.plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.5, c="k")
+        ax.text((x1 + x2) * 0.5, y + h, text, ha="center", va="bottom", color="k")
+
+    # 比較する群のペア（boxplotのx軸は1,2,3）
+    pairs = [(0, 1), (0, 2), (1, 2)]
+
+    # Rel Xについての統計的有意差の注釈（ax1）
+    for idx, (i, j) in enumerate(pairs):
+        group1 = data_x[i]
+        group2 = data_x[j]
+        if group1 and group2:
+            stat = ttest_ind(group1, group2)
+            p = stat.pvalue
+            marker = significance_marker(p)
+            # 2群の最大値にオフセットを加えた位置に線を描く
+            y_max = max(max(group1), max(group2))
+            offset = 0.02 * (idx + 1)
+            y = y_max + offset
+            add_stat_annotation(ax1, i + 1, j + 1, y, 0.005, f"p={p:.3g}\n{marker}")
+
+    # Rel Yについての統計的有意差の注釈（ax2）
+    for idx, (i, j) in enumerate(pairs):
+        group1 = data_y[i]
+        group2 = data_y[j]
+        if group1 and group2:
+            stat = ttest_ind(group1, group2)
+            p = stat.pvalue
+            marker = significance_marker(p)
+            y_max = max(max(group1), max(group2))
+            offset = 0.02 * (idx + 1)
+            y = y_max + offset
+            add_stat_annotation(ax2, i + 1, j + 1, y, 0.005, f"p={p:.3g}\n{marker}")
+
+    fig.suptitle("Combined n1, n2, n3 Box Plots for Each Antibiotic with Significance")
     fig.tight_layout(rect=[0, 0, 1, 0.95])
     fig.savefig(output_path, dpi=300)
     plt.close(fig)
