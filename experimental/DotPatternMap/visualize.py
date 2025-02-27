@@ -1,8 +1,32 @@
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+sns.set()
+
+
+def box_plot_function(
+    data: list[np.ndarray] | list[float | int],
+    labels: list[str],
+    xlabel: str,
+    ylabel: str,
+    save_name: str,
+) -> None:
+    fig = plt.figure(figsize=[10, 7])
+    plt.boxplot(data, sym="")
+    for i, d in enumerate(data, start=1):
+        x = np.random.normal(i, 0.04, size=len(d))
+        plt.plot(x, d, "o", alpha=0.5)
+    plt.xticks([i + 1 for i in range(len(data))], [f"{i}" for i in labels])
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(True)
+    fig.savefig(f"{save_name}.png", dpi=500)
+
+
 import os
 import csv
-import matplotlib.pyplot as plt
 import statistics
-import numpy as np
 import re
 
 drug_order = {"gen": 0, "tri": 1, "cip": 2}
@@ -396,6 +420,68 @@ def plot_combined_average_dot_locations_with_errorbars(
     plt.close(fig)
 
 
+def plot_boxplots_for_rel_axes(csv_files: list[str]) -> None:
+    """
+    CSVファイル群から各ドットのRel X, Rel Yのデータを読み込み、
+    各CSVファイルごとの箱ひげ図を作成し、
+    Rel XとRel Yそれぞれに対して別々の箱ひげ図を生成して保存します。
+
+    Parameters:
+        csv_files (list[str]): 箱ひげ図作成対象のCSVファイルのリスト。
+    """
+    import csv
+    import os
+    import numpy as np
+
+    rel_x_data: list[np.ndarray] = []
+    rel_y_data: list[np.ndarray] = []
+    labels: list[str] = []
+
+    for csv_file in csv_files:
+        with open(csv_file, mode="r", newline="") as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            x_vals: list[float] = []
+            y_vals: list[float] = []
+            for row in reader:
+                try:
+                    x, y, _ = map(float, row)
+                    x_vals.append(x)
+                    y_vals.append(y)
+                except ValueError:
+                    continue
+            if x_vals and y_vals:
+                rel_x_data.append(np.array(x_vals))
+                rel_y_data.append(np.array(y_vals))
+                label = os.path.basename(csv_file).replace(".csv", "")
+                labels.append(label)
+            else:
+                print(
+                    f"CSVファイル {csv_file} から有効なデータが読み込めませんでした。"
+                )
+
+    # Rel X の箱ひげ図
+    box_plot_function(
+        rel_x_data,
+        labels,
+        xlabel="Sample",
+        ylabel="Rel. X",
+        save_name=os.path.join(
+            "experimental/DotPatternMap/images", "combined_rel_x_boxplot"
+        ),
+    )
+    # Rel Y の箱ひげ図
+    box_plot_function(
+        rel_y_data,
+        labels,
+        xlabel="Sample",
+        ylabel="Rel. Y",
+        save_name=os.path.join(
+            "experimental/DotPatternMap/images", "combined_rel_y_boxplot"
+        ),
+    )
+
+
 if __name__ == "__main__":
     # CSVファイルが保存されているディレクトリのパス（例: experimental/DotPatternMap/images）
     csv_directory = "experimental/DotPatternMap/images"
@@ -434,3 +520,18 @@ if __name__ == "__main__":
     print(
         f"120minデータのエラーバー付き平均位置グラフを {avg_err_output_file} に保存しました。"
     )
+
+    # --- 新たに追加：各CSVファイルごとのRel X, Rel Yの箱ひげ図を作成 ---
+    boxplot_files = [
+        "experimental/DotPatternMap/images/sk326gen120min_n3-completed_dot_positions.csv",
+        "experimental/DotPatternMap/images/sk326gen120min_dot_positions.csv",
+        "experimental/DotPatternMap/images/sk326gen120min_n2-completed_dot_positions.csv",
+        "experimental/DotPatternMap/images/sk326tri120min_dot_positions.csv",
+        "experimental/DotPatternMap/images/sk326tri120min_n2-completed_dot_positions.csv",
+        "experimental/DotPatternMap/images/sk326tri120min_n3-completed_dot_positions.csv",
+        "experimental/DotPatternMap/images/sk326cip120min_n2-completed_dot_positions.csv",
+        "experimental/DotPatternMap/images/sk326cip120min_dot_positions.csv",
+        "experimental/DotPatternMap/images/sk326cip120min_n3-completed_dot_positions.csv",
+    ]
+    plot_boxplots_for_rel_axes(boxplot_files)
+    print("Rel XおよびRel Yの箱ひげ図を作成しました。")
