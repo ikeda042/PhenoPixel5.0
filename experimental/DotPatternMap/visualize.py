@@ -167,7 +167,7 @@ def plot_combined_average_dot_locations(csv_dir: str, output_path: str) -> None:
         print("有効なデータがありませんでした。")
         return
 
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=(6, 6))
     # 薬剤ごとに散布図をプロット
     for drug in ["gen", "cip", "tri"]:
         if drug_data[drug]["xs"]:
