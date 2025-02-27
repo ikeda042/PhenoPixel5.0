@@ -547,7 +547,7 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
     # カラーパレットの設定
     drug_colors = {"GEN": "tab:orange", "TRI": "tab:green", "CIP": "tab:blue"}
 
-    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, 6))
+    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(18, 6))
 
     # Seabornのboxplotを用いてRel Xのプロット
     sns.boxplot(
@@ -558,8 +558,8 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
         palette=drug_colors,
         ax=ax1,
     )
-    ax1.set_title("Box Plot of Rel. X (normalized)")
-    ax1.set_ylabel("Rel. X (normalized)")
+    ax1.set_title("Box Plot of Rel. X")
+    ax1.set_ylabel("Rel. X ")
     ax1.grid(True)
 
     # Seabornのboxplotを用いてRel Yのプロット
@@ -572,8 +572,8 @@ def plot_combined_n_boxplot_for_drugs(csv_files: list[str], output_path: str) ->
         ax=ax2,
         showfliers=False,
     )
-    ax2.set_title("Box Plot of Rel. Y (normalized)")
-    ax2.set_ylabel("Rel. Y (normalized)")
+    ax2.set_title("Box Plot of Rel. Y ")
+    ax2.set_ylabel("Rel. Y ")
     ax2.grid(True)
 
     # ヘルパー関数：p値に応じた有意性マーカーを返す
