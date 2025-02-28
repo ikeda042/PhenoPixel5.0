@@ -15,6 +15,8 @@ import TimelapseParser from "./components/TimelapseParser";
 import ResultsConsole from "./components/ResultsConsole";
 import TimelapseDatabases from "./components/TimelapseDatabases";
 import TimelapseViewer from "./components/TimelapseCellOverview";
+import Login from "./components/Login";
+import UserInfo from "./components/Userinfo";
 // ↑ 必要なコンポーネントをインポート
 
 /* --------------------------------
@@ -170,6 +172,22 @@ function App() {
               </Box>
             }
           />
+            <Route
+              path="/login"
+              element={
+                <Box component="main" sx={{ p: 1 }}>
+                  <Login />
+                </Box>
+              }
+            />
+            <Route
+              path="/user_info"
+              element={
+                <Box component="main" sx={{ p: 1 }}>
+                  <UserInfo />
+                </Box>
+              }
+            />
           </Routes>
         </Router>
       ) : (

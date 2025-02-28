@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -14,6 +14,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import AccountCircle from '@mui/icons-material/AccountCircle';
 import { settings } from '../settings';
 
 interface Props {
@@ -27,10 +28,14 @@ const navItems = [""];
 export default function Nav(props: Props) {
     const { window } = props;
     const [mobileOpen, setMobileOpen] = React.useState(false);
+    const navigate = useNavigate();
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
     };
+
+    // ローカルストレージにaccess_tokenが存在すればログイン状態とする
+    const isLoggedIn = Boolean(localStorage.getItem("access_token"));
 
     const drawer = (
         <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
@@ -69,7 +74,11 @@ export default function Nav(props: Props) {
                         <MenuIcon />
                     </IconButton>
                     <Link to="/" style={{ textDecoration: 'none', color: '#000' }}>
-                        <Typography variant="h5" component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', color: '#000' }}>
+                        <Typography
+                            variant="h5"
+                            component="div"
+                            sx={{ display: 'flex', alignItems: 'center', color: '#000' }}
+                        >
                             <Box
                                 component="img"
                                 sx={{
@@ -83,6 +92,7 @@ export default function Nav(props: Props) {
                             {props.title}
                         </Typography>
                     </Link>
+                    {/* ロゴと右側アイコン群の間にスペーサーを配置 */}
                     <Box sx={{ flexGrow: 1 }} />
                     <IconButton
                         color="inherit"
@@ -109,6 +119,19 @@ export default function Nav(props: Props) {
                     >
                         <GitHubIcon />
                     </IconButton>
+                    {isLoggedIn ? (
+                        <IconButton
+                            color="inherit"
+                            onClick={() => navigate("/user_info")}
+                            sx={{ color: '#000' }}
+                        >
+                            <AccountCircle fontSize="large" />
+                        </IconButton>
+                    ) : (
+                        <Link to="/login" style={{ textDecoration: 'none', color: '#000' }}>
+                            <Typography variant="body1" sx={{ mr: 2 }}>Login</Typography>
+                        </Link>
+                    )}
                 </Toolbar>
             </AppBar>
             <Drawer
@@ -125,7 +148,7 @@ export default function Nav(props: Props) {
                 {drawer}
             </Drawer>
 
-            {/* NavBarの下にコンテンツを表示するために Toolbar() を配置 */}
+            {/* NavBarの下にコンテンツを表示するために Toolbar を配置 */}
             <Box component="main" sx={{ p: 1 }}>
                 <Toolbar />
             </Box>
