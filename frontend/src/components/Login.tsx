@@ -36,7 +36,6 @@ const Login: React.FC = () => {
       const data = await response.json();
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("refresh_token", data.refresh_token);
-      // ログイン成功後、"/" に遷移（{ replace: true } を使用して履歴を置き換え）
       navigate("/", { replace: true });
     } catch (err: unknown) {
       if (err instanceof Error) {
