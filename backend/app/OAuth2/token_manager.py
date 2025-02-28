@@ -93,7 +93,7 @@ async def parse_and_validate_refresh_token(
         )
     except JWTError:
         raise InvalidRefreshToken
-    stmt = select(select(RefreshToken.id).filter_by(id=payload.jti).exists())
+    stmt = select(select(RefreshTokenModel.id).filter_by(id=payload.jti).exists())
     ex = (await db.execute(stmt)).scalar()
     if ex is not True:
         raise InvalidRefreshToken
@@ -104,14 +104,14 @@ async def invalidate_refresh_token(
     db: AsyncSession, refresh_token: RefreshToken
 ) -> None:
     await db.execute(
-        delete(RefreshToken)
+        delete(RefreshTokenModel)
         .where(
             or_(
                 and_(
-                    RefreshToken.user_id == refresh_token.sub,
-                    RefreshToken.exp < int(time()),
+                    RefreshTokenModel.user_id == refresh_token.sub,
+                    RefreshTokenModel.exp < int(time()),
                 ),
-                RefreshToken.id == refresh_token.jti,
+                RefreshTokenModel.id == refresh_token.jti,
             )
         )
         .execution_options(synchronize_session=False)
