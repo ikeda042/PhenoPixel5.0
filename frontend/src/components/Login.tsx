@@ -49,7 +49,7 @@ const Login: React.FC = () => {
   return (
     <Box
       sx={{
-        backgroundColor: "#f5f5f5",
+        backgroundColor: "#000",
         minHeight: "100vh",
         display: "flex",
         justifyContent: "center",
@@ -63,11 +63,11 @@ const Login: React.FC = () => {
           padding: 4,
           maxWidth: 400,
           width: "100%",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#000",
           borderRadius: 2,
         }}
       >
-        <Typography variant="h4" sx={{ mb: 3, textAlign: "center", color: "#333" }}>
+        <Typography variant="h4" sx={{ mb: 3, textAlign: "center", color: "#fff" }}>
           Login
         </Typography>
         <form onSubmit={handleSubmit}>
@@ -78,6 +78,16 @@ const Login: React.FC = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             margin="normal"
+            sx={{
+              backgroundColor: "#000",
+              input: { color: "#fff" },
+              "& .MuiInputLabel-root": { color: "#fff" },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "#fff" },
+                "&:hover fieldset": { borderColor: "#fff" },
+                "&.Mui-focused fieldset": { borderColor: "#fff" },
+              },
+            }}
           />
           <TextField
             label="Password"
@@ -87,6 +97,16 @@ const Login: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             margin="normal"
+            sx={{
+              backgroundColor: "#000",
+              input: { color: "#fff" },
+              "& .MuiInputLabel-root": { color: "#fff" },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "#fff" },
+                "&:hover fieldset": { borderColor: "#fff" },
+                "&.Mui-focused fieldset": { borderColor: "#fff" },
+              },
+            }}
           />
           {error && (
             <Typography variant="body2" color="error" sx={{ mt: 1 }}>
@@ -99,8 +119,8 @@ const Login: React.FC = () => {
             fullWidth
             sx={{
               mt: 3,
-              backgroundColor: "#1976d2",
-              "&:hover": { backgroundColor: "#1565c0" },
+              backgroundColor: "#000",
+              "&:hover": { backgroundColor: "#333" },
             }}
           >
             Login
