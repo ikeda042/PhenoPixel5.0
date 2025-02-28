@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends
 from .schemas import Tokens, UserCreate
-from .login_manager import authorize
+from .login_manager import authorize, get_account
 from .crud import UserCrud
 from .database import get_session
+from fastapi.security import SecurityScopes
 
 router_oauth2 = APIRouter(prefix="/oauth2", tags=["oauth2"])
 
@@ -19,3 +20,8 @@ async def register(user: UserCreate, session=Depends(get_session)):
     await UserCrud.create(session, **user.dict())
     user = await UserCrud.get_by_handle(session, user.handle_id)
     return user
+
+
+@router_oauth2.get("/protected", description="保護されたエンドポイント")
+async def protected(account=Depends(get_account)):
+    return {"account": account.dict()}
