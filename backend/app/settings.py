@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     login_fail_count_max: int = 5
     login_lock_hour: int = 1
     jwt_secret: str = ""
+    refresh_token_expire: int = 60 * 60 * 24 * 30
 
     class Config:
         env_file = ".env"
