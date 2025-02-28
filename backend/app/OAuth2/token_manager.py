@@ -3,7 +3,7 @@ from time import time
 from jose import jwt, JWTError
 from sqlalchemy import delete, or_, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..settings import settings
+from settings import settings
 from .database import get_ulid
 from .database import RefreshToken
 from .schemas import AccessToken, RefreshToken, Account
