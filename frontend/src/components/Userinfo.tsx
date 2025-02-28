@@ -150,12 +150,8 @@ const UserInfo: React.FC = () => {
           </Select>
         </FormControl>
 
-        {/* ユーザー情報の表示 */}
         {selectedMenu === "info" && (
           <>
-            <Typography variant="h4" component="h2" gutterBottom>
-              ユーザー情報
-            </Typography>
             {error && (
               <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
                 {error}
