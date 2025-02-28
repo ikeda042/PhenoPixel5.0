@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     jwt_secret: str = ""
     refresh_token_exp: int = 60 * 60 * 24 * 30
     access_token_exp: int = 60 * 60
+    server_origin: str = "http://localhost:8000"
 
     class Config:
         env_file = ".env"

@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timedelta
 from fastapi import Depends, Header
 from fastapi.security import SecurityScopes, OAuth2PasswordBearer
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from argon2 import PasswordHasher
@@ -35,6 +35,7 @@ from .exceptions import (
 from .types import Scope
 from .exceptions import UserNotFound
 from .database import User, RefreshToken
+from typing import Union
 
 auth_scheme = OAuth2PasswordBearer(
     tokenUrl=f"/token",
@@ -44,7 +45,9 @@ auth_scheme = OAuth2PasswordBearer(
 
 
 async def auth_form(form_data: OAuth2RequestForm = Depends()):
-    return parse_obj_as(OAuth2PasswordRequest | OAuth2RefreshRequest, form_data)
+    form_data_dict = vars(form_data)
+    adapter = TypeAdapter(Union[OAuth2PasswordRequest, OAuth2RefreshRequest])
+    return adapter.validate_python(form_data_dict)
 
 
 ph = PasswordHasher()
