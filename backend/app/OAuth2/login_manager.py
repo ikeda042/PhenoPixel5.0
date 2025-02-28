@@ -34,7 +34,7 @@ from .exceptions import (
 )
 from .types import Scope
 from .exceptions import UserNotFound
-from ..database import models
+from .database import User, RefreshToken
 
 auth_scheme = OAuth2PasswordBearer(
     tokenUrl=f"/token",
@@ -63,7 +63,7 @@ async def verify_password(
 
 async def verify_user(db: AsyncSession, handle_id: str, password: str) -> str:
     user = (
-        await db.scalars(select(models.User).where(models.User.handle_id == handle_id))
+        await db.scalars(select(User).where(User.handle_id == handle_id))
     ).one_or_none()
     if user is None:
         raise UserNotFound
@@ -83,7 +83,7 @@ async def verify_user(db: AsyncSession, handle_id: str, password: str) -> str:
 
 
 async def create_account(db: AsyncSession, user_id: str, scopes: set[Scope]) -> Account:
-    user = await db.get(models.User, user_id)
+    user = await db.get(User, user_id)
     if user is None:
         raise UserNotFound
 
