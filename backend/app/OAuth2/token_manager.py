@@ -50,21 +50,24 @@ async def create_refresh_token_from_account(
     refresh_token, refresh_token_payload = create_refresh_token(
         data={
             "sub": account.id,
-            "scopes": list(account.scopes),
+            "scopes": list(account.scopes),  # ここで list に変換していますが…
             "hid": account.handle_id,
         },
         expire_limit=expire_limit,
+    )
+    # refresh_token_payload.scopes が list だけでなく set の場合にも対応するため、
+    # どちらの場合も list に変換してカンマ区切りの文字列に変換
+    scopes_str = (
+        ",".join(list(refresh_token_payload.scopes))
+        if isinstance(refresh_token_payload.scopes, (list, set))
+        else refresh_token_payload.scopes
     )
     db.add(
         RefreshTokenModel(
             id=refresh_token_payload.jti,
             exp=refresh_token_payload.exp,
             user_id=refresh_token_payload.sub,
-            scopes=(
-                ",".join(refresh_token_payload.scopes)
-                if isinstance(refresh_token_payload.scopes, list)
-                else refresh_token_payload.scopes
-            ),
+            scopes=scopes_str,
         )
     )
     await db.commit()
