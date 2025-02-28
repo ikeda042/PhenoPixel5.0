@@ -137,3 +137,4 @@ wsproto==1.2.0
 xmltodict==0.14.2
 yarl==1.17.1
 pydantic-settings
+argon2-cffi
