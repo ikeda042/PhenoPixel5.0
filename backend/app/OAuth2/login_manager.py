@@ -39,7 +39,7 @@ from typing import Union
 from .crud import UserCrud
 
 auth_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"/token",
+    tokenUrl=f"{settings.API_PREFIX}/token",
     auto_error=False,
     scopes={"admin": Scope.admin, "me": Scope.me},
 )
