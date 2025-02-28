@@ -49,7 +49,7 @@ const Login: React.FC = () => {
   return (
     <Box
       sx={{
-        backgroundColor: "#000",
+        backgroundColor: "#fff",
         minHeight: "100vh",
         display: "flex",
         justifyContent: "center",
@@ -63,11 +63,11 @@ const Login: React.FC = () => {
           padding: 4,
           maxWidth: 400,
           width: "100%",
-          backgroundColor: "#000",
+          backgroundColor: "#fff",
           borderRadius: 2,
         }}
       >
-        <Typography variant="h4" sx={{ mb: 3, textAlign: "center", color: "#fff" }}>
+        <Typography variant="h4" sx={{ mb: 3, textAlign: "center", color: "#000" }}>
           Login
         </Typography>
         <form onSubmit={handleSubmit}>
@@ -79,13 +79,13 @@ const Login: React.FC = () => {
             onChange={(e) => setUsername(e.target.value)}
             margin="normal"
             sx={{
-              backgroundColor: "#000",
-              input: { color: "#fff" },
-              "& .MuiInputLabel-root": { color: "#fff" },
+              backgroundColor: "#fff",
+              input: { color: "#000" },
+              "& .MuiInputLabel-root": { color: "#000" },
               "& .MuiOutlinedInput-root": {
-                "& fieldset": { borderColor: "#fff" },
-                "&:hover fieldset": { borderColor: "#fff" },
-                "&.Mui-focused fieldset": { borderColor: "#fff" },
+                "& fieldset": { borderColor: "#000" },
+                "&:hover fieldset": { borderColor: "#000" },
+                "&.Mui-focused fieldset": { borderColor: "#000" },
               },
             }}
           />
@@ -98,13 +98,13 @@ const Login: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             margin="normal"
             sx={{
-              backgroundColor: "#000",
-              input: { color: "#fff" },
-              "& .MuiInputLabel-root": { color: "#fff" },
+              backgroundColor: "#fff",
+              input: { color: "#000" },
+              "& .MuiInputLabel-root": { color: "#000" },
               "& .MuiOutlinedInput-root": {
-                "& fieldset": { borderColor: "#fff" },
-                "&:hover fieldset": { borderColor: "#fff" },
-                "&.Mui-focused fieldset": { borderColor: "#fff" },
+                "& fieldset": { borderColor: "#000" },
+                "&:hover fieldset": { borderColor: "#000" },
+                "&.Mui-focused fieldset": { borderColor: "#000" },
               },
             }}
           />
@@ -119,8 +119,10 @@ const Login: React.FC = () => {
             fullWidth
             sx={{
               mt: 3,
-              backgroundColor: "#000",
-              "&:hover": { backgroundColor: "#333" },
+              backgroundColor: "#fff",
+              color: "#000",
+              border: "1px solid #000",
+              "&:hover": { backgroundColor: "#f0f0f0" },
             }}
           >
             Login
