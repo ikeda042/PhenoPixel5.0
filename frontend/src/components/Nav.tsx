@@ -37,13 +37,6 @@ export default function Nav(props: Props) {
     // ローカルストレージにaccess_tokenが存在すればログイン状態とする
     const isLoggedIn = Boolean(localStorage.getItem("access_token"));
 
-    const handleLogout = () => {
-        // トークンを削除してログアウト
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        navigate("/login", { replace: true });
-    };
-
     const drawer = (
         <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
             <Typography variant="h6" sx={{ my: 2 }}>
@@ -81,7 +74,11 @@ export default function Nav(props: Props) {
                         <MenuIcon />
                     </IconButton>
                     <Link to="/" style={{ textDecoration: 'none', color: '#000' }}>
-                        <Typography variant="h5" component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', color: '#000' }}>
+                        <Typography
+                            variant="h5"
+                            component="div"
+                            sx={{ display: 'flex', alignItems: 'center', color: '#000' }}
+                        >
                             <Box
                                 component="img"
                                 sx={{
@@ -95,20 +92,8 @@ export default function Nav(props: Props) {
                             {props.title}
                         </Typography>
                     </Link>
+                    {/* ロゴと右側アイコン群の間にスペーサーを配置 */}
                     <Box sx={{ flexGrow: 1 }} />
-                    {isLoggedIn ? (
-                        <IconButton
-                            color="inherit"
-                            onClick={handleLogout}
-                            sx={{ color: '#000' }}
-                        >
-                            <AccountCircle fontSize="large" />
-                        </IconButton>
-                    ) : (
-                        <Link to="/login" style={{ textDecoration: 'none', color: '#000' }}>
-                            <Typography variant="body1" sx={{ mr: 2 }}>Login</Typography>
-                        </Link>
-                    )}
                     <IconButton
                         color="inherit"
                         component="a"
@@ -134,6 +119,19 @@ export default function Nav(props: Props) {
                     >
                         <GitHubIcon />
                     </IconButton>
+                    {isLoggedIn ? (
+                        <IconButton
+                            color="inherit"
+                            onClick={() => navigate("/user_info")}
+                            sx={{ color: '#000' }}
+                        >
+                            <AccountCircle fontSize="large" />
+                        </IconButton>
+                    ) : (
+                        <Link to="/login" style={{ textDecoration: 'none', color: '#000' }}>
+                            <Typography variant="body1" sx={{ mr: 2 }}>Login</Typography>
+                        </Link>
+                    )}
                 </Toolbar>
             </AppBar>
             <Drawer
@@ -150,7 +148,7 @@ export default function Nav(props: Props) {
                 {drawer}
             </Drawer>
 
-            {/* NavBarの下にコンテンツを表示するために Toolbar() を配置 */}
+            {/* NavBarの下にコンテンツを表示するために Toolbar を配置 */}
             <Box component="main" sx={{ p: 1 }}>
                 <Toolbar />
             </Box>
