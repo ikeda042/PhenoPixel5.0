@@ -37,7 +37,9 @@ class RefreshToken(Base):
 async def get_session():
     dbname = "users.db"
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(base_dir, "OAuth2", dbname)
+    db_dir = os.path.join(base_dir, "OAuth2")
+    os.makedirs(db_dir, exist_ok=True)
+    db_path = os.path.join(db_dir, dbname)
     engine = create_async_engine(
         f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
     )
