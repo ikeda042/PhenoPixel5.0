@@ -77,3 +77,9 @@ class OAuth2RefreshRequest(BaseModelImmutableOrm):
 class UserCreate(BaseModel):
     handle_id: str
     password: str
+
+
+class UserResponse(BaseModelImmutableOrm):
+    id: str
+    handle_id: str
+    is_admin: bool
