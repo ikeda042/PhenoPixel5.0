@@ -4,14 +4,14 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import os
 import ulid
 
-Base = declarative_base()
+BaseAuth = declarative_base()
 
 
 def get_ulid() -> str:
     return ulid.new().str
 
 
-class User(Base):
+class User(BaseAuth):
     __tablename__ = "users"
     id = Column(String, primary_key=True)
     handle_id = Column(String, unique=True)
@@ -21,7 +21,7 @@ class User(Base):
     login_fail_count = Column(Integer, default=0, nullable=False)
 
 
-class RefreshToken(Base):
+class RefreshToken(BaseAuth):
     __tablename__ = "refresh_tokens"
     id = Column(String, primary_key=True, default=get_ulid)
     exp = Column(Integer, index=True)
