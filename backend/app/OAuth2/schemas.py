@@ -1,7 +1,7 @@
 from typing import Literal
 from fastapi import Form
 from .types import Scope, OAuthGrantType, TokenType
-from ..schemas import BaseModelImmutableOrm, BaseModelImmutable
+from .schemas import BaseModelImmutableOrm, BaseModelImmutable
 
 
 class Account(BaseModelImmutable):
