@@ -118,7 +118,7 @@ async def get_env():
 
 @app.get(f"{api_prefix}/protected")
 async def protected(
-    account: dict = Depends(get_account),
+    account=Depends(get_account),
 ):
     return {"account": account}
 
