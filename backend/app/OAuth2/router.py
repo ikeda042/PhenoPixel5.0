@@ -27,6 +27,15 @@ async def protected(account=Depends(get_account)):
     return {"account": account.dict()}
 
 
+@router_oauth2.get(
+    "/protected_optional", description="保護されたエンドポイント(オプション)"
+)
+async def protected_optional(account=Depends(get_account)):
+    if account is None:
+        return {"account": None}
+    return {"account": account.dict()}
+
+
 @router_oauth2.get("/me", description="自分の情報を取得するエンドポイント")
 async def me(account=Depends(get_account)):
     return {"account": account.dict()}
