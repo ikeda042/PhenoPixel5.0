@@ -4,9 +4,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from .database import User, get_ulid
 import asyncio
-from argon2 import PasswordHasher
-
-ph = PasswordHasher()
 
 
 class UserCrud:

@@ -29,13 +29,13 @@ from .exceptions import (
     InvalidPassword,
     NoToken,
     NotEnoughPermissions,
-    InvalidOrigin,
 )
 from .types import Scope
 from .exceptions import UserNotFound
 from .database import User
 from typing import Union
 from .crud import UserCrud
+from .utils import ph
 
 auth_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_PREFIX}/oauth2/token",
@@ -48,9 +48,6 @@ async def auth_form(form_data: OAuth2RequestForm = Depends()):
     form_data_dict = vars(form_data)
     adapter = TypeAdapter(Union[OAuth2PasswordRequest, OAuth2RefreshRequest])
     return adapter.validate_python(form_data_dict)
-
-
-ph = PasswordHasher()
 
 
 async def verify_password(
