@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, TextField, Button } from "@mui/material";
+import { Box, TextField, Button, Paper, Typography } from "@mui/material";
 import { settings } from "../settings";
 
 const url_prefix = settings.url_prefix;
@@ -23,7 +23,7 @@ const Login: React.FC = () => {
       const response = await fetch(`${url_prefix}/oauth2/token`, {
         method: "POST",
         headers: {
-          "Origin": "http://localhost:3000",  
+          "Origin": "http://localhost:3000",
         },
         body: formData,
       });
@@ -36,7 +36,8 @@ const Login: React.FC = () => {
       const data = await response.json();
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("refresh_token", data.refresh_token);
-      navigate("/user_info");
+      // ログイン成功後、"/" に遷移（{ replace: true } を使用して履歴を置き換え）
+      navigate("/", { replace: true });
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -49,34 +50,64 @@ const Login: React.FC = () => {
   return (
     <Box
       sx={{
+        backgroundColor: "#f5f5f5",
+        minHeight: "100vh",
         display: "flex",
-        flexDirection: "column",
+        justifyContent: "center",
         alignItems: "center",
-        mt: 8,
+        p: 2,
       }}
     >
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <TextField
-          label="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          margin="normal"
-          fullWidth
-        />
-        <TextField
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          margin="normal"
-          fullWidth
-        />
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
+      <Paper
+        elevation={3}
+        sx={{
+          padding: 4,
+          maxWidth: 400,
+          width: "100%",
+          backgroundColor: "#ffffff",
+          borderRadius: 2,
+        }}
+      >
+        <Typography variant="h4" sx={{ mb: 3, textAlign: "center", color: "#333" }}>
           Login
-        </Button>
-      </form>
+        </Typography>
+        <form onSubmit={handleSubmit}>
+          <TextField
+            label="Username"
+            variant="outlined"
+            fullWidth
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            margin="normal"
+          />
+          <TextField
+            label="Password"
+            variant="outlined"
+            type="password"
+            fullWidth
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            margin="normal"
+          />
+          {error && (
+            <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+              {error}
+            </Typography>
+          )}
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            sx={{
+              mt: 3,
+              backgroundColor: "#1976d2",
+              "&:hover": { backgroundColor: "#1565c0" },
+            }}
+          >
+            Login
+          </Button>
+        </form>
+      </Paper>
     </Box>
   );
 };
