@@ -4,8 +4,8 @@ from jose import jwt, JWTError
 from sqlalchemy import delete, or_, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..settings import settings
-from ..database.utils import get_ulid
-from ..database import models
+from .database import get_ulid
+from .database import User, RefreshToken
 from .schemas import AccessToken, RefreshToken, Account
 from .types import AccessTokenCreate, RefreshTokenCreate, TokenType
 from .exceptions import InvalidRefreshToken, InvalidAccessToken
@@ -56,7 +56,7 @@ async def create_refresh_token_from_account(
         expire_limit=expire_limit,
     )
     db.add(
-        models.RefreshToken(
+        RefreshToken(
             id=refresh_token_payload.jti,
             exp=refresh_token_payload.exp,
             user_id=refresh_token_payload.sub,
@@ -85,7 +85,7 @@ async def parse_and_validate_refresh_token(
         )
     except JWTError:
         raise InvalidRefreshToken
-    stmt = select(select(models.RefreshToken.id).filter_by(id=payload.jti).exists())
+    stmt = select(select(RefreshToken.id).filter_by(id=payload.jti).exists())
     ex = (await db.execute(stmt)).scalar()
     if ex is not True:
         raise InvalidRefreshToken
