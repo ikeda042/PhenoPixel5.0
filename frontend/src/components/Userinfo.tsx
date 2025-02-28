@@ -7,6 +7,8 @@ import {
   CircularProgress,
   Container,
   TextField,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { settings } from "../settings";
@@ -31,6 +33,10 @@ const UserInfo: React.FC = () => {
   const [passwordChangeLoading, setPasswordChangeLoading] =
     useState<boolean>(false);
 
+  // Menu の状態
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedMenu, setSelectedMenu] = useState<"info" | "password">("info");
+
   const navigate = useNavigate();
 
   const fetchUserInfo = async () => {
@@ -46,7 +52,7 @@ const UserInfo: React.FC = () => {
       const response = await fetch(`${url_prefix}/oauth2/me`, {
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       });
 
@@ -93,7 +99,7 @@ const UserInfo: React.FC = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           old_password: oldPassword,
@@ -124,6 +130,20 @@ const UserInfo: React.FC = () => {
     }
   };
 
+  // Menu 操作用の関数
+  const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleMenuSelect = (option: "info" | "password") => {
+    setSelectedMenu(option);
+    handleMenuClose();
+  };
+
   return (
     <Container maxWidth="sm">
       <Box
@@ -134,83 +154,119 @@ const UserInfo: React.FC = () => {
           mt: 8,
         }}
       >
-        <Typography variant="h4" component="h2" gutterBottom>
-          User Information
-        </Typography>
-        {error && (
-          <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        {loading ? (
-          <CircularProgress />
-        ) : userInfo ? (
-          <Box sx={{ width: "100%", textAlign: "left", mb: 2 }}>
-            <Typography variant="body1">
-              <strong>ID:</strong> {userInfo.id}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Username:</strong> {userInfo.handle_id}
-            </Typography>
-            <Typography variant="body1">
-              <strong>Scopes:</strong> {userInfo.scopes.join(", ")}
-            </Typography>
-          </Box>
-        ) : (
-          <Typography variant="body1">No user info available</Typography>
-        )}
-        <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
-          <Button variant="contained" color="primary" onClick={fetchUserInfo}>
-            Refresh
-          </Button>
-          <Button variant="outlined" color="secondary" onClick={handleLogout}>
-            Logout
-          </Button>
-        </Box>
+        {/* メニューを表示するボタン */}
+        <Button onClick={handleMenuOpen} variant="contained" color="primary">
+          メニュー
+        </Button>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+        >
+          <MenuItem onClick={() => handleMenuSelect("info")}>
+            ユーザー情報
+          </MenuItem>
+          <MenuItem onClick={() => handleMenuSelect("password")}>
+            パスワード変更
+          </MenuItem>
+        </Menu>
 
-        {/* パスワード変更フォーム */}
-        <Box sx={{ width: "100%", textAlign: "left" }}>
-          <Typography variant="h5" component="h3" gutterBottom>
-            Change Password
-          </Typography>
-          {passwordChangeError && (
-            <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
-              {passwordChangeError}
-            </Alert>
-          )}
-          {passwordChangeSuccess && (
-            <Alert severity="success" sx={{ width: "100%", mb: 2 }}>
-              {passwordChangeSuccess}
-            </Alert>
-          )}
-          <TextField
-            label="Old Password"
-            type="password"
-            variant="outlined"
-            fullWidth
-            margin="normal"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-          />
-          <TextField
-            label="New Password"
-            type="password"
-            variant="outlined"
-            fullWidth
-            margin="normal"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleChangePassword}
-            disabled={passwordChangeLoading}
-            sx={{ mt: 2 }}
-          >
-            {passwordChangeLoading ? <CircularProgress size={24} /> : "Change Password"}
-          </Button>
-        </Box>
+        {selectedMenu === "info" && (
+          <>
+            <Typography variant="h4" component="h2" gutterBottom>
+              User Information
+            </Typography>
+            {error && (
+              <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+            {loading ? (
+              <CircularProgress />
+            ) : userInfo ? (
+              <Box sx={{ width: "100%", textAlign: "left", mb: 2 }}>
+                <Typography variant="body1">
+                  <strong>ID:</strong> {userInfo.id}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>Username:</strong> {userInfo.handle_id}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>Scopes:</strong> {userInfo.scopes.join(", ")}
+                </Typography>
+              </Box>
+            ) : (
+              <Typography variant="body1">
+                No user info available
+              </Typography>
+            )}
+            <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={fetchUserInfo}
+              >
+                Refresh
+              </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </Box>
+          </>
+        )}
+
+        {selectedMenu === "password" && (
+          <>
+            <Typography variant="h5" component="h3" gutterBottom>
+              Change Password
+            </Typography>
+            {passwordChangeError && (
+              <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+                {passwordChangeError}
+              </Alert>
+            )}
+            {passwordChangeSuccess && (
+              <Alert severity="success" sx={{ width: "100%", mb: 2 }}>
+                {passwordChangeSuccess}
+              </Alert>
+            )}
+            <TextField
+              label="Old Password"
+              type="password"
+              variant="outlined"
+              fullWidth
+              margin="normal"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+            />
+            <TextField
+              label="New Password"
+              type="password"
+              variant="outlined"
+              fullWidth
+              margin="normal"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleChangePassword}
+              disabled={passwordChangeLoading}
+              sx={{ mt: 2 }}
+            >
+              {passwordChangeLoading ? (
+                <CircularProgress size={24} />
+              ) : (
+                "Change Password"
+              )}
+            </Button>
+          </>
+        )}
       </Box>
     </Container>
   );
