@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import os
@@ -9,10 +9,12 @@ Base = declarative_base()
 
 class User(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
     handle_id = Column(String, unique=True)
     password_hash = Column(String)
     lock_until = Column(DateTime, nullable=True)
+    is_admin = Column(Boolean, default=False, nullable=False)
+    login_fail_count = Column(Integer, default=0, nullable=False)
 
 
 def get_ulid() -> str:
@@ -29,6 +31,19 @@ class RefreshToken(Base):
         nullable=False,
         index=True,
     )
+    _scopes = Column("scopes", String)
+
+    @property
+    def scopes(self) -> list[str]:
+        return self._scopes.split(",") if self._scopes else []
+
+    @scopes.setter
+    def scopes(self, value: list[str]):
+        self._scopes = ",".join(value)
+
+    @property
+    def sub(self) -> int:
+        return self.user_id
 
 
 async def get_session(dbname: str):
