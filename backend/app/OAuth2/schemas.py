@@ -2,6 +2,7 @@ from typing import Literal
 from fastapi import Form
 from .types import Scope, OAuthGrantType, TokenType
 from .schemas import BaseModelImmutableOrm, BaseModelImmutable
+from pydantic import BaseModel
 
 
 class Account(BaseModelImmutable):
@@ -61,3 +62,9 @@ class OAuth2RefreshRequest(BaseModelImmutableOrm):
     grant_type: Literal[OAuthGrantType.refresh_token]
     scopes: set[Scope]
     refresh_token: str
+
+
+class UserCreate(BaseModel):
+    handle_id: str
+    password: str
+    is_admin: bool = False
