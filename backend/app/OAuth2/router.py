@@ -3,7 +3,6 @@ from .schemas import Tokens, UserCreate
 from .login_manager import authorize, get_account, get_account_optional
 from .crud import UserCrud
 from .database import get_session
-from fastapi.security import SecurityScopes
 
 router_oauth2 = APIRouter(prefix="/oauth2", tags=["oauth2"])
 
