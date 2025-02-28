@@ -31,19 +31,7 @@ class RefreshToken(Base):
         nullable=False,
         index=True,
     )
-    _scopes = Column("scopes", String)
-
-    @property
-    def scopes(self) -> list[str]:
-        return self._scopes.split(",") if self._scopes else []
-
-    @scopes.setter
-    def scopes(self, value: list[str]):
-        self._scopes = ",".join(value)
-
-    @property
-    def sub(self) -> int:
-        return self.user_id
+    scopes = Column("scopes", String)
 
 
 async def get_session(dbname: str):
