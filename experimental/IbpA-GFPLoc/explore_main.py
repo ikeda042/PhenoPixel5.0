@@ -50,6 +50,7 @@ class Cell(Base):
     contour: bytes = Column(BLOB)
     center_x: float = Column(FLOAT)
     center_y: float = Column(FLOAT)
+    user_id = Column(String, nullable=True)
 
 
 class IbpaGfpLoc:

@@ -22,6 +22,7 @@ class Cell(Base):
     contour = Column(BLOB)
     center_x = Column(FLOAT)
     center_y = Column(FLOAT)
+    user_id = Column(String, nullable=True)
 
 
 def parse_image(cell: Cell) -> tuple:
