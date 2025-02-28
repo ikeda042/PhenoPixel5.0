@@ -1,11 +1,10 @@
 import os
 import aiohttp
 from fastapi import FastAPI, UploadFile, Depends
-from fastapi.security import SecurityScopes
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine
 from OAuth2.database import BaseAuth
-from OAuth2.login_manager import get_account, auth_scheme
+from OAuth2.login_manager import get_account
 from settings import settings
 
 from CellAI.router import router_cell_ai
