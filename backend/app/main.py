@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine
 from OAuth2.database import BaseAuth
 from OAuth2.login_manager import get_account, auth_scheme
+from settings import settings
 
 from CellAI.router import router_cell_ai
 from CellDBConsole.router import router_cell, router_database
@@ -25,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 api_title = settings.API_TITLE
 api_prefix = settings.API_PREFIX
 test_env = settings.TEST_ENV
+
 
 app = FastAPI(
     title=api_title,
@@ -60,9 +62,6 @@ async def init_db() -> None:
 async def startup_event():
     await init_db()
 
-    default_handle = "default_user"
-    default_password = "default_passwd"
-
     # init_db() と同じ DB パスを利用してエンジンを作成
     dbname = "users.db"
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -74,20 +73,20 @@ async def startup_event():
 
     # AsyncSession を作成してデフォルトユーザーの存在確認・作成
     async with AsyncSession(engine) as session:
-        existing_user = await UserCrud.get_by_handle(session, default_handle)
+        existing_user = await UserCrud.get_by_handle(session, settings.admin_handle_id)
         if existing_user is None:
             try:
                 await UserCrud.create(
                     session,
-                    handle_id=default_handle,
-                    password=default_password,
-                    is_admin=True,  # 管理者権限を付与する場合
+                    handle_id=settings.admin_handle_id,
+                    password=settings.admin_password,
+                    is_admin=True,
                 )
-                print(f"Default user created with handle: {default_handle}")
+                print(f"Default user created with handle: {settings.admin_handle_id}")
             except Exception as e:
                 print(f"Failed to create default user: {e}")
         else:
-            print(f"Default user with handle {default_handle} already exists")
+            print(f"Default user with handle {settings.admin_handle_id} already exists")
     await engine.dispose()
 
 
