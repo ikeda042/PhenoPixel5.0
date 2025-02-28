@@ -8,7 +8,7 @@ BaseAuth = declarative_base()
 
 
 def get_ulid() -> str:
-    return ulid.new().str
+    return str(ulid.ULID())
 
 
 class User(BaseAuth):
@@ -36,8 +36,7 @@ class RefreshToken(BaseAuth):
 
 async def get_session():
     dbname = "users.db"
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    db_dir = os.path.join(base_dir, "OAuth2")
+    db_dir = os.path.dirname(os.path.abspath(__file__))
     os.makedirs(db_dir, exist_ok=True)
     db_path = os.path.join(db_dir, dbname)
     engine = create_async_engine(

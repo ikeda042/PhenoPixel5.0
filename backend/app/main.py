@@ -3,7 +3,7 @@ import aiohttp
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine
-from database import Base
+from OAuth2.database import BaseAuth
 
 from CellAI.router import router_cell_ai
 from CellDBConsole.router import router_cell, router_database
@@ -47,7 +47,7 @@ async def init_db() -> None:
         f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
     )
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(BaseAuth.metadata.create_all)
     await engine.dispose()
 
 
