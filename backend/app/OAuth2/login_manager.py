@@ -34,8 +34,9 @@ from .exceptions import (
 )
 from .types import Scope
 from .exceptions import UserNotFound
-from .database import User, RefreshToken
+from .database import User
 from typing import Union
+from .crud import UserCrud
 
 auth_scheme = OAuth2PasswordBearer(
     tokenUrl=f"/token",
@@ -65,9 +66,7 @@ async def verify_password(
 
 
 async def verify_user(db: AsyncSession, handle_id: str, password: str) -> str:
-    user = (
-        await db.scalars(select(User).where(User.handle_id == handle_id))
-    ).one_or_none()
+    user = await UserCrud.get_by_handle(db, handle_id)
     if user is None:
         raise UserNotFound
     user_id = user.id
