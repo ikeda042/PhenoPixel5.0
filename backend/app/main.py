@@ -19,6 +19,8 @@ from Auth.router import router_auth
 from Admin.router import router_admin
 from OAuth2.router import router_oauth2
 from settings import settings
+from OAuth2.crud import UserCrud
+from sqlalchemy.ext.asyncio import AsyncSession
 
 api_title = settings.API_TITLE
 api_prefix = settings.API_PREFIX
@@ -53,9 +55,40 @@ async def init_db() -> None:
     await engine.dispose()
 
 
+# アプリケーション起動時のイベント
 @app.on_event("startup")
 async def startup_event():
     await init_db()
+
+    default_handle = "default_user"
+    default_password = "default_passwd"
+
+    # init_db() と同じ DB パスを利用してエンジンを作成
+    dbname = "users.db"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_dir = os.path.join(base_dir, "OAuth2")
+    db_path = os.path.join(db_dir, dbname)
+    engine = create_async_engine(
+        f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
+    )
+
+    # AsyncSession を作成してデフォルトユーザーの存在確認・作成
+    async with AsyncSession(engine) as session:
+        existing_user = await UserCrud.get_by_handle(session, default_handle)
+        if existing_user is None:
+            try:
+                await UserCrud.create(
+                    session,
+                    handle_id=default_handle,
+                    password=default_password,
+                    is_admin=True,  # 管理者権限を付与する場合
+                )
+                print(f"Default user created with handle: {default_handle}")
+            except Exception as e:
+                print(f"Failed to create default user: {e}")
+        else:
+            print(f"Default user with handle {default_handle} already exists")
+    await engine.dispose()
 
 
 @app.get("/api")
