@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from fastapi import Depends, Header
 from fastapi.security import SecurityScopes, OAuth2PasswordBearer
 from pydantic import TypeAdapter
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
