@@ -37,6 +37,8 @@ class UserCrud:
             lock_until=lock_until,
             is_admin=is_admin,
             login_fail_count=login_fail_count,
+            updated_at=datetime.now(),
+            created_at=datetime.now(),
         )
         session.add(user)
         await session.commit()
