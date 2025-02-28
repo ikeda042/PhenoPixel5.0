@@ -6,6 +6,10 @@ from .database import (
     User,
     get_ulid,
 )
+import asyncio
+from argon2 import PasswordHasher
+
+ph = PasswordHasher()
 
 
 class UserCrud:
@@ -14,16 +18,22 @@ class UserCrud:
         cls,
         session: AsyncSession,
         handle_id: str,
-        password_hash: str,
+        password: str,
         lock_until: Optional[datetime] = None,
         is_admin: bool = False,
         login_fail_count: int = 0,
     ) -> User:
-        """ユーザーを新規作成する"""
+        """ユーザーを新規作成する (handle_idの重複チェックあり)"""
+        result = await session.execute(select(User).filter_by(handle_id=handle_id))
+        if result.scalar_one_or_none():
+            raise ValueError("User with this handle_id already exists")
+
+        hashed_password = await asyncio.to_thread(ph.hash, password)
+
         user = User(
             id=get_ulid(),
             handle_id=handle_id,
-            password_hash=password_hash,
+            password_hash=hashed_password,
             lock_until=lock_until,
             is_admin=is_admin,
             login_fail_count=login_fail_count,
