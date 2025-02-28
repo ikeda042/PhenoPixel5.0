@@ -5,7 +5,7 @@ from sqlalchemy import delete, or_, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from settings import settings
 from .database import get_ulid
-from .database import RefreshToken
+from .database import RefreshToken as RefreshTokenModel
 from .schemas import AccessToken, RefreshToken, Account
 from .types import AccessTokenCreate, RefreshTokenCreate, TokenType
 from .exceptions import InvalidRefreshToken, InvalidAccessToken
@@ -56,10 +56,15 @@ async def create_refresh_token_from_account(
         expire_limit=expire_limit,
     )
     db.add(
-        RefreshToken(
+        RefreshTokenModel(
             id=refresh_token_payload.jti,
             exp=refresh_token_payload.exp,
             user_id=refresh_token_payload.sub,
+            scopes=(
+                ",".join(refresh_token_payload.scopes)
+                if isinstance(refresh_token_payload.scopes, list)
+                else refresh_token_payload.scopes
+            ),
         )
     )
     await db.commit()
