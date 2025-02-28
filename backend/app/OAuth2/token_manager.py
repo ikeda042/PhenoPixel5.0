@@ -5,7 +5,7 @@ from sqlalchemy import delete, or_, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..settings import settings
 from .database import get_ulid
-from .database import User, RefreshToken
+from .database import RefreshToken
 from .schemas import AccessToken, RefreshToken, Account
 from .types import AccessTokenCreate, RefreshTokenCreate, TokenType
 from .exceptions import InvalidRefreshToken, InvalidAccessToken
