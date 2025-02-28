@@ -12,6 +12,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  SelectChangeEvent,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { settings } from "../settings";
@@ -128,7 +129,7 @@ const UserInfo: React.FC = () => {
   };
 
   // プルダウンの選択変更
-  const handleMenuChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+  const handleMenuChange = (event: SelectChangeEvent<"info" | "password">) => {
     setSelectedMenu(event.target.value as "info" | "password");
   };
 
@@ -188,12 +189,8 @@ const UserInfo: React.FC = () => {
           </>
         )}
 
-        {/* パスワード変更フォーム */}
         {selectedMenu === "password" && (
           <>
-            <Typography variant="h5" component="h3" gutterBottom>
-              パスワード変更
-            </Typography>
             {passwordChangeError && (
               <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
                 {passwordChangeError}
