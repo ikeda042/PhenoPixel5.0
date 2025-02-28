@@ -1,6 +1,9 @@
+import os
 import aiohttp
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import create_async_engine
+from database import Base
 
 from CellAI.router import router_cell_ai
 from CellDBConsole.router import router_cell, router_database
@@ -18,6 +21,7 @@ from settings import settings
 api_title = settings.API_TITLE
 api_prefix = settings.API_PREFIX
 test_env = settings.TEST_ENV
+
 app = FastAPI(
     title=api_title,
     docs_url=f"{api_prefix}/docs",
@@ -31,6 +35,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+async def init_db() -> None:
+    dbname = "users.db"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_dir = os.path.join(base_dir, "OAuth2")
+    os.makedirs(db_dir, exist_ok=True)
+    db_path = os.path.join(db_dir, dbname)
+    engine = create_async_engine(
+        f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    await engine.dispose()
+
+
+@app.on_event("startup")
+async def startup_event():
+    await init_db()
 
 
 @app.get("/api")
@@ -83,13 +106,6 @@ async def replace_env(file: UploadFile):
     return {"status": "ok"}
 
 
-# @app.on_event("startup")
-# async def startup_event():
-#     hinet_login = HINETLogin()
-#     if hinet_login.email and hinet_login.password and hinet_login.hinet_url:
-#         await hinet_login.login()
-#     else:
-#         raise Exception("Please provide email, password and hinet url in .env file.")
 app.include_router(router_admin, prefix=api_prefix)
 app.include_router(router_auth, prefix=api_prefix)
 app.include_router(router_dev, prefix=api_prefix)
@@ -102,6 +118,7 @@ app.include_router(router_dropbox, prefix=api_prefix)
 app.include_router(router_graphengine, prefix=api_prefix)
 app.include_router(router_results, prefix=api_prefix)
 app.include_router(router_oauth2, prefix=api_prefix)
+
 if __name__ == "__main__":
     import uvicorn
 
