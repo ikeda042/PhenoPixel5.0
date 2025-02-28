@@ -25,3 +25,8 @@ async def register(user: UserCreate, session=Depends(get_session)):
 @router_oauth2.get("/protected", description="保護されたエンドポイント")
 async def protected(account=Depends(get_account)):
     return {"account": account.dict()}
+
+
+@router_oauth2.get("/me", description="自分の情報を取得するエンドポイント")
+async def me(account=Depends(get_account)):
+    return {"account": account.dict()}
