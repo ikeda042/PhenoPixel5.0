@@ -21,6 +21,7 @@ class Cell(Base):
     contour = Column(BLOB)
     center_x = Column(FLOAT)
     center_y = Column(FLOAT)
+    user_id = Column(String, nullable=True)
 
 
 async def get_session(dbname: str):

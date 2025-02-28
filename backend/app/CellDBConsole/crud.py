@@ -413,13 +413,34 @@ class AsyncChores:
             await data.close()
 
     @staticmethod
-    async def get_database_names() -> ListDBresponse:
+    async def get_database_names(handle_id: str | None = None) -> ListDBresponse:
         """
-        databases/ ディレクトリ下の .db ファイル一覧を取得。
+        databases/ ディレクトリ下の .db ファイル一覧を取得する関数。
+        handle_id が指定されている場合は、各データベース内の Cell テーブルの user_id カラムに
+        handle_id が存在するデータベースのみを返す。
         """
         loop = asyncio.get_running_loop()
         names = await loop.run_in_executor(None, os.listdir, "databases/")
-        return ListDBresponse(databases=[i for i in names if i.endswith(".db")])
+        db_files = [i for i in names if i.endswith(".db")]
+
+        if handle_id is None:
+            return ListDBresponse(databases=db_files)
+
+        async def db_contains_user_id(db_file: str, user_id: str) -> bool:
+            async for session in get_session(dbname=db_file):
+                stmt = select(Cell).where(Cell.user_id == user_id)
+                result = await session.execute(stmt)
+                cell = result.scalars().first()
+                await session.close()
+                return cell is not None
+            return False
+
+        filtered_dbs = []
+        for db_file in db_files:
+            if await db_contains_user_id(db_file, handle_id):
+                filtered_dbs.append(db_file)
+
+        return ListDBresponse(databases=filtered_dbs)
 
     @staticmethod
     async def validate_database_name(db_name: str) -> None:

@@ -26,6 +26,7 @@ class Cell(Base):
     contour = Column(BLOB)
     center_x = Column(FLOAT)
     center_y = Column(FLOAT)
+    user_id = Column(String, nullable=True)
 
 
 dbpath = "sqlite:///experimental/U-net_Pytorch/test_contour_label_data.db"

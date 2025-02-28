@@ -34,6 +34,7 @@ class Cell(Base):
     contour = Column(BLOB)
     center_x = Column(Float)
     center_y = Column(Float)
+    user_id = Column(String, nullable=True)
 
 
 dbpath = "sqlite:///experimental/Autoencoder/sk25_pro_FITC_c.db"
