@@ -12,6 +12,7 @@ from TimeLapseEngine.router import router_tl_engine
 from results.router import router_results
 from Auth.router import router_auth
 from Admin.router import router_admin
+from OAuth2.router import router_oauth2
 from settings import settings
 
 api_title = settings.API_TITLE
@@ -100,6 +101,7 @@ app.include_router(router_tl_engine, prefix=api_prefix)
 app.include_router(router_dropbox, prefix=api_prefix)
 app.include_router(router_graphengine, prefix=api_prefix)
 app.include_router(router_results, prefix=api_prefix)
+app.include_router(router_oauth2, prefix=api_prefix)
 if __name__ == "__main__":
     import uvicorn
 
