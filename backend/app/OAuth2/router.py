@@ -53,4 +53,4 @@ async def change_password(
     user = await UserCrud.change_password(
         session, account.id, data.old_password, data.new_password
     )
-    return {"account": user.dict()}
+    return {"account": user}
