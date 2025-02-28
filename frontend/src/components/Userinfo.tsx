@@ -7,7 +7,10 @@ import {
   CircularProgress,
   Container,
   TextField,
-  Menu,
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
   MenuItem,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -23,18 +26,16 @@ interface UserAccount {
 
 const UserInfo: React.FC = () => {
   const [userInfo, setUserInfo] = useState<UserAccount | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const [oldPassword, setOldPassword] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
   const [passwordChangeError, setPasswordChangeError] = useState<string>("");
   const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<string>("");
-  const [passwordChangeLoading, setPasswordChangeLoading] =
-    useState<boolean>(false);
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState<boolean>(false);
 
-  // Menu の状態
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  // プルダウンで選択するメニュー（"info"：ユーザー情報, "password"：パスワード変更）
   const [selectedMenu, setSelectedMenu] = useState<"info" | "password">("info");
 
   const navigate = useNavigate();
@@ -55,12 +56,10 @@ const UserInfo: React.FC = () => {
           Authorization: `Bearer ${accessToken}`,
         },
       });
-
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.detail || "Failed to fetch user info");
       }
-
       const data = await response.json();
       setUserInfo(data.account);
     } catch (err: unknown) {
@@ -106,12 +105,10 @@ const UserInfo: React.FC = () => {
           new_password: newPassword,
         }),
       });
-
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.detail || "Failed to change password");
       }
-
       const data = await response.json();
       setPasswordChangeSuccess("Password updated successfully.");
       // 更新されたユーザー情報で画面を更新
@@ -130,51 +127,33 @@ const UserInfo: React.FC = () => {
     }
   };
 
-  // Menu 操作用の関数
-  const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleMenuSelect = (option: "info" | "password") => {
-    setSelectedMenu(option);
-    handleMenuClose();
+  // プルダウンの選択変更
+  const handleMenuChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    setSelectedMenu(event.target.value as "info" | "password");
   };
 
   return (
     <Container maxWidth="sm">
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          mt: 8,
-        }}
-      >
-        {/* メニューを表示するボタン */}
-        <Button onClick={handleMenuOpen} variant="contained" color="primary">
-          メニュー
-        </Button>
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-        >
-          <MenuItem onClick={() => handleMenuSelect("info")}>
-            ユーザー情報
-          </MenuItem>
-          <MenuItem onClick={() => handleMenuSelect("password")}>
-            パスワード変更
-          </MenuItem>
-        </Menu>
+      <Paper elevation={3} sx={{ p: 3 }}>
+        {/* プルダウンメニュー */}
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <InputLabel id="select-label">メニュー</InputLabel>
+          <Select
+            labelId="select-label"
+            value={selectedMenu}
+            onChange={handleMenuChange}
+            label="メニュー"
+          >
+            <MenuItem value="info">ユーザー情報</MenuItem>
+            <MenuItem value="password">パスワード変更</MenuItem>
+          </Select>
+        </FormControl>
 
+        {/* ユーザー情報の表示 */}
         {selectedMenu === "info" && (
           <>
             <Typography variant="h4" component="h2" gutterBottom>
-              User Information
+              ユーザー情報
             </Typography>
             {error && (
               <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
@@ -196,33 +175,24 @@ const UserInfo: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              <Typography variant="body1">
-                No user info available
-              </Typography>
+              <Typography variant="body1">ユーザー情報がありません</Typography>
             )}
             <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={fetchUserInfo}
-              >
-                Refresh
+              <Button variant="contained" color="primary" onClick={fetchUserInfo}>
+                更新
               </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={handleLogout}
-              >
-                Logout
+              <Button variant="outlined" color="secondary" onClick={handleLogout}>
+                ログアウト
               </Button>
             </Box>
           </>
         )}
 
+        {/* パスワード変更フォーム */}
         {selectedMenu === "password" && (
           <>
             <Typography variant="h5" component="h3" gutterBottom>
-              Change Password
+              パスワード変更
             </Typography>
             {passwordChangeError && (
               <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
@@ -235,7 +205,7 @@ const UserInfo: React.FC = () => {
               </Alert>
             )}
             <TextField
-              label="Old Password"
+              label="現在のパスワード"
               type="password"
               variant="outlined"
               fullWidth
@@ -244,7 +214,7 @@ const UserInfo: React.FC = () => {
               onChange={(e) => setOldPassword(e.target.value)}
             />
             <TextField
-              label="New Password"
+              label="新しいパスワード"
               type="password"
               variant="outlined"
               fullWidth
@@ -259,15 +229,11 @@ const UserInfo: React.FC = () => {
               disabled={passwordChangeLoading}
               sx={{ mt: 2 }}
             >
-              {passwordChangeLoading ? (
-                <CircularProgress size={24} />
-              ) : (
-                "Change Password"
-              )}
+              {passwordChangeLoading ? <CircularProgress size={24} /> : "パスワード更新"}
             </Button>
           </>
         )}
-      </Box>
+      </Paper>
     </Container>
   );
 };
