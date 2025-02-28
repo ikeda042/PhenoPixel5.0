@@ -7,6 +7,10 @@ import ulid
 Base = declarative_base()
 
 
+def get_ulid() -> str:
+    return ulid.new().str
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True)
@@ -15,10 +19,6 @@ class User(Base):
     lock_until = Column(DateTime, nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)
     login_fail_count = Column(Integer, default=0, nullable=False)
-
-
-def get_ulid() -> str:
-    return ulid.new().str
 
 
 class RefreshToken(Base):
