@@ -118,9 +118,8 @@ async def get_env():
 
 @app.get(f"{api_prefix}/protected")
 async def protected(
-    security_scopes: SecurityScopes, token: str | None = Depends(auth_scheme)
+    account: dict = Depends(get_account),
 ):
-    account = await get_account(security_scopes, token)
     return {"account": account}
 
 
