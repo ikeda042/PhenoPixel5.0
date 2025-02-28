@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -14,6 +14,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import AccountCircle from '@mui/icons-material/AccountCircle';
 import { settings } from '../settings';
 
 interface Props {
@@ -27,9 +28,20 @@ const navItems = [""];
 export default function Nav(props: Props) {
     const { window } = props;
     const [mobileOpen, setMobileOpen] = React.useState(false);
+    const navigate = useNavigate();
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
+    };
+
+    // ローカルストレージにaccess_tokenが存在すればログイン状態とする
+    const isLoggedIn = Boolean(localStorage.getItem("access_token"));
+
+    const handleLogout = () => {
+        // トークンを削除してログアウト
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        navigate("/login", { replace: true });
     };
 
     const drawer = (
@@ -84,6 +96,19 @@ export default function Nav(props: Props) {
                         </Typography>
                     </Link>
                     <Box sx={{ flexGrow: 1 }} />
+                    {isLoggedIn ? (
+                        <IconButton
+                            color="inherit"
+                            onClick={handleLogout}
+                            sx={{ color: '#000' }}
+                        >
+                            <AccountCircle fontSize="large" />
+                        </IconButton>
+                    ) : (
+                        <Link to="/login" style={{ textDecoration: 'none', color: '#000' }}>
+                            <Typography variant="body1" sx={{ mr: 2 }}>Login</Typography>
+                        </Link>
+                    )}
                     <IconButton
                         color="inherit"
                         component="a"
