@@ -37,7 +37,11 @@ def migrate(dbname: str) -> None:
             # Rename img_fluo to img_fluo1 if it exists
             if "img_fluo" in existing_columns:
                 try:
-                    connection.execute(text(f"ALTER TABLE {Cell.__tablename__} RENAME COLUMN img_fluo TO img_fluo1"))
+                    connection.execute(
+                        text(
+                            f"ALTER TABLE {Cell.__tablename__} RENAME COLUMN img_fluo TO img_fluo1"
+                        )
+                    )
                     print("Renamed column 'img_fluo' to 'img_fluo1'")
                 except OperationalError as e:
                     print(f"Failed to rename column 'img_fluo': {e}")
