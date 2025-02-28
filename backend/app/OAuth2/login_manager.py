@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from ..database.database import get_db
+from .database import get_session as get_db
 from ..settings import settings
 from .schemas import (
     OAuth2RequestForm,
