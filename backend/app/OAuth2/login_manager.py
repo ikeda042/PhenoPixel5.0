@@ -37,7 +37,7 @@ from .exceptions import UserNotFound
 from ..database import models
 
 auth_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.api_path}/token",
+    tokenUrl=f"/token",
     auto_error=False,
     scopes={"admin": Scope.admin, "me": Scope.me},
 )
