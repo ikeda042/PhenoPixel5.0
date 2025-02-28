@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     DROPBOX_APP_KEY: str | None = None
     DROPBOX_APP_SECRET: str | None = None
     login_fail_count_max: int = 5
+    login_lock_hour: int = 1
 
     class Config:
         env_file = ".env"
