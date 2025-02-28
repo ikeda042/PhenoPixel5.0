@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import os
+import ulid
 
 Base = declarative_base()
 
@@ -12,6 +13,22 @@ class User(Base):
     handle_id = Column(String, unique=True)
     password_hash = Column(String)
     lock_until = Column(DateTime, nullable=True)
+
+
+def get_ulid() -> str:
+    return ulid.new().str
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+    id = Column(String, primary_key=True, default=get_ulid)
+    exp = Column(Integer, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
 
 async def get_session(dbname: str):
