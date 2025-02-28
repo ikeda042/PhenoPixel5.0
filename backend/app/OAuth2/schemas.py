@@ -67,4 +67,3 @@ class OAuth2RefreshRequest(BaseModelImmutableOrm):
 class UserCreate(BaseModel):
     handle_id: str
     password: str
-    is_admin: bool = False
