@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from .schemas import Tokens, UserCreate
-from .login_manager import authorize, get_account
+from .login_manager import authorize, get_account, get_account_optional
 from .crud import UserCrud
 from .database import get_session
 from fastapi.security import SecurityScopes
@@ -30,7 +30,7 @@ async def protected(account=Depends(get_account)):
 @router_oauth2.get(
     "/protected_optional", description="保護されたエンドポイント(オプション)"
 )
-async def protected_optional(account=Depends(get_account)):
+async def protected_optional(account=Depends(get_account_optional)):
     if account is None:
         return {"account": None}
     return {"account": account.dict()}
