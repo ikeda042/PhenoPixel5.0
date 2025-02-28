@@ -26,7 +26,7 @@ class RefreshToken(Base):
     id = Column(String, primary_key=True, default=get_ulid)
     exp = Column(Integer, index=True)
     user_id = Column(
-        Integer,
+        String,
         ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
         index=True,
