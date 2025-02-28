@@ -1,7 +1,4 @@
-import os
-
 import aiohttp
-from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,12 +12,11 @@ from TimeLapseEngine.router import router_tl_engine
 from results.router import router_results
 from Auth.router import router_auth
 from Admin.router import router_admin
+from settings import settings
 
-load_dotenv()
-
-api_title = os.getenv("API_TITLE", "PhenoPixel5.0API")
-api_prefix = os.getenv("API_PREFIX", "/api")
-test_env = os.getenv("TEST_ENV", "")
+api_title = settings.API_TITLE
+api_prefix = settings.API_PREFIX
+test_env = settings.TEST_ENV
 app = FastAPI(
     title=api_title,
     docs_url=f"{api_prefix}/docs",
