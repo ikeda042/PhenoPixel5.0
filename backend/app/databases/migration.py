@@ -20,7 +20,7 @@ class Cell(Base):
     contour = Column(BLOB)
     center_x = Column(FLOAT)
     center_y = Column(FLOAT)
-    user_id = Column(String)
+    user_id = Column(String, nullable=True)
 
 
 def migrate(dbname: str) -> None:
