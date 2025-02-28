@@ -57,12 +57,9 @@ async def init_db() -> None:
     await engine.dispose()
 
 
-# アプリケーション起動時のイベント
 @app.on_event("startup")
 async def startup_event():
     await init_db()
-
-    # init_db() と同じ DB パスを利用してエンジンを作成
     dbname = "users.db"
     base_dir = os.path.dirname(os.path.abspath(__file__))
     db_dir = os.path.join(base_dir, "OAuth2")
@@ -71,7 +68,6 @@ async def startup_event():
         f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
     )
 
-    # AsyncSession を作成してデフォルトユーザーの存在確認・作成
     async with AsyncSession(engine) as session:
         existing_user = await UserCrud.get_by_handle(session, settings.admin_handle_id)
         if existing_user is None:
