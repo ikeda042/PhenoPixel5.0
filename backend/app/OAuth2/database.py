@@ -19,6 +19,8 @@ class User(BaseAuth):
     lock_until = Column(DateTime, nullable=True)
     is_admin = Column(Boolean, default=False, nullable=False)
     login_fail_count = Column(Integer, default=0, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=False)
 
 
 class RefreshToken(BaseAuth):
