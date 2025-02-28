@@ -1,10 +1,11 @@
 import os
 import aiohttp
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, Depends
+from fastapi.security import SecurityScopes
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine
 from OAuth2.database import BaseAuth
-from OAuth2.login_manager import get_account
+from OAuth2.login_manager import get_account, auth_scheme
 
 from CellAI.router import router_cell_ai
 from CellDBConsole.router import router_cell, router_database
@@ -84,8 +85,10 @@ async def get_env():
 
 
 @app.get(f"{api_prefix}/protected")
-async def protected(token: str):
-    account = await get_account(token)
+async def protected(
+    security_scopes: SecurityScopes, token: str | None = Depends(auth_scheme)
+):
+    account = await get_account(security_scopes, token)
     return {"account": account}
 
 
