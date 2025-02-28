@@ -70,6 +70,8 @@ async def verify_user(db: AsyncSession, handle_id: str, password: str) -> str:
     if user is None:
         raise UserNotFound
     user_id = user.id
+    # update user.update_at
+    user.updated_at = datetime.now()
     try:
         await verify_password(user.password_hash, password, user.lock_until)
         user.login_fail_count = 0
