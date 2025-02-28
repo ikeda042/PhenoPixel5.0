@@ -4,7 +4,8 @@ from jose import jwt, JWTError
 from sqlalchemy import delete, or_, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from settings import settings
-from .database import get_ulid, RefreshToken
+from .database import get_ulid
+from .database import RefreshToken
 from .schemas import AccessToken, RefreshToken, Account
 from .types import AccessTokenCreate, RefreshTokenCreate, TokenType
 from .exceptions import InvalidRefreshToken, InvalidAccessToken
@@ -44,23 +45,25 @@ def create_access_token_from_account(account: Account) -> str:
 
 
 async def create_refresh_token_from_account(
-    db: AsyncSession, account: Account, exp_limit: datetime | None
-) -> RefreshToken:
-    refresh_token_data = {
-        "type": "refresh",  # Token type
-        "jti": str(uuid.uuid4()),  # Unique token identifier
-        "sub": account.id,  # Subject: user id from the account
-        "scopes": list(account.scopes),  # List of scopes
-        "hid": account.handle_id,  # Handle id from the account
-    }
-    # If your model has an expiration field, include it as a Unix timestamp.
-    if exp_limit is not None:
-        refresh_token_data["exp"] = int(exp_limit.timestamp())
-
-    token = RefreshToken(**refresh_token_data)
-    db.add(token)
+    db: AsyncSession, account: Account, expire_limit: datetime | None
+) -> str:
+    refresh_token, refresh_token_payload = create_refresh_token(
+        data={
+            "sub": account.id,
+            "scopes": list(account.scopes),
+            "hid": account.handle_id,
+        },
+        expire_limit=expire_limit,
+    )
+    db.add(
+        RefreshToken(
+            id=refresh_token_payload.jti,
+            exp=refresh_token_payload.exp,
+            user_id=refresh_token_payload.sub,
+        )
+    )
     await db.commit()
-    return token
+    return refresh_token
 
 
 def parse_and_validate_access_token(token: str) -> AccessToken:
