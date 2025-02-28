@@ -1,18 +1,20 @@
 from typing import Literal
 from fastapi import Form
 from .types import Scope, OAuthGrantType, TokenType
-from pydantic import constr, BaseModel
+from pydantic import BaseModel
 
 
 class BaseModelImmutable(BaseModel):
-    class Config:
-        allow_mutation = False
+    model_config = {
+        "frozen": True,
+    }
 
 
 class BaseModelImmutableOrm(BaseModel):
-    class Config:
-        allow_mutation = False
-        orm_mode = True
+    model_config = {
+        "from_attributes": True,
+        "frozen": True,
+    }
 
 
 class Account(BaseModelImmutable):
