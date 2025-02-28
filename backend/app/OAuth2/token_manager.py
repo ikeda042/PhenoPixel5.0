@@ -96,14 +96,14 @@ async def invalidate_refresh_token(
     db: AsyncSession, refresh_token: RefreshToken
 ) -> None:
     await db.execute(
-        delete(models.RefreshToken)
+        delete(RefreshToken)
         .where(
             or_(
                 and_(
-                    models.RefreshToken.user_id == refresh_token.sub,
-                    models.RefreshToken.exp < int(time()),
+                    RefreshToken.user_id == refresh_token.sub,
+                    RefreshToken.exp < int(time()),
                 ),
-                models.RefreshToken.id == refresh_token.jti,
+                RefreshToken.id == refresh_token.jti,
             )
         )
         .execution_options(synchronize_session=False)
