@@ -14,18 +14,22 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    // Build URL-encoded form data
+    const formData = new URLSearchParams();
+    formData.append("grant_type", "password");
+    formData.append("username", username);
+    formData.append("password", password);
+    // OAuth2RequestForm expects "scope" as a string, space separated.
+    formData.append("scope", "me");
+
     try {
       const response = await fetch(`${url_prefix}/oauth2/token`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           "Origin": "http://localhost:3000",  
+          // Do not set "Content-Type" header; fetch will set it automatically for URLSearchParams
         },
-        body: JSON.stringify({
-          username,
-          password,
-          scopes: ["me"],
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
