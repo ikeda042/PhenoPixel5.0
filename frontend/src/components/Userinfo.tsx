@@ -6,6 +6,7 @@ import {
   Alert,
   CircularProgress,
   Container,
+  TextField,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { settings } from "../settings";
@@ -22,6 +23,14 @@ const UserInfo: React.FC = () => {
   const [userInfo, setUserInfo] = useState<UserAccount | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  const [oldPassword, setOldPassword] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string>("");
+  const [passwordChangeError, setPasswordChangeError] = useState<string>("");
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<string>("");
+  const [passwordChangeLoading, setPasswordChangeLoading] =
+    useState<boolean>(false);
+
   const navigate = useNavigate();
 
   const fetchUserInfo = async () => {
@@ -69,6 +78,52 @@ const UserInfo: React.FC = () => {
     navigate("/login");
   };
 
+  const handleChangePassword = async () => {
+    setPasswordChangeError("");
+    setPasswordChangeSuccess("");
+    setPasswordChangeLoading(true);
+    const accessToken = localStorage.getItem("access_token");
+    if (!accessToken) {
+      setPasswordChangeError("No access token found. Please login.");
+      setPasswordChangeLoading(false);
+      return;
+    }
+    try {
+      const response = await fetch(`${url_prefix}/oauth2/change_password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          old_password: oldPassword,
+          new_password: newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || "Failed to change password");
+      }
+
+      const data = await response.json();
+      setPasswordChangeSuccess("Password updated successfully.");
+      // 更新されたユーザー情報で画面を更新
+      setUserInfo(data.account);
+      // 入力フィールドをクリア
+      setOldPassword("");
+      setNewPassword("");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setPasswordChangeError(err.message);
+      } else {
+        setPasswordChangeError("An unexpected error occurred");
+      }
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
+
   return (
     <Container maxWidth="sm">
       <Box
@@ -104,12 +159,56 @@ const UserInfo: React.FC = () => {
         ) : (
           <Typography variant="body1">No user info available</Typography>
         )}
-        <Box sx={{ display: "flex", gap: 2 }}>
+        <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
           <Button variant="contained" color="primary" onClick={fetchUserInfo}>
             Refresh
           </Button>
           <Button variant="outlined" color="secondary" onClick={handleLogout}>
             Logout
+          </Button>
+        </Box>
+
+        {/* パスワード変更フォーム */}
+        <Box sx={{ width: "100%", textAlign: "left" }}>
+          <Typography variant="h5" component="h3" gutterBottom>
+            Change Password
+          </Typography>
+          {passwordChangeError && (
+            <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+              {passwordChangeError}
+            </Alert>
+          )}
+          {passwordChangeSuccess && (
+            <Alert severity="success" sx={{ width: "100%", mb: 2 }}>
+              {passwordChangeSuccess}
+            </Alert>
+          )}
+          <TextField
+            label="Old Password"
+            type="password"
+            variant="outlined"
+            fullWidth
+            margin="normal"
+            value={oldPassword}
+            onChange={(e) => setOldPassword(e.target.value)}
+          />
+          <TextField
+            label="New Password"
+            type="password"
+            variant="outlined"
+            fullWidth
+            margin="normal"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleChangePassword}
+            disabled={passwordChangeLoading}
+            sx={{ mt: 2 }}
+          >
+            {passwordChangeLoading ? <CircularProgress size={24} /> : "Change Password"}
           </Button>
         </Box>
       </Box>
