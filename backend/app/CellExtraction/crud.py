@@ -396,6 +396,7 @@ class ExtractionCrudBase:
         param1: int = 130,
         image_size: int = 200,
         reverse_layers: bool = False,
+        user_id: str | None = None,
     ):
         self.nd2_path = nd2_path
         self.nd2_path = self.nd2_path.replace("\\", "/")
@@ -404,7 +405,8 @@ class ExtractionCrudBase:
         self.param1 = param1
         self.image_size = image_size
         self.reverse_layers = reverse_layers
-        self.ulid = ulid.new()
+        self.ulid = str(ulid.ULID())
+        self.user_id = user_id
 
     async def load_image(self, path):
         async with aiofiles.open(path, mode="rb") as f:
@@ -436,7 +438,7 @@ class ExtractionCrudBase:
         contour = contours[0] if contours else None
         return contour, img_ph_gray, img_fluo1_gray, img_fluo2_gray
 
-    async def process_cell(self, dbname, i, j):
+    async def process_cell(self, dbname, i, j, user_id: str | None = None):
         engine = create_async_engine(
             f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
         )
@@ -493,6 +495,7 @@ class ExtractionCrudBase:
                         contour=pickle.dumps(contour),
                         center_x=center_x,
                         center_y=center_y,
+                        user_id=user_id,
                     )
                     existing_cell = await session.execute(
                         select(Cell).filter_by(cell_id=cell_id)
@@ -546,7 +549,7 @@ class ExtractionCrudBase:
             cell_path = f"TempData{self.ulid}/frames/tiff_{i}/Cells/ph/"
             cell_files = await asyncio.to_thread(os.listdir, cell_path)
             for j in range(len(cell_files)):
-                tasks.append(self.process_cell(dbname, i, j))
+                tasks.append(self.process_cell(dbname, i, j, self.user_id))
 
         await asyncio.gather(*tasks)
         await asyncio.to_thread(SyncChores.cleanup, f"TempData{self.ulid}")

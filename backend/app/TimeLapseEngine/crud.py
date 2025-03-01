@@ -729,7 +729,7 @@ class TimelapseEngineCrudBase:
                     contour_shifted[:, :, 1] -= y1
 
                     # 毎フレームごとにユニークな cell_id を生成
-                    new_ulid = ulid.new().str
+                    new_ulid = str(ulid.ULID())
 
                     # もしこのセル番号の base_cell_id が未登録なら、新しく登録
                     if assigned_cell_idx not in base_ids:

@@ -2,14 +2,9 @@ from typing import Optional
 from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from .database import (
-    User,
-    get_ulid,
-)
+from .database import User, get_ulid
 import asyncio
-from argon2 import PasswordHasher
-
-ph = PasswordHasher()
+from .utils import ph
 
 
 class UserCrud:
@@ -90,3 +85,45 @@ class UserCrud:
         await session.delete(user)
         await session.commit()
         return True
+
+    @classmethod
+    async def change_password(
+        cls,
+        session: AsyncSession,
+        user_id: str,
+        old_password: str,
+        new_password: str,
+    ) -> Optional[User]:
+        """
+        ユーザーのパスワードを変更する
+
+        Args:
+            session (AsyncSession): データベースセッション
+            user_id (str): ユーザーID
+            old_password (str): 現在のパスワード
+            new_password (str): 新しいパスワード
+
+        Raises:
+            ValueError: 古いパスワードが正しくない場合
+
+        Returns:
+            Optional[User]: 更新されたユーザー情報、またはユーザーが存在しない場合はNone
+        """
+        result = await session.execute(select(User).filter_by(id=user_id))
+        user = result.scalar_one_or_none()
+        if user is None:
+            return None
+
+        try:
+            # 古いパスワードの検証
+            await asyncio.to_thread(ph.verify, user.password_hash, old_password)
+        except Exception:
+            raise ValueError("古いパスワードが正しくありません")
+
+        # 新しいパスワードのハッシュ化
+        new_hashed_password = await asyncio.to_thread(ph.hash, new_password)
+        user.password_hash = new_hashed_password
+        user.updated_at = datetime.now()
+        await session.commit()
+        await session.refresh(user)
+        return user

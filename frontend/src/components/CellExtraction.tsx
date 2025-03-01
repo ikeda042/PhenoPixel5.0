@@ -18,7 +18,7 @@ import {
   Card,
   CardContent,
   CardActions,
-  Divider
+  Divider,
 } from "@mui/material";
 import { styled } from "@mui/system";
 import axios from "axios";
@@ -68,20 +68,8 @@ const Extraction: React.FC = () => {
   const fileName = searchParams.get("file_name") || "";
 
   const [mode, setMode] = useState("dual_layer");
-
-  /**
-   * param1の状態管理
-   * - 入力内容を文字列として保持し、onBlur時に数値へ変換して
-   *   先頭の不要な0を取り除くようにする
-   */
   const [param1, setParam1] = useState("100");
-
-  /**
-   * 画像サイズの状態管理
-   * - 同様に文字列で管理して、onBlur時に数値変換
-   */
   const [imageSize, setImageSize] = useState("200");
-
   const [isLoading, setIsLoading] = useState(false);
   const [numImages, setNumImages] = useState(0);
   const [currentImage, setCurrentImage] = useState(0);
@@ -112,6 +100,10 @@ const Extraction: React.FC = () => {
     const numericParam1 = parseFloat(param1);
     const numericImageSize = parseFloat(imageSize);
 
+    // localStorage に保存されたアクセストークンを取得
+    const token = localStorage.getItem("access_token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
     try {
       const extractRes = await axios.get<CellExtractionResponse>(
         `${url_prefix}/cell_extraction/${fileName}/${actualMode}`,
@@ -121,14 +113,13 @@ const Extraction: React.FC = () => {
             image_size: numericImageSize,
             reverse_layers: reverseLayers,
           },
+          headers,
         }
       );
       const ulid = extractRes.data.ulid;
       setSessionUlid(ulid);
 
-      const countRes = await axios.get(
-        `${url_prefix}/cell_extraction/ph_contours/${ulid}/count`
-      );
+      const countRes = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${ulid}/count`);
       const totalImages = countRes.data.count;
       setNumImages(totalImages);
 
@@ -143,12 +134,9 @@ const Extraction: React.FC = () => {
 
   const fetchImage = async (frameNum: number, ulid: string) => {
     try {
-      const res = await axios.get(
-        `${url_prefix}/cell_extraction/ph_contours/${ulid}/${frameNum}`,
-        {
-          responseType: "blob",
-        }
-      );
+      const res = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${ulid}/${frameNum}`, {
+        responseType: "blob",
+      });
       const imageUrl = URL.createObjectURL(res.data);
       setCurrentImageUrl(imageUrl);
     } catch (error) {
@@ -175,9 +163,7 @@ const Extraction: React.FC = () => {
   const handleGoToDatabases = async () => {
     if (sessionUlid) {
       try {
-        await axios.delete(
-          `${url_prefix}/cell_extraction/ph_contours_delete/${sessionUlid}`
-        );
+        await axios.delete(`${url_prefix}/cell_extraction/ph_contours_delete/${sessionUlid}`);
         console.log("Files deleted successfully");
       } catch (error) {
         console.error("Failed to delete files", error);
@@ -241,9 +227,7 @@ const Extraction: React.FC = () => {
               >
                 <MenuItem value="single_layer">Single Layer</MenuItem>
                 <MenuItem value="dual_layer">Dual Layer</MenuItem>
-                <MenuItem value="dual_layer_reversed">
-                  Dual Layer (Reversed)
-                </MenuItem>
+                <MenuItem value="dual_layer_reversed">Dual Layer (Reversed)</MenuItem>
                 <MenuItem value="triple_layer">Triple Layer</MenuItem>
               </Select>
             </FormControl>
@@ -336,7 +320,7 @@ const Extraction: React.FC = () => {
                   justifyContent: "space-between",
                   alignItems: "center",
                   px: 2,
-                  pb: 2
+                  pb: 2,
                 }}
               >
                 <Button

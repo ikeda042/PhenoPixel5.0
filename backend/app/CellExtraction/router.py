@@ -2,11 +2,12 @@ import os
 import shutil
 from typing import Literal
 import aiofiles
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException, UploadFile, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from CellExtraction.crud import ExtractionCrudBase
 from CellExtraction.schemas import CellExtractionResponse
+from OAuth2.login_manager import get_account_optional
 
 router_cell_extraction = APIRouter(prefix="/cell_extraction", tags=["cell_extraction"])
 
@@ -65,6 +66,7 @@ async def extract_cells(
     param1: int = 100,
     image_size: int = 200,
     reverse_layers: bool = False,
+    account=Depends(get_account_optional),
 ):
 
     file_path = os.path.join("uploaded_files", db_name)
@@ -77,6 +79,7 @@ async def extract_cells(
             param1=param1,
             image_size=image_size,
             reverse_layers=reverse_layers,
+            user_id=account.handle_id if account else None,
         )
         ret = await extractor.main()
         return CellExtractionResponse(num_tiff=int(ret[0]), ulid=str(ret[1]))
