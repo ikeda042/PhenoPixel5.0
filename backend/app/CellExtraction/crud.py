@@ -405,7 +405,7 @@ class ExtractionCrudBase:
         self.param1 = param1
         self.image_size = image_size
         self.reverse_layers = reverse_layers
-        self.ulid = ulid.new()
+        self.ulid = str(ulid.ULID())
         self.user_id = user_id
 
     async def load_image(self, path):
