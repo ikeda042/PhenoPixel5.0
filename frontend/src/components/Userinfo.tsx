@@ -175,10 +175,26 @@ const UserInfo: React.FC = () => {
               <Typography variant="body1">ユーザー情報がありません</Typography>
             )}
             <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
-              <Button variant="contained" color="primary" onClick={fetchUserInfo}>
+              <Button
+                variant="contained"
+                sx={{
+                  backgroundColor: "black",
+                  color: "white",
+                  "&:hover": { backgroundColor: "#333" },
+                }}
+                onClick={fetchUserInfo}
+              >
                 更新
               </Button>
-              <Button variant="outlined" color="secondary" onClick={handleLogout}>
+              <Button
+                variant="outlined"
+                sx={{
+                  borderColor: "black",
+                  color: "black",
+                  "&:hover": { borderColor: "#333", backgroundColor: "rgba(0,0,0,0.04)" },
+                }}
+                onClick={handleLogout}
+              >
                 ログアウト
               </Button>
             </Box>
@@ -217,10 +233,14 @@ const UserInfo: React.FC = () => {
             />
             <Button
               variant="contained"
-              color="primary"
+              sx={{
+                mt: 2,
+                backgroundColor: "black",
+                color: "white",
+                "&:hover": { backgroundColor: "#333" },
+              }}
               onClick={handleChangePassword}
               disabled={passwordChangeLoading}
-              sx={{ mt: 2 }}
             >
               {passwordChangeLoading ? <CircularProgress size={24} /> : "パスワード更新"}
             </Button>
