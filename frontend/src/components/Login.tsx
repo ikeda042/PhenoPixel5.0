@@ -7,6 +7,7 @@ const url_prefix = settings.url_prefix;
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,42 +22,78 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new URLSearchParams();
-    formData.append("grant_type", "password");
-    formData.append("username", username);
-    formData.append("password", password);
-    formData.append("scope", "me");
-
-    try {
-      const response = await fetch(`${url_prefix}/oauth2/token`, {
-        method: "POST",
-        headers: {
-          "Origin": "http://localhost:3000",
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.detail || "Login failed");
-      }
-
-      const data = await response.json();
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
-      navigate("/", { replace: true });
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        // "Failed to fetch" の場合はエラーメッセージを上書きする
-        if (err.message === "Failed to fetch") {
-          setError("Invalid password or user name");
-        } else {
-          setError(err.message);
+    setError("");
+    if (isRegister) {
+      // ユーザー登録処理
+      try {
+        const response = await fetch(`${url_prefix}/oauth2/register`, {
+          method: "POST",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            handle_id: username,
+            password: password,
+          }),
+        });
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || "Registration failed");
         }
-      } else {
-        setError("An unexpected error occurred");
+        alert("User registered successfully. Please log in.");
+        setIsRegister(false);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("An unexpected error occurred");
+        }
+      }
+    } else {
+      // ログイン処理
+      const formData = new URLSearchParams();
+      formData.append("grant_type", "password");
+      formData.append("username", username);
+      formData.append("password", password);
+      formData.append("scope", "me");
+
+      try {
+        const response = await fetch(`${url_prefix}/oauth2/token`, {
+          method: "POST",
+          headers: {
+            "Origin": "http://localhost:3000",
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || "Login failed");
+        }
+
+        const data = await response.json();
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("refresh_token", data.refresh_token);
+        navigate("/", { replace: true });
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          // "Failed to fetch" の場合はエラーメッセージを上書きする
+          if (err.message === "Failed to fetch") {
+            setError("Invalid password or user name");
+          } else {
+            setError(err.message);
+          }
+        } else {
+          setError("An unexpected error occurred");
+        }
       }
     }
+  };
+
+  const toggleMode = () => {
+    setError("");
+    setIsRegister(!isRegister);
   };
 
   return (
@@ -81,7 +118,7 @@ const Login: React.FC = () => {
         }}
       >
         <Typography variant="h4" sx={{ mb: 3, textAlign: "center", color: "#000" }}>
-          Login
+          {isRegister ? "Register" : "Login"}
         </Typography>
         <form onSubmit={handleSubmit}>
           <TextField
@@ -138,9 +175,12 @@ const Login: React.FC = () => {
               "&:hover": { backgroundColor: "#f0f0f0" },
             }}
           >
-            Login
+            {isRegister ? "Register" : "Login"}
           </Button>
         </form>
+        <Button onClick={toggleMode} fullWidth sx={{ mt: 2 }} variant="text">
+          {isRegister ? "Already have an account? Login" : "Don't have an account? Register"}
+        </Button>
       </Paper>
     </Box>
   );
