@@ -436,7 +436,7 @@ class ExtractionCrudBase:
         contour = contours[0] if contours else None
         return contour, img_ph_gray, img_fluo1_gray, img_fluo2_gray
 
-    async def process_cell(self, dbname, i, j):
+    async def process_cell(self, dbname, i, j, user_id: str | None = None):
         engine = create_async_engine(
             f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
         )
@@ -493,6 +493,7 @@ class ExtractionCrudBase:
                         contour=pickle.dumps(contour),
                         center_x=center_x,
                         center_y=center_y,
+                        user_id=user_id,
                     )
                     existing_cell = await session.execute(
                         select(Cell).filter_by(cell_id=cell_id)
