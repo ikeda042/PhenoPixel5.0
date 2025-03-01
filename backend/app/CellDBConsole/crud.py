@@ -439,7 +439,13 @@ class AsyncChores:
         for db_file in db_files:
             if await db_contains_user_id(db_file, handle_id):
                 filtered_dbs.append(db_file)
-
+        print(filtered_dbs)
+        print("++++++++++++++++++++")
+        print("++++++++++++++++++++")
+        print("++++++++++++++++++++")
+        print("++++++++++++++++++++")
+        print("++++++++++++++++++++")
+        print("++++++++++++++++++++")
         return ListDBresponse(databases=filtered_dbs)
 
     @staticmethod
