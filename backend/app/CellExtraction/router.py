@@ -79,7 +79,7 @@ async def extract_cells(
             param1=param1,
             image_size=image_size,
             reverse_layers=reverse_layers,
-            user_id=account["handle_id"] if account else None,
+            user_id=account.handle_id if account else None,
         )
         ret = await extractor.main()
         return CellExtractionResponse(num_tiff=int(ret[0]), ulid=str(ret[1]))
