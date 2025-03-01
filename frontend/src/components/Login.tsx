@@ -105,6 +105,7 @@ const Login: React.FC = () => {
         justifyContent: "center",
         alignItems: "center",
         p: 2,
+        mt: -10,
       }}
     >
       <Paper
