@@ -47,7 +47,12 @@ const Login: React.FC = () => {
       navigate("/", { replace: true });
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message);
+        // "Failed to fetch" の場合はエラーメッセージを上書きする
+        if (err.message === "Failed to fetch") {
+          setError("Invalid password or user name");
+        } else {
+          setError(err.message);
+        }
       } else {
         setError("An unexpected error occurred");
       }
