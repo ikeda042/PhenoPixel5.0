@@ -200,9 +200,11 @@ const Nd2Files: React.FC = () => {
                                                 <Typography>Extract cells </Typography>
                                                 <NavigateNextIcon />
                                             </IconButton>
-                                            <IconButton onClick={() => handleDelete(file)}>
-                                                <DeleteIcon color="error" />
-                                            </IconButton>
+                                            {file !== "T256.nd2" && (
+                                                <IconButton onClick={() => handleDelete(file)}>
+                                                    <DeleteIcon color="error" />
+                                                </IconButton>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
