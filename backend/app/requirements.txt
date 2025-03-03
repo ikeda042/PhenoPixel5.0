@@ -76,7 +76,7 @@ pluggy==1.5.0
 ply==3.11
 propcache==0.2.0
 protobuf==5.28.3
-pydantic==2.9.2
+pydantic
 pydantic_core==2.23.4
 Pygments==2.18.0
 pynndescent==0.5.13
