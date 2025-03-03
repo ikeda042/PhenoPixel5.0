@@ -8,7 +8,7 @@ BaseAuth = declarative_base()
 
 
 def get_ulid() -> str:
-    return str(ulid.ULID())
+    return str(ulid.new())
 
 
 class User(BaseAuth):
