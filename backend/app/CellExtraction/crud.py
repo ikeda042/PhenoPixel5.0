@@ -38,14 +38,14 @@ class Cell(Base):
 
 
 async def get_session(dbname: str):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False, connect_args={"check_same_thread": False})
     async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
         yield session
 
 
 async def create_database(dbname: str):
-    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=True)
+    engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=True, connect_args={"check_same_thread": False})
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     return engine

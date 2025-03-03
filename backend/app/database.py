@@ -28,7 +28,7 @@ async def get_session(dbname: str):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(base_dir, "databases", dbname)
     engine = create_async_engine(
-        f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
+        f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False,connect_args={"check_same_thread": False}
     )
     async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
