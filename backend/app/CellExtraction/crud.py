@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy import BLOB, Column, FLOAT, Integer, String
+from sqlalchemy import BLOB, Column, FLOAT, Integer, String, text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -56,7 +56,9 @@ async def create_database(dbname: str):
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        await conn.execute("PRAGMA journal_mode=WAL;")
+        await conn.run_sync(
+            lambda sync_conn: sync_conn.execute(text("PRAGMA journal_mode=WAL;"))
+        )
     return engine
 
 

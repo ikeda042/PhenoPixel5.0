@@ -16,15 +16,7 @@ import numpy as np
 from PIL import Image
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
-from sqlalchemy import (
-    BLOB,
-    Column,
-    FLOAT,
-    Integer,
-    String,
-    delete,
-    update,
-)
+from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, update, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
@@ -86,6 +78,9 @@ async def create_database(dbname: str):
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(
+            lambda sync_conn: sync_conn.execute(text("PRAGMA journal_mode=WAL;"))
+        )
     return engine
 
 
