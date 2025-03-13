@@ -1,6 +1,10 @@
 # PhenoPixel5.0
 An OpenCV Based High-throughput image analysis program (API)
 
+# Contributors: 
+Haruya Tsurusako
+
+Student ID: 202313190Email: e3131901@foreign.kitakyu-u.ac.jpContributions: Invented a morphological analysis algorithm to normalize cell directions horizontally, i.e., creating a bounding box for any cell morphology.
 [日本語ドキュメント](README_JA.md)
 
 # Old version 
