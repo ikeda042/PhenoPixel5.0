@@ -2,13 +2,13 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import os
-import ulid
+from ulid import ULID
 
 BaseAuth = declarative_base()
 
 
 def get_ulid() -> str:
-    return str(ulid.new())
+    return str(ULID())
 
 
 class User(BaseAuth):
