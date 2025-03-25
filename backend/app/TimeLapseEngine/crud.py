@@ -20,9 +20,9 @@ from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, update, tex
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
-import ulid
 import os
 from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
+from ..OAuth2.database import get_ulid
 
 Base = declarative_base()
 
@@ -724,7 +724,7 @@ class TimelapseEngineCrudBase:
                     contour_shifted[:, :, 1] -= y1
 
                     # 毎フレームごとにユニークな cell_id を生成
-                    new_ulid = str(ulid.new())
+                    new_ulid = get_ulid()
 
                     # もしこのセル番号の base_cell_id が未登録なら、新しく登録
                     if assigned_cell_idx not in base_ids:
