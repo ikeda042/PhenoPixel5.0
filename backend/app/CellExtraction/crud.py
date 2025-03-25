@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
-import ulid
+from ..OAuth2.database import get_ulid
 
 Base = declarative_base()
 
@@ -416,7 +416,7 @@ class ExtractionCrudBase:
         self.param1 = param1
         self.image_size = image_size
         self.reverse_layers = reverse_layers
-        self.ulid = str(ulid.new())
+        self.ulid = get_ulid()
         self.user_id = user_id
 
     async def load_image(self, path):
