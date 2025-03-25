@@ -22,11 +22,11 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
 import os
 from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
-from ulid import ULID
+import ulid
 
 
 def get_ulid() -> str:
-    return str(ULID())
+    return str(ulid.new())
 
 
 Base = declarative_base()

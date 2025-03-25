@@ -15,11 +15,11 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
-from ulid import ULID
+import ulid
 
 
 def get_ulid() -> str:
-    return str(ULID())
+    return str(ulid.new())
 
 
 Base = declarative_base()
