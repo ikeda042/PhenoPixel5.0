@@ -173,6 +173,45 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
+  // MUI Select のフォーカス枠/メニュー背景を黒にするためのカスタムスタイル
+  //------------------------------------
+  const selectSx = {
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: "black",
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": {
+      borderColor: "black",
+    },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+      borderColor: "black",
+    },
+    // アイコンも黒っぽくしたい場合はコメントアウトを外してください
+    // "& .MuiSvgIcon-root": {
+    //   color: "black",
+    // },
+  };
+
+  const menuProps = {
+    PaperProps: {
+      sx: {
+        // 選択状態やホバー時の背景色を黒、文字色を白に変更
+        "& .MuiMenuItem-root:hover": {
+          backgroundColor: "black",
+          color: "white",
+        },
+        "& .MuiMenuItem-root.Mui-selected": {
+          backgroundColor: "black",
+          color: "white",
+        },
+        "& .MuiMenuItem-root.Mui-selected:hover": {
+          backgroundColor: "black",
+          color: "white",
+        },
+      },
+    },
+  };
+
+  //------------------------------------
   // セル一覧の取得
   //------------------------------------
   useEffect(() => {
@@ -672,6 +711,8 @@ const CellImageGrid: React.FC = () => {
                     label="Label"
                     value={selectedLabel}
                     onChange={handleLabelChange}
+                    sx={selectSx}
+                    MenuProps={menuProps}
                   >
                     <MenuItem value="74">All</MenuItem>
                     <MenuItem value="1000">N/A</MenuItem>
@@ -692,6 +733,8 @@ const CellImageGrid: React.FC = () => {
                       label="Detect Mode"
                       value={detectMode}
                       onChange={handleDetectModeChange}
+                      sx={selectSx}
+                      MenuProps={menuProps}
                     >
                       <MenuItem value="None">None</MenuItem>
                       <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
@@ -710,6 +753,8 @@ const CellImageGrid: React.FC = () => {
                         label="Detect Mode"
                         value={detectMode}
                         onChange={handleDetectModeChange}
+                        sx={selectSx}
+                        MenuProps={menuProps}
                       >
                         <MenuItem value="None">None</MenuItem>
                         <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
@@ -835,6 +880,8 @@ const CellImageGrid: React.FC = () => {
                     label="Manual Label"
                     value={manualLabel}
                     onChange={handleCellLabelChange}
+                    sx={selectSx}
+                    MenuProps={menuProps}
                   >
                     <MenuItem value="1000">N/A</MenuItem>
                     <MenuItem value="1">1</MenuItem>
@@ -955,6 +1002,8 @@ const CellImageGrid: React.FC = () => {
                 label="Draw Mode"
                 value={drawMode}
                 onChange={handleDrawModeChange}
+                sx={selectSx}
+                MenuProps={menuProps}
               >
                 {DRAW_MODES.map((mode) => (
                   <MenuItem key={mode.value} value={mode.value}>
@@ -1078,6 +1127,8 @@ const CellImageGrid: React.FC = () => {
                 id="engine-select"
                 value={engineMode}
                 onChange={handleEngineModeChange}
+                sx={selectSx}
+                MenuProps={menuProps}
                 renderValue={(selected: string) => {
                   if (selected === "None") {
                     return "None";
