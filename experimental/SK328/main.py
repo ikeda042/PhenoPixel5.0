@@ -352,12 +352,10 @@ if __name__ == "__main__":
 
     # 2) 同じディレクトリ内の .db を探す
     db_files = [f for f in os.listdir(script_dir) if f.endswith(".db")]
-
+    
     if not db_files:
         print("[Error] 同じディレクトリに .db ファイルが見つかりませんでした。")
     else:
         # 3) 見つかった .db ファイルをすべて処理
         for db_file in db_files:
-            db_path = os.path.join(script_dir, db_file)
-            print(f"Processing {db_path}...")
-            main(db_path)
+            main(db_file)
