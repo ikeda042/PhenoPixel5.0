@@ -40,7 +40,9 @@ def compute_moran_i_for_image(img: np.ndarray, rook: bool = True) -> float:
 
 def main():
     # 解析対象のPNG画像を一括取得
-    image_paths = glob.glob(os.path.join("images", "*.png"))
+    base = "experimental/MoranI/images/"
+    image_paths = os.listdir(base)
+    image_paths = [os.path.join(base, f) for f in image_paths if f.endswith('.png')]
     if not image_paths:
         print("images/ フォルダに PNG 画像が見つかりません。")
         return
