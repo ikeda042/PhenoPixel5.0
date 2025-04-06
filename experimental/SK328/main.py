@@ -227,7 +227,7 @@ class Map64:
 
         # 輪郭を描画して fluo_raw 出力
         cv2.polylines(image_fluo, [contour_points], True, (0, 255, 0), 2)
-        cv2.imwrite(f"experimental/DotPatternMap/images/fluo_raw/{db_prefix}_{cell_id}.png", image_fluo)
+        cv2.imwrite(f"experimental/SK328/images/fluo_raw/{db_prefix}_{cell_id}.png", image_fluo)
 
         # 4) 基底変換
         # X は (x座標群, y座標群) 形状の2×N行列が多いが、ここでは転置に注意
