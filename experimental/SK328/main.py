@@ -11,6 +11,18 @@
     pip install numpy opencv-python matplotlib tqdm
 
 Pythonバージョン: 3.12を想定
+
+使い方:
+  (例) 同じフォルダ内に test_database.db がある場合
+  $ cd experimental/SK328
+  $ python main.py
+
+実行すると experimental/DotPatternMap/images/ 配下に
+  - fluo_raw/{DB_PREFIX}_{CELL_ID}.png
+  - map64_raw/{DB_PREFIX}_{CELL_ID}.png
+  - map64/{DB_PREFIX}_{CELL_ID}.png
+  - map64_jet/{DB_PREFIX}_{CELL_ID}.png
+が生成されます。
 """
 
 from __future__ import annotations
@@ -26,11 +38,8 @@ from dataclasses import dataclass
 from numpy.linalg import eig, inv
 from tqdm import tqdm
 
-# ここで任意のデータベース読込用のモジュールをインポート
-# database_parser, Cellクラスの実装は既にあることを想定
-# 必要に応じてパスや実装を合わせてください
+# データベース読込用のモジュールをインポート
 from database_parser import database_parser, Cell
-
 
 # ============================ ユーティリティ関数 ============================
 def ensure_dirs() -> None:
@@ -44,7 +53,6 @@ def ensure_dirs() -> None:
     ]
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
-
     for subdir in subdirs:
         target_path = os.path.join(base_dir, subdir)
         if not os.path.exists(target_path):
@@ -71,17 +79,10 @@ class Map64:
       - map64_raw: 背景差分後の輝度を 2次元座標にマッピングした画像
       - map64 (64x64): 上記を縮小して最終 64x64 画像
       - map64_jet: 64x64 を Jet カラーマップで可視化した画像
-
-    ※ このクラス内には大枠の処理が詰まっているため、最小限実装だけ抜粋しています。
     """
 
     @dataclass
     class Point:
-        """
-        細胞内部座標を扱うための簡易データクラス
-        p, q, u1, u2, dist, G, sign など各種メンバーを持つが
-        ここでは主に map64_raw 生成時に利用
-        """
         p: float
         q: float
         u1: float
@@ -122,9 +123,7 @@ class Map64:
         多項式曲線 y=f(x) と任意点 (x_Q, y_Q) の最短距離を求め、その最短距離と最短点を返す。
         """
         def f_x(x):
-            return sum(
-                c * x**i for i, c in enumerate(coefficients[::-1])
-            )
+            return sum(c * x**i for i, c in enumerate(coefficients[::-1]))
 
         def distance(x):
             return np.sqrt((x - x_Q) ** 2 + (f_x(x) - y_Q) ** 2)
@@ -158,15 +157,13 @@ class Map64:
         else:
             Q = np.array([eigenvectors[0], eigenvectors[1]])
 
-        # 細胞内点を基底変換
         U = []
         for (row, col) in coordinates_incide_cell:
-            # (row, col) は (y, x) なので順序を合わせる
+            # row, col は y, x
             uv = Q.transpose() @ np.array([col, row])
-            # u2 -> uv[0], u1 -> uv[1] として保存
+            # u2 -> uv[0], u1 -> uv[1]
             U.append([uv[0], uv[1]])
 
-        # 輪郭点も基底変換
         contour_U = []
         for (col, row) in contour:
             uv = Q.transpose() @ np.array([col, row])
@@ -179,7 +176,6 @@ class Map64:
         min_u1, max_u1 = min(u1), max(u1)
 
         center = np.array([center_x, center_y])
-        # 中心点も同じ基底で変換しておく（必要に応じて）
         u_center = center @ Q
         u1_c, u2_c = u_center[1], u_center[0]
 
@@ -212,14 +208,17 @@ class Map64:
 
         # 1) 画像デコード
         image_fluo = cv2.imdecode(np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR)
+        if image_fluo is None:
+            print(f"[Warning] Failed to decode image for cell_id={cell_id}")
+            return
         image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
 
         # 2) 背景差分
         image_fluo_gray = subtract_background(image_fluo_gray)
 
         # 3) マスク生成
-        mask = np.zeros_like(image_fluo_gray)
         contour_points = pickle.loads(contour_raw)  # 輪郭データ
+        mask = np.zeros_like(image_fluo_gray)
         cv2.fillPoly(mask, [contour_points], 255)
 
         coords_inside_cell = np.column_stack(np.where(mask))
@@ -227,19 +226,18 @@ class Map64:
 
         # 輪郭を描画して fluo_raw 出力
         cv2.polylines(image_fluo, [contour_points], True, (0, 255, 0), 2)
-        cv2.imwrite(f"experimental/SK328/images/fluo_raw/{db_prefix}_{cell_id}.png", image_fluo)
+        cv2.imwrite(
+            f"experimental/DotPatternMap/images/fluo_raw/{db_prefix}_{cell_id}.png",
+            image_fluo
+        )
 
         # 4) 基底変換
-        # X は (x座標群, y座標群) 形状の2×N行列が多いが、ここでは転置に注意
-        X = np.array([
-            coords_inside_cell[:, 1],  # x座標
-            coords_inside_cell[:, 0],  # y座標
-        ])
+        X = np.array([coords_inside_cell[:, 1], coords_inside_cell[:, 0]])  # [x群, y群]
         (u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U) = cls.basis_conversion(
             [list(i[0]) for i in contour_points],
             X,
-            image_fluo.shape[1] / 2,  # center_x = 画像幅/2
-            image_fluo.shape[0] / 2,  # center_y = 画像高さ/2
+            image_fluo.shape[1] / 2,
+            image_fluo.shape[0] / 2,
             coords_inside_cell,
         )
 
@@ -247,57 +245,38 @@ class Map64:
         theta = cls.poly_fit(U, degree=degree)
 
         # 6) 曲線からの距離などを計算し、map64_raw用データを構築
-        raw_points: list[cls.Point] = []
-        for (i, j), brightness in zip(coords_inside_cell, points_inside_cell):
-            # i, j = y, x なので、U配列と合わせるなら (u1, u2) は (j, i) 的に扱われている
-            # ただしすでにUには格納済みなので、ループではなく u1, u2 を直接使ってもOK
-            # ここでは比較的分かりやすく (i,j)->(u1, u2) 変換後で扱う例
-            # ------------------------------------------
-            #  u1, u2 は該当ピクセルが何番目かを調べて取得してもよいが、
-            #  本コードでは抽出済みのUを同じ順序で使うために zip() の工夫が必要になる。
-            # ------------------------------------------
-            # 手短にするため "find_minimum_distance_and_point" を使わず単に近似線との距離を計算してもよい。
-
-            # U配列と同じ要素順序で取得: indexを明示
-            # ※ 大量のピクセルがあるため若干非効率ですが、わかりやすさ優先
-            # ------------------------------------------
-            # 実際には下記 raw_points 生成で同様のループを回す形です。
-            pass
-
-        # ↓ 実際の実装: U, points_inside_cell を同時にループ
         tmp_points = []
         for (uu2, uu1), brightness in zip(U, points_inside_cell):
-            # uu1 -> x方向, uu2 -> y方向 として多項式との距離を計算
             min_distance, min_point = cls.find_minimum_distance_and_point(theta, uu1, uu2)
             sign = 1 if uu2 > min_point[1] else -1
-
-            # アーク長
             arc_len = calculate_arc_length(theta, min(u1), min_point[0])
-            p_val = arc_len   # p として曲線方向の長さ
-            q_val = min_point[1]  # 近似曲線の u2 方向位置
-
+            p_val = arc_len
+            q_val = min_point[1]
             tmp_points.append(cls.Point(
-                p = p_val,
-                q = q_val,
-                u1 = uu1,
-                u2 = uu2,
-                dist = min_distance,
-                G = brightness,
-                sign = sign,
+                p=p_val,
+                q=q_val,
+                u1=uu1,
+                u2=uu2,
+                dist=min_distance,
+                G=brightness,
+                sign=sign,
             ))
 
         raw_points = sorted(tmp_points, key=lambda x: x.p)
 
         # 7) map64_raw 画像の作成
-        #    p(曲線長) を x軸、dist(曲線からの直交距離) を y軸にプロット
         ps = np.array([pt.p for pt in raw_points])
         dists_signed = np.array([pt.dist * pt.sign for pt in raw_points])
         gs = np.array([pt.G for pt in raw_points])  # 輝度(0~255)
 
+        if ps.size == 0:
+            print(f"[Warning] No points found inside cell (cell_id={cell_id})")
+            return
+
         min_p, max_p = ps.min(), ps.max()
         min_dist, max_dist = dists_signed.min(), dists_signed.max()
 
-        # 背景用のグレー値：内部ピクセルの輝度の中央値
+        # 背景用グレー値: 細胞内部ピクセルの輝度の中央値
         median_intensity = int(np.median(gs))
 
         scale_factor = 1
@@ -305,40 +284,36 @@ class Map64:
         scaled_height = max(1, int((max_dist - min_dist) * scale_factor))
 
         high_res_image = np.full(
-            (scaled_height, scaled_width), median_intensity, dtype=np.uint8
+            (scaled_height, scaled_width),
+            median_intensity,
+            dtype=np.uint8
         )
+
         for p_val, dist_val, g_val in zip(ps, dists_signed, gs):
             x_pt = int((p_val - min_p) * scale_factor)
             y_pt = int((dist_val - min_dist) * scale_factor)
-            # 円を描く（あまり重ならないなら1pxでもOK）
             cv2.circle(high_res_image, (x_pt, y_pt), 1, int(g_val), -1)
 
-        # 背景引き算済みの「生」画像として保存
+        # map64_raw 保存
         cv2.imwrite(
-            f"experimental/SK328/images/map64_raw/{db_prefix}_{cell_id}.png",
+            f"experimental/DotPatternMap/images/map64_raw/{db_prefix}_{cell_id}.png",
             high_res_image
         )
 
-        # 8) 64x64にリサイズ
+        # 8) 64x64にリサイズ & 必要なら右半分が明るければ水平反転
         resized_64 = cv2.resize(high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST)
-        # 右側が明るければ反転
         resized_64 = cls.flip_image_if_needed(resized_64)
-
-        # map64 保存
         cv2.imwrite(
-            f"experimental/SK328/images/map64/{db_prefix}_{cell_id}.png",
+            f"experimental/DotPatternMap/images/map64/{db_prefix}_{cell_id}.png",
             resized_64
         )
 
-        # map64_jet の可視化
+        # map64_jet
         jet_img = cv2.applyColorMap(resized_64, cv2.COLORMAP_JET)
         cv2.imwrite(
-            f"experimental/SK328/images/map64_jet/{db_prefix}_{cell_id}.png",
+            f"experimental/DotPatternMap/images/map64_jet/{db_prefix}_{cell_id}.png",
             jet_img
         )
-
-        # ここでは戻り値なし
-        return
 
 
 # ============================ メイン関数 ============================
@@ -354,43 +329,35 @@ def main(db_path: str) -> None:
     ensure_dirs()
 
     # データベースをパースして cells を取得
-    # cells: list[Cell] であることを想定
     cells = database_parser(db_path)
-    print(cells)
+    print(f"Loaded {len(cells)} cells from {db_path}")
+
     # 細胞ごとに処理
     for cell in tqdm(cells, desc=f"Processing {db_prefix}"):
-        # map64処理
         Map64.extract_map(
             image_fluo_raw=cell.img_fluo1,
             contour_raw=cell.contour,
-            degree=4,                  # 多項式近似の次数
-            cell_id=cell.cell_id,      # 細胞ID
-            db_prefix=db_prefix        # DB名プレフィックス
+            degree=4,             # 多項式近似の次数
+            cell_id=cell.cell_id,
+            db_prefix=db_prefix
         )
 
-    print("処理が完了しました。実行ディレクトリ以下にある experimental/DotPatternMap/images/ に結果が保存されています。")
+    print("処理完了: experimental/DotPatternMap/images/ に結果が保存されました。")
 
 
 # ============================ エントリポイント ============================
 if __name__ == "__main__":
-    """
-    使い方:
-      python script_name.py your_database.db
+    # 1) この main.py のディレクトリを取得
+    script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    実行すると experimental/DotPatternMap/images/ 配下に
-    - fluo_raw/{DB_PREFIX}_{CELL_ID}.png
-    - map64_raw/{DB_PREFIX}_{CELL_ID}.png
-    - map64/{DB_PREFIX}_{CELL_ID}.png
-    - map64_jet/{DB_PREFIX}_{CELL_ID}.png
+    # 2) 同じディレクトリ内の .db を探す
+    db_files = [f for f in os.listdir(script_dir) if f.endswith(".db")]
 
-    が生成されます。
-    """
-    import os
-
-    db_files = os.listdir("experimental/SK328/")
-    for db_file in db_files:
-        if not db_file.endswith(".db"):
-            continue
-        db_file = os.path.join("experimental/SK328/", db_file)
-        print(f"Processing {db_file}...")
-        main(db_file)
+    if not db_files:
+        print("[Error] 同じディレクトリに .db ファイルが見つかりませんでした。")
+    else:
+        # 3) 見つかった .db ファイルをすべて処理
+        for db_file in db_files:
+            db_path = os.path.join(script_dir, db_file)
+            print(f"Processing {db_path}...")
+            main(db_path)
