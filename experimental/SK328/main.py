@@ -5,7 +5,7 @@
 1. map64_raw (背景引き算済みの座標配置画像)
 2. map64_jet (上記を Jet カラーマップで可視化)
 
-をそれぞれ experimental/DotPatternMap/images/ 内のサブディレクトリに保存します。
+をそれぞれ experimental/SK328/images/ 内のサブディレクトリに保存します。
 
 依存ライブラリ:
     pip install numpy opencv-python matplotlib tqdm
@@ -17,7 +17,7 @@ Pythonバージョン: 3.12を想定
   $ cd experimental/SK328
   $ python main.py
 
-実行すると experimental/DotPatternMap/images/ 配下に
+実行すると experimental/SK328/images/ 配下に
   - fluo_raw/{DB_PREFIX}_{CELL_ID}.png
   - map64_raw/{DB_PREFIX}_{CELL_ID}.png
   - map64/{DB_PREFIX}_{CELL_ID}.png
@@ -44,7 +44,7 @@ from database_parser import database_parser, Cell
 # ============================ ユーティリティ関数 ============================
 def ensure_dirs() -> None:
     """結果を保存するディレクトリが存在しない場合は作成する。"""
-    base_dir = "experimental/DotPatternMap/images"
+    base_dir = "experimental/SK328/images"
     subdirs = [
         "map64",
         "map64_raw",
@@ -192,7 +192,7 @@ class Map64:
     ):
         """
         与えられた Cell レコードの蛍光画像と輪郭情報から、
-        以下のファイルを experimental/DotPatternMap/images/ に出力する:
+        以下のファイルを experimental/SK328/images/ に出力する:
           - fluo_raw/{db_prefix}_{cell_id}.png
           - map64_raw/{db_prefix}_{cell_id}.png
           - map64/{db_prefix}_{cell_id}.png
@@ -227,7 +227,7 @@ class Map64:
         # 輪郭を描画して fluo_raw 出力
         cv2.polylines(image_fluo, [contour_points], True, (0, 255, 0), 2)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/fluo_raw/{db_prefix}_{cell_id}.png",
+            f"experimental/SK328/images/fluo_raw/{db_prefix}_{cell_id}.png",
             image_fluo
         )
 
@@ -296,7 +296,7 @@ class Map64:
 
         # map64_raw 保存
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64_raw/{db_prefix}_{cell_id}.png",
+            f"experimental/SK328/images/map64_raw/{db_prefix}_{cell_id}.png",
             high_res_image
         )
 
@@ -304,14 +304,14 @@ class Map64:
         resized_64 = cv2.resize(high_res_image, (64, 64), interpolation=cv2.INTER_NEAREST)
         resized_64 = cls.flip_image_if_needed(resized_64)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64/{db_prefix}_{cell_id}.png",
+            f"experimental/SK328/images/map64/{db_prefix}_{cell_id}.png",
             resized_64
         )
 
         # map64_jet
         jet_img = cv2.applyColorMap(resized_64, cv2.COLORMAP_JET)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64_jet/{db_prefix}_{cell_id}.png",
+            f"experimental/SK328/images/map64_jet/{db_prefix}_{cell_id}.png",
             jet_img
         )
 
@@ -342,7 +342,7 @@ def main(db_path: str) -> None:
             db_prefix=db_prefix
         )
 
-    print("処理完了: experimental/DotPatternMap/images/ に結果が保存されました。")
+    print("処理完了: experimental/SK328/images/ に結果が保存されました。")
 
 
 # ============================ エントリポイント ============================
