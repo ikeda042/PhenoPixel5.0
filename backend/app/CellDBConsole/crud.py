@@ -1450,9 +1450,9 @@ class CellCrudBase:
             cell_id=cell_id,
             label=str(
                 round(
-                    len([i for i in median_intensities if i < 0.6])
+                    len([i for i in median_intensities if i < 0.7])
                     / len(median_intensities),
-                    2,
+                    4,
                 )
             ),
         )
