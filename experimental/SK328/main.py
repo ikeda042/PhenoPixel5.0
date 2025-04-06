@@ -348,7 +348,6 @@ def main(db_path: str) -> None:
     指定された .db ファイルを解析し、
     細胞ごとに map64_raw, map64, map64_jet を PNG で出力する。
     """
-
     # DB名プレフィックス(拡張子なし)
     db_prefix = os.path.splitext(os.path.basename(db_path))[0]
 
@@ -387,13 +386,12 @@ if __name__ == "__main__":
 
     が生成されます。
     """
-    if len(sys.argv) < 2:
-        print("Usage: python script_name.py /path/to/database.db")
-        sys.exit(1)
+    import os
 
-    db_file = sys.argv[1]
-    if not os.path.isfile(db_file):
-        print(f"Error: File not found: {db_file}")
-        sys.exit(1)
-
-    main(db_file)
+    db_files = os.listdir("experimental/SK328/")
+    for db_file in db_files:
+        if not db_file.endswith(".db"):
+            continue
+        db_file = os.path.join("experimental/SK328/", db_file)
+        print(f"Processing {db_file}...")
+        main(db_file)
