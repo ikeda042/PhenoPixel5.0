@@ -15,7 +15,6 @@ Pythonバージョン: 3.12を想定
 
 from __future__ import annotations
 import os
-import sys
 import cv2
 import numpy as np
 import pickle
@@ -316,7 +315,7 @@ class Map64:
 
         # 背景引き算済みの「生」画像として保存
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64_raw/{db_prefix}_{cell_id}.png",
+            f"experimental/SK328/images/map64_raw/{db_prefix}_{cell_id}.png",
             high_res_image
         )
 
@@ -327,14 +326,14 @@ class Map64:
 
         # map64 保存
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64/{db_prefix}_{cell_id}.png",
+            f"experimental/SK328/images/map64/{db_prefix}_{cell_id}.png",
             resized_64
         )
 
         # map64_jet の可視化
         jet_img = cv2.applyColorMap(resized_64, cv2.COLORMAP_JET)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64_jet/{db_prefix}_{cell_id}.png",
+            f"experimental/SK328/images/map64_jet/{db_prefix}_{cell_id}.png",
             jet_img
         )
 
@@ -357,7 +356,7 @@ def main(db_path: str) -> None:
     # データベースをパースして cells を取得
     # cells: list[Cell] であることを想定
     cells = database_parser(db_path)
-
+    print(cells)
     # 細胞ごとに処理
     for cell in tqdm(cells, desc=f"Processing {db_prefix}"):
         # map64処理
