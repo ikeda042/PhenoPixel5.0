@@ -426,7 +426,7 @@ class Map64:
 
         # 64x64に縮小 & 右側が明るければフリップ
         high_res_image = cv2.resize(
-            high_res_image, (512,128 ), interpolation=cv2.INTER_NEAREST
+            high_res_image, (516,128 ), interpolation=cv2.INTER_NEAREST
         )
         high_res_image = cls.flip_image_if_needed(high_res_image)
         cv2.imwrite(
