@@ -73,9 +73,7 @@ def parse_image(cell: Cell) -> tuple:
 def database_parser(dbname: str) -> list[Cell]:
     dbpath = f"sqlite:///experimental/SK328/{dbname}"
     print(dbpath)
-    import os 
-    print(os.path.exists(dbpath))
-    print(os.listdir(dbpath))
+
     print("______________________________")
     print("______________________________")
     print("______________________________")
