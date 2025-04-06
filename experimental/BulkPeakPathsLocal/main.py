@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import os
 
+
 async def fetch_heatmap_data(session, db_name, cell_id=""):
     url = f"http://localhost:8000/api/cells/{db_name}/1/F0C16/heatmap/bulk/csv"
     async with session.get(url) as response:
@@ -16,6 +17,7 @@ async def fetch_bulk_heatmap_data(db_names, cell_id):
     async with aiohttp.ClientSession() as session:
         tasks = []
         for db_name in db_names:
+            print(f"Fetching data for {db_name}...")
             tasks.append(fetch_heatmap_data(session, db_name, cell_id))
         results = await asyncio.gather(*tasks)
         return results
@@ -23,6 +25,7 @@ async def fetch_bulk_heatmap_data(db_names, cell_id):
 
 def run_fetch_bulk_heatmap_data(db_names, cell_id):
     return asyncio.run(fetch_bulk_heatmap_data(db_names, cell_id))
+
 
 db_names = [
     i
