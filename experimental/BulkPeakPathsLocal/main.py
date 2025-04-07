@@ -14,7 +14,7 @@ async def fetch_heatmap_data(session, db_name, cell_id=""):
 
 
 async def fetch_bulk_heatmap_data(db_names, cell_id):
-    async with aiohttp.ClientSession(timeout=5900) as session:
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(5900)) as session:
         tasks = []
         for db_name in db_names:
             print(f"Fetching data for {db_name}...")
