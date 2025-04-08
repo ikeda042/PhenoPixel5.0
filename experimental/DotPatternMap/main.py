@@ -850,7 +850,8 @@ def extract_probability_map(out_name: str) -> np.ndarray:
     """
     64x64の map64 をAugmentationして、単純平均した確率マップを作る例
     """
-
+    # ダミー実装
+    return np.zeros((64, 64), dtype=np.float32)
 
 
 def process_dot_locations_relative(db_name: str) -> None:
@@ -970,37 +971,43 @@ def clean_directory(dir_path: str) -> None:
 
 
 # -------------------------------------------------------
-# 追加: 512×128 画像を縦向きに回転し、横に並べて1枚にまとめる関数
+# 修正: 512×128 画像を縦向きに回転し、
+# 画像の合計輝度が大きい順に並べて横に結合する。
 # -------------------------------------------------------
 def combine_map64_normalized(db_name: str) -> None:
     """
     map_64_normalized ディレクトリ内の 512×128 の画像を
-    90度回転させ(128×512の縦向きにし)、すべて横に並べて
-    1枚の画像として保存する。
+    90度回転させ(128×512の縦向きにし)、画像の合計輝度が大きい順に並べて
+    すべて横に連結して1枚の画像として保存する。
     
     出力先: experimental/DotPatternMap/images/{db_name}_map64_normalized_all.png
     """
     normalized_dir = "experimental/DotPatternMap/images/map_64_normalized"
     files = sorted(f for f in os.listdir(normalized_dir) if f.endswith(".png"))
 
-    images_rotated = []
+    images_info = []
     for f in files:
         path = os.path.join(normalized_dir, f)
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         if img is None:
             continue
-        # 512×128 -> 90度回転で 128×512 にする
-        rotated = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)  # shape: (512,128)
-        images_rotated.append(rotated)
+        # 回転前の輝度合計を測る場合はここで sum
+        brightness = np.sum(img)
+        # 512×128 -> 90度回転で (128×512) にする
+        rotated = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+        images_info.append((rotated, brightness))
 
-    if not images_rotated:
+    # 明るい順（合計輝度が大きい順）にソート
+    images_info.sort(key=lambda x: x[1], reverse=True)
+
+    if not images_info:
         print("No images to combine in map_64_normalized.")
         return
 
     # 横方向に連結
-    combined_image = images_rotated[0]
-    for i in range(1, len(images_rotated)):
-        combined_image = cv2.hconcat([combined_image, images_rotated[i]])
+    combined_image = images_info[0][0]
+    for i in range(1, len(images_info)):
+        combined_image = cv2.hconcat([combined_image, images_info[i][0]])
 
     output_path = f"experimental/DotPatternMap/images/{db_name}_map64_normalized_all.png"
     cv2.imwrite(output_path, combined_image)
@@ -1021,7 +1028,7 @@ def main(db: str):
     # 512×128用フォルダの掃除
     clean_directory("experimental/DotPatternMap/images/map_64_normalized")
 
-    cells: list[Cell] = database_parser(db)
+    cells: list[Cell] = database_parser(db)[:10]
     map64: Map64 = Map64()
     vectors = []
     for cell in tqdm(cells):
@@ -1031,7 +1038,7 @@ def main(db: str):
     map64.combine_images(out_name=db.replace(".db", ".png"))
     extract_probability_map(db.replace(".db", ""))
 
-    # 追加: combine_map64_normalizedを呼び出して、一枚にまとめる
+    # 追加: combine_map64_normalizedを呼び出して、一枚にまとめる（輝度順で結合）
     combine_map64_normalized(db.replace(".db", ""))
 
     return vectors
