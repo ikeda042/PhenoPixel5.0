@@ -62,8 +62,8 @@ def ensure_dirs():
         "map64_jet",
         "map64_raw",
         # "polar",   # polar 処理はコメントアウト
-        "dot_loc",       # dot位置結果の出力先
-        "map_64_normalized",  # ★ 追加: 512x128で保存するディレクトリ
+        "dot_loc",          # dot位置結果の出力先
+        "map_64_normalized" # ★ 512×128の画像を保存するディレクトリ
     ]
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
@@ -360,7 +360,6 @@ class Map64:
         )
         theta = cls.poly_fit(U, degree=degree)
 
-        # 距離計算と座標格納
         from math import isclose
 
         def sign_side(y_point: float, y_curve: float) -> int:
@@ -381,7 +380,7 @@ class Map64:
                     i,
                     j,
                     min_distance,
-                    p,  # 背景差分後の輝度をそのまま格納
+                    p,  # 背景差分後の輝度
                     sgn,
                 )
             )
@@ -409,7 +408,6 @@ class Map64:
             f"experimental/DotPatternMap/images/points_box/{DB_PREFIX}_{cell_id}.png",
             dpi=300,
         )
-        # 個別画像と全体画像の重複防止のため、別名でも保存
         fig.savefig(
             f"experimental/DotPatternMap/images/points_box/{DB_PREFIX}_points_box.png",
             dpi=300,
@@ -417,33 +415,32 @@ class Map64:
         plt.close(fig)
         plt.clf()
 
-        # ==============================
-        # map64_rawの作成
-        # ==============================
+        # ==================================
+        # map64_rawの作成 (可変サイズ)
+        # ==================================
         scale_factor = 1
         scaled_width = int((max_p - min_p) * scale_factor)
         scaled_height = int((max_dist - min_dist) * scale_factor)
 
-        # ここで「細胞内の最小輝度」を取得
+        # 細胞内の最小輝度を取得
         lowest_intensity = int(np.min(points_inside_cell_1))
 
         high_res_image = np.full(
             (scaled_height, scaled_width), lowest_intensity, dtype=np.uint8
         )
 
-        # 各点の座標を (p, dist) -> (x, y) に見立ててプロット
         for p, dist, G in zip(ps, dists, gs_used):
             p_scaled = int((p - min_p) * scale_factor)
             dist_scaled = int((dist - min_dist) * scale_factor)
             cv2.circle(high_res_image, (p_scaled, dist_scaled), 1, int(G), -1)
 
-        # 背景差分後の画像を map64_raw に保存
+        # background-sub後の raw 画像を保存
         cv2.imwrite(
             f"experimental/DotPatternMap/images/map64_raw/{DB_PREFIX}_{cell_id}.png",
             high_res_image,
         )
 
-        # 64x64…ではなく、(516,128)に縮小 & 右側が明るければフリップ（元コード）
+        # この段階で 516×128 にリサイズ＆左右反転チェック
         high_res_image = cv2.resize(
             high_res_image, (516, 128), interpolation=cv2.INTER_NEAREST
         )
@@ -453,7 +450,7 @@ class Map64:
             high_res_image,
         )
 
-        # そのままJetカラーマップで可視化
+        # Jet カラーマップ
         high_res_image_colormap = cv2.applyColorMap(high_res_image, cv2.COLORMAP_JET)
         cv2.imwrite(
             f"experimental/DotPatternMap/images/map64_jet/{DB_PREFIX}_{cell_id}.png",
@@ -464,8 +461,9 @@ class Map64:
             high_res_image_colormap,
         )
 
-        # ★ 追加: 512×128ピクセルで保存するための処理
-        # 「map_64_normalized」というディレクトリに保存
+        # ==================================
+        # 512×128 ピクセルでの保存 (リクエスト箇所)
+        # ==================================
         map64_normalized_image = cv2.resize(
             high_res_image, (512, 128), interpolation=cv2.INTER_NEAREST
         )
@@ -475,14 +473,6 @@ class Map64:
             map64_normalized_image,
         )
 
-        """
-        PCA処理はコメントアウト（高速化）
-        return cls.perform_pca_on_3d_point_cloud_and_save(
-            high_res_image,
-            f"experimental/DotPatternMap/images/pca_2d/{DB_PREFIX}_{cell_id}.png",
-            f"experimental/DotPatternMap/images/pca_1d/{DB_PREFIX}_{cell_id}.png",
-        )
-        """
         return high_res_image
 
     @classmethod
@@ -596,73 +586,58 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
         os.makedirs(dot_loc_dir)
     base_name = os.path.splitext(os.path.basename(image_path))[0]
 
-    if True:
-        # ドットがある場合：しきい値150で2値化（閾値は適宜調整可能）
-        ret, thresh = cv2.threshold(norm_gray, 150, 255, cv2.THRESH_BINARY)
+    # しきい値150で2値化
+    ret, thresh = cv2.threshold(norm_gray, 150, 255, cv2.THRESH_BINARY)
 
-        # thresh画像における255ピクセルのx軸, y軸位置の変動係数を計算する
-        white_pixels = np.where(thresh == 255)
-        discard_based_on_cv = False
-        if white_pixels[0].size > 0:
-            # np.whereは (y座標, x座標) の順で返すため
-            x_positions = white_pixels[1]
-            y_positions = white_pixels[0]
-            mean_x = np.mean(x_positions) if np.mean(x_positions) != 0 else 1
-            mean_y = np.mean(y_positions) if np.mean(y_positions) != 0 else 1
-            cv_x = np.std(x_positions) / mean_x
-            cv_y = np.std(y_positions) / mean_y
-            print(f"cv_x: {cv_x}, cv_y: {cv_y}")
-            # 変動係数の閾値 (ここでは0.2を使用中)
-            cv_threshold = 0.2
-            if cv_x > cv_threshold or cv_y > cv_threshold:
-                print(
-                    "Coefficient of variation threshold exceeded. Discarding dot detection."
-                )
-                discard_based_on_cv = True
-                thresh[:] = 0  # thresh画像を全て0にする
+    # thresh画像における255ピクセルのx軸, y軸位置の変動係数を計算する
+    white_pixels = np.where(thresh == 255)
+    discard_based_on_cv = False
+    if white_pixels[0].size > 0:
+        # np.whereは (y座標, x座標) の順
+        x_positions = white_pixels[1]
+        y_positions = white_pixels[0]
+        mean_x = np.mean(x_positions) if np.mean(x_positions) != 0 else 1
+        mean_y = np.mean(y_positions) if np.mean(y_positions) != 0 else 1
+        cv_x = np.std(x_positions) / mean_x
+        cv_y = np.std(y_positions) / mean_y
+        print(f"cv_x: {cv_x}, cv_y: {cv_y}")
+        cv_threshold = 0.2
+        if cv_x > cv_threshold or cv_y > cv_threshold:
+            print("Coefficient of variation threshold exceeded. Discarding dot detection.")
+            discard_based_on_cv = True
+            thresh[:] = 0  # thresh画像を全て0に
 
-        # thresh画像中の255ピクセルが多過ぎる場合もドットなしと判断
-        if discard_based_on_cv or np.sum(thresh == 255) > 300:
+    # thresh画像中の255ピクセルが多過ぎる場合もドットなしと判断
+    if discard_based_on_cv or np.sum(thresh == 255) > 300:
+        coordinates = []
+        detected_img = np.zeros_like(image)
+    else:
+        # 輪郭検出
+        contours, _ = cv2.findContours(
+            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        total_area = sum(cv2.contourArea(cnt) for cnt in contours)
+        print(f"Total contour area: {total_area}")
+
+        if total_area > 200:
             coordinates = []
             detected_img = np.zeros_like(image)
         else:
-            # 輪郭検出（外側の輪郭のみ取得）
-            contours, _ = cv2.findContours(
-                thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-            )
-            # 各輪郭の面積の合計を計算
-            total_area = sum(cv2.contourArea(cnt) for cnt in contours)
-            print(f"Total contour area: {total_area}")
+            detected_img = np.zeros_like(image)
+            for cnt in contours:
+                M = cv2.moments(cnt)
+                if M["m00"] != 0:
+                    cX = int(M["m10"] / M["m00"])
+                    cY = int(M["m01"] / M["m00"])
+                    # ドット領域の平均輝度を (もとの gray) で計算
+                    mask = np.zeros_like(gray)
+                    cv2.drawContours(mask, [cnt], -1, 255, thickness=-1)
+                    avg_brightness = cv2.mean(gray, mask=mask)[0]
+                    print(f"Detected dot at ({cX}, {cY}), brightness: {avg_brightness}")
+                    coordinates.append((cX, cY, avg_brightness))
+            cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
 
-            if total_area > 200:
-                # 合計面積が閾値を超える場合はドットがないと判断
-                coordinates = []
-                detected_img = np.zeros_like(image)
-            else:
-                for cnt in contours:
-                    # モーメントを計算し、重心を求める
-                    M = cv2.moments(cnt)
-                    if M["m00"] != 0:
-                        cX = int(M["m10"] / M["m00"])
-                        cY = int(M["m01"] / M["m00"])
-                        # ドット領域の平均輝度を算出 (もとの gray で計算)
-                        mask = np.zeros_like(gray)
-                        cv2.drawContours(mask, [cnt], -1, 255, thickness=-1)
-                        avg_brightness = cv2.mean(gray, mask=mask)[0]
-                        print(
-                            f"Detected dot at ({cX}, {cY}), brightness: {avg_brightness}"
-                        )
-                        coordinates.append((cX, cY, avg_brightness))
-
-                # 検出結果の可視化用画像作成
-                detected_img = np.zeros_like(image)
-                cv2.drawContours(detected_img, contours, -1, (255, 255, 255), 2)
-    else:
-        # ドットがない場合
-        thresh = np.zeros_like(norm_gray)
-        detected_img = np.zeros_like(image)
-
-    # 出力画像を dot_loc フォルダに保存
+    # 出力画像を保存
     cv2.imwrite(os.path.join(dot_loc_dir, f"{base_name}_detected.png"), detected_img)
     cv2.imwrite(os.path.join(dot_loc_dir, f"{base_name}_binary.png"), thresh)
     cv2.imwrite(os.path.join(dot_loc_dir, f"{base_name}_norm.png"), norm_gray)
@@ -690,12 +665,9 @@ def process_dot_locations(db_name: str):
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
     detect_dot() を用いてドットの中心座標と輝度を取得し、
-    各画像ごとに個別の散布図を保存し、全画像のドット位置と輝度をまとめたヒートマップを
-    scatterプロットで表示します。
-
-    全てのデータポイントを絶対座標（abs）として扱い、x, y は画像サイズで正規化して (0, 1) の範囲で描画します。
+    個別の散布図を保存し、全画像のドット位置と輝度をまとめたヒートマップを表示。
     """
-    import csv  # CSV出力に必要なモジュール
+    import csv
 
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
@@ -708,10 +680,8 @@ def process_dot_locations(db_name: str):
         if filename.endswith(".png"):
             image_path = os.path.join(map64_raw_dir, filename)
             print(f"Processing {filename}")
-            # detect_dot() によりドットの中心座標と輝度を取得
             dots = detect_dot(image_path)
 
-            # 元画像をグレースケールで再読み込み
             image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
             if image is None:
                 continue
@@ -720,20 +690,18 @@ def process_dot_locations(db_name: str):
             normalized_dots = []
             for dot in dots:
                 x, y, brightness = dot
-                # 絶対座標での正規化 (0, 1)
                 norm_x = x / w
                 norm_y = y / h
                 normalized_dots.append((norm_x, norm_y, brightness))
 
             all_normalized_dots.extend(normalized_dots)
 
-            # 個別の散布図作成
+            # 個別可視化
             fig, ax = plt.subplots(figsize=(4, 4))
             if normalized_dots:
                 xs = [abs(p[0]) for p in normalized_dots]
                 ys = [abs(p[1]) for p in normalized_dots]
                 brightness_vals = [1 - abs(p[2]) for p in normalized_dots]
-                print(f"Detected dots: {brightness_vals}")
                 sc = ax.scatter(
                     xs,
                     ys,
@@ -753,7 +721,6 @@ def process_dot_locations(db_name: str):
                     va="center",
                     transform=ax.transAxes,
                 )
-            # 参照のため、中央に補助線を表示（x=0.5, y=0.5）
             ax.axhline(0.5, color="gray", linestyle="--")
             ax.axvline(0.5, color="gray", linestyle="--")
             ax.set_title(f"Dot Locations for {filename}")
@@ -764,15 +731,11 @@ def process_dot_locations(db_name: str):
             ax.grid(True)
             ax.legend()
 
-            # 個別プロット画像の保存
             plot_save_path = os.path.join(dot_loc_dir, filename)
-            print(f"Saving plot to {plot_save_path}")
             fig.savefig(plot_save_path, dpi=300)
             plt.close(fig)
 
-            print(f"Processed {filename}: {normalized_dots}")
-
-    # 全画像のドット位置と輝度をまとめたヒートマップ作成
+    # 全体ヒートマップ
     fig, ax = plt.subplots(figsize=(6, 6))
     if all_normalized_dots:
         xs = [p[0] for p in all_normalized_dots]
@@ -812,7 +775,7 @@ def process_dot_locations(db_name: str):
     fig.savefig(combined_heatmap_path, dpi=300)
     plt.close(fig)
 
-    # CSVとしてドット情報を保存
+    # CSV
     csv_path = f"experimental/DotPatternMap/images/{db_name}_dot_positions.csv"
     with open(csv_path, mode="w", newline="") as csv_file:
         csv_writer = csv.writer(csv_file)
@@ -824,9 +787,8 @@ def process_dot_locations(db_name: str):
 
 def combine_dot_loc_combined_images():
     """
-    dot_loc 内の _binary, _detected, _norm の各種画像をグリッド状に結合し、
-    experimental/DotPatternMap/images に {DB_PREFIX}_combined_binary.png, {DB_PREFIX}_combined_detected.png, {DB_PREFIX}_combined_norm.png を生成する。
-    同じ細胞の画像が各combined画像で同じ位置に来るよう、ファイル名（細胞ID）でソートしています。
+    dot_loc 内の _binary, _detected, _norm の各種画像をグリッドで結合し、
+    {DB_PREFIX}_combined_binary.png, {DB_PREFIX}_combined_detected.png, {DB_PREFIX}_combined_norm.png を作成
     """
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
     images_dir = "experimental/DotPatternMap/images"
@@ -884,28 +846,6 @@ def combine_dot_loc_combined_images():
             print(f"Saved combined image for {suffix} as {combined_filename}")
 
 
-def main(db: str):
-    global DB_PREFIX
-    DB_PREFIX = os.path.splitext(os.path.basename(db))[0]
-    print("+++++++++++++++++++++++++++++++++++++++++")
-    print("+++++++++++++++++++++++++++++++++++++++++")
-    print("+++++++++++++++++++++++++++++++++++++++++")
-    print("+++++++++++++++++++++++++++++++++++++++++")
-    print(f"Processing {db}")
-    for i in ["map64", "points_box", "fluo_raw", "map64_jet", "map64_raw"]:
-        delete_pngs(i)
-    cells: list[Cell] = database_parser(db)
-    map64: Map64 = Map64()
-    vectors = []
-    for cell in tqdm(cells):
-        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
-    # combine_imagesは DB_PREFIX を用いて保存
-    map64.combine_images(out_name=db.replace(".db", ".png"))
-    # 修正: Map64インスタンスではなく、モジュールレベルの関数として呼び出す
-    extract_probability_map(db.replace(".db", ""))
-    return vectors
-
-
 def extract_probability_map(out_name: str) -> np.ndarray:
     """
     64x64の map64 をAugmentationして、単純平均した確率マップを作る例
@@ -944,50 +884,13 @@ def extract_probability_map(out_name: str) -> np.ndarray:
     return probability_map
 
 
-def clean_directory(dir_path: str) -> None:
-    """.gitignoreを除くディレクトリ内の全ファイル・サブディレクトリを削除する
-    ディレクトリが存在しない場合は作成する
-    """
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-    else:
-        for item in os.listdir(dir_path):
-            if item == ".gitignore":
-                continue
-            full_item = os.path.join(dir_path, item)
-            if os.path.isdir(full_item):
-                shutil.rmtree(full_item)
-            else:
-                os.remove(full_item)
-
-
 def process_dot_locations_relative(db_name: str) -> None:
     """
     experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
     detect_dot() を用いてドットの中心座標と輝度を取得し、
-    各画像ごとに個別の散布図を保存します。
-    また、全画像のドット位置と輝度をまとめたヒートマップをscatterプロットで表示します。
-
-    ここでは、各画像のドット位置を画像サイズで正規化した後、
-    中心 (0.5, 0.5) を原点とした相対座標（4象限）としてプロットします。
-
-    数式:
-        \[
-        \text{rel}_x = 2\frac{x}{w} - 1
-        \]
-        \[
-        \text{rel}_y = 2\frac{y}{h} - 1
-        \]
-
-    Latex生コード:
-        \[
-        \text{rel}_x = 2\frac{x}{w} - 1
-        \]
-        \[
-        \text{rel}_y = 2\frac{y}{h} - 1
-        \]
+    さらに相対座標(中心を0,0とみなす)に変換して可視化する。
     """
-    import csv  # CSV出力用
+    import csv
 
     map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
@@ -1000,7 +903,6 @@ def process_dot_locations_relative(db_name: str) -> None:
         if filename.endswith(".png"):
             image_path = os.path.join(map64_raw_dir, filename)
             print(f"Processing {filename} (relative coordinates)")
-            # detect_dot() でドットの(x, y, brightness)を取得
             dots = detect_dot(image_path)
 
             image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -1011,13 +913,11 @@ def process_dot_locations_relative(db_name: str) -> None:
             relative_dots = []
             for dot in dots:
                 x, y, brightness = dot
-                # 絶対座標をまず 0〜1 に正規化→2倍して1を引く
                 rel_x = 2 * (x / w) - 1
                 rel_y = 2 * (y / h) - 1
                 relative_dots.append((rel_x, rel_y, brightness))
             all_relative_dots.extend(relative_dots)
 
-            # 個別の散布図作成（各画像ごと）
             fig, ax = plt.subplots(figsize=(4, 4))
             if relative_dots:
                 xs = [p[0] for p in relative_dots]
@@ -1047,7 +947,7 @@ def process_dot_locations_relative(db_name: str) -> None:
             plt.close(fig)
             print(f"Processed {filename}: {relative_dots}")
 
-    # 全画像のドット位置と輝度をまとめたヒートマップ作成
+    # 全画像まとめ
     fig, ax = plt.subplots(figsize=(6, 6))
     if all_relative_dots:
         xs = [p[0] for p in all_relative_dots]
@@ -1076,7 +976,6 @@ def process_dot_locations_relative(db_name: str) -> None:
     fig.savefig(combined_heatmap_path, dpi=300)
     plt.close(fig)
 
-    # CSVとして相対座標（中心原点）でのドット位置を保存
     csv_path = f"experimental/DotPatternMap/images/{db_name}_relative_dot_positions.csv"
     with open(csv_path, mode="w", newline="") as csv_file:
         csv_writer = csv.writer(csv_file)
@@ -1086,12 +985,94 @@ def process_dot_locations_relative(db_name: str) -> None:
     print(f"Relative dot positions saved to {csv_path}")
 
 
+def clean_directory(dir_path: str) -> None:
+    """.gitignoreを除くディレクトリ内の全ファイル・サブディレクトリを削除する"""
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    else:
+        for item in os.listdir(dir_path):
+            if item == ".gitignore":
+                continue
+            full_item = os.path.join(dir_path, item)
+            if os.path.isdir(full_item):
+                shutil.rmtree(full_item)
+            else:
+                os.remove(full_item)
+
+
+# -------------------------------------------------------
+# 追加: 512×128 画像を縦向きに回転し、横に並べて1枚にまとめる関数
+# -------------------------------------------------------
+def combine_map64_normalized(db_name: str) -> None:
+    """
+    map_64_normalized ディレクトリ内の 512×128 の画像を
+    90度回転させ(128×512の縦向きにし)、すべて横に並べて
+    1枚の画像として保存する。
+    
+    出力先: experimental/DotPatternMap/images/{db_name}_map64_normalized_all.png
+    """
+    normalized_dir = "experimental/DotPatternMap/images/map_64_normalized"
+    files = sorted(f for f in os.listdir(normalized_dir) if f.endswith(".png"))
+
+    images_rotated = []
+    for f in files:
+        path = os.path.join(normalized_dir, f)
+        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            continue
+        # 512×128 -> 90度回転で 128×512 にする
+        rotated = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)  # shape: (512,128)
+        images_rotated.append(rotated)
+
+    if not images_rotated:
+        print("No images to combine in map_64_normalized.")
+        return
+
+    # 横方向に連結
+    combined_image = images_rotated[0]
+    for i in range(1, len(images_rotated)):
+        combined_image = cv2.hconcat([combined_image, images_rotated[i]])
+
+    output_path = f"experimental/DotPatternMap/images/{db_name}_map64_normalized_all.png"
+    cv2.imwrite(output_path, combined_image)
+    print(f"Saved combined normalized image to {output_path}")
+
+
+def main(db: str):
+    global DB_PREFIX
+    DB_PREFIX = os.path.splitext(os.path.basename(db))[0]
+    print("+++++++++++++++++++++++++++++++++++++++++")
+    print("+++++++++++++++++++++++++++++++++++++++++")
+    print("+++++++++++++++++++++++++++++++++++++++++")
+    print("+++++++++++++++++++++++++++++++++++++++++")
+    print(f"Processing {db}")
+    for i in ["map64", "points_box", "fluo_raw", "map64_jet", "map64_raw"]:
+        delete_pngs(i)
+
+    # 512×128用フォルダの掃除
+    clean_directory("experimental/DotPatternMap/images/map_64_normalized")
+
+    cells: list[Cell] = database_parser(db)
+    map64: Map64 = Map64()
+    vectors = []
+    for cell in tqdm(cells):
+        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
+
+    # combine_imagesは DB_PREFIX を用いて保存
+    map64.combine_images(out_name=db.replace(".db", ".png"))
+    extract_probability_map(db.replace(".db", ""))
+
+    # 追加: combine_map64_normalizedを呼び出して、一枚にまとめる
+    combine_map64_normalized(db.replace(".db", ""))
+
+    return vectors
+
+
 if __name__ == "__main__":
-    # experimental/DotPatternMap内の.dbファイルに対して処理を実行
     ensure_dirs()
     for i in os.listdir("experimental/DotPatternMap"):
         if i.endswith(".db"):
-            # 実行前に必要なディレクトリをすべて初期化
+            # 必要ディレクトリのクリーンアップ
             dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
             clean_directory(dot_loc_dir)
 
@@ -1107,10 +1088,6 @@ if __name__ == "__main__":
             map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
             clean_directory(map64_raw_dir)
 
-            # 512x128 用フォルダもクリーンアップ
-            map64_normalized_dir = "experimental/DotPatternMap/images/map_64_normalized"
-            clean_directory(map64_normalized_dir)
-
             db_name = i.split("/")[-1].replace(".db", "")
             vectors_out_path = f"experimental/DotPatternMap/images/{i}_vectors.txt"
 
@@ -1121,6 +1098,7 @@ if __name__ == "__main__":
                     else:
                         f.write(f"{vector}\n")
 
+            # ドットの位置可視化・集計
             process_dot_locations(db_name=db_name)
             combine_dot_loc_combined_images()
             process_dot_locations_relative(db_name=db_name)
