@@ -1028,7 +1028,7 @@ def main(db: str):
     # 512×128用フォルダの掃除
     clean_directory("experimental/DotPatternMap/images/map_64_normalized")
 
-    cells: list[Cell] = database_parser(db)[:10]
+    cells: list[Cell] = database_parser(db)[:]
     map64: Map64 = Map64()
     vectors = []
     for cell in tqdm(cells):
