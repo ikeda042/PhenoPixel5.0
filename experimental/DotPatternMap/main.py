@@ -881,7 +881,7 @@ def extract_probability_map(out_name: str) -> np.ndarray:
     #     f"experimental/DotPatternMap/images/probability_map_{out_name}_jet.png",
     #     probability_map_jet,
     # )
-    return probability_map
+    return None
 
 
 def process_dot_locations_relative(db_name: str) -> None:
