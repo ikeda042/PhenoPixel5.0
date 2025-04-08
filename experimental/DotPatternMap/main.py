@@ -869,18 +869,6 @@ def extract_probability_map(out_name: str) -> np.ndarray:
         is not None
     ]
     augmented_images = []
-    for image in map64_images:
-        augmented_images.extend(augment_image(image))
-    # probability_map = np.mean(augmented_images, axis=0).astype(np.uint8)
-    # cv2.imwrite(
-    #     f"experimental/DotPatternMap/images/probability_map_{out_name}.png",
-    #     probability_map,
-    # )
-    # probability_map_jet = cv2.applyColorMap(probability_map, cv2.COLORMAP_VIRIDIS)
-    # cv2.imwrite(
-    #     f"experimental/DotPatternMap/images/probability_map_{out_name}_jet.png",
-    #     probability_map_jet,
-    # )
     return None
 
 
