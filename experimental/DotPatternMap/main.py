@@ -851,25 +851,6 @@ def extract_probability_map(out_name: str) -> np.ndarray:
     64x64の map64 をAugmentationして、単純平均した確率マップを作る例
     """
 
-    def augment_image(image: np.ndarray) -> list[np.ndarray]:
-        augmented_images = []
-        augmented_images.append(image)
-        augmented_images.append(cv2.flip(image, 0))
-        augmented_images.append(cv2.flip(image, 1))
-        augmented_images.append(cv2.flip(image, -1))
-        for i in range(1, 4):
-            augmented_images.append(cv2.rotate(image, i))
-        return augmented_images
-
-    map64_dir = "experimental/DotPatternMap/images/map64"
-    map64_images = [
-        cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
-        for filename in os.listdir(map64_dir)
-        if cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
-        is not None
-    ]
-    augmented_images = []
-    return None
 
 
 def process_dot_locations_relative(db_name: str) -> None:
