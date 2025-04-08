@@ -462,12 +462,17 @@ class Map64:
         )
 
         # ==================================
-        # 512×128 ピクセルでの保存 (リクエスト箇所)
+        # 512×128 ピクセルでの保存 (リクエスト箇所: 輝度正規化)
         # ==================================
         map64_normalized_image = cv2.resize(
             high_res_image, (512, 128), interpolation=cv2.INTER_NEAREST
         )
+        # 左右反転の要否チェック
         map64_normalized_image = cls.flip_image_if_needed(map64_normalized_image)
+        # 輝度を0～255へ正規化
+        map64_normalized_image = cv2.normalize(
+            map64_normalized_image, None, 0, 255, cv2.NORM_MINMAX
+        )
         cv2.imwrite(
             f"experimental/DotPatternMap/images/map_64_normalized/{DB_PREFIX}_{cell_id}.png",
             map64_normalized_image,
@@ -1028,7 +1033,7 @@ def main(db: str):
     # 512×128用フォルダの掃除
     clean_directory("experimental/DotPatternMap/images/map_64_normalized")
 
-    cells: list[Cell] = database_parser(db)[:]
+    cells: list[Cell] = database_parser(db)[:10]
     map64: Map64 = Map64()
     vectors = []
     for cell in tqdm(cells):
