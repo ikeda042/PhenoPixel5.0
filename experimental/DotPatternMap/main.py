@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from tqdm import tqdm
 import os
 import matplotlib.colors
+import shutil
+
 
 # グローバル変数（mainでdbの名前から設定）
 DB_PREFIX = ""
@@ -60,7 +62,8 @@ def ensure_dirs():
         "map64_jet",
         "map64_raw",
         # "polar",   # polar 処理はコメントアウト
-        "dot_loc",  # dot位置結果の出力先
+        "dot_loc",       # dot位置結果の出力先
+        "map_64_normalized",  # ★ 追加: 512x128で保存するディレクトリ
     ]
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
@@ -222,14 +225,23 @@ class Map64:
         X = np.array(
             [[i[1] for i in coords_inside_cell_1], [i[0] for i in coords_inside_cell_1]]
         )
-        (u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U) = (
-            cls.basis_conversion(
-                [list(i[0]) for i in unpickled_contour],
-                X,
-                image_fluo.shape[0] / 2,
-                image_fluo.shape[1] / 2,
-                coords_inside_cell_1,
-            )
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = cls.basis_conversion(
+            [list(i[0]) for i in unpickled_contour],
+            X,
+            image_fluo.shape[0] / 2,
+            image_fluo.shape[1] / 2,
+            coords_inside_cell_1,
         )
         fig = plt.figure(figsize=(6, 6))
         plt.scatter(u1, u2, s=5)
@@ -328,14 +340,23 @@ class Map64:
         X = np.array(
             [[i[1] for i in coords_inside_cell_1], [i[0] for i in coords_inside_cell_1]]
         )
-        (u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U) = (
-            cls.basis_conversion(
-                [list(i[0]) for i in unpickled_contour],
-                X,
-                image_fluo.shape[0] / 2,
-                image_fluo.shape[1] / 2,
-                coords_inside_cell_1,
-            )
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = cls.basis_conversion(
+            [list(i[0]) for i in unpickled_contour],
+            X,
+            image_fluo.shape[0] / 2,
+            image_fluo.shape[1] / 2,
+            coords_inside_cell_1,
         )
         theta = cls.poly_fit(U, degree=degree)
 
@@ -347,7 +368,6 @@ class Map64:
             y_pointが曲線より上なら+1, 下なら-1 を返す。
             値がほぼ等しければ 0 にしてもよいが、ここでは +1/-1のみ返す。
             """
-            # 誤差対策しても良いが省略
             return 1 if y_point > y_curve else -1
 
         raw_points: list[cls.Point] = []
@@ -398,7 +418,7 @@ class Map64:
         plt.clf()
 
         # ==============================
-        # map64_rawの作成（ここを修正）
+        # map64_rawの作成
         # ==============================
         scale_factor = 1
         scaled_width = int((max_p - min_p) * scale_factor)
@@ -407,7 +427,6 @@ class Map64:
         # ここで「細胞内の最小輝度」を取得
         lowest_intensity = int(np.min(points_inside_cell_1))
 
-        # 下記を、median_intensity → lowest_intensity に変更
         high_res_image = np.full(
             (scaled_height, scaled_width), lowest_intensity, dtype=np.uint8
         )
@@ -424,9 +443,9 @@ class Map64:
             high_res_image,
         )
 
-        # 64x64に縮小 & 右側が明るければフリップ
+        # 64x64…ではなく、(516,128)に縮小 & 右側が明るければフリップ（元コード）
         high_res_image = cv2.resize(
-            high_res_image, (516,128 ), interpolation=cv2.INTER_NEAREST
+            high_res_image, (516, 128), interpolation=cv2.INTER_NEAREST
         )
         high_res_image = cls.flip_image_if_needed(high_res_image)
         cv2.imwrite(
@@ -445,8 +464,19 @@ class Map64:
             high_res_image_colormap,
         )
 
-        # PCA処理はコメントアウト（高速化）
+        # ★ 追加: 512×128ピクセルで保存するための処理
+        # 「map_64_normalized」というディレクトリに保存
+        map64_normalized_image = cv2.resize(
+            high_res_image, (512, 128), interpolation=cv2.INTER_NEAREST
+        )
+        map64_normalized_image = cls.flip_image_if_needed(map64_normalized_image)
+        cv2.imwrite(
+            f"experimental/DotPatternMap/images/map_64_normalized/{DB_PREFIX}_{cell_id}.png",
+            map64_normalized_image,
+        )
+
         """
+        PCA処理はコメントアウト（高速化）
         return cls.perform_pca_on_3d_point_cloud_and_save(
             high_res_image,
             f"experimental/DotPatternMap/images/pca_2d/{DB_PREFIX}_{cell_id}.png",
@@ -542,7 +572,6 @@ def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
 
     さらに、2値化画像（thresh）における255のピクセルのx軸, y軸位置の変動係数
     $$\mathrm{CV} = \frac{\sigma}{\mu}$$
-    （LaTeXコード: \mathrm{CV} = \frac{\sigma}{\mu}）
     が所定の閾値より大きい場合は、ドット検出を無効として全て0塗りします。
     """
     print("=========================================")
@@ -915,22 +944,6 @@ def extract_probability_map(out_name: str) -> np.ndarray:
     return probability_map
 
 
-import os
-import shutil
-
-
-def ensure_dirs() -> None:
-    """必要なディレクトリが存在しない場合は作成する"""
-    dirs = [
-        "experimental/DotPatternMap/images/dot_loc",
-        "experimental/DotPatternMap/images/fluo_raw",
-        "experimental/DotPatternMap/images/map64",
-        "experimental/DotPatternMap/images/map64_jet",
-    ]
-    for d in dirs:
-        os.makedirs(d, exist_ok=True)
-
-
 def clean_directory(dir_path: str) -> None:
     """.gitignoreを除くディレクトリ内の全ファイル・サブディレクトリを削除する
     ディレクトリが存在しない場合は作成する
@@ -1075,18 +1088,10 @@ def process_dot_locations_relative(db_name: str) -> None:
 
 if __name__ == "__main__":
     # experimental/DotPatternMap内の.dbファイルに対して処理を実行
+    ensure_dirs()
     for i in os.listdir("experimental/DotPatternMap"):
         if i.endswith(".db"):
-            with open(f"experimental/DotPatternMap/images/{i}_vectors.txt", "w") as f:
-                for vector in main(f"{i}"):
-                    if isinstance(vector, np.ndarray):
-                        f.write(f"{','.join(map(str, vector.flatten()))}\n")
-                    else:
-                        f.write(f"{vector}\n")
             # 実行前に必要なディレクトリをすべて初期化
-            ensure_dirs()
-
-            # 各ディレクトリをクリーンアップ
             dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
             clean_directory(dot_loc_dir)
 
@@ -1098,7 +1103,24 @@ if __name__ == "__main__":
 
             map64_jet_dir = "experimental/DotPatternMap/images/map64_jet"
             clean_directory(map64_jet_dir)
+
+            map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
+            clean_directory(map64_raw_dir)
+
+            # 512x128 用フォルダもクリーンアップ
+            map64_normalized_dir = "experimental/DotPatternMap/images/map_64_normalized"
+            clean_directory(map64_normalized_dir)
+
             db_name = i.split("/")[-1].replace(".db", "")
+            vectors_out_path = f"experimental/DotPatternMap/images/{i}_vectors.txt"
+
+            with open(vectors_out_path, "w") as f:
+                for vector in main(f"{i}"):
+                    if isinstance(vector, np.ndarray):
+                        f.write(f"{','.join(map(str, vector.flatten()))}\n")
+                    else:
+                        f.write(f"{vector}\n")
+
             process_dot_locations(db_name=db_name)
             combine_dot_loc_combined_images()
             process_dot_locations_relative(db_name=db_name)
