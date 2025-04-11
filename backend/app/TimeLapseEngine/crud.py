@@ -97,7 +97,7 @@ class SyncChores:
     @staticmethod
     def correct_drift(reference_image, target_image):
         """
-        ORB + BFMatcher + 座標反転してからアフィン変換を推定する例。
+        (既存) ORB + BFMatcher + 座標反転してからアフィン変換を推定する例。
         特徴点ベースのため、細胞分裂で大きく見え方が変化した場合は、
         十分に対応しきれない可能性あり。
         """
@@ -143,21 +143,11 @@ class SyncChores:
             print("Matrix estimation failed, skipping drift correction.")
             return target_image
 
-    # --- [ECC 法追加箇所] ---
+    # --- [ECC 法] ---
     @staticmethod
     def correct_drift_ecc(reference_image, target_image, warp_mode=cv2.MOTION_AFFINE):
         """
-        ECC (Enhanced Correlation Coefficient) によるドリフト補正。
-        同一フレームの全画素が持つ情報を相関最大化するようにアライメントするため、
-        細胞が多く写っている/分裂してもある程度頑健に補正が可能。
-
-        warp_mode (int):
-          - cv2.MOTION_TRANSLATION: 平行移動のみ
-          - cv2.MOTION_EUCLIDEAN: 回転＋平行移動
-          - cv2.MOTION_AFFINE: アフィン変換
-          - cv2.MOTION_HOMOGRAPHY: 射影変換
-
-        細胞が大きく回転するシーンが少なければ MOTION_TRANSLATION や MOTION_AFFINE が軽量かつ安定しやすい。
+        (既存) ECC (Enhanced Correlation Coefficient) によるドリフト補正。
         """
         # ECC ではグレースケール画像が前提
         ref_gray = (
@@ -216,7 +206,57 @@ class SyncChores:
 
         return aligned
 
-    # --- [ECC 法追加箇所] ---
+    # --- [Phase Correlation 法] ---
+    @staticmethod
+    def calc_shift_by_phase_correlation(ref_img: np.ndarray, target_img: np.ndarray) -> tuple[int, int]:
+        """
+        phaseCorrelateを使ってref_imgに対するtarget_imgのx,yズレを推定する。
+        返すのは (vertical_shift, horizontal_shift) のタプル。
+        """
+        ref_float = ref_img.astype(np.float32)
+        tgt_float = target_img.astype(np.float32)
+        # DC成分(平均)を除去
+        ref_float -= np.mean(ref_float)
+        tgt_float -= np.mean(tgt_float)
+
+        (shift_x, shift_y), _ = cv2.phaseCorrelate(ref_float, tgt_float)
+
+        # phaseCorrelateの戻り値は
+        # 「targetを(shift_x, shift_y)動かせばrefに重なる」
+        # ただし、下記のように vertical, horizontal は
+        # -1倍してやる必要がある点に注意
+        vertical_shift = -int(round(shift_y))
+        horizontal_shift = -int(round(shift_x))
+        return (vertical_shift, horizontal_shift)
+
+    @staticmethod
+    def correct_drift_phase_correlation(reference_image, target_image):
+        """
+        (新規) 位相相関によるドリフト補正。
+        """
+        # グレースケール化
+        ref_gray = (
+            reference_image
+            if len(reference_image.shape) == 2
+            else cv2.cvtColor(reference_image, cv2.COLOR_BGR2GRAY)
+        )
+        tgt_gray = (
+            target_image
+            if len(target_image.shape) == 2
+            else cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
+        )
+
+        # 位相相関からシフト量を求める
+        vertical_shift, horizontal_shift = SyncChores.calc_shift_by_phase_correlation(
+            ref_gray, tgt_gray
+        )
+
+        # シフトを適用
+        h, w = reference_image.shape[:2]
+        M = np.float32([[1, 0, horizontal_shift], [0, 1, vertical_shift]])
+        aligned = cv2.warpAffine(target_image, M, (w, h))
+
+        return aligned
 
     @staticmethod
     def process_image(array):
@@ -236,14 +276,15 @@ class SyncChores:
         return array.astype(np.uint8)
 
     @classmethod
-    def extract_timelapse_nd2(cls, file_name: str, drift_method: str = "orb"):
+    def extract_timelapse_nd2(cls, file_name: str, drift_method: str = "phase"):
         """
         タイムラプス nd2 ファイルを Field ごと・時系列ごとに TIFF で保存（補正後を上書き保存）。
         チャンネル 0 -> ph, チャンネル 1 -> fluo1, チャンネル 2 -> fluo2 の想定。
 
-        drift_method (str): "orb" or "ecc"
-          - "orb": ORB + BFMatcher の既存ロジック
-          - "ecc": ECC による画素相関ベースのアライメント
+        drift_method (str): "orb", "ecc", もしくは "phase"
+          - "orb": ORB + BFMatcher
+          - "ecc": 画素相関ベースの ECC
+          - "phase": 位相相関 (推奨)
         """
         base_output_dir = "uploaded_files/"
         # 既存の作業用フォルダがあれば削除し、再作成
@@ -319,11 +360,14 @@ class SyncChores:
                                     f"Saved ({channel_label}, first): {tiff_filename}"
                                 )
                             else:
-                                # 2フレーム目以降は drift 補正 (ORB or ECC 選択)
+                                # 2フレーム目以降は drift 補正 (ORB, ECC, Phase を選択)
                                 if drift_method == "ecc":
                                     drift_func = cls.correct_drift_ecc
-                                else:
+                                elif drift_method == "orb":
                                     drift_func = cls.correct_drift
+                                else:
+                                    # デフォルトは位相相関
+                                    drift_func = cls.correct_drift_phase_correlation
 
                                 tasks.append(
                                     executor.submit(
@@ -347,7 +391,6 @@ class SyncChores:
     def _drift_and_save(cls, reference_image, target_image, save_path, drift_func):
         """
         並列用: ドリフト補正して上書き保存する小分け関数。
-        drift_func: 使用するドリフト補正関数 (correct_drift or correct_drift_ecc)
         """
         corrected = drift_func(reference_image, target_image)
         Image.fromarray(corrected).save(save_path)
@@ -479,13 +522,22 @@ class AsyncChores:
             partial(SyncChores.correct_drift_ecc, reference_image, target_image),
         )
 
+    async def correct_drift_phase_correlation(self, reference_image, target_image):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self.executor,
+            partial(
+                SyncChores.correct_drift_phase_correlation, reference_image, target_image
+            ),
+        )
+
     async def process_image(self, array):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             self.executor, partial(SyncChores.process_image, array)
         )
 
-    async def extract_timelapse_nd2(self, file_name: str, drift_method: str = "orb"):
+    async def extract_timelapse_nd2(self, file_name: str, drift_method: str = "phase"):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             self.executor,
@@ -519,11 +571,9 @@ class TimelapseEngineCrudBase:
         await asyncio.to_thread(os.remove, f"uploaded_files/{filename}")
         return True
 
-    async def main(self, drift_method: str = "orb"):
+    async def main(self, drift_method: str = "phase"):
         # ND2ファイルを TIFF に分割保存 (ドリフト補正込み) - drift_method を指定
-        await AsyncChores().extract_timelapse_nd2(
-            self.nd2_path, drift_method=drift_method
-        )
+        await AsyncChores().extract_timelapse_nd2(self.nd2_path, drift_method=drift_method)
         return JSONResponse(
             content={"message": f"Timelapse extracted with {drift_method}."}
         )
@@ -925,8 +975,6 @@ class TimelapseEngineCrudBase:
                                 # OpenCV の drawContours の仕様に合わせて [N,1,2] に整形
                                 c = c[:, np.newaxis, :]
 
-                            # create_gif_for_cell では特にリサイズを行っていないため、
-                            # スケールは (1.0, 1.0) のままとする
                             c = c.astype(np.int32)
                             cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
                     except Exception as e:
@@ -1224,9 +1272,7 @@ class TimelapseDatabaseCrud:
             # フレーム番号描画フラグが True の場合
             if draw_frame_number:
                 draw = ImageDraw.Draw(pil_img)
-                # 既定のフォントを使用 (適宜変更可能)
                 font = ImageFont.load_default()
-                # 左上に i+1 の番号を描画
                 draw.text((5, 5), f"Frame: {i+1}", font=font, fill=(255, 255, 255))
 
             frames.append(pil_img)
@@ -1416,3 +1462,153 @@ class TimelapseDatabaseCrud:
 
         gif_buf.seek(0)
         return gif_buf
+    
+    async def get_cell_timecourse_as_single_image(
+        self,
+        field: str,
+        cell_number: int,
+        channel_mode: Literal[
+            "ph",
+            "ph_replot",
+            "fluo1",
+            "fluo1_replot",
+            "fluo2",
+            "fluo2_replot",
+        ] = "ph",
+        degree: int = 0,
+        draw_contour: bool = True,
+    ) -> io.BytesIO:
+        """
+        指定した field, cell_number の 1フレーム目(=time=1) から
+        最終フレームまで、channel_mode に応じた画像を横に並べた
+        1枚の PNG を作成して返す。
+
+        channel_mode:
+          - "ph"         : DB の img_ph をそのまま使用
+          - "ph_replot"  : img_ph を replot 関数で再生成
+          - "fluo1"      : DB の img_fluo1 を使用
+          - "fluo1_replot": img_fluo1 を replot 関数で再生成
+          - "fluo2"      : DB の img_fluo2 を使用
+          - "fluo2_replot": img_fluo2 を replot 関数で再生成
+
+        degree: replot で使う回転角度やしきい値などの可変パラメータ (任意)
+
+        draw_contour: 画像上にセルの輪郭を描画するかどうか
+        """
+
+        # DB から対象セルのデータを取得
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        # 生成するフレーム(PIL Image)のリスト
+        pil_frames: list[Image.Image] = []
+
+        # どの BLOB を使うか (通常 or replot) を決定するヘルパー
+        async def get_image_blob(row: Cell):
+            """
+            channel_mode に応じて BLOB を返す or replot して返す
+            """
+            # どのBLOBを取り出すか
+            if "ph" in channel_mode:
+                raw_blob = row.img_ph
+            elif "fluo1" in channel_mode:
+                raw_blob = row.img_fluo1
+            else:
+                raw_blob = row.img_fluo2
+
+            if raw_blob is None:
+                return None
+
+            # replot が付いているかどうか
+            if "_replot" in channel_mode:
+                # replot 関数を呼び出して再生成
+                # contour が無い場合はエラーにする or スキップ
+                if not row.contour:
+                    return None
+
+                # replot 関数 (CellDBAsyncChores.replot) を呼び出して PNG バイナリを受け取る想定
+                # replot は非同期の場合を想定しているため await
+                buf = await CellDBAsyncChores.replot(raw_blob, row.contour, degree)
+                return buf.getvalue()  # PNG バイナリを返す
+            else:
+                # 通常 BLOB をそのまま返す
+                return raw_blob
+
+        for row in cells:
+            blob = await get_image_blob(row)
+            if blob is None:
+                # フレームによってはデータが無い場合も想定。スキップ or 黒画像等の方針はお好みで。
+                continue
+
+            # blob を OpenCV で読んで → Pillow Image に変換
+            np_img = cv2.imdecode(np.frombuffer(blob, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
+            if np_img is None:
+                continue
+
+            # 輪郭を描画する場合
+            if draw_contour and row.contour is not None:
+                try:
+                    bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
+                    contour_data = pickle.loads(row.contour)
+                    # 単一でも複数でも配列化して描画
+                    if not isinstance(contour_data, list):
+                        contour_data = [contour_data]
+                    for c in contour_data:
+                        c = np.array(c, dtype=np.int32)
+                        if len(c.shape) == 2:
+                            c = c[:, np.newaxis, :]
+                        cv2.drawContours(bgr_img, [c], -1, (0, 255, 0), 1)
+                    # OpenCV BGR → PIL RGB
+                    rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+                    pil_img = Image.fromarray(rgb_img)
+                except Exception as e:
+                    # 万が一エラーが起きたら輪郭は無視
+                    pil_img = Image.fromarray(np_img)
+            else:
+                # そのままグレースケール→Pillow
+                pil_img = Image.fromarray(np_img)
+
+            pil_frames.append(pil_img)
+
+        if not pil_frames:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"No valid frames found after decoding for "
+                    f"field={field}, cell={cell_number}, channel_mode={channel_mode}"
+                ),
+            )
+
+        # 横に並べるための出力画像のサイズを計算
+        total_width = sum(img.width for img in pil_frames)
+        max_height = max(img.height for img in pil_frames)
+
+        # 横一列に貼り付けた大きなキャンバスを作成
+        out_img = Image.new("RGB", (total_width, max_height), (0, 0, 0))
+
+        # 貼り付けていく
+        offset_x = 0
+        for img in pil_frames:
+            # グレースケールだった場合にも念のため RGB に変換
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            out_img.paste(img, (offset_x, 0))
+            offset_x += img.width
+
+        # PNG として BytesIO に格納
+        png_buffer = io.BytesIO()
+        out_img.save(png_buffer, format="PNG")
+        png_buffer.seek(0)
+
+        return png_buffer

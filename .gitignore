@@ -5,6 +5,7 @@ TempData/
 TempImages/
 *.tif
 *.nd2
+*.gif
 ph_contours/
 **/__pycache__/
 *.pyc
