@@ -1,14 +1,13 @@
+
 from fastapi import APIRouter, UploadFile, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 import os
 import aiofiles
-from TimeLapseEngine.crud import TimelapseDatabaseCrud
 import io
 from typing import Literal
 
-# 上で定義した TimelapseEngineCrudBase をインポート
-from .crud import TimelapseEngineCrudBase
-
+from TimeLapseEngine.crud import TimelapseDatabaseCrud  
+from TimeLapseEngine.crud import TimelapseEngineCrudBase  
 router_tl_engine = APIRouter(prefix="/tlengine", tags=["tlengine"])
 
 
@@ -48,7 +47,6 @@ async def get_nd2_files():
 async def parse_timelapse_nd2(file_name: str):
     """
     タイムラプスND2ファイルを解析し、TIFF形式に分割保存するエンドポイント。
-    解析が終わったら {"message": "Timelapse extracted"} を返す。
     """
     return await TimelapseEngineCrudBase(file_name).main()
 
@@ -57,7 +55,6 @@ async def parse_timelapse_nd2(file_name: str):
 async def get_fields_of_nd2_file(file_name: str):
     """
     ND2ファイルからFieldの一覧を取得するエンドポイント。
-    例：{"fields": ["Field_1", "Field_2", ...]}
     """
     fields = await TimelapseEngineCrudBase(file_name).get_fields_of_nd2()
     return JSONResponse(content={"fields": fields})
@@ -149,8 +146,6 @@ async def read_cells_by_field(db_name: str, field: str):
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
     cells = await crud.get_cells_by_field(field)
-    # 必要に応じてレスポンスを整形
-    # 例: JSON で返す
     cell_list = []
     for c in cells:
         cell_list.append(
@@ -189,7 +184,6 @@ async def read_cell_by_cell_id(db_name: str, cell_id: str):
             }
         )
     except:
-        # get_cell_by_id で該当が無い場合は scalar_one() が例外を出す
         raise HTTPException(status_code=404, detail=f"Cell not found: {cell_id}")
 
 
@@ -234,7 +228,6 @@ async def get_cell_gif(
 ):
     """
     指定したフィールド & セル番号 の時系列 GIF を返すエンドポイント
-    チャネルはクエリパラメータ ?channel=ph|fluo1|fluo2 （デフォルト ph）
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
     gif_buffer: io.BytesIO = await crud.get_cells_gif_by_cell_number(
@@ -328,5 +321,40 @@ async def replot_cell(
         media_type="image/gif",
         headers={
             "Content-Disposition": f"attachment; filename={field}_{cell_number}_{channel}.gif"
+        },
+    )
+
+
+# --- ここから新規追加: タイムコースを1枚のPNGとして返すエンドポイント ---
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/timecourse_png")
+async def get_cell_timecourse_as_single_image(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel_mode: Literal[
+        "ph", "ph_replot", "fluo1", "fluo1_replot", "fluo2", "fluo2_replot"
+    ] = "ph",
+    degree: int = 0,
+    draw_contour: bool = True,
+):
+    """
+    指定した field, cell_number のタイムラプス画像を横一列に並べ、
+    1枚のPNG画像としてストリーミング返却するエンドポイント。
+    channel_mode に "ph_replot" などを指定すると
+    replot 呼び出し後の画像を並べる。
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    png_buffer: io.BytesIO = await crud.get_cell_timecourse_as_single_image(
+        field=field,
+        cell_number=cell_number,
+        channel_mode=channel_mode,
+        degree=degree,
+        draw_contour=draw_contour,
+    )
+    return StreamingResponse(
+        png_buffer,
+        media_type="image/png",
+        headers={
+            "Content-Disposition": f"attachment; filename={field}_{cell_number}_{channel_mode}.png"
         },
     )
