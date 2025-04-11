@@ -1462,3 +1462,153 @@ class TimelapseDatabaseCrud:
 
         gif_buf.seek(0)
         return gif_buf
+    
+    async def get_cell_timecourse_as_single_image(
+        self,
+        field: str,
+        cell_number: int,
+        channel_mode: Literal[
+            "ph",
+            "ph_replot",
+            "fluo1",
+            "fluo1_replot",
+            "fluo2",
+            "fluo2_replot",
+        ] = "ph",
+        degree: int = 0,
+        draw_contour: bool = True,
+    ) -> io.BytesIO:
+        """
+        指定した field, cell_number の 1フレーム目(=time=1) から
+        最終フレームまで、channel_mode に応じた画像を横に並べた
+        1枚の PNG を作成して返す。
+
+        channel_mode:
+          - "ph"         : DB の img_ph をそのまま使用
+          - "ph_replot"  : img_ph を replot 関数で再生成
+          - "fluo1"      : DB の img_fluo1 を使用
+          - "fluo1_replot": img_fluo1 を replot 関数で再生成
+          - "fluo2"      : DB の img_fluo2 を使用
+          - "fluo2_replot": img_fluo2 を replot 関数で再生成
+
+        degree: replot で使う回転角度やしきい値などの可変パラメータ (任意)
+
+        draw_contour: 画像上にセルの輪郭を描画するかどうか
+        """
+
+        # DB から対象セルのデータを取得
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        # 生成するフレーム(PIL Image)のリスト
+        pil_frames: list[Image.Image] = []
+
+        # どの BLOB を使うか (通常 or replot) を決定するヘルパー
+        async def get_image_blob(row: Cell):
+            """
+            channel_mode に応じて BLOB を返す or replot して返す
+            """
+            # どのBLOBを取り出すか
+            if "ph" in channel_mode:
+                raw_blob = row.img_ph
+            elif "fluo1" in channel_mode:
+                raw_blob = row.img_fluo1
+            else:
+                raw_blob = row.img_fluo2
+
+            if raw_blob is None:
+                return None
+
+            # replot が付いているかどうか
+            if "_replot" in channel_mode:
+                # replot 関数を呼び出して再生成
+                # contour が無い場合はエラーにする or スキップ
+                if not row.contour:
+                    return None
+
+                # replot 関数 (CellDBAsyncChores.replot) を呼び出して PNG バイナリを受け取る想定
+                # replot は非同期の場合を想定しているため await
+                buf = await CellDBAsyncChores.replot(raw_blob, row.contour, degree)
+                return buf.getvalue()  # PNG バイナリを返す
+            else:
+                # 通常 BLOB をそのまま返す
+                return raw_blob
+
+        for row in cells:
+            blob = await get_image_blob(row)
+            if blob is None:
+                # フレームによってはデータが無い場合も想定。スキップ or 黒画像等の方針はお好みで。
+                continue
+
+            # blob を OpenCV で読んで → Pillow Image に変換
+            np_img = cv2.imdecode(np.frombuffer(blob, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
+            if np_img is None:
+                continue
+
+            # 輪郭を描画する場合
+            if draw_contour and row.contour is not None:
+                try:
+                    bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
+                    contour_data = pickle.loads(row.contour)
+                    # 単一でも複数でも配列化して描画
+                    if not isinstance(contour_data, list):
+                        contour_data = [contour_data]
+                    for c in contour_data:
+                        c = np.array(c, dtype=np.int32)
+                        if len(c.shape) == 2:
+                            c = c[:, np.newaxis, :]
+                        cv2.drawContours(bgr_img, [c], -1, (0, 255, 0), 1)
+                    # OpenCV BGR → PIL RGB
+                    rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+                    pil_img = Image.fromarray(rgb_img)
+                except Exception as e:
+                    # 万が一エラーが起きたら輪郭は無視
+                    pil_img = Image.fromarray(np_img)
+            else:
+                # そのままグレースケール→Pillow
+                pil_img = Image.fromarray(np_img)
+
+            pil_frames.append(pil_img)
+
+        if not pil_frames:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"No valid frames found after decoding for "
+                    f"field={field}, cell={cell_number}, channel_mode={channel_mode}"
+                ),
+            )
+
+        # 横に並べるための出力画像のサイズを計算
+        total_width = sum(img.width for img in pil_frames)
+        max_height = max(img.height for img in pil_frames)
+
+        # 横一列に貼り付けた大きなキャンバスを作成
+        out_img = Image.new("RGB", (total_width, max_height), (0, 0, 0))
+
+        # 貼り付けていく
+        offset_x = 0
+        for img in pil_frames:
+            # グレースケールだった場合にも念のため RGB に変換
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            out_img.paste(img, (offset_x, 0))
+            offset_x += img.width
+
+        # PNG として BytesIO に格納
+        png_buffer = io.BytesIO()
+        out_img.save(png_buffer, format="PNG")
+        png_buffer.seek(0)
+
+        return png_buffer
