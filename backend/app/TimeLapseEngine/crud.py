@@ -97,7 +97,7 @@ class SyncChores:
     @staticmethod
     def correct_drift(reference_image, target_image):
         """
-        ORB + BFMatcher + 座標反転してからアフィン変換を推定する例。
+        (既存) ORB + BFMatcher + 座標反転してからアフィン変換を推定する例。
         特徴点ベースのため、細胞分裂で大きく見え方が変化した場合は、
         十分に対応しきれない可能性あり。
         """
@@ -143,21 +143,11 @@ class SyncChores:
             print("Matrix estimation failed, skipping drift correction.")
             return target_image
 
-    # --- [ECC 法追加箇所] ---
+    # --- [ECC 法] ---
     @staticmethod
     def correct_drift_ecc(reference_image, target_image, warp_mode=cv2.MOTION_AFFINE):
         """
-        ECC (Enhanced Correlation Coefficient) によるドリフト補正。
-        同一フレームの全画素が持つ情報を相関最大化するようにアライメントするため、
-        細胞が多く写っている/分裂してもある程度頑健に補正が可能。
-
-        warp_mode (int):
-          - cv2.MOTION_TRANSLATION: 平行移動のみ
-          - cv2.MOTION_EUCLIDEAN: 回転＋平行移動
-          - cv2.MOTION_AFFINE: アフィン変換
-          - cv2.MOTION_HOMOGRAPHY: 射影変換
-
-        細胞が大きく回転するシーンが少なければ MOTION_TRANSLATION や MOTION_AFFINE が軽量かつ安定しやすい。
+        (既存) ECC (Enhanced Correlation Coefficient) によるドリフト補正。
         """
         # ECC ではグレースケール画像が前提
         ref_gray = (
@@ -216,7 +206,57 @@ class SyncChores:
 
         return aligned
 
-    # --- [ECC 法追加箇所] ---
+    # --- [Phase Correlation 法] ---
+    @staticmethod
+    def calc_shift_by_phase_correlation(ref_img: np.ndarray, target_img: np.ndarray) -> tuple[int, int]:
+        """
+        phaseCorrelateを使ってref_imgに対するtarget_imgのx,yズレを推定する。
+        返すのは (vertical_shift, horizontal_shift) のタプル。
+        """
+        ref_float = ref_img.astype(np.float32)
+        tgt_float = target_img.astype(np.float32)
+        # DC成分(平均)を除去
+        ref_float -= np.mean(ref_float)
+        tgt_float -= np.mean(tgt_float)
+
+        (shift_x, shift_y), _ = cv2.phaseCorrelate(ref_float, tgt_float)
+
+        # phaseCorrelateの戻り値は
+        # 「targetを(shift_x, shift_y)動かせばrefに重なる」
+        # ただし、下記のように vertical, horizontal は
+        # -1倍してやる必要がある点に注意
+        vertical_shift = -int(round(shift_y))
+        horizontal_shift = -int(round(shift_x))
+        return (vertical_shift, horizontal_shift)
+
+    @staticmethod
+    def correct_drift_phase_correlation(reference_image, target_image):
+        """
+        (新規) 位相相関によるドリフト補正。
+        """
+        # グレースケール化
+        ref_gray = (
+            reference_image
+            if len(reference_image.shape) == 2
+            else cv2.cvtColor(reference_image, cv2.COLOR_BGR2GRAY)
+        )
+        tgt_gray = (
+            target_image
+            if len(target_image.shape) == 2
+            else cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
+        )
+
+        # 位相相関からシフト量を求める
+        vertical_shift, horizontal_shift = SyncChores.calc_shift_by_phase_correlation(
+            ref_gray, tgt_gray
+        )
+
+        # シフトを適用
+        h, w = reference_image.shape[:2]
+        M = np.float32([[1, 0, horizontal_shift], [0, 1, vertical_shift]])
+        aligned = cv2.warpAffine(target_image, M, (w, h))
+
+        return aligned
 
     @staticmethod
     def process_image(array):
@@ -236,14 +276,15 @@ class SyncChores:
         return array.astype(np.uint8)
 
     @classmethod
-    def extract_timelapse_nd2(cls, file_name: str, drift_method: str = "orb"):
+    def extract_timelapse_nd2(cls, file_name: str, drift_method: str = "phase"):
         """
         タイムラプス nd2 ファイルを Field ごと・時系列ごとに TIFF で保存（補正後を上書き保存）。
         チャンネル 0 -> ph, チャンネル 1 -> fluo1, チャンネル 2 -> fluo2 の想定。
 
-        drift_method (str): "orb" or "ecc"
-          - "orb": ORB + BFMatcher の既存ロジック
-          - "ecc": ECC による画素相関ベースのアライメント
+        drift_method (str): "orb", "ecc", もしくは "phase"
+          - "orb": ORB + BFMatcher
+          - "ecc": 画素相関ベースの ECC
+          - "phase": 位相相関 (推奨)
         """
         base_output_dir = "uploaded_files/"
         # 既存の作業用フォルダがあれば削除し、再作成
@@ -319,11 +360,14 @@ class SyncChores:
                                     f"Saved ({channel_label}, first): {tiff_filename}"
                                 )
                             else:
-                                # 2フレーム目以降は drift 補正 (ORB or ECC 選択)
+                                # 2フレーム目以降は drift 補正 (ORB, ECC, Phase を選択)
                                 if drift_method == "ecc":
                                     drift_func = cls.correct_drift_ecc
-                                else:
+                                elif drift_method == "orb":
                                     drift_func = cls.correct_drift
+                                else:
+                                    # デフォルトは位相相関
+                                    drift_func = cls.correct_drift_phase_correlation
 
                                 tasks.append(
                                     executor.submit(
@@ -347,7 +391,6 @@ class SyncChores:
     def _drift_and_save(cls, reference_image, target_image, save_path, drift_func):
         """
         並列用: ドリフト補正して上書き保存する小分け関数。
-        drift_func: 使用するドリフト補正関数 (correct_drift or correct_drift_ecc)
         """
         corrected = drift_func(reference_image, target_image)
         Image.fromarray(corrected).save(save_path)
@@ -479,13 +522,22 @@ class AsyncChores:
             partial(SyncChores.correct_drift_ecc, reference_image, target_image),
         )
 
+    async def correct_drift_phase_correlation(self, reference_image, target_image):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self.executor,
+            partial(
+                SyncChores.correct_drift_phase_correlation, reference_image, target_image
+            ),
+        )
+
     async def process_image(self, array):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             self.executor, partial(SyncChores.process_image, array)
         )
 
-    async def extract_timelapse_nd2(self, file_name: str, drift_method: str = "orb"):
+    async def extract_timelapse_nd2(self, file_name: str, drift_method: str = "phase"):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             self.executor,
@@ -519,11 +571,9 @@ class TimelapseEngineCrudBase:
         await asyncio.to_thread(os.remove, f"uploaded_files/{filename}")
         return True
 
-    async def main(self, drift_method: str = "orb"):
+    async def main(self, drift_method: str = "phase"):
         # ND2ファイルを TIFF に分割保存 (ドリフト補正込み) - drift_method を指定
-        await AsyncChores().extract_timelapse_nd2(
-            self.nd2_path, drift_method=drift_method
-        )
+        await AsyncChores().extract_timelapse_nd2(self.nd2_path, drift_method=drift_method)
         return JSONResponse(
             content={"message": f"Timelapse extracted with {drift_method}."}
         )
@@ -925,8 +975,6 @@ class TimelapseEngineCrudBase:
                                 # OpenCV の drawContours の仕様に合わせて [N,1,2] に整形
                                 c = c[:, np.newaxis, :]
 
-                            # create_gif_for_cell では特にリサイズを行っていないため、
-                            # スケールは (1.0, 1.0) のままとする
                             c = c.astype(np.int32)
                             cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
                     except Exception as e:
@@ -1224,9 +1272,7 @@ class TimelapseDatabaseCrud:
             # フレーム番号描画フラグが True の場合
             if draw_frame_number:
                 draw = ImageDraw.Draw(pil_img)
-                # 既定のフォントを使用 (適宜変更可能)
                 font = ImageFont.load_default()
-                # 左上に i+1 の番号を描画
                 draw.text((5, 5), f"Frame: {i+1}", font=font, fill=(255, 255, 255))
 
             frames.append(pil_img)
