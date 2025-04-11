@@ -3,7 +3,7 @@ import os
 
 def main():
     # --- 設定項目 ---
-    BASE_URL = "http://localhost:8000/tlengine"  # FastAPIサーバが動いているURL
+    BASE_URL = "http://localhost:8000/api/tlengine"  # FastAPIサーバが動いているURL
     DB_NAME = "my_database_cells.db"            # ダウンロードしたいDB名
     OUTPUT_DIR = "downloaded_timecourses"       # 画像を保存するディレクトリ
 
