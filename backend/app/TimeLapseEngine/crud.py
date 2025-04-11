@@ -1614,7 +1614,6 @@ class TimelapseDatabaseCrud:
         png_buffer.seek(0)
         return png_buffer
     
-    
     async def get_all_channels_timecourse_as_single_image(
         self,
         field: str,
@@ -1623,12 +1622,13 @@ class TimelapseDatabaseCrud:
         draw_contour: bool = True,
     ) -> io.BytesIO:
         """
-        【修正版】
         "ph", "ph_replot", "fluo1", "fluo1_replot", "fluo2", "fluo2_replot"
-        という6パターンそれぞれで、横に並べたタイムコース画像を生成 → Pillow 画像へ取り込み後、
-        全部を 200x200 にリサイズしてから縦方向に結合して、最終的に1枚の PNG として返す。
+        の6モードについて、それぞれ:
+        → 横に並べたタイムコース画像(幅=200×フレーム数,高さ=200) を取得
+        → 縦方向に連結して最終的に1枚のPNGを返す
+
+        ※ 404等で生成失敗したモードはスキップ。
         """
-        # 使用するチャンネルモードの一覧
         modes = [
             "ph",
             "ph_replot",
@@ -1638,8 +1638,7 @@ class TimelapseDatabaseCrud:
             "fluo2_replot",
         ]
 
-        # 各モードごとに get_cell_timecourse_as_single_image を呼び出し
-        images = []
+        row_images = []
         for mode in modes:
             try:
                 buf = await self.get_cell_timecourse_as_single_image(
@@ -1650,42 +1649,40 @@ class TimelapseDatabaseCrud:
                     draw_contour=draw_contour,
                 )
             except HTTPException as e:
-                # 例：404などで失敗した場合はスキップ
                 print(f"[WARN] Skipped mode={mode}: {e.detail}")
                 continue
 
-            # Pillow 画像として読み込み
-            img = Image.open(buf)
+            row_img = Image.open(buf)
+            row_images.append(row_img)
 
-            # --- ここで必ず 200x200 にリサイズ ---
-            # Pillow 9.1.0以降なら Resampling.LANCZOS が正式名称
-            # 旧バージョンでは Image.ANTIALIAS を使用
-            img = img.resize((200, 200), resample=Image.Resampling.LANCZOS)
-
-            images.append(img)
-
-        if not images:
+        if not row_images:
             raise HTTPException(
                 status_code=404,
                 detail=(
                     f"No valid images found for field={field}, "
-                    f"cell={cell_number} in all channel modes."
+                    f"cell={cell_number} in any channel modes."
                 ),
             )
 
-        # 縦方向に結合: 幅 = 200、高さ = (200 * 画像枚数)
-        final_width = 200
-        final_height = 200 * len(images)
+        # 全て「高さ=200」で横幅はそれぞれのフレーム数分*200のはず。
+        # → 同じセルでもフレーム数が変わることはないが、念のため最大幅に合わせる or 左寄せ等も可能
 
-        # 縦長キャンバスを用意
-        combined_img = Image.new("RGB", (final_width, final_height), (255, 255, 255))
+        # 下記は「それぞれ行ごとの幅を合わせず、最大幅に合わせたい場合」はさらに計算を足す等が必要
+        # ここでは「各行の横幅はバラバラでもそのまま貼り付ける」想定にします。
+
+        # キャンバス幅 = 行の最大幅
+        max_width = max(im.width for im in row_images)
+        # キャンバス高さ = 200 × row_images の枚数
+        total_height = sum(im.height for im in row_images)
+
+        combined_img = Image.new("RGB", (max_width, total_height), (255, 255, 255))
 
         offset_y = 0
-        for im in images:
-            combined_img.paste(im, (0, offset_y))
-            offset_y += 200
+        for row_img in row_images:
+            # 幅が max_width に満たない場合は左寄せで貼り付ける
+            combined_img.paste(row_img, (0, offset_y))
+            offset_y += row_img.height
 
-        # PNG として BytesIO に書き込み
         out_buf = io.BytesIO()
         combined_img.save(out_buf, format="PNG")
         out_buf.seek(0)
