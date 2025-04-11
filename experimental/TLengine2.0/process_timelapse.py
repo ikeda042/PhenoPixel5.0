@@ -73,5 +73,5 @@ def extract_nd2(file_name: str):
                         img.save(tiff_filename)
                         print(f"Saved: {tiff_filename}")
 
-filename = "testdata.nd2"
+filename = ""
 extract_nd2(filename)
