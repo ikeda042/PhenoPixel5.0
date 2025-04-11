@@ -3,6 +3,7 @@ import os
 import nd2reader
 from PIL import Image
 import cv2
+import ulid
 
 
 def process_image(array):
@@ -23,7 +24,10 @@ def extract_nd2(file_name: str):
     チャンネル1: fluo1
     チャンネル2: fluo2
     """
-    base_output_dir = "timelapsen2dtotiff"
+    ulid_str = str(ulid.new())
+    base_output_dir = os.path.join(
+        "experimental", "TLengine2.0", "output", ulid_str
+    )
 
     os.makedirs(base_output_dir, exist_ok=True)
 
