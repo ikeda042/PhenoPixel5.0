@@ -1614,6 +1614,7 @@ class TimelapseDatabaseCrud:
         png_buffer.seek(0)
         return png_buffer
     
+    
     async def get_all_channels_timecourse_as_single_image(
         self,
         field: str,
@@ -1622,12 +1623,12 @@ class TimelapseDatabaseCrud:
         draw_contour: bool = True,
     ) -> io.BytesIO:
         """
-        【新規メソッド】
+        【修正版】
         "ph", "ph_replot", "fluo1", "fluo1_replot", "fluo2", "fluo2_replot"
-        という6パターンそれぞれの「横に並んだタイムラプス画像」を取得し、
-        縦方向に連結して1枚のPNGとして返す。
+        という6パターンそれぞれで、横に並べたタイムコース画像を生成 → Pillow 画像へ取り込み後、
+        全部を 200x200 にリサイズしてから縦方向に結合して、最終的に1枚の PNG として返す。
         """
-        # チャンネルモードの一覧
+        # 使用するチャンネルモードの一覧
         modes = [
             "ph",
             "ph_replot",
@@ -1637,8 +1638,7 @@ class TimelapseDatabaseCrud:
             "fluo2_replot",
         ]
 
-        # まず各モードごとに get_cell_timecourse_as_single_image を呼び出し、
-        # 返ってきたPNG画像(横に並んだタイムコース)を Pillow で読み込む
+        # 各モードごとに get_cell_timecourse_as_single_image を呼び出し
         images = []
         for mode in modes:
             try:
@@ -1650,18 +1650,21 @@ class TimelapseDatabaseCrud:
                     draw_contour=draw_contour,
                 )
             except HTTPException as e:
-                # もし該当モードで画像生成が失敗(404等)した場合はスキップするなり、
-                # 黒画像で埋める等、要件に応じて処理を調整してください
-                # ここでは単純に「スキップ」して続行します
+                # 例：404などで失敗した場合はスキップ
                 print(f"[WARN] Skipped mode={mode}: {e.detail}")
                 continue
 
-            # BytesIO → PIL.Image へ
+            # Pillow 画像として読み込み
             img = Image.open(buf)
-            images.append((mode, img))
+
+            # --- ここで必ず 200x200 にリサイズ ---
+            # Pillow 9.1.0以降なら Resampling.LANCZOS が正式名称
+            # 旧バージョンでは Image.ANTIALIAS を使用
+            img = img.resize((200, 200), resample=Image.Resampling.LANCZOS)
+
+            images.append(img)
 
         if not images:
-            # 1つも生成できなかった場合
             raise HTTPException(
                 status_code=404,
                 detail=(
@@ -1670,26 +1673,19 @@ class TimelapseDatabaseCrud:
                 ),
             )
 
-        # 縦に並べるため、まず全画像の「widthの最大値」「heightの合計値」を算出
-        max_width = max(im.width for _, im in images)
-        total_height = sum(im.height for _, im in images)
+        # 縦方向に結合: 幅 = 200、高さ = (200 * 画像枚数)
+        final_width = 200
+        final_height = 200 * len(images)
 
-        # 連結先キャンバスを用意
-        combined_img = Image.new("RGB", (max_width, total_height), (255, 255, 255))
+        # 縦長キャンバスを用意
+        combined_img = Image.new("RGB", (final_width, final_height), (255, 255, 255))
+
         offset_y = 0
-
-        # 各モードのタイムコース画像を上から順にペースト
-        for mode, im in images:
-            # 必要に応じて幅を max_width に合わせる
-            if im.width < max_width:
-                # 等倍拡大ではなく左寄せで貼り付けする場合は引き伸ばさずに貼るだけ
-                # もし引き伸ばすなら以下のように cv2.resize または im.resize を利用
-                # im = im.resize((max_width, im.height), Image.ANTIALIAS)
-                pass
+        for im in images:
             combined_img.paste(im, (0, offset_y))
-            offset_y += im.height
+            offset_y += 200
 
-        # PNGとしてBytesIOに書き込み
+        # PNG として BytesIO に書き込み
         out_buf = io.BytesIO()
         combined_img.save(out_buf, format="PNG")
         out_buf.seek(0)
