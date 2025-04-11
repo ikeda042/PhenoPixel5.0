@@ -73,5 +73,5 @@ def extract_nd2(file_name: str):
                         img.save(tiff_filename)
                         print(f"Saved: {tiff_filename}")
 
-filename = ""
+filename = "experimental/TLengine2.0/sk450gen120min-tl.nd2"
 extract_nd2(filename)
