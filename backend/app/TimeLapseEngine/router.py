@@ -358,3 +358,36 @@ async def get_cell_timecourse_as_single_image(
             "Content-Disposition": f"attachment; filename={field}_{cell_number}_{channel_mode}.png"
         },
     )
+
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/timecourse_png/all_channels")
+async def get_cell_timecourse_for_all_channels(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    degree: int = 0,
+    draw_contour: bool = True,
+):
+    """
+    【新規APIエンドポイント】
+    "ph", "ph_replot", "fluo1", "fluo1_replot", "fluo2", "fluo2_replot"
+    の6パターン全てのタイムコース画像を縦方向に並べ、1枚のPNGで返す。
+
+    404等が出たモードはスキップされるため、出力が6段未満になる可能性があります。
+    """
+
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    png_buffer: io.BytesIO = await crud.get_all_channels_timecourse_as_single_image(
+        field=field,
+        cell_number=cell_number,
+        degree=degree,
+        draw_contour=draw_contour,
+    )
+
+    # ストリーミングレスポンスとしてPNGを返す
+    return StreamingResponse(
+        png_buffer,
+        media_type="image/png",
+        headers={
+            "Content-Disposition": f'attachment; filename="{field}_{cell_number}_all_channels.png"'
+        },
+    )
