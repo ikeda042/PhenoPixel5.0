@@ -161,8 +161,6 @@ if __name__ == "__main__":
     )
 
     # 保存先を指定して保存
-    # ULIDでユニークなIDを生成してファイル名に付与
-    file_id = ulid.new().str
-    output_path = f"shifted_ph_{file_id}.tif"
+    output_path = f"shifted_ph_{test_field}.tif"
     Image.fromarray(shifted_ph_image).save(output_path)
     print(f"Shifted image saved to: {output_path}")
