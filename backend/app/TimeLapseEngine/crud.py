@@ -1462,7 +1462,7 @@ class TimelapseDatabaseCrud:
 
         gif_buf.seek(0)
         return gif_buf
-
+    
     async def get_cell_timecourse_as_single_image(
         self,
         field: str,
@@ -1479,24 +1479,11 @@ class TimelapseDatabaseCrud:
         draw_contour: bool = True,
     ) -> io.BytesIO:
         """
-        指定した field, cell_number の 1フレーム目(=time=1) から
-        最終フレームまで、channel_mode に応じた画像を横に並べた
-        1枚の PNG を作成して返す。
+        指定した field, cell_number の各フレーム画像(BLOB)を取得し、
+        1フレームごとに 200×200 にリサイズして横に並べた画像を PNG として返す。
 
-        channel_mode:
-        - "ph"         : DB の img_ph をそのまま使用 (グレースケール→カラー変換→輪郭描画)
-        - "ph_replot"  : img_ph を replot 関数で再生成 (そのままカラー画像の想定)
-        - "fluo1"      : DB の img_fluo1 を使用 (グレースケール→カラー変換→輪郭描画)
-        - "fluo1_replot": img_fluo1 を replot 関数で再生成 (そのままカラー画像の想定)
-        - "fluo2"      : DB の img_fluo2 を使用 (グレースケール→カラー変換→輪郭描画)
-        - "fluo2_replot": img_fluo2 を replot 関数で再生成 (そのままカラー画像の想定)
-
-        degree: replot で使う回転角度やしきい値などの可変パラメータ (任意)
-
-        draw_contour: 通常モードのときのみ輪郭を描画するかどうか
-                    (replotモードでは、そもそもreplot側が輪郭込みでレンダリングする想定)
+        channel_mode が "_replot" を含む場合は replot 関数を呼び出す想定。
         """
-        # DB から対象セルのデータを取得
         async with get_session(self.dbname) as session:
             result = await session.execute(
                 select(Cell)
@@ -1511,14 +1498,11 @@ class TimelapseDatabaseCrud:
                 detail=f"No data found for field={field}, cell={cell_number}",
             )
 
-        # 生成するフレーム(PIL Image)のリスト
-        pil_frames: list[Image.Image] = []
+        # PIL Image のリスト
+        frames: list[Image.Image] = []
 
-        # どの BLOB を使うか (通常 or replot) を決定するヘルパー
-        async def get_image_blob(row: Cell) -> bytes | None:
-            """
-            channel_mode に応じて BLOB を返す or replot して返す
-            """
+        # helper: 実際の画像BLOBを返す or replot結果PNGを返す
+        async def get_frame_blob(row: Cell) -> bytes | None:
             if "ph" in channel_mode:
                 raw_blob = row.img_ph
             elif "fluo1" in channel_mode:
@@ -1529,64 +1513,42 @@ class TimelapseDatabaseCrud:
             if raw_blob is None:
                 return None
 
-            # replotモードの場合
             if "_replot" in channel_mode:
-                # 輪郭が無いと再描画できないので一応チェック
+                # replotモード時: 輪郭必須
                 if not row.contour:
                     return None
 
-                # replot 呼び出し前にキャッシュをクリア
+                # replot前にキャッシュクリア
                 if hasattr(CellDBAsyncChores.replot, "cache_clear"):
                     CellDBAsyncChores.replot.cache_clear()
 
-                # replot 関数を呼び出して (PNGバイナリ) を得る
                 buf = await CellDBAsyncChores.replot(raw_blob, row.contour, degree)
-                return buf.getvalue()  # PNG バイナリを返す
+                return buf.getvalue()  # PNGバイナリ
             else:
-                # 通常モード → そのまま
+                # 通常モード → そのまま BLOB
                 return raw_blob
 
-        for frame_index, row in enumerate(cells):
-            blob = await get_image_blob(row)
-            if blob is None:
-                # フレームによっては画像BLOB or 輪郭が無いかもしれないのでスキップ扱い
+        for row in cells:
+            blob = await get_frame_blob(row)
+            if not blob:
+                # 画像データが無いフレームはスキップ
                 continue
 
-            if "_replot" in channel_mode:
-                # replotモードで返ってきたバイナリはカラー想定
-                pil_img = Image.open(io.BytesIO(blob))
-                # 輪郭描画は replot 側でやっているのでここではしない
-                pil_frames.append(pil_img)
-            else:
-                # 通常モード: グレースケールBLOBをOpenCV読み込み→カラー変換→必要に応じて輪郭描画
-                np_img_gray = cv2.imdecode(
-                    np.frombuffer(blob, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
-                )
-                if np_img_gray is None:
-                    continue
+            # ここから Pillow で読んで 200×200 にリサイズ
+            # 通常モードはグレースケールを読み込み→カラー化する想定
+            # replot時はすでにカラーPNGが返ってくる想定
+            pil_img = Image.open(io.BytesIO(blob))
 
-                np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
+            # もし通常モードなら輪郭描画を含めて自前で行う場合があるが、
+            # ここでは「draw_contour」は `_replot` でないときにOpenCVで描画済み or 省略 という前提にしてもOK。
+            # すでにユーザーロジックで輪郭込みBLOBにしているなら下記は不要です。
 
-                if draw_contour and row.contour:
-                    try:
-                        contour_data = pickle.loads(row.contour)
-                        if not isinstance(contour_data, list):
-                            contour_data = [contour_data]
+            # 200×200 にリサイズ
+            pil_img = pil_img.resize((200, 200), Image.Resampling.LANCZOS)
 
-                        for c in contour_data:
-                            c = np.array(c, dtype=np.float32)
-                            if len(c.shape) == 2:
-                                c = c[:, np.newaxis, :]
-                            c = c.astype(np.int32)
-                            cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
-                    except Exception as e:
-                        print(f"[WARN] Contour parse error: {e}")
+            frames.append(pil_img)
 
-                np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
-                pil_img = Image.fromarray(np_img_rgb)
-                pil_frames.append(pil_img)
-
-        if not pil_frames:
+        if not frames:
             raise HTTPException(
                 status_code=404,
                 detail=(
@@ -1595,25 +1557,26 @@ class TimelapseDatabaseCrud:
                 ),
             )
 
-        # 横に並べるための出力画像を作成
-        total_width = sum(img.width for img in pil_frames)
-        max_height = max(img.height for img in pil_frames)
+        # 幅 = (200×フレーム数), 高さ = 200
+        total_width = 200 * len(frames)
+        max_height = 200  # frames はすでに200×200に揃えている
 
         out_img = Image.new("RGB", (total_width, max_height), (0, 0, 0))
 
         offset_x = 0
-        for img in pil_frames:
+        for img in frames:
+            # RGBAなどはRGBへ
             if img.mode not in ["RGB", "RGBA"]:
                 img = img.convert("RGB")
             out_img.paste(img, (offset_x, 0))
-            offset_x += img.width
+            offset_x += img.width  # =200
 
-        # PNG として BytesIO に書き込み
+        # PNG書き出し
         png_buffer = io.BytesIO()
         out_img.save(png_buffer, format="PNG")
         png_buffer.seek(0)
         return png_buffer
-    
+
     async def get_all_channels_timecourse_as_single_image(
         self,
         field: str,
