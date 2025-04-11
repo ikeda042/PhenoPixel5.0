@@ -44,7 +44,6 @@ import {
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 
-// Chart.js に必要なプラグイン等を登録
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 interface GetFieldsResponse {
@@ -77,18 +76,17 @@ interface CellDataById {
   cell: number;
   area: number;
   perimeter: number;
-  manual_label?: number;
+  manual_label?: string | number;
   is_dead?: number;
 }
 
-// API 側が { "areas": number[] } で返却してくるので、
-// フロントで下記のような変換用インターフェースを用意
+// 輪郭面積
 interface ContourArea {
   frame: number;
   area: number;
 }
 interface GetContourAreasResponse {
-  areas: number[]; // ← 本来は number[] だが、後で {frame, area} に変換する
+  areas: number[];
 }
 
 const url_prefix = settings.url_prefix;
@@ -107,37 +105,52 @@ const TimelapseViewer: React.FC = () => {
   const [cellNumbers, setCellNumbers] = useState<number[]>([]);
   const [selectedCellNumber, setSelectedCellNumber] = useState<number>(0);
 
-  // 今表示中のセル情報（by_id から取得した詳細）
+  // 今表示中のセル詳細
   const [currentCellData, setCurrentCellData] = useState<CellDataById | null>(null);
 
   // manual_label のセレクトボックス用
   const manualLabelOptions = ["N/A", "1", "2", "3", "4"];
 
-  // 「全 GIF を同じタイミングで再生開始する」ため、URLパラメータに利用するキー
+  // 「全 GIF を同じタイミングで再生開始する」ためのキー
   const [reloadKey, setReloadKey] = useState<number>(0);
 
-  // 「All Cells」プレビュー用のモーダル管理
+  // 「All Cells」プレビュー用モーダル
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [loadingAllCells, setLoadingAllCells] = useState<boolean>(false);
   const [allCellsGifUrl, setAllCellsGifUrl] = useState<string>("");
 
-  // 表示したいチャネル（ph, fluo1, fluo2） - 通常 GIF 用
+  // 画像チャンネル (GIF 用)
   const channels = ["ph", "fluo1", "fluo2"] as const;
 
-  // 輪郭面積（frame, area）に変換後の配列
+  // 輪郭面積グラフ用データ
   const [contourAreas, setContourAreas] = useState<ContourArea[]>([]);
 
-  // ★ 描画モードの状態を管理
-  type DrawMode = "ContourAreas" | "Replot";
+  // ★ 描画モード: ContourAreas / Replot / TimecoursePNG
+  type DrawMode = "ContourAreas" | "Replot" | "TimecoursePNG";
   const [drawMode, setDrawMode] = useState<DrawMode>("ContourAreas");
 
-  // ★ Replot 用に、ph, fluo1, fluo2 のどれかを選択できるようにする
+  // Replot 用: ph / fluo1 / fluo2
   const [replotChannel, setReplotChannel] = useState<"ph" | "fluo1" | "fluo2">("ph");
 
-  // 画像のロード完了数を管理
+  // ★ TimecoursePNG 用チャネルモード
+  type ChannelMode =
+    | "ph"
+    | "ph_replot"
+    | "fluo1"
+    | "fluo1_replot"
+    | "fluo2"
+    | "fluo2_replot"
+    // ▼▼▼ ここが追加箇所 ▼▼▼
+    | "all_channels";
+
+  const [timecourseChannelMode, setTimecourseChannelMode] = useState<ChannelMode>("ph");
+
+  // 画像ロード完了数
   const [imagesLoadedCount, setImagesLoadedCount] = useState(0);
 
-  // ========= 初期化・データ取得関連 =========
+  // ==================
+  // 初期処理
+  // ==================
   useEffect(() => {
     if (!dbName) {
       console.error("No db_name is specified in query parameters.");
@@ -164,8 +177,6 @@ const TimelapseViewer: React.FC = () => {
         `${url_prefix}/tlengine/databases/${dbName}/fields/${field}/cell_numbers`
       );
       setCellNumbers(response.data.cell_numbers);
-
-      // 取得した際に、先頭のセル番号を自動的に選択
       if (response.data.cell_numbers.length > 0) {
         setSelectedCellNumber(response.data.cell_numbers[0]);
       }
@@ -192,7 +203,6 @@ const TimelapseViewer: React.FC = () => {
       setCurrentCellData(null);
       return;
     }
-
     try {
       const response = await axios.get<GetCellsResponseByFieldNumber>(
         `${url_prefix}/tlengine/databases/${dbName}/cells/by_field/${selectedField}/cell_number/${selectedCellNumber}`
@@ -202,8 +212,7 @@ const TimelapseViewer: React.FC = () => {
         setCurrentCellData(null);
         return;
       }
-      const baseCellId = cells[0].cell_id;
-
+      const baseCellId = cells[0].cell_id; // 同じ cell_number の全フレームは同じ base_cell_id
       const detail = await fetchCellDataById(baseCellId);
       if (detail) {
         setCurrentCellData(detail);
@@ -216,21 +225,22 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
+  // manual_label 更新
   const handleChangeManualLabel = async (value: string) => {
     if (!dbName || !currentCellData) return;
-    const patchLabel = value === "N/A" ? "N/A" : value;
-
     try {
       const baseCellId = currentCellData.cell_id;
       await axios.patch(
-        `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/label?label=${patchLabel}`
+        `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/label?label=${value}`
       );
+      // 更新後再取得
       fetchCurrentCellData();
     } catch (error) {
       console.error("Failed to update manual_label:", error);
     }
   };
 
+  // is_dead 更新
   const handleChangeIsDead = async (checked: boolean) => {
     if (!dbName || !currentCellData) return;
     try {
@@ -245,6 +255,7 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
+  // フィールド・セル番号一覧取得
   useEffect(() => {
     if (dbName) {
       fetchFields(dbName);
@@ -261,7 +272,7 @@ const TimelapseViewer: React.FC = () => {
     fetchCurrentCellData();
   }, [dbName, selectedField, selectedCellNumber]);
 
-  // ========= Prev / Next =========
+  // Prev / Next
   const handlePrevCell = () => {
     if (cellNumbers.length === 0) return;
     const currentIndex = cellNumbers.indexOf(selectedCellNumber);
@@ -270,57 +281,66 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  // ★ ここで最後のセルに到達していたら次のフィールドへ自動的に移るようにする
   const handleNextCell = () => {
     if (cellNumbers.length === 0) return;
     const currentIndex = cellNumbers.indexOf(selectedCellNumber);
-
-    // まだ最後のセルでなければ、次のセル番号に移動
     if (currentIndex < cellNumbers.length - 1) {
       setSelectedCellNumber(cellNumbers[currentIndex + 1]);
     } else {
-      // 今のフィールドで最後のセルにいる
+      // 最後のセル → 次のフィールドへ
       const fieldIndex = fields.indexOf(selectedField);
-      // 最後のフィールドでなければ、次のフィールドに移る
       if (fieldIndex < fields.length - 1) {
         setSelectedField(fields[fieldIndex + 1]);
-        // ※ useEffect 内の fetchCellNumbers で次フィールドの最初のセルが自動的に選択される
       } else {
-        // 最後のフィールドかつ最後のセル
-        console.log("すべてのフィールドとセルを見終わりました。");
+        console.log("すべてのフィールド・セルを見終わりました。");
       }
     }
   };
 
-  // ========= GIF 再生をそろえるための処理 =========
+  // 画像ロードカウント
   useEffect(() => {
     setImagesLoadedCount(0);
     setReloadKey((prev) => prev + 1);
-  }, [dbName, selectedField, selectedCellNumber, drawMode, replotChannel]);
+  }, [dbName, selectedField, selectedCellNumber, drawMode, replotChannel, timecourseChannelMode]);
 
-  // 画像が読み込まれたらカウントを増やす
   const handleImageLoad = () => {
     setImagesLoadedCount((prev) => prev + 1);
   };
 
-  // ========= GIF の URL を作成 (3 or 4 枚分) =========
-  // duration=200 & _syncKey=reloadKey を付与してキャッシュ回避、同時リロード
+  // 通常GIF 3枚
   const normalGifUrls = channels.map((ch) =>
     dbName
       ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200&_syncKey=${reloadKey}`
       : ""
   );
 
-  // Replot 用 GIF (モードが Replot の時に表示する)
+  // Replot 用 GIF
   const replotGifUrl = dbName
     ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/replot?channel=${replotChannel}&degree=4&duration=200&_syncKey=${reloadKey}`
     : "";
 
-  // すべての GIF を配列化 (drawMode が Replot の時は 4 枚、それ以外は 3 枚)
-  const allGifUrls = drawMode === "Replot" ? [...normalGifUrls, replotGifUrl] : normalGifUrls;
+  // ★ TimecoursePNG 用 URL (channel_mode="all_channels" でエンドポイントを切り替え)
+  const timecoursePngUrl = dbName
+    ? timecourseChannelMode === "all_channels"
+      ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/timecourse_png/all_channels?degree=0&draw_contour=true&_syncKey=${reloadKey}`
+      : `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/timecourse_png?channel_mode=${timecourseChannelMode}&degree=0&draw_contour=true&_syncKey=${reloadKey}`
+    : "";
+
+  // ロード対象URL
+  const allGifUrls = (() => {
+    let baseUrls = [...normalGifUrls];
+    if (drawMode === "Replot") {
+      baseUrls.push(replotGifUrl);
+    }
+    if (drawMode === "TimecoursePNG") {
+      baseUrls.push(timecoursePngUrl);
+    }
+    return baseUrls;
+  })();
 
   const allLoaded = imagesLoadedCount === allGifUrls.length;
 
+  // キーボード操作
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!currentCellData) return;
@@ -352,25 +372,15 @@ const TimelapseViewer: React.FC = () => {
           break;
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [
-    currentCellData,
-    handleChangeIsDead,
-    handleChangeManualLabel,
-    handleNextCell,
-    handlePrevCell,
-  ]);
+  }, [currentCellData]);
 
-  // ========= Preview All Cells Modal =========
+  // All Cells Preview
   const handlePreviewAllCells = async () => {
-    if (!dbName || !selectedField) {
-      console.error("DB名やFieldが未選択です。");
-      return;
-    }
+    if (!dbName || !selectedField) return;
     const fileName = dbName.replace("_cells.db", "") + ".nd2";
     setOpenModal(true);
     setLoadingAllCells(true);
@@ -390,7 +400,7 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
-  // ========= ContourAreas データ取得・グラフ設定 =========
+  // ContourAreas グラフ
   const fetchContourAreas = async () => {
     if (!dbName || !selectedField || !selectedCellNumber) {
       setContourAreas([]);
@@ -400,7 +410,6 @@ const TimelapseViewer: React.FC = () => {
       const response = await axios.get<GetContourAreasResponse>(
         `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/contour_areas`
       );
-      // 受け取った数値配列を { frame, area } の形に変換
       const converted = response.data.areas.map((value, index) => ({
         frame: index,
         area: value,
@@ -429,7 +438,6 @@ const TimelapseViewer: React.FC = () => {
     ],
   };
 
-  // maintainAspectRatio を false にして、親要素のサイズに合わせられるようにする
   const contourAreasChartOptions: ChartOptions<"line"> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -458,14 +466,8 @@ const TimelapseViewer: React.FC = () => {
 
   return (
     <>
-      <Container
-        sx={{
-          py: 4,
-          backgroundColor: "#fff",
-          minHeight: "100vh",
-        }}
-        maxWidth="xl"
-      >
+      <Container sx={{ py: 4, backgroundColor: "#fff", minHeight: "100vh" }} maxWidth="xl">
+        {/* パンくず */}
         <Box mb={2}>
           <Breadcrumbs aria-label="breadcrumb">
             <Link underline="hover" color="inherit" href="/">
@@ -478,6 +480,7 @@ const TimelapseViewer: React.FC = () => {
           </Breadcrumbs>
         </Box>
 
+        {/* Field, Cell選択など */}
         <Box
           display="flex"
           flexWrap="wrap"
@@ -521,9 +524,7 @@ const TimelapseViewer: React.FC = () => {
           {currentCellData && (
             <>
               <FormControl sx={{ minWidth: 120 }}>
-                <InputLabel id="manual-label-select-label">
-                  manual_label
-                </InputLabel>
+                <InputLabel id="manual-label-select-label">manual_label</InputLabel>
                 <Select
                   labelId="manual-label-select-label"
                   label="manual_label"
@@ -555,16 +556,11 @@ const TimelapseViewer: React.FC = () => {
             </>
           )}
 
+          {/* Prev / Next */}
           <Button
             variant="contained"
             startIcon={<ArrowBack />}
-            sx={{
-              backgroundColor: "#000",
-              color: "#fff",
-              "&:hover": {
-                backgroundColor: "#333",
-              },
-            }}
+            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
             onClick={handlePrevCell}
           >
             Prev
@@ -572,13 +568,7 @@ const TimelapseViewer: React.FC = () => {
           <Button
             variant="contained"
             endIcon={<ArrowForward />}
-            sx={{
-              backgroundColor: "#000",
-              color: "#fff",
-              "&:hover": {
-                backgroundColor: "#333",
-              },
-            }}
+            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
             onClick={handleNextCell}
           >
             Next
@@ -586,20 +576,14 @@ const TimelapseViewer: React.FC = () => {
 
           <Button
             variant="contained"
-            sx={{
-              backgroundColor: "#444",
-              color: "#fff",
-              "&:hover": {
-                backgroundColor: "#666",
-              },
-            }}
+            sx={{ backgroundColor: "#444", color: "#fff", "&:hover": { backgroundColor: "#666" } }}
             onClick={handlePreviewAllCells}
           >
             Preview All Cells
           </Button>
         </Box>
 
-        {/* ★ 描画モード切り替え用のSelect */}
+        {/* 描画モード切り替え */}
         <Box mb={2} display="flex" alignItems="center" gap={2}>
           <FormControl sx={{ minWidth: 180 }}>
             <InputLabel id="draw-mode-select-label">DrawMode</InputLabel>
@@ -611,10 +595,11 @@ const TimelapseViewer: React.FC = () => {
             >
               <MenuItem value="ContourAreas">ContourAreas</MenuItem>
               <MenuItem value="Replot">Replot</MenuItem>
+              <MenuItem value="TimecoursePNG">TimecoursePNG</MenuItem>
             </Select>
           </FormControl>
 
-          {/* Replot のチャンネル選択用 */}
+          {/* Replot 用 チャンネル */}
           {drawMode === "Replot" && (
             <FormControl sx={{ minWidth: 120 }}>
               <InputLabel id="replot-channel-label">Channel</InputLabel>
@@ -622,9 +607,7 @@ const TimelapseViewer: React.FC = () => {
                 labelId="replot-channel-label"
                 value={replotChannel}
                 label="Channel"
-                onChange={(e) =>
-                  setReplotChannel(e.target.value as "ph" | "fluo1" | "fluo2")
-                }
+                onChange={(e) => setReplotChannel(e.target.value as "ph" | "fluo1" | "fluo2")}
               >
                 <MenuItem value="ph">ph</MenuItem>
                 <MenuItem value="fluo1">fluo1</MenuItem>
@@ -632,67 +615,60 @@ const TimelapseViewer: React.FC = () => {
               </Select>
             </FormControl>
           )}
+
+          {/* TimecoursePNG 用 channel_mode */}
+          {drawMode === "TimecoursePNG" && (
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel id="timecourse-channel-label">channel_mode</InputLabel>
+              <Select
+                labelId="timecourse-channel-label"
+                value={timecourseChannelMode}
+                label="channel_mode"
+                onChange={(e) => setTimecourseChannelMode(e.target.value as ChannelMode)}
+              >
+                <MenuItem value="ph">ph</MenuItem>
+                <MenuItem value="ph_replot">ph_replot</MenuItem>
+                <MenuItem value="fluo1">fluo1</MenuItem>
+                <MenuItem value="fluo1_replot">fluo1_replot</MenuItem>
+                <MenuItem value="fluo2">fluo2</MenuItem>
+                <MenuItem value="fluo2_replot">fluo2_replot</MenuItem>
+                {/* ▼▼▼ ここが追加 ▼▼▼ */}
+                <MenuItem value="all_channels">All</MenuItem>
+              </Select>
+            </FormControl>
+          )}
         </Box>
 
+        {/* メイン表示: カード */}
         {dbName ? (
-          <Card
-            sx={{
-              borderRadius: 2,
-              boxShadow: 2,
-              backgroundColor: "#fff",
-              mb: 4,
-            }}
-          >
+          <Card sx={{ borderRadius: 2, boxShadow: 2, backgroundColor: "#fff", mb: 4 }}>
             <CardContent>
-              <Grid
-                container
-                spacing={2}
-                justifyContent="center"
-                alignItems="flex-start"
-              >
-                {/* 
-                  GIF を一斉に最初から再生するため、
-                  ロード完了数 (imagesLoadedCount) と 
-                  allGifUrls.length が一致してから表示するようにする。
-                */}
+              <Grid container spacing={2} justifyContent="center" alignItems="flex-start">
+                {/* ロード中 */}
                 {!allLoaded && (
                   <Grid item xs={12}>
-                    <Box
-                      display="flex"
-                      justifyContent="center"
-                      alignItems="center"
-                      minHeight="200px"
-                    >
+                    <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
                       <CircularProgress />
-                      <Typography ml={2}>GIF を読み込み中です...</Typography>
+                      <Typography ml={2}>画像を読み込み中です...</Typography>
                     </Box>
                   </Grid>
                 )}
 
                 {allLoaded && (
                   <>
-                    {/* 1) 通常 GIF (3枚) */}
+                    {/* 通常3枚 GIF (ph, fluo1, fluo2) */}
                     {normalGifUrls.map((url, idx) => (
-                      <Grid
-                        item
-                        xs={12}
-                        md={3}
-                        key={`normal-gif-${idx}-${reloadKey}`}
-                      >
+                      <Grid item xs={12} md={3} key={`normal-gif-${idx}-${reloadKey}`}>
                         <CardMedia
                           component="img"
                           image={url}
                           alt={`timelapse-${channels[idx]}`}
-                          sx={{
-                            width: "100%",
-                            borderRadius: 2,
-                            objectFit: "contain",
-                          }}
+                          sx={{ width: "100%", borderRadius: 2, objectFit: "contain" }}
                         />
                       </Grid>
                     ))}
 
-                    {/* 2) Replot モードのときは 4 枚目として Replot GIF を表示 */}
+                    {/* Replot: 4枚目に Replot GIF */}
                     {drawMode === "Replot" && (
                       <Grid item xs={12} md={3}>
                         <CardMedia
@@ -700,21 +676,16 @@ const TimelapseViewer: React.FC = () => {
                           image={replotGifUrl}
                           alt={`replot-${replotChannel}`}
                           key={`replot-${replotChannel}-${reloadKey}`}
-                          sx={{
-                            width: "100%",
-                            borderRadius: 2,
-                            objectFit: "contain",
-                          }}
+                          sx={{ width: "100%", borderRadius: 2, objectFit: "contain" }}
                         />
                       </Grid>
                     )}
 
-                    {/* 3) ContourAreas モードのときは 4 枚目としてグラフを表示 */}
+                    {/* ContourAreas: グラフ表示 */}
                     {drawMode === "ContourAreas" && (
                       <Grid item xs={12} md={3}>
                         <Box
                           sx={{
-                            // GIFと同じように幅100%で、縦横比1:1に調整
                             position: "relative",
                             width: "100%",
                             paddingBottom: "100%",
@@ -724,13 +695,7 @@ const TimelapseViewer: React.FC = () => {
                         >
                           {contourAreas.length > 0 ? (
                             <Box
-                              sx={{
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                              }}
+                              sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
                             >
                               <Line
                                 data={contourAreasChartData}
@@ -739,19 +704,34 @@ const TimelapseViewer: React.FC = () => {
                             </Box>
                           ) : (
                             <Typography variant="body1" mt={2}>
-                              輪郭面積データがありません。
+                              輪郭面積データなし
                             </Typography>
                           )}
                         </Box>
                       </Grid>
                     )}
+
+                    {/* TimecoursePNG */}
+                    {drawMode === "TimecoursePNG" && (
+                      <Grid item xs={12}>
+                        <CardMedia
+                          component="img"
+                          image={timecoursePngUrl}
+                          alt={`timecourse-${timecourseChannelMode}`}
+                          key={`timecourse-png-${reloadKey}`}
+                          sx={{
+                            width: "100%",
+                            borderRadius: 2,
+                            objectFit: "contain",
+                            maxHeight: "600px",
+                          }}
+                        />
+                      </Grid>
+                    )}
                   </>
                 )}
 
-                {/* 
-                  <img> 要素に onLoad を仕込み、読み込み完了をカウントするための隠しタグ。
-                  画面表示には使わないが、ロードだけをトリガーする。
-                */}
+                {/* 隠しプレロード <img> で onLoad / onError */}
                 {allGifUrls.map((url, idx) => (
                   <img
                     key={`preload-${idx}-${reloadKey}`}
@@ -759,7 +739,7 @@ const TimelapseViewer: React.FC = () => {
                     alt="preload"
                     style={{ display: "none" }}
                     onLoad={handleImageLoad}
-                    onError={handleImageLoad} // エラー時でもカウントを進める
+                    onError={handleImageLoad}
                   />
                 ))}
               </Grid>
@@ -767,27 +747,17 @@ const TimelapseViewer: React.FC = () => {
           </Card>
         ) : (
           <Typography variant="body1" mt={2}>
-            データがありません。DB名やフィールドが正しく指定されているか確認してください。
+            データベースが指定されていません。
           </Typography>
         )}
       </Container>
 
-      {/* All Cells プレビュー用ダイアログ */}
-      <Dialog
-        open={openModal}
-        onClose={() => setOpenModal(false)}
-        maxWidth="md"
-        fullWidth
-      >
+      {/* All Cells モーダル */}
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth>
         <DialogTitle>All Cells Preview</DialogTitle>
         <DialogContent>
           {loadingAllCells ? (
-            <Box
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-              minHeight="200px"
-            >
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
               <CircularProgress />
             </Box>
           ) : (
