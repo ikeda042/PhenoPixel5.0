@@ -24,9 +24,8 @@ def extract_nd2(file_name: str):
     チャンネル1: fluo1
     チャンネル2: fluo2
     """
-    ulid_str = str(ulid.new())
     base_output_dir = os.path.join(
-        "experimental", "TLengine2.0", "output", ulid_str
+        "experimental", "TLengine2.0", "output",file_name.split("/")[-1].split(".")[0]
     )
 
     os.makedirs(base_output_dir, exist_ok=True)
