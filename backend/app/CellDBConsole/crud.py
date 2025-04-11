@@ -1452,7 +1452,7 @@ class CellCrudBase:
                 round(
                     len([i for i in median_intensities if i < 0.6])
                     / len(median_intensities),
-                    2,
+                    4,
                 )
             ),
         )
