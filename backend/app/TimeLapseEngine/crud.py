@@ -20,8 +20,6 @@ from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, update, tex
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
-import os
-from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
 import ulid
 
 
@@ -64,9 +62,6 @@ class Cell(Base):
 
 @asynccontextmanager
 async def get_session(dbname: str):
-    """
-    セッションを非同期コンテキストマネージャとして返す関数。
-    """
     engine = create_async_engine(
         f"sqlite+aiosqlite:///timelapse_databases/{dbname}?timeout=30", echo=False
     )
@@ -90,17 +85,8 @@ async def create_database(dbname: str):
 
 
 class SyncChores:
-    """
-    既存の補助的クラス。各種静的メソッドで画像処理を行う。
-    """
-
     @staticmethod
     def correct_drift(reference_image, target_image):
-        """
-        (既存) ORB + BFMatcher + 座標反転してからアフィン変換を推定する例。
-        特徴点ベースのため、細胞分裂で大きく見え方が変化した場合は、
-        十分に対応しきれない可能性あり。
-        """
         orb = cv2.ORB_create()
         kp1, des1 = orb.detectAndCompute(reference_image, None)
         kp2, des2 = orb.detectAndCompute(target_image, None)
@@ -112,19 +98,14 @@ class SyncChores:
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         matches = bf.match(des1, des2)
 
-        # マッチングがあまりに少ない場合は補正を行わない
         if len(matches) < 300:
             print("Insufficient matches, skipping drift correction.")
             return target_image
 
-        # ORB特徴点の座標リスト
         src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
 
-        # 画像の縦横サイズ
         height, width = reference_image.shape[:2]
-
-        # x座標とy座標をそれぞれ反転
         src_pts[:, :, 0] = width - src_pts[:, :, 0]
         src_pts[:, :, 1] = height - src_pts[:, :, 1]
         dst_pts[:, :, 0] = width - dst_pts[:, :, 0]
@@ -143,13 +124,8 @@ class SyncChores:
             print("Matrix estimation failed, skipping drift correction.")
             return target_image
 
-    # --- [ECC 法] ---
     @staticmethod
     def correct_drift_ecc(reference_image, target_image, warp_mode=cv2.MOTION_AFFINE):
-        """
-        (既存) ECC (Enhanced Correlation Coefficient) によるドリフト補正。
-        """
-        # ECC ではグレースケール画像が前提
         ref_gray = (
             reference_image
             if len(reference_image.shape) == 2
@@ -161,13 +137,11 @@ class SyncChores:
             else cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
         )
 
-        # 初期変換行列を設定
         if warp_mode == cv2.MOTION_HOMOGRAPHY:
             warp_matrix = np.eye(3, 3, dtype=np.float32)
         else:
             warp_matrix = np.eye(2, 3, dtype=np.float32)
 
-        # 終了条件 (反復回数と閾値)
         number_of_iterations = 100
         termination_eps = 1e-4
         criteria = (
@@ -177,7 +151,6 @@ class SyncChores:
         )
 
         try:
-            # ECC の計算を実行
             cc, warp_matrix = cv2.findTransformECC(
                 ref_gray, tgt_gray, warp_matrix, warp_mode, criteria
             )
@@ -185,10 +158,8 @@ class SyncChores:
             print(f"[ECC] Alignment failed with OpenCV error: {e}")
             return target_image
 
-        # warp_mode に応じて変換
         h, w = reference_image.shape[:2]
         if warp_mode == cv2.MOTION_HOMOGRAPHY:
-            # homography なら 3x3 行列を warpPerspective で適用
             aligned = cv2.warpPerspective(
                 target_image,
                 warp_matrix,
@@ -196,7 +167,6 @@ class SyncChores:
                 flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP,
             )
         else:
-            # それ以外は warpAffine で適用
             aligned = cv2.warpAffine(
                 target_image,
                 warp_matrix,
@@ -206,35 +176,20 @@ class SyncChores:
 
         return aligned
 
-    # --- [Phase Correlation 法] ---
     @staticmethod
     def calc_shift_by_phase_correlation(ref_img: np.ndarray, target_img: np.ndarray) -> tuple[int, int]:
-        """
-        phaseCorrelateを使ってref_imgに対するtarget_imgのx,yズレを推定する。
-        返すのは (vertical_shift, horizontal_shift) のタプル。
-        """
         ref_float = ref_img.astype(np.float32)
         tgt_float = target_img.astype(np.float32)
-        # DC成分(平均)を除去
         ref_float -= np.mean(ref_float)
         tgt_float -= np.mean(tgt_float)
 
         (shift_x, shift_y), _ = cv2.phaseCorrelate(ref_float, tgt_float)
-
-        # phaseCorrelateの戻り値は
-        # 「targetを(shift_x, shift_y)動かせばrefに重なる」
-        # ただし、下記のように vertical, horizontal は
-        # -1倍してやる必要がある点に注意
         vertical_shift = -int(round(shift_y))
         horizontal_shift = -int(round(shift_x))
         return (vertical_shift, horizontal_shift)
 
     @staticmethod
     def correct_drift_phase_correlation(reference_image, target_image):
-        """
-        (新規) 位相相関によるドリフト補正。
-        """
-        # グレースケール化
         ref_gray = (
             reference_image
             if len(reference_image.shape) == 2
@@ -246,12 +201,10 @@ class SyncChores:
             else cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
         )
 
-        # 位相相関からシフト量を求める
         vertical_shift, horizontal_shift = SyncChores.calc_shift_by_phase_correlation(
             ref_gray, tgt_gray
         )
 
-        # シフトを適用
         h, w = reference_image.shape[:2]
         M = np.float32([[1, 0, horizontal_shift], [0, 1, vertical_shift]])
         aligned = cv2.warpAffine(target_image, M, (w, h))
@@ -260,16 +213,12 @@ class SyncChores:
 
     @staticmethod
     def process_image(array):
-        """
-        シンプルな正規化＆8bit変換
-        """
-        array = array.astype(np.float32)  # Convert to float
+        array = array.astype(np.float32)
         array_min = array.min()
         array_max = array.max()
         array -= array_min
         diff = array_max - array_min
         if diff == 0:
-            # 全てが同値の場合は真っ黒にする
             return (array * 0).astype(np.uint8)
         array /= diff
         array *= 255
@@ -277,17 +226,7 @@ class SyncChores:
 
     @classmethod
     def extract_timelapse_nd2(cls, file_name: str, drift_method: str = "phase"):
-        """
-        タイムラプス nd2 ファイルを Field ごと・時系列ごとに TIFF で保存（補正後を上書き保存）。
-        チャンネル 0 -> ph, チャンネル 1 -> fluo1, チャンネル 2 -> fluo2 の想定。
-
-        drift_method (str): "orb", "ecc", もしくは "phase"
-          - "orb": ORB + BFMatcher
-          - "ecc": 画素相関ベースの ECC
-          - "phase": 位相相関 (推奨)
-        """
         base_output_dir = "uploaded_files/"
-        # 既存の作業用フォルダがあれば削除し、再作成
         if os.path.exists("TimelapseParserTemp"):
             shutil.rmtree("TimelapseParserTemp")
         os.makedirs("TimelapseParserTemp", exist_ok=True)
@@ -297,21 +236,16 @@ class SyncChores:
             images.iter_axes = []
             images.bundle_axes = "yxc"
 
-            print(f"Available axes: {images.axes}")
-            print(f"Sizes: {images.sizes}")
-
             num_fields = images.sizes.get("v", 1)
-            num_channels = images.sizes.get("c", 1)  # 3 チャンネルを想定
+            num_channels = images.sizes.get("c", 1)
             num_timepoints = images.sizes.get("t", 1)
 
-            # Field(視野)ごとに処理
             for field_idx in range(num_fields):
                 field_folder = os.path.join(
                     "TimelapseParserTemp", f"Field_{field_idx + 1}"
                 )
                 os.makedirs(field_folder, exist_ok=True)
 
-                # チャンネルごとにサブディレクトリを作成
                 base_output_subdir_ph = os.path.join(field_folder, "ph")
                 base_output_subdir_fluo1 = os.path.join(field_folder, "fluo1")
                 base_output_subdir_fluo2 = os.path.join(field_folder, "fluo2")
@@ -319,32 +253,28 @@ class SyncChores:
                 os.makedirs(base_output_subdir_fluo1, exist_ok=True)
                 os.makedirs(base_output_subdir_fluo2, exist_ok=True)
 
-                # 3 チャンネル分の参照画像を保存する辞書
                 reference_images = {
                     "ph": None,
                     "fluo1": None,
                     "fluo2": None,
                 }
 
-                # 並列実行のためのキュー
                 tasks = []
                 with ThreadPoolExecutor() as executor:
                     for channel_idx in range(num_channels):
                         for time_idx in range(num_timepoints):
-                            # 2次元フレームを取得
                             frame_data = images.get_frame_2D(
                                 v=field_idx, c=channel_idx, t=time_idx
                             )
                             channel_image = cls.process_image(frame_data)
 
-                            # 保存先のパスを作成＆参照画像ラベルを決定
                             if channel_idx == 0:
                                 channel_label = "ph"
                                 save_dir = base_output_subdir_ph
                             elif channel_idx == 1:
                                 channel_label = "fluo1"
                                 save_dir = base_output_subdir_fluo1
-                            else:  # channel_idx == 2
+                            else:
                                 channel_label = "fluo2"
                                 save_dir = base_output_subdir_fluo2
 
@@ -352,21 +282,15 @@ class SyncChores:
                                 save_dir, f"time_{time_idx + 1}.tif"
                             )
 
-                            # 1 フレーム目は参照画像をセット (ドリフト補正をスキップ)
                             if time_idx == 0:
                                 reference_images[channel_label] = channel_image
                                 Image.fromarray(channel_image).save(tiff_filename)
-                                print(
-                                    f"Saved ({channel_label}, first): {tiff_filename}"
-                                )
                             else:
-                                # 2フレーム目以降は drift 補正 (ORB, ECC, Phase を選択)
                                 if drift_method == "ecc":
                                     drift_func = cls.correct_drift_ecc
                                 elif drift_method == "orb":
                                     drift_func = cls.correct_drift
                                 else:
-                                    # デフォルトは位相相関
                                     drift_func = cls.correct_drift_phase_correlation
 
                                 tasks.append(
@@ -379,19 +303,14 @@ class SyncChores:
                                     )
                                 )
 
-                    # 並列タスク完了待ち
                     for future in as_completed(tasks):
                         try:
                             saved_path = future.result()
-                            print(f"Saved (parallel): {saved_path}")
                         except Exception as e:
                             print(f"Error in parallel task: {e}")
 
     @classmethod
     def _drift_and_save(cls, reference_image, target_image, save_path, drift_func):
-        """
-        並列用: ドリフト補正して上書き保存する小分け関数。
-        """
         corrected = drift_func(reference_image, target_image)
         Image.fromarray(corrected).save(save_path)
         return save_path
@@ -400,21 +319,14 @@ class SyncChores:
     def create_combined_gif(
         cls, field_folder: str, resize_factor: float = 0.5
     ) -> io.BytesIO:
-        """
-        ph, fluo1, fluo2 の 3 つを横に並べて GIF をメモリ上 (BytesIO) に作成して返す。
-        全チャンネル必須という想定。
-        """
-
         ph_folder = os.path.join(field_folder, "ph")
         fluo1_folder = os.path.join(field_folder, "fluo1")
         fluo2_folder = os.path.join(field_folder, "fluo2")
 
-        # 時間インデックスを取り出すための正規表現
         def extract_time_index(path: str) -> int:
             match = re.search(r"time_(\d+)\.tif", path)
             return int(match.group(1)) if match else 0
 
-        # ph, fluo1, fluo2 でそれぞれのファイルをソート
         ph_image_files = sorted(
             [
                 os.path.join(ph_folder, f)
@@ -440,7 +352,6 @@ class SyncChores:
             key=extract_time_index,
         )
 
-        # 画像として読み込み
         ph_images = [Image.open(img_file) for img_file in ph_image_files]
         fluo1_images = [Image.open(img_file) for img_file in fluo1_image_files]
         fluo2_images = [Image.open(img_file) for img_file in fluo2_image_files]
@@ -450,7 +361,6 @@ class SyncChores:
 
         combined_images = []
         for ph_img, fluo1_img, fluo2_img in zip(ph_images, fluo1_images, fluo2_images):
-            # リサイズ（thumbnailを使用してアスペクト比を保ちながらリサイズ）
             ph_img.thumbnail(
                 (int(ph_img.width * resize_factor), int(ph_img.height * resize_factor))
             )
@@ -467,12 +377,10 @@ class SyncChores:
                 )
             )
 
-            # 横に並べて合成 (3 チャンネル)
             combined_width = ph_img.width + fluo1_img.width + fluo2_img.width
             combined_height = max(ph_img.height, fluo1_img.height, fluo2_img.height)
             combined_img = Image.new("RGB", (combined_width, combined_height))
 
-            # 貼り付け
             offset_x = 0
             combined_img.paste(ph_img, (offset_x, 0))
             offset_x += ph_img.width
@@ -485,7 +393,6 @@ class SyncChores:
         if not combined_images:
             raise ValueError("No images found to create combined GIF.")
 
-        # GIF をメモリに書き込む
         gif_buffer = io.BytesIO()
         combined_images[0].save(
             gif_buffer,
@@ -494,17 +401,13 @@ class SyncChores:
             append_images=combined_images[1:],
             duration=100,
             loop=0,
-            optimize=True,  # GIFの最適化
+            optimize=True,
         )
         gif_buffer.seek(0)
         return gif_buffer
 
 
 class AsyncChores:
-    """
-    SyncChores の処理を非同期にラップするクラス
-    """
-
     def __init__(self):
         self.executor = ThreadPoolExecutor()
 
@@ -556,10 +459,6 @@ class AsyncChores:
 
 
 class TimelapseEngineCrudBase:
-    """
-    ND2 -> TIFF(タイムラプス分割) -> GIF作成 といった流れを実装するクラスの例
-    """
-
     def __init__(self, nd2_path: str):
         self.nd2_path = nd2_path
 
@@ -572,21 +471,15 @@ class TimelapseEngineCrudBase:
         return True
 
     async def main(self, drift_method: str = "phase"):
-        # ND2ファイルを TIFF に分割保存 (ドリフト補正込み) - drift_method を指定
         await AsyncChores().extract_timelapse_nd2(self.nd2_path, drift_method=drift_method)
         return JSONResponse(
             content={"message": f"Timelapse extracted with {drift_method}."}
         )
 
     async def create_combined_gif(self, field: str):
-        # 指定した Field フォルダから 3ch GIF を生成
         return await AsyncChores().create_combined_gif("TimelapseParserTemp/" + field)
 
     async def get_fields_of_nd2(self) -> list[str]:
-        """
-        ND2ファイルを軽く読み込み、'v' 軸のサイズから Field 数を取得して
-        ["Field_1", "Field_2", ...] のように返す。
-        """
         base_output_dir = "uploaded_files/"
         nd2_fullpath = os.path.join(base_output_dir, self.nd2_path)
         if not os.path.exists(nd2_fullpath):
@@ -603,6 +496,7 @@ class TimelapseEngineCrudBase:
         param1: int = 90,
         min_area: int = 300,
         crop_size: int = 200,
+        distance_threshold: float = 80.0,  # ← 距離閾値を引数化 (デフォルト80)
     ):
         db_path = f"timelapse_databases/{dbname}"
 
@@ -616,17 +510,14 @@ class TimelapseEngineCrudBase:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-        # 3チャンネルの TIFF ディレクトリ
         ph_folder = os.path.join("TimelapseParserTemp", field, "ph")
         fluo1_folder = os.path.join("TimelapseParserTemp", field, "fluo1")
         fluo2_folder = os.path.join("TimelapseParserTemp", field, "fluo2")
 
-        # 時間インデックスを抜き出すヘルパー関数
         def extract_time_index(filename: str) -> int:
             match = re.search(r"time_(\d+)\.tif", filename)
             return int(match.group(1)) if match else 0
 
-        # ph, fluo1, fluo2 ファイルリストを取得
         ph_files = (
             sorted(os.listdir(ph_folder), key=extract_time_index)
             if os.path.exists(ph_folder)
@@ -650,31 +541,23 @@ class TimelapseEngineCrudBase:
         total_frames = len(ph_files)
         output_size = (crop_size, crop_size)
 
-        # 前フレームで追跡していた細胞の中心座標管理用
         active_cells = {}
         next_cell_idx = 1
         base_ids = {}
 
-        # 各フレームの処理
         for i, ph_file in enumerate(ph_files):
             ph_time_idx = extract_time_index(ph_file)
             ph_path = os.path.join(ph_folder, ph_file)
 
-            # fluo1パスの取得
-            fluo1_path = None
             candidates_fluo1 = [
                 f for f in fluo1_files if extract_time_index(f) == ph_time_idx
             ]
-            if candidates_fluo1:
-                fluo1_path = os.path.join(fluo1_folder, candidates_fluo1[0])
+            fluo1_path = os.path.join(fluo1_folder, candidates_fluo1[0]) if candidates_fluo1 else None
 
-            # fluo2パスの取得
-            fluo2_path = None
             candidates_fluo2 = [
                 f for f in fluo2_files if extract_time_index(f) == ph_time_idx
             ]
-            if candidates_fluo2:
-                fluo2_path = os.path.join(fluo2_folder, candidates_fluo2[0])
+            fluo2_path = os.path.join(fluo2_folder, candidates_fluo2[0]) if candidates_fluo2 else None
 
             ph_img = cv2.imread(ph_path, cv2.IMREAD_COLOR)
             fluo1_img = cv2.imread(fluo1_path, cv2.IMREAD_COLOR) if fluo1_path else None
@@ -686,7 +569,6 @@ class TimelapseEngineCrudBase:
 
             height, width = ph_img.shape[:2]
 
-            # ph のみを使って閾値処理 & 輪郭検出
             ph_gray = cv2.cvtColor(ph_img, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(ph_gray, param1, 255, cv2.THRESH_BINARY)
             edges = cv2.Canny(thresh, 0, 130)
@@ -697,7 +579,6 @@ class TimelapseEngineCrudBase:
 
             new_active_cells = {}
 
-            # セッションを開いてDBに書き込み
             async with async_session() as session:
                 for contour in contours:
                     area = cv2.contourArea(contour)
@@ -708,7 +589,6 @@ class TimelapseEngineCrudBase:
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
 
-                    # 画像の上下左右をそれぞれ10%除外
                     x_min = int(width * 0.1)
                     x_max = int(width * 0.9)
                     y_min = int(height * 0.1)
@@ -719,31 +599,26 @@ class TimelapseEngineCrudBase:
 
                     assigned_cell_idx = None
                     min_dist = float("inf")
-                    distance_threshold = 50
 
-                    # 前フレームの細胞中心との距離を見て同一セルかどうか判定
+                    # --- ここで distance_threshold を使う ---
                     for prev_idx, (px, py) in active_cells.items():
                         dist = math.sqrt((cx - px) ** 2 + (cy - py) ** 2)
                         if dist < distance_threshold and dist < min_dist:
                             min_dist = dist
                             assigned_cell_idx = prev_idx
 
-                    # 新規のセルとして割り当て
                     if assigned_cell_idx is None:
                         assigned_cell_idx = next_cell_idx
                         next_cell_idx += 1
 
-                    # 今フレームで追跡対象登録
                     if assigned_cell_idx not in new_active_cells:
                         new_active_cells[assigned_cell_idx] = (cx, cy)
 
-                    # クロップ領域を算出
                     x1 = max(0, cx - output_size[0] // 2)
                     y1 = max(0, cy - output_size[1] // 2)
                     x2 = min(ph_img.shape[1], cx + output_size[0] // 2)
                     y2 = min(ph_img.shape[0], cy + output_size[1] // 2)
 
-                    # クロップが指定サイズに満たない場合はスキップ
                     if (y2 - y1) != output_size[1] or (x2 - x1) != output_size[0]:
                         continue
 
@@ -751,41 +626,26 @@ class TimelapseEngineCrudBase:
                     cropped_ph_gray = cv2.cvtColor(cropped_ph, cv2.COLOR_BGR2GRAY)
                     ph_gray_encode = cv2.imencode(".png", cropped_ph_gray)[1].tobytes()
 
-                    # fluo1
                     fluo1_gray_encode = None
                     if fluo1_img is not None:
                         cropped_fluo1 = fluo1_img[y1:y2, x1:x2]
-                        cropped_fluo1_gray = cv2.cvtColor(
-                            cropped_fluo1, cv2.COLOR_BGR2GRAY
-                        )
-                        fluo1_gray_encode = cv2.imencode(".png", cropped_fluo1_gray)[
-                            1
-                        ].tobytes()
+                        cropped_fluo1_gray = cv2.cvtColor(cropped_fluo1, cv2.COLOR_BGR2GRAY)
+                        fluo1_gray_encode = cv2.imencode(".png", cropped_fluo1_gray)[1].tobytes()
 
-                    # fluo2
                     fluo2_gray_encode = None
                     if fluo2_img is not None:
                         cropped_fluo2 = fluo2_img[y1:y2, x1:x2]
-                        cropped_fluo2_gray = cv2.cvtColor(
-                            cropped_fluo2, cv2.COLOR_BGR2GRAY
-                        )
-                        fluo2_gray_encode = cv2.imencode(".png", cropped_fluo2_gray)[
-                            1
-                        ].tobytes()
+                        cropped_fluo2_gray = cv2.cvtColor(cropped_fluo2, cv2.COLOR_BGR2GRAY)
+                        fluo2_gray_encode = cv2.imencode(".png", cropped_fluo2_gray)[1].tobytes()
 
-                    # 輪郭をクロップ座標系へシフト
                     contour_shifted = contour.copy()
                     contour_shifted[:, :, 0] -= x1
                     contour_shifted[:, :, 1] -= y1
 
-                    # 毎フレームごとにユニークな cell_id を生成
                     new_ulid = get_ulid()
-
-                    # もしこのセル番号の base_cell_id が未登録なら、新しく登録
                     if assigned_cell_idx not in base_ids:
                         base_ids[assigned_cell_idx] = new_ulid
 
-                    # DB 保存用のオブジェクト作成
                     cell_obj = Cell(
                         cell_id=new_ulid,
                         label_experiment=field,
@@ -808,24 +668,19 @@ class TimelapseEngineCrudBase:
                         gif_fluo2=None,
                     )
 
-                    # 重複チェック (念のため)
                     existing = await session.execute(
                         select(Cell).filter_by(cell_id=new_ulid, time=i + 1)
                     )
                     if existing.scalar() is None:
                         session.add(cell_obj)
 
-                # フレーム内処理が終わったらコミット
                 await session.commit()
 
-            # 次のフレーム用に active_cells を更新
             active_cells = new_active_cells
 
-        # 最初のフレームに存在しない細胞を削除
+        # 以下は「最初のフレームに存在しないセルを削除する」処理
         async with async_session() as session:
             first_frame = 1
-
-            # 最初のフレームに存在する細胞の一覧を取得する
             subquery = select(Cell.cell).where(
                 Cell.field == field,
                 Cell.time == first_frame,
@@ -833,7 +688,6 @@ class TimelapseEngineCrudBase:
             result = await session.execute(subquery)
             cells_with_first_frame = [row[0] for row in result]
 
-            # 最初のフレームに存在しない細胞を削除する
             delete_stmt = (
                 delete(Cell)
                 .where(Cell.field == field)
@@ -843,22 +697,15 @@ class TimelapseEngineCrudBase:
             await session.commit()
 
         print("Cell extraction finished (with cropping).")
-        print("Removed cells that did not appear in every frame.")
+        print("Removed cells that did not appear in the first frame.")
 
-        """
-        ここから、各 base セルに対して GIF を作成して BLOB として保存する処理
-        self.create_gif_for_cell を使う
-        """
+        # 以下はGIFをDBに保存する処理（省略せず残していますが、メインの変更点ではありません）
         async with async_session() as session:
-            # time=1 のレコードが「ベース」として扱われる想定
             base_cells = await session.execute(select(Cell).where(Cell.time == 1))
             base_cells = base_cells.scalars().all()
             base_cell_ids = [cell.cell_id for cell in base_cells]
 
-            print(base_cell_ids)
-
             for base_id in base_cell_ids:
-                print(base_id)
                 for channel in ["ph", "fluo1", "fluo2"]:
                     cells = await session.execute(
                         select(Cell).filter_by(cell_id=base_id)
@@ -884,6 +731,281 @@ class TimelapseEngineCrudBase:
                     await session.commit()
 
         return
+    
+    async def extract_cells_with_hungarian(
+        field: str,
+        dbname: str,
+        param1: int = 90,
+        min_area: int = 300,
+        crop_size: int = 200,
+        max_dist_for_matching: float = 150.0,
+    ):
+        """
+        ハンガリアン法を用いて前フレーム -> 今フレームの細胞対応付けを行う例。
+        max_dist_for_matching: コスト行列で許容する最大距離（これを超える場合はマッチさせない＝大きいペナルティにする）。
+        """
+        db_path = f"timelapse_databases/{dbname}"
+        engine = create_async_engine(
+            f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
+        )
+        async_session = sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        ph_folder = os.path.join("TimelapseParserTemp", field, "ph")
+        fluo1_folder = os.path.join("TimelapseParserTemp", field, "fluo1")
+        fluo2_folder = os.path.join("TimelapseParserTemp", field, "fluo2")
+
+        def extract_time_index(filename: str) -> int:
+            match = re.search(r"time_(\d+)\.tif", filename)
+            return int(match.group(1)) if match else 0
+
+        ph_files = (
+            sorted(os.listdir(ph_folder), key=extract_time_index)
+            if os.path.exists(ph_folder)
+            else []
+        )
+        fluo1_files = (
+            sorted(os.listdir(fluo1_folder), key=extract_time_index)
+            if os.path.exists(fluo1_folder)
+            else []
+        )
+        fluo2_files = (
+            sorted(os.listdir(fluo2_folder), key=extract_time_index)
+            if os.path.exists(fluo2_folder)
+            else []
+        )
+
+        if not ph_files:
+            print("No TIFF files found for ph.")
+            return
+
+        output_size = (crop_size, crop_size)
+
+        # 前フレーム（i-1）で登場した全セルの情報を持つリスト
+        # ここでは list[dict] のように、 { 'cell_idx': int, 'cx': float, 'cy': float } を格納する想定
+        previous_cells = []
+        next_cell_idx = 1
+        base_ids = {}
+
+        for frame_i, ph_file in enumerate(ph_files):
+            time_idx = extract_time_index(ph_file)
+            ph_path = os.path.join(ph_folder, ph_file)
+
+            candidates_fluo1 = [f for f in fluo1_files if extract_time_index(f) == time_idx]
+            fluo1_path = os.path.join(fluo1_folder, candidates_fluo1[0]) if candidates_fluo1 else None
+            candidates_fluo2 = [f for f in fluo2_files if extract_time_index(f) == time_idx]
+            fluo2_path = os.path.join(fluo2_folder, candidates_fluo2[0]) if candidates_fluo2 else None
+
+            ph_img = cv2.imread(ph_path, cv2.IMREAD_COLOR)
+            fluo1_img = cv2.imread(fluo1_path, cv2.IMREAD_COLOR) if fluo1_path else None
+            fluo2_img = cv2.imread(fluo2_path, cv2.IMREAD_COLOR) if fluo2_path else None
+
+            if ph_img is None:
+                print(f"Skipping because ph image not found: {ph_path}")
+                continue
+
+            height, width = ph_img.shape[:2]
+            ph_gray = cv2.cvtColor(ph_img, cv2.COLOR_BGR2GRAY)
+            _, thresh = cv2.threshold(ph_gray, param1, 255, cv2.THRESH_BINARY)
+            edges = cv2.Canny(thresh, 0, 130)
+            contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            contours = [cnt for cnt in contours if cv2.contourArea(cnt) >= min_area]
+
+            # 今フレームの細胞候補
+            current_cells = []
+            for cnt in contours:
+                M = cv2.moments(cnt)
+                if M["m00"] == 0:
+                    continue
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+
+                x_min = int(width * 0.1)
+                x_max = int(width * 0.9)
+                y_min = int(height * 0.1)
+                y_max = int(height * 0.9)
+                if not (x_min < cx < x_max and y_min < cy < y_max):
+                    continue
+
+                current_cells.append({
+                    'contour': cnt,
+                    'cx': cx,
+                    'cy': cy,
+                })
+
+            # --- ハンガリアン法で previous_cells と current_cells を対応付け ---
+            # コスト行列は shape=(len(previous_cells), len(current_cells))
+            # コスト = 距離。一定距離を超える場合は非常に大きい値を入れて対応付けを避けるようにする
+            if previous_cells and current_cells:
+                cost_matrix = np.zeros((len(previous_cells), len(current_cells)), dtype=np.float32)
+                for i_p, pcell in enumerate(previous_cells):
+                    for i_c, ccell in enumerate(current_cells):
+                        dist = math.dist((pcell['cx'], pcell['cy']), (ccell['cx'], ccell['cy']))
+                        if dist > max_dist_for_matching:
+                            cost_matrix[i_p, i_c] = 999999.0
+                        else:
+                            cost_matrix[i_p, i_c] = dist
+
+                row_idx, col_idx = linear_sum_assignment(cost_matrix)
+                # row_idx が previous, col_idx が current のインデックス対応
+                matched_pairs = []
+                unmatched_current = set(range(len(current_cells)))
+                for r, c in zip(row_idx, col_idx):
+                    if cost_matrix[r, c] < 999999.0:
+                        matched_pairs.append((r, c))
+                        if c in unmatched_current:
+                            unmatched_current.remove(c)
+
+                # previous_cells のうち対応が付かなかったものは消す
+                # (すぐ消すか残すかは要件次第。ここでは消してしまう)
+                new_previous_cells = []
+
+                # 今フレームで見つかったセルに「previous_cell_idx」を割り当てる
+                assigned_cell_map = {}
+
+                for r, c in matched_pairs:
+                    cell_idx = previous_cells[r]['cell_idx']
+                    assigned_cell_map[c] = cell_idx
+                    new_previous_cells.append({
+                        'cell_idx': cell_idx,
+                        'cx': current_cells[c]['cx'],
+                        'cy': current_cells[c]['cy'],
+                    })
+
+                # unmatched (＝新たに出現した) current cell
+                for uc in unmatched_current:
+                    cell_idx = next_cell_idx
+                    next_cell_idx += 1
+                    assigned_cell_map[uc] = cell_idx
+                    new_previous_cells.append({
+                        'cell_idx': cell_idx,
+                        'cx': current_cells[uc]['cx'],
+                        'cy': current_cells[uc]['cy'],
+                    })
+
+                previous_cells = new_previous_cells
+
+            else:
+                # 前フレームが空、あるいは今回フレームが空の場合
+                # 今フレームがあるのに前フレームが無い → 全セルが新規
+                new_previous_cells = []
+                for ccell in current_cells:
+                    cell_idx = next_cell_idx
+                    next_cell_idx += 1
+                    new_previous_cells.append({
+                        'cell_idx': cell_idx,
+                        'cx': ccell['cx'],
+                        'cy': ccell['cy'],
+                    })
+                previous_cells = new_previous_cells
+
+            # DB 保存
+            async with async_session() as session:
+                for pcell in previous_cells:
+                    # 既に割り当てられているものだけが対象
+                    # ただし current_cells は「今回」検出分なので、pCell 内に contour が入ってない場合がある。
+                    # matched_pairs 内のインデックスを覚えておいて contour 等を参照する場合は工夫が必要です。
+                    # ここではシンプルに current_cells から再検索して保存します。
+                    ccell = None
+                    # pcell に対応する center をもつ current cell を探す
+                    # （小数点ずれを考慮して誤差0pixelだと一致しないこともあるため注意）
+                    for c in current_cells:
+                        if c['cx'] == pcell['cx'] and c['cy'] == pcell['cy']:
+                            ccell = c
+                            break
+                    if not ccell:
+                        # このフレームでは見つからない(前フレームから継続のみ)
+                        continue
+
+                    cx, cy = ccell['cx'], ccell['cy']
+                    cnt = ccell['contour']
+                    area = cv2.contourArea(cnt)
+                    perimeter = cv2.arcLength(cnt, True)
+
+                    x1 = max(0, cx - output_size[0] // 2)
+                    y1 = max(0, cy - output_size[1] // 2)
+                    x2 = min(ph_img.shape[1], cx + output_size[0] // 2)
+                    y2 = min(ph_img.shape[0], cy + output_size[1] // 2)
+
+                    if (y2 - y1) != output_size[1] or (x2 - x1) != output_size[0]:
+                        continue
+
+                    cropped_ph = ph_img[y1:y2, x1:x2]
+                    cropped_ph_gray = cv2.cvtColor(cropped_ph, cv2.COLOR_BGR2GRAY)
+                    ph_gray_encode = cv2.imencode(".png", cropped_ph_gray)[1].tobytes()
+
+                    fluo1_gray_encode = None
+                    if fluo1_img is not None:
+                        cropped_fluo1 = fluo1_img[y1:y2, x1:x2]
+                        cropped_fluo1_gray = cv2.cvtColor(cropped_fluo1, cv2.COLOR_BGR2GRAY)
+                        fluo1_gray_encode = cv2.imencode(".png", cropped_fluo1_gray)[1].tobytes()
+
+                    fluo2_gray_encode = None
+                    if fluo2_img is not None:
+                        cropped_fluo2 = fluo2_img[y1:y2, x1:x2]
+                        cropped_fluo2_gray = cv2.cvtColor(cropped_fluo2, cv2.COLOR_BGR2GRAY)
+                        fluo2_gray_encode = cv2.imencode(".png", cropped_fluo2_gray)[1].tobytes()
+
+                    contour_shifted = cnt.copy()
+                    contour_shifted[:, :, 0] -= x1
+                    contour_shifted[:, :, 1] -= y1
+
+                    cell_idx = pcell['cell_idx']
+                    # まだ base_ids に登録がなければULID割り当て
+                    if cell_idx not in base_ids:
+                        base_ids[cell_idx] = get_ulid()
+
+                    new_ulid_value = get_ulid()
+                    cell_obj = Cell(
+                        cell_id=new_ulid_value,
+                        label_experiment=field,
+                        manual_label="N/A",
+                        perimeter=perimeter,
+                        area=area,
+                        img_ph=ph_gray_encode,
+                        img_fluo1=fluo1_gray_encode,
+                        img_fluo2=fluo2_gray_encode,
+                        contour=pickle.dumps(contour_shifted),
+                        center_x=cx,
+                        center_y=cy,
+                        field=field,
+                        time=frame_i + 1,  # time は1始まり
+                        cell=cell_idx,
+                        base_cell_id=base_ids[cell_idx],
+                        is_dead=0,
+                        gif_ph=None,
+                        gif_fluo1=None,
+                        gif_fluo2=None,
+                    )
+
+                    existing = await session.execute(
+                        select(Cell).filter_by(cell_id=new_ulid_value, time=frame_i + 1)
+                    )
+                    if existing.scalar() is None:
+                        session.add(cell_obj)
+
+                await session.commit()
+
+        # 最初のフレームに存在しないセルを削除する処理が必要ならここで行う（省略可）
+        async with async_session() as session:
+            first_frame = 1
+            subquery = select(Cell.cell).where(Cell.field == field, Cell.time == first_frame)
+            result = await session.execute(subquery)
+            cells_with_first_frame = [row[0] for row in result]
+
+            delete_stmt = (
+                delete(Cell)
+                .where(Cell.field == field)
+                .where(~Cell.cell.in_(cells_with_first_frame))
+            )
+            await session.execute(delete_stmt)
+            await session.commit()
+
+        print("Hungarian-based tracking finished!")
 
     async def create_gif_for_cell(
         self,
@@ -906,9 +1028,7 @@ class TimelapseEngineCrudBase:
             engine, expire_on_commit=False, class_=AsyncSession
         )
 
-        # session の中で処理を行う
         async with async_session() as session:
-            # cell_number と field が一致するレコードを1フレーム目で検索
             result = await session.execute(
                 select(Cell).filter_by(field=field, cell=cell_number, time=1)
             )
@@ -919,7 +1039,6 @@ class TimelapseEngineCrudBase:
                     detail=f"No data found for field={field}, cell={cell_number}",
                 )
 
-            # 既に GIF が作成済みならそれを返す
             if channel == "ph" and cell.gif_ph:
                 return io.BytesIO(cell.gif_ph)
             elif channel == "fluo1" and cell.gif_fluo1:
@@ -927,7 +1046,6 @@ class TimelapseEngineCrudBase:
             elif channel == "fluo2" and cell.gif_fluo2:
                 return io.BytesIO(cell.gif_fluo2)
 
-            # GIF 用フレーム作成
             frames = []
             result = await session.execute(
                 select(Cell)
@@ -947,7 +1065,7 @@ class TimelapseEngineCrudBase:
                     img_binary = row.img_ph
                 elif channel == "fluo1":
                     img_binary = row.img_fluo1
-                else:  # channel == "fluo2"
+                else:
                     img_binary = row.img_fluo2
 
                 if img_binary is None:
@@ -959,30 +1077,25 @@ class TimelapseEngineCrudBase:
                 if np_img_gray is None:
                     continue
 
-                # OpenCVで扱うために BGR 画像に変換
-                np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
-
-                # 輪郭描画
                 if row.contour is not None:
                     try:
                         contours = pickle.loads(row.contour)
                         if not isinstance(contours, list):
                             contours = [contours]
-
+                        np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
                         for c in contours:
                             c = np.array(c, dtype=np.float32)
                             if len(c.shape) == 2:
-                                # OpenCV の drawContours の仕様に合わせて [N,1,2] に整形
                                 c = c[:, np.newaxis, :]
-
                             c = c.astype(np.int32)
                             cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
-                    except Exception as e:
-                        print(f"[WARN] Contour parse error: {e}")
+                        np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
+                        pil_img = Image.fromarray(np_img_rgb)
+                    except Exception:
+                        pil_img = Image.fromarray(np_img_gray)
+                else:
+                    pil_img = Image.fromarray(np_img_gray)
 
-                # OpenCV BGR → PIL RGB
-                np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
-                pil_img = Image.fromarray(np_img_rgb)
                 frames.append(pil_img)
 
             if not frames:
@@ -1013,7 +1126,6 @@ class TimelapseEngineCrudBase:
         channel: Literal["ph", "fluo1", "fluo2"] = "ph",
         duration_ms: int = 200,
     ):
-        # channel 入力チェック
         if channel not in ["ph", "fluo1", "fluo2"]:
             raise HTTPException(
                 status_code=400,
@@ -1071,7 +1183,6 @@ class TimelapseEngineCrudBase:
             for cell_num in unique_cells:
                 matched = [c for c in all_cells if c.cell == cell_num and c.time == t]
                 if not matched:
-                    # 空画像(真っ黒 200x200)
                     cell_to_image[cell_num] = Image.new("RGB", (200, 200), (0, 0, 0))
                     continue
 
@@ -1094,7 +1205,6 @@ class TimelapseEngineCrudBase:
                     cell_to_image[cell_num] = Image.new("RGB", (200, 200), (0, 0, 0))
                     continue
 
-                # ここでカラー変換
                 np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
                 original_h, original_w = np_img_gray.shape[:2]
 
@@ -1102,8 +1212,6 @@ class TimelapseEngineCrudBase:
                     first_valid_img_size = (original_w, original_h)
 
                 target_w, target_h = first_valid_img_size
-
-                # リサイズ
                 if (original_w, original_h) != (target_w, target_h):
                     scale_x = target_w / original_w
                     scale_y = target_h / original_h
@@ -1113,26 +1221,22 @@ class TimelapseEngineCrudBase:
                 else:
                     scale_x, scale_y = 1.0, 1.0
 
-                # 輪郭描画
                 if row.contour is not None:
                     try:
                         contours = pickle.loads(row.contour)
                         if not isinstance(contours, list):
                             contours = [contours]
-
                         for c in contours:
                             c = np.array(c, dtype=np.float32)
                             if len(c.shape) == 2:
                                 c = c[:, np.newaxis, :]
-
                             c[:, :, 0] *= scale_x
                             c[:, :, 1] *= scale_y
                             c = c.astype(np.int32)
                             cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
                     except Exception as e:
-                        print(f"[WARN] Contour parse error: {e}")
+                        pass
 
-                # OpenCV BGR → PIL RGB
                 np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
                 pil_img = Image.fromarray(np_img_rgb)
                 cell_to_image[cell_num] = pil_img
@@ -1202,14 +1306,8 @@ class TimelapseDatabaseCrud:
         cell_number: int,
         channel: str,
         draw_contour: bool = True,
-        draw_frame_number: bool = True,  # 追加
+        draw_frame_number: bool = True,
     ) -> io.BytesIO:
-        """
-        指定した field, cell_number, channel のセル画像を順番に GIF 化して返す。
-        draw_contour=True の場合は DB に格納されている contour を描画した画像を返す。
-        draw_frame_number=True の場合はフレーム左上にフレーム番号を描画する。
-        """
-        # セッションからデータ取得
         async with get_session(self.dbname) as session:
             result = await session.execute(
                 select(Cell)
@@ -1226,7 +1324,6 @@ class TimelapseDatabaseCrud:
 
         frames = []
         for i, row in enumerate(cells):
-            # チャネルごとの画像バイナリを取得
             if channel == "ph":
                 img_binary = row.img_ph
             elif channel == "fluo1":
@@ -1237,39 +1334,30 @@ class TimelapseDatabaseCrud:
             if img_binary is None:
                 continue
 
-            # バイナリ -> NumPy 配列 (グレースケール)
             np_img = cv2.imdecode(
                 np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
             )
             if np_img is None:
                 continue
 
-            # contour 描画フラグが立っている場合
             if draw_contour and row.contour is not None:
                 try:
-                    # pickle で保存されている contour 情報を想定
                     contour_data = pickle.loads(row.contour)
-                    # グレースケール -> BGR に変換
                     bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
-                    # 単一/複数の輪郭を想定して描画
                     cv2.drawContours(
                         bgr_img,
                         [np.array(contour_data, dtype=np.int32)],
                         -1,
-                        (0, 255, 0),  # 緑色
+                        (0, 255, 0),
                         1,
                     )
-                    # Pillow 用に BGR -> RGB に変換
                     rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
                     pil_img = Image.fromarray(rgb_img)
                 except Exception:
-                    # contour のフォーマットが合わない場合などはエラーを無視して通常表示
                     pil_img = Image.fromarray(np_img)
             else:
-                # 通常のグレースケール画像をそのまま PIL に渡す
                 pil_img = Image.fromarray(np_img)
 
-            # フレーム番号描画フラグが True の場合
             if draw_frame_number:
                 draw = ImageDraw.Draw(pil_img)
                 font = ImageFont.load_default()
@@ -1283,7 +1371,6 @@ class TimelapseDatabaseCrud:
                 detail=f"No valid frames found for field={field}, cell={cell_number}, channel={channel}",
             )
 
-        # GIF バッファ作成
         gif_buffer = io.BytesIO()
         frames[0].save(
             gif_buffer,
@@ -1334,11 +1421,6 @@ class TimelapseDatabaseCrud:
     async def get_contour_areas_by_cell_number(
         self, field: str, cell_number: int
     ) -> list[float]:
-        """
-        指定した field, cell_number のセルをタイム順に取得し、
-        各フレームに対して contour の面積を算出したリストを返す。
-        複数輪郭が入っている場合は合計面積を返すようにしている。
-        """
         async with get_session(self.dbname) as session:
             result = await session.execute(
                 select(Cell)
@@ -1358,7 +1440,6 @@ class TimelapseDatabaseCrud:
             if row.contour is not None:
                 try:
                     contour_data = pickle.loads(row.contour)
-                    # 配列かつ多輪郭のリストの場合
                     if (
                         isinstance(contour_data, list)
                         and contour_data
@@ -1369,7 +1450,6 @@ class TimelapseDatabaseCrud:
                                 np.array(cnt, dtype=np.int32)
                             )
                     else:
-                        # 単一輪郭の場合
                         contour_area = cv2.contourArea(
                             np.array(contour_data, dtype=np.int32)
                         )
@@ -1386,13 +1466,6 @@ class TimelapseDatabaseCrud:
         channel: str,
         degree: int,
     ) -> io.BytesIO:
-        """
-        指定した field, cell_number, channel の全フレームを取得し、
-        replot で生成した画像を GIF 化して返すサンプル関数。
-        キャッシュをクリアした上で再度 replot を行う。
-        """
-
-        # データベースから frame の一覧を time 昇順に取得
         async with get_session(self.dbname) as session:
             result = await session.execute(
                 select(Cell)
@@ -1410,7 +1483,6 @@ class TimelapseDatabaseCrud:
         frames: list[Image.Image] = []
 
         for i, cell in enumerate(cells):
-            # チャネルごとの画像バイナリを取得 (PH 以外を想定)
             if channel == "ph":
                 image_fluo_raw = cell.img_ph
             elif channel == "fluo1":
@@ -1423,22 +1495,18 @@ class TimelapseDatabaseCrud:
                     status_code=404,
                     detail=f"No {channel} data found for field={field}, cell={cell_number} (frame index={i})",
                 )
-
             if not cell.contour:
                 raise HTTPException(
                     status_code=404,
                     detail=f"No contour data found for field={field}, cell={cell_number} (frame index={i})",
                 )
 
-            # replot 呼び出し前にキャッシュをクリア
+            # replot前にキャッシュクリア
             if hasattr(CellDBAsyncChores.replot, "cache_clear"):
                 CellDBAsyncChores.replot.cache_clear()
 
-            # replot 関数を実行し、返ってきた画像を io.BytesIO として受け取る
             buf = await CellDBAsyncChores.replot(image_fluo_raw, cell.contour, degree)
             buf.seek(0)
-
-            # Pillow Image として開き、frames に追加
             frames.append(Image.open(buf))
 
         if not frames:
@@ -1447,10 +1515,7 @@ class TimelapseDatabaseCrud:
                 detail=f"No frames were generated for field={field}, cell={cell_number}",
             )
 
-        # GIF 用の BytesIO を作成
         gif_buf = io.BytesIO()
-
-        # 先頭のフレームに残りを連結して GIF を書き込み
         frames[0].save(
             gif_buf,
             format="GIF",
@@ -1462,7 +1527,7 @@ class TimelapseDatabaseCrud:
 
         gif_buf.seek(0)
         return gif_buf
-    
+
     async def get_cell_timecourse_as_single_image(
         self,
         field: str,
@@ -1476,15 +1541,8 @@ class TimelapseDatabaseCrud:
             "fluo2_replot",
         ] = "ph",
         degree: int = 0,
-        draw_contour: bool = True,  # ← デフォルト True
+        draw_contour: bool = True,
     ) -> io.BytesIO:
-        """
-        指定した field, cell_number の各フレーム画像(BLOB)を取得し、
-        1フレームごとに 200×200 にリサイズして横に並べた画像を PNG として返す。
-        
-        channel_mode が "_replot" を含む場合は replot 関数を呼び出して輪郭等の処理を実行する。
-        通常モードで draw_contour=True の場合は、この関数で OpenCV で輪郭描画してからリサイズする。
-        """
         async with get_session(self.dbname) as session:
             result = await session.execute(
                 select(Cell)
@@ -1499,14 +1557,9 @@ class TimelapseDatabaseCrud:
                 detail=f"No data found for field={field}, cell={cell_number}",
             )
 
-        # Pillow Image のフレームを格納するリスト
         frames: list[Image.Image] = []
 
         async def get_frame_blob(row: Cell) -> bytes | None:
-            """
-            channel_mode に応じて BLOB を切り替え。
-            '_replot' を含む場合は replot 関数を呼び出して PNG を生成し、そのバイナリを返す。
-            """
             if "ph" in channel_mode:
                 raw_blob = row.img_ph
             elif "fluo1" in channel_mode:
@@ -1518,64 +1571,44 @@ class TimelapseDatabaseCrud:
                 return None
 
             if "_replot" in channel_mode:
-                # replotモード時: 輪郭必須
                 if not row.contour:
                     return None
-
-                # replot前にキャッシュクリア
                 if hasattr(CellDBAsyncChores.replot, "cache_clear"):
                     CellDBAsyncChores.replot.cache_clear()
-
                 buf = await CellDBAsyncChores.replot(raw_blob, row.contour, degree)
-                return buf.getvalue()  # replot後のPNGバイナリ
+                return buf.getvalue()
             else:
-                # 通常モード → そのまま BLOB を返す (輪郭描画は後で実施)
                 return raw_blob
 
         for row in cells:
             blob = await get_frame_blob(row)
             if not blob:
-                # 画像データが無いフレームはスキップ
                 continue
 
-            # ---- 通常モード × draw_contour=True で輪郭描画を行う ----
             is_replot_mode = ("_replot" in channel_mode)
             if not is_replot_mode and draw_contour:
-                # OpenCV でグレースケール読み込み
                 np_img_gray = cv2.imdecode(np.frombuffer(blob, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
                 if np_img_gray is None:
-                    # 読み込み失敗ならスキップ
                     continue
-
-                # グレースケール→カラー(BGR)
                 np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
 
-                # 輪郭があれば描画
                 if row.contour:
                     try:
                         contours_data = pickle.loads(row.contour)
-                        # 複数輪郭 or 単一輪郭に対応
                         if not isinstance(contours_data, list):
                             contours_data = [contours_data]
-
                         for c in contours_data:
                             cnt = np.array(c, dtype=np.int32)
                             cv2.drawContours(np_img_color, [cnt], -1, (0, 0, 255), 2)
                     except Exception as e:
                         print(f"[WARN] Failed to parse contour: {e}")
 
-                # Pillow 用に BGR→RGB
                 np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
                 pil_img = Image.fromarray(np_img_rgb)
-
             else:
-                # replotモード、あるいは draw_contour=False
-                # そのまま Pillow 画像として開く
                 pil_img = Image.open(io.BytesIO(blob))
 
-            # 200×200 にリサイズ (どちらのモードでも共通)
             pil_img = pil_img.resize((200, 200), Image.Resampling.LANCZOS)
-
             frames.append(pil_img)
 
         if not frames:
@@ -1587,7 +1620,6 @@ class TimelapseDatabaseCrud:
                 ),
             )
 
-        # 横に並べるキャンバスを生成
         total_width = 200 * len(frames)
         height = 200
 
@@ -1600,7 +1632,6 @@ class TimelapseDatabaseCrud:
             out_img.paste(img, (offset_x, 0))
             offset_x += 200
 
-        # PNGとしてBytesIOに出力
         png_buffer = io.BytesIO()
         out_img.save(png_buffer, format="PNG")
         png_buffer.seek(0)
@@ -1613,14 +1644,6 @@ class TimelapseDatabaseCrud:
         degree: int = 0,
         draw_contour: bool = True,
     ) -> io.BytesIO:
-        """
-        "ph", "ph_replot", "fluo1", "fluo1_replot", "fluo2", "fluo2_replot"
-        の6モードについて、それぞれ:
-        → 横に並べたタイムコース画像(幅=200×フレーム数,高さ=200) を取得
-        → 縦方向に連結して最終的に1枚のPNGを返す
-
-        ※ 404等で生成失敗したモードはスキップ。
-        """
         modes = [
             "ph",
             "ph_replot",
@@ -1656,22 +1679,13 @@ class TimelapseDatabaseCrud:
                 ),
             )
 
-        # 全て「高さ=200」で横幅はそれぞれのフレーム数分*200のはず。
-        # → 同じセルでもフレーム数が変わることはないが、念のため最大幅に合わせる or 左寄せ等も可能
-
-        # 下記は「それぞれ行ごとの幅を合わせず、最大幅に合わせたい場合」はさらに計算を足す等が必要
-        # ここでは「各行の横幅はバラバラでもそのまま貼り付ける」想定にします。
-
-        # キャンバス幅 = 行の最大幅
         max_width = max(im.width for im in row_images)
-        # キャンバス高さ = 200 × row_images の枚数
         total_height = sum(im.height for im in row_images)
 
         combined_img = Image.new("RGB", (max_width, total_height), (255, 255, 255))
 
         offset_y = 0
         for row_img in row_images:
-            # 幅が max_width に満たない場合は左寄せで貼り付ける
             combined_img.paste(row_img, (0, offset_y))
             offset_y += row_img.height
 
