@@ -5,7 +5,7 @@ def main():
     # --- 設定項目 ---
     BASE_URL = "http://localhost:8000/api/tlengine" 
     DB_NAME = "sk450gen120min-tl_timelapse_cells.db"          
-    OUTPUT_DIR = "downloaded_timecourses"     
+    OUTPUT_DIR = "experimental/TimelapseBatch/downloaded_timecourses"     
 
     # 出力先フォルダを作成 (存在しなければ)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
