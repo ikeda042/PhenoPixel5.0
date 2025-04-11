@@ -1484,18 +1484,18 @@ class TimelapseDatabaseCrud:
         1枚の PNG を作成して返す。
 
         channel_mode:
-          - "ph"         : DB の img_ph をそのまま使用
-          - "ph_replot"  : img_ph を replot 関数で再生成
-          - "fluo1"      : DB の img_fluo1 を使用
-          - "fluo1_replot": img_fluo1 を replot 関数で再生成
-          - "fluo2"      : DB の img_fluo2 を使用
-          - "fluo2_replot": img_fluo2 を replot 関数で再生成
+        - "ph"         : DB の img_ph をそのまま使用 (グレースケール→カラー変換→輪郭描画)
+        - "ph_replot"  : img_ph を replot 関数で再生成 (そのままカラー画像の想定)
+        - "fluo1"      : DB の img_fluo1 を使用 (グレースケール→カラー変換→輪郭描画)
+        - "fluo1_replot": img_fluo1 を replot 関数で再生成 (そのままカラー画像の想定)
+        - "fluo2"      : DB の img_fluo2 を使用 (グレースケール→カラー変換→輪郭描画)
+        - "fluo2_replot": img_fluo2 を replot 関数で再生成 (そのままカラー画像の想定)
 
         degree: replot で使う回転角度やしきい値などの可変パラメータ (任意)
 
-        draw_contour: 画像上にセルの輪郭を描画するかどうか
+        draw_contour: 通常モードのときのみ輪郭を描画するかどうか
+                    (replotモードでは、そもそもreplot側が輪郭込みでレンダリングする想定)
         """
-
         # DB から対象セルのデータを取得
         async with get_session(self.dbname) as session:
             result = await session.execute(
@@ -1515,7 +1515,7 @@ class TimelapseDatabaseCrud:
         pil_frames: list[Image.Image] = []
 
         # どの BLOB を使うか (通常 or replot) を決定するヘルパー
-        async def get_image_blob(row: Cell):
+        async def get_image_blob(row: Cell) -> bytes | None:
             """
             channel_mode に応じて BLOB を返す or replot して返す
             """
@@ -1532,54 +1532,64 @@ class TimelapseDatabaseCrud:
 
             # replot が付いているかどうか
             if "_replot" in channel_mode:
-                # replot 関数を呼び出して再生成
-                # contour が無い場合はエラーにする or スキップ
+                # replot 関数を呼び出して「輪郭込みの最終画像（カラー）」を生成
                 if not row.contour:
-                    return None
+                    return None  # 輪郭がないとreplotできない設定なら None
 
-                # replot 関数 (CellDBAsyncChores.replot) を呼び出して PNG バイナリを受け取る想定
-                # replot は非同期の場合を想定しているため await
+                # replot 関数 (CellDBAsyncChores.replot) は
+                # すでに輪郭描画 + 回転などを施した最終PNG画像を返す。
+                # → それをそのまま使用する
+                if hasattr(CellDBAsyncChores.replot, "cache_clear"):
+                    CellDBAsyncChores.replot.cache_clear()
+
                 buf = await CellDBAsyncChores.replot(raw_blob, row.contour, degree)
                 return buf.getvalue()  # PNG バイナリを返す
             else:
                 # 通常 BLOB をそのまま返す
                 return raw_blob
 
-        for row in cells:
+        for frame_index, row in enumerate(cells):
             blob = await get_image_blob(row)
             if blob is None:
-                # フレームによってはデータが無い場合も想定。スキップ or 黒画像等の方針はお好みで。
+                # フレームによってはデータが無い場合も想定。黒画像を生成して続行してもよいが、ここではスキップにする
                 continue
 
-            # blob を OpenCV で読んで → Pillow Image に変換
-            np_img = cv2.imdecode(np.frombuffer(blob, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
-            if np_img is None:
-                continue
-
-            # 輪郭を描画する場合
-            if draw_contour and row.contour is not None:
-                try:
-                    bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
-                    contour_data = pickle.loads(row.contour)
-                    # 単一でも複数でも配列化して描画
-                    if not isinstance(contour_data, list):
-                        contour_data = [contour_data]
-                    for c in contour_data:
-                        c = np.array(c, dtype=np.int32)
-                        if len(c.shape) == 2:
-                            c = c[:, np.newaxis, :]
-                        cv2.drawContours(bgr_img, [c], -1, (0, 255, 0), 1)
-                    # OpenCV BGR → PIL RGB
-                    rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
-                    pil_img = Image.fromarray(rgb_img)
-                except Exception as e:
-                    # 万が一エラーが起きたら輪郭は無視
-                    pil_img = Image.fromarray(np_img)
+            # replotモードの場合 → replotが返してきたPNGはカラー想定
+            if "_replot" in channel_mode:
+                # そのまま Pillow で開く
+                pil_img = Image.open(io.BytesIO(blob))
+                # 輪郭は replot 側に任せているのでここでは描画しない
+                pil_frames.append(pil_img)
             else:
-                # そのままグレースケール→Pillow
-                pil_img = Image.fromarray(np_img)
+                # 通常モードの場合：グレースケールを読み込み→カラー変換→輪郭描画
+                np_img_gray = cv2.imdecode(np.frombuffer(blob, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
+                if np_img_gray is None:
+                    continue
 
-            pil_frames.append(pil_img)
+                # BGRに変換
+                np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
+
+                # 輪郭を描画するなら
+                if draw_contour and row.contour:
+                    try:
+                        contour_data = pickle.loads(row.contour)
+                        if not isinstance(contour_data, list):
+                            contour_data = [contour_data]
+
+                        for c in contour_data:
+                            c = np.array(c, dtype=np.float32)
+                            if len(c.shape) == 2:
+                                # [N, 1, 2] の形式にする
+                                c = c[:, np.newaxis, :]
+                            c = c.astype(np.int32)
+                            cv2.drawContours(np_img_color, [c], -1, (0, 0, 255), 2)
+                    except Exception as e:
+                        print(f"[WARN] Contour parse error: {e}")
+
+                # OpenCV BGR → PIL RGB
+                np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
+                pil_img = Image.fromarray(np_img_rgb)
+                pil_frames.append(pil_img)
 
         if not pil_frames:
             raise HTTPException(
@@ -1594,14 +1604,14 @@ class TimelapseDatabaseCrud:
         total_width = sum(img.width for img in pil_frames)
         max_height = max(img.height for img in pil_frames)
 
-        # 横一列に貼り付けた大きなキャンバスを作成
+        # 横一列に貼り付けるためのキャンバス生成
         out_img = Image.new("RGB", (total_width, max_height), (0, 0, 0))
 
-        # 貼り付けていく
+        # 貼り付け
         offset_x = 0
         for img in pil_frames:
-            # グレースケールだった場合にも念のため RGB に変換
-            if img.mode != "RGB":
+            # 念のため、RGB でない場合は変換 (replotがRGBAの場合もあるかもしれない)
+            if img.mode not in ["RGB", "RGBA"]:
                 img = img.convert("RGB")
             out_img.paste(img, (offset_x, 0))
             offset_x += img.width
