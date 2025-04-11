@@ -1613,3 +1613,84 @@ class TimelapseDatabaseCrud:
         out_img.save(png_buffer, format="PNG")
         png_buffer.seek(0)
         return png_buffer
+    
+    async def get_all_channels_timecourse_as_single_image(
+        self,
+        field: str,
+        cell_number: int,
+        degree: int = 0,
+        draw_contour: bool = True,
+    ) -> io.BytesIO:
+        """
+        【新規メソッド】
+        "ph", "ph_replot", "fluo1", "fluo1_replot", "fluo2", "fluo2_replot"
+        という6パターンそれぞれの「横に並んだタイムラプス画像」を取得し、
+        縦方向に連結して1枚のPNGとして返す。
+        """
+        # チャンネルモードの一覧
+        modes = [
+            "ph",
+            "ph_replot",
+            "fluo1",
+            "fluo1_replot",
+            "fluo2",
+            "fluo2_replot",
+        ]
+
+        # まず各モードごとに get_cell_timecourse_as_single_image を呼び出し、
+        # 返ってきたPNG画像(横に並んだタイムコース)を Pillow で読み込む
+        images = []
+        for mode in modes:
+            try:
+                buf = await self.get_cell_timecourse_as_single_image(
+                    field=field,
+                    cell_number=cell_number,
+                    channel_mode=mode,
+                    degree=degree,
+                    draw_contour=draw_contour,
+                )
+            except HTTPException as e:
+                # もし該当モードで画像生成が失敗(404等)した場合はスキップするなり、
+                # 黒画像で埋める等、要件に応じて処理を調整してください
+                # ここでは単純に「スキップ」して続行します
+                print(f"[WARN] Skipped mode={mode}: {e.detail}")
+                continue
+
+            # BytesIO → PIL.Image へ
+            img = Image.open(buf)
+            images.append((mode, img))
+
+        if not images:
+            # 1つも生成できなかった場合
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"No valid images found for field={field}, "
+                    f"cell={cell_number} in all channel modes."
+                ),
+            )
+
+        # 縦に並べるため、まず全画像の「widthの最大値」「heightの合計値」を算出
+        max_width = max(im.width for _, im in images)
+        total_height = sum(im.height for _, im in images)
+
+        # 連結先キャンバスを用意
+        combined_img = Image.new("RGB", (max_width, total_height), (255, 255, 255))
+        offset_y = 0
+
+        # 各モードのタイムコース画像を上から順にペースト
+        for mode, im in images:
+            # 必要に応じて幅を max_width に合わせる
+            if im.width < max_width:
+                # 等倍拡大ではなく左寄せで貼り付けする場合は引き伸ばさずに貼るだけ
+                # もし引き伸ばすなら以下のように cv2.resize または im.resize を利用
+                # im = im.resize((max_width, im.height), Image.ANTIALIAS)
+                pass
+            combined_img.paste(im, (0, offset_y))
+            offset_y += im.height
+
+        # PNGとしてBytesIOに書き込み
+        out_buf = io.BytesIO()
+        combined_img.save(out_buf, format="PNG")
+        out_buf.seek(0)
+        return out_buf
