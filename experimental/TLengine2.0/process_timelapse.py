@@ -87,25 +87,29 @@ def extract_nd2(file_name: str):
                         Image.fromarray(channel_image).save(tiff_filename)
                         print(f"Saved: {tiff_filename}")
 
-def get_ph_image(file_name: str, field_idx: int, time_idx: int) -> np.ndarray:
+def get_channel_image(
+    file_name: str, field_idx: int, time_idx: int, channel_idx: int
+) -> np.ndarray:
     """
-    指定したファイル・Field・Timeからph (channel=0) の画像を取得し、
-    process_image を通して正規化した numpy.ndarray を返す関数。
+    指定したファイル・Field・Timeから channel_idx (0=ph,1=fluo1,2=fluo2など)
+    の画像を取得し、process_imageを通して正規化した numpy.ndarray を返す。
     """
     with nd2reader.ND2Reader(file_name) as images:
         images.bundle_axes = "cyx" if "c" in images.axes else "yx"
         images.iter_axes = "v"
         images.default_coords.update({"v": field_idx, "t": time_idx})
-        image_data = images[0]
 
+        image_data = images[0]  # shape: (channels, y, x) or (y, x)
+
+        # チャンネル軸が存在するかを確認
         if len(image_data.shape) == 3:
-            # channel軸がある場合は channel=0 (ph) を取り出す
-            ph_image_data = image_data[0]
+            # channel軸がある場合は channel_idx を取り出す
+            channel_image_data = image_data[channel_idx]
         else:
-            # channelが1つしかない場合
-            ph_image_data = image_data
+            # channelが1つしかない場合はそれがそのまま画像
+            channel_image_data = image_data
 
-        return process_image(ph_image_data)
+        return process_image(channel_image_data)
 
 def shift_image(img: np.ndarray, vertical: int, horizontal: int) -> np.ndarray:
     """
@@ -119,63 +123,47 @@ def shift_image(img: np.ndarray, vertical: int, horizontal: int) -> np.ndarray:
     shifted_img = cv2.warpAffine(img, M, (img.shape[1], img.shape[0]))
     return shifted_img
 
-def shift_ph_image(file_name: str, field_idx: int, time_idx: int,
-                   vertical_shift: int, horizontal_shift: int) -> np.ndarray:
-    """
-    指定したファイル・Field・Timeからph画像を取得し、
-    指定ピクセル分だけ縦横にずらした画像を返す。
-    """
-    ph_img = get_ph_image(file_name, field_idx, time_idx)
-    shifted_ph = shift_image(ph_img, vertical_shift, horizontal_shift)
-    return shifted_ph
-
-# =============================================================================
-# ここから自動位置合わせ & GIF作成用の追加関数
-# =============================================================================
-
 def calc_shift_by_phase_correlation(ref_img: np.ndarray, target_img: np.ndarray) -> tuple[int, int]:
     """
     phaseCorrelateを使ってref_imgに対するtarget_imgのx,yズレを推定する。
     返すのは (vertical_shift, horizontal_shift) のタプル。
     """
-    # OpenCVのphaseCorrelateを使うには、FFTしたスペクトルを与える場合が多い
-    # (ただし直接phaseCorrelateにimgを与えるやり方もあるが、ドキュメントにより推奨が異なる)
     ref_float = ref_img.astype(np.float32)
     tgt_float = target_img.astype(np.float32)
+    # DC成分(平均)を除去
+    ref_float -= np.mean(ref_float)
+    tgt_float -= np.mean(tgt_float)
 
-    # 2D-FFTを計算
-    ref_fft = np.fft.fft2(ref_float)
-    tgt_fft = np.fft.fft2(tgt_float)
+    (shift_x, shift_y), _ = cv2.phaseCorrelate(ref_float, tgt_float)
 
-    (shift_x, shift_y), _ = cv2.phaseCorrelate(ref_fft, tgt_fft)
-    # phaseCorrelateが返すshift_x, shift_yは
-    # 「targetを(x, y)だけ動かせばrefに重なる」という向き
-    # shift_imageはshift_image(img, vertical, horizontal)なので順番と符号に注意
+    # phaseCorrelateの戻り値は "targetを(shift_x, shift_y)動かせばrefに重なる"
+    # shift_imageの引数: shift_image(img, vertical, horizontal) の順
     vertical_shift = -int(round(shift_y))
     horizontal_shift = -int(round(shift_x))
     return (vertical_shift, horizontal_shift)
 
-def align_ph_images_and_create_gif(
+def align_all_channels_and_create_gifs(
     file_name: str,
     field_idx: int,
-    output_gif_path: str,
+    output_prefix: str,
     use_reference_first_frame: bool = True,
     duration_ms: int = 300
 ):
     """
-    指定したnd2から指定したfieldの全timeのph画像を取得し、
-    自動で位置合わせを行ったうえでGIFを出力する。
-
+    ph, fluo1, fluo2 の３つのチャネルについて、
+    phを基準に位置合わせしたシフト量を fluo1, fluo2 にも適用し、
+    各チャネルのGIFを出力する。
+    
     Parameters
     ----------
     file_name : str
-        nd2ファイルのパス
+        nd2ファイルパス
     field_idx : int
-        取得したい視野(Index) 0始まり
-    output_gif_path : str
-        出力するGIFのパス
+        field(視野)のindex
+    output_prefix : str
+        GIFファイル名の出力パスのプレフィックス (例: "aligned_field0_")
     use_reference_first_frame : bool
-        Trueなら最初のフレームを常に基準にして他のフレームを合わせる
+        Trueなら最初のフレームを常に基準にして他フレームを合わせる。
         Falseなら一つ前のフレームに対して逐次合わせる（累積的）
     duration_ms : int
         GIFの1フレームあたりの表示時間(ミリ秒)
@@ -185,58 +173,101 @@ def align_ph_images_and_create_gif(
         images.bundle_axes = "cyx" if "c" in images.axes else "yx"
         images.iter_axes = "v"
         num_timepoints = images.sizes.get("t", 1)
+        # チャンネル数を一応確認（3つ以上ある可能性を考慮）
+        num_channels = images.sizes.get("c", 1)
+    
+    # 全フレームの ph, fluo1, fluo2 画像をまとめて取得
+    # ※ fluo1, fluo2 が存在しないケースを考慮して min(1,2,num_channels-1) などチェックしてもよい
+    ph_frames = [get_channel_image(file_name, field_idx, t, 0) for t in range(num_timepoints)]
+    fluo1_frames = [get_channel_image(file_name, field_idx, t, 1) for t in range(num_timepoints)] if num_channels > 1 else []
+    fluo2_frames = [get_channel_image(file_name, field_idx, t, 2) for t in range(num_timepoints)] if num_channels > 2 else []
 
-    # まず全フレームのph画像を読み込む
-    ph_frames = [get_ph_image(file_name, field_idx, t) for t in range(num_timepoints)]
+    # アライン後の画像をチャネルごとに格納
+    aligned_ph_images: list[Image.Image] = []
+    aligned_fluo1_images: list[Image.Image] = []
+    aligned_fluo2_images: list[Image.Image] = []
 
-    # align後の画像を格納するリスト
-    aligned_images: list[Image.Image] = []
+    # 最初のフレームを基準
+    ref_img_ph = ph_frames[0]
+    aligned_ph_images.append(Image.fromarray(ref_img_ph))
+    if fluo1_frames: aligned_fluo1_images.append(Image.fromarray(fluo1_frames[0]))
+    if fluo2_frames: aligned_fluo2_images.append(Image.fromarray(fluo2_frames[0]))
 
-    # 基準となるフレームを画像として保持
-    ref_img = ph_frames[0]
-    aligned_images.append(Image.fromarray(ref_img))
-
-    prev_img = ref_img  # 累積モード用
+    prev_img_ph = ref_img_ph  # 累積モード用
 
     for t in range(1, num_timepoints):
-        target_img = ph_frames[t]
+        target_ph = ph_frames[t]
 
+        # ph同士でシフト量を計算
         if use_reference_first_frame:
-            # 常に最初のフレーム(ref_img)に対してズレを計算
-            v_shift, h_shift = calc_shift_by_phase_correlation(ref_img, target_img)
+            v_shift, h_shift = calc_shift_by_phase_correlation(ref_img_ph, target_ph)
         else:
-            # 一つ前のフレーム(prev_img)に対してズレを計算
-            v_shift, h_shift = calc_shift_by_phase_correlation(prev_img, target_img)
+            v_shift, h_shift = calc_shift_by_phase_correlation(prev_img_ph, target_ph)
 
-        shifted = shift_image(target_img, v_shift, h_shift)
-        aligned_images.append(Image.fromarray(shifted))
+        # phをシフト
+        shifted_ph = shift_image(target_ph, v_shift, h_shift)
+        aligned_ph_images.append(Image.fromarray(shifted_ph))
         if not use_reference_first_frame:
-            # 累積モードなら、今回シフトしたものを「次の基準」に更新
-            prev_img = shifted
+            prev_img_ph = shifted_ph
 
-    # GIFとして保存
-    aligned_images[0].save(
-        output_gif_path,
+        # 同じシフト量を fluo1, fluo2 にも適用
+        if fluo1_frames:
+            shifted_fluo1 = shift_image(fluo1_frames[t], v_shift, h_shift)
+            aligned_fluo1_images.append(Image.fromarray(shifted_fluo1))
+
+        if fluo2_frames:
+            shifted_fluo2 = shift_image(fluo2_frames[t], v_shift, h_shift)
+            aligned_fluo2_images.append(Image.fromarray(shifted_fluo2))
+
+    # それぞれGIFとして保存
+    # ph
+    ph_gif_path = f"{output_prefix}ph.gif"
+    aligned_ph_images[0].save(
+        ph_gif_path,
         save_all=True,
-        append_images=aligned_images[1:],
+        append_images=aligned_ph_images[1:],
         duration=duration_ms,
-        loop=0,
+        loop=0
     )
-    print(f"GIF saved to: {output_gif_path}")
+    print(f"ph GIF saved to: {ph_gif_path}")
+
+    # fluo1 (チャンネルが存在する場合のみ)
+    if fluo1_frames:
+        fluo1_gif_path = f"{output_prefix}fluo1.gif"
+        aligned_fluo1_images[0].save(
+            fluo1_gif_path,
+            save_all=True,
+            append_images=aligned_fluo1_images[1:],
+            duration=duration_ms,
+            loop=0
+        )
+        print(f"fluo1 GIF saved to: {fluo1_gif_path}")
+
+    # fluo2 (チャンネルが存在する場合のみ)
+    if fluo2_frames:
+        fluo2_gif_path = f"{output_prefix}fluo2.gif"
+        aligned_fluo2_images[0].save(
+            fluo2_gif_path,
+            save_all=True,
+            append_images=aligned_fluo2_images[1:],
+            duration=duration_ms,
+            loop=0
+        )
+        print(f"fluo2 GIF saved to: {fluo2_gif_path}")
+
 
 # =============================================================================
 # 動作テスト (必要に応じて実行)
 # =============================================================================
 if __name__ == "__main__":
     filename = "experimental/TLengine2.0/sk450gen120min-tl.nd2"
-    test_field = 0       # 例: 最初のField
-    output_gif = "aligned_field0_ph.gif"
+    test_field = 0
+    output_prefix = "aligned_field0_"  # 出力の先頭文字列
 
-    # 位置合わせしてGIF出力
-    align_ph_images_and_create_gif(
+    align_all_channels_and_create_gifs(
         file_name=filename,
         field_idx=test_field,
-        output_gif_path=output_gif,
-        use_reference_first_frame=True,  # 最初のフレームを常に基準
+        output_prefix=output_prefix,
+        use_reference_first_frame=True,  # 全フレームを最初のフレームに合わせる
         duration_ms=300
     )
