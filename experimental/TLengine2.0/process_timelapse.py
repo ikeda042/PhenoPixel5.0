@@ -3,7 +3,6 @@ import os
 import nd2reader
 from PIL import Image
 import cv2
-import ulid
 
 
 def process_image(array: np.ndarray) -> np.ndarray:
