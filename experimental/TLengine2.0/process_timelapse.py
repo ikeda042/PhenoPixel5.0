@@ -147,7 +147,7 @@ if __name__ == "__main__":
 
     # 任意のField, Time, シフト量を指定
     test_field = 0       # 1つ目のField → Pythonで言えばindex = 0
-    test_time = 0        # 1つ目のTime  → Pythonで言えばindex = 0
+    test_time = 1       # 1つ目のTime  → Pythonで言えばindex = 0
     shift_vertical = 100  # 下に10ピクセル
     shift_horizontal = -50  # 左に5ピクセル
 
