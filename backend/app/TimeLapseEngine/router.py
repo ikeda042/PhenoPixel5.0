@@ -94,7 +94,7 @@ async def extract_all_cells(file_name: str, param_1: int, crop_size: int = 200):
     if os.path.exists(db_path):
         os.remove(db_path)
     for Field in fields:
-        await TimelapseEngineCrudBase(file_name).extract_cells(
+        await TimelapseEngineCrudBase(file_name).extract_cells_with_hungarian(
             field=Field, dbname=db_name, param1=param_1, crop_size=crop_size
         )
     return JSONResponse(content={"message": "Cells extracted and saved to database."})
