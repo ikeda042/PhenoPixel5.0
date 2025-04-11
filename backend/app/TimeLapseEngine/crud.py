@@ -1476,13 +1476,14 @@ class TimelapseDatabaseCrud:
             "fluo2_replot",
         ] = "ph",
         degree: int = 0,
-        draw_contour: bool = True,
+        draw_contour: bool = True,  # ← デフォルト True
     ) -> io.BytesIO:
         """
         指定した field, cell_number の各フレーム画像(BLOB)を取得し、
         1フレームごとに 200×200 にリサイズして横に並べた画像を PNG として返す。
-
-        channel_mode が "_replot" を含む場合は replot 関数を呼び出す想定。
+        
+        channel_mode が "_replot" を含む場合は replot 関数を呼び出して輪郭等の処理を実行する。
+        通常モードで draw_contour=True の場合は、この関数で OpenCV で輪郭描画してからリサイズする。
         """
         async with get_session(self.dbname) as session:
             result = await session.execute(
@@ -1498,11 +1499,14 @@ class TimelapseDatabaseCrud:
                 detail=f"No data found for field={field}, cell={cell_number}",
             )
 
-        # PIL Image のリスト
+        # Pillow Image のフレームを格納するリスト
         frames: list[Image.Image] = []
 
-        # helper: 実際の画像BLOBを返す or replot結果PNGを返す
         async def get_frame_blob(row: Cell) -> bytes | None:
+            """
+            channel_mode に応じて BLOB を切り替え。
+            '_replot' を含む場合は replot 関数を呼び出して PNG を生成し、そのバイナリを返す。
+            """
             if "ph" in channel_mode:
                 raw_blob = row.img_ph
             elif "fluo1" in channel_mode:
@@ -1523,9 +1527,9 @@ class TimelapseDatabaseCrud:
                     CellDBAsyncChores.replot.cache_clear()
 
                 buf = await CellDBAsyncChores.replot(raw_blob, row.contour, degree)
-                return buf.getvalue()  # PNGバイナリ
+                return buf.getvalue()  # replot後のPNGバイナリ
             else:
-                # 通常モード → そのまま BLOB
+                # 通常モード → そのまま BLOB を返す (輪郭描画は後で実施)
                 return raw_blob
 
         for row in cells:
@@ -1534,16 +1538,42 @@ class TimelapseDatabaseCrud:
                 # 画像データが無いフレームはスキップ
                 continue
 
-            # ここから Pillow で読んで 200×200 にリサイズ
-            # 通常モードはグレースケールを読み込み→カラー化する想定
-            # replot時はすでにカラーPNGが返ってくる想定
-            pil_img = Image.open(io.BytesIO(blob))
+            # ---- 通常モード × draw_contour=True で輪郭描画を行う ----
+            is_replot_mode = ("_replot" in channel_mode)
+            if not is_replot_mode and draw_contour:
+                # OpenCV でグレースケール読み込み
+                np_img_gray = cv2.imdecode(np.frombuffer(blob, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
+                if np_img_gray is None:
+                    # 読み込み失敗ならスキップ
+                    continue
 
-            # もし通常モードなら輪郭描画を含めて自前で行う場合があるが、
-            # ここでは「draw_contour」は `_replot` でないときにOpenCVで描画済み or 省略 という前提にしてもOK。
-            # すでにユーザーロジックで輪郭込みBLOBにしているなら下記は不要です。
+                # グレースケール→カラー(BGR)
+                np_img_color = cv2.cvtColor(np_img_gray, cv2.COLOR_GRAY2BGR)
 
-            # 200×200 にリサイズ
+                # 輪郭があれば描画
+                if row.contour:
+                    try:
+                        contours_data = pickle.loads(row.contour)
+                        # 複数輪郭 or 単一輪郭に対応
+                        if not isinstance(contours_data, list):
+                            contours_data = [contours_data]
+
+                        for c in contours_data:
+                            cnt = np.array(c, dtype=np.int32)
+                            cv2.drawContours(np_img_color, [cnt], -1, (0, 0, 255), 2)
+                    except Exception as e:
+                        print(f"[WARN] Failed to parse contour: {e}")
+
+                # Pillow 用に BGR→RGB
+                np_img_rgb = cv2.cvtColor(np_img_color, cv2.COLOR_BGR2RGB)
+                pil_img = Image.fromarray(np_img_rgb)
+
+            else:
+                # replotモード、あるいは draw_contour=False
+                # そのまま Pillow 画像として開く
+                pil_img = Image.open(io.BytesIO(blob))
+
+            # 200×200 にリサイズ (どちらのモードでも共通)
             pil_img = pil_img.resize((200, 200), Image.Resampling.LANCZOS)
 
             frames.append(pil_img)
@@ -1557,21 +1587,20 @@ class TimelapseDatabaseCrud:
                 ),
             )
 
-        # 幅 = (200×フレーム数), 高さ = 200
+        # 横に並べるキャンバスを生成
         total_width = 200 * len(frames)
-        max_height = 200  # frames はすでに200×200に揃えている
+        height = 200
 
-        out_img = Image.new("RGB", (total_width, max_height), (0, 0, 0))
+        out_img = Image.new("RGB", (total_width, height), (0, 0, 0))
 
         offset_x = 0
         for img in frames:
-            # RGBAなどはRGBへ
             if img.mode not in ["RGB", "RGBA"]:
                 img = img.convert("RGB")
             out_img.paste(img, (offset_x, 0))
-            offset_x += img.width  # =200
+            offset_x += 200
 
-        # PNG書き出し
+        # PNGとしてBytesIOに出力
         png_buffer = io.BytesIO()
         out_img.save(png_buffer, format="PNG")
         png_buffer.seek(0)
