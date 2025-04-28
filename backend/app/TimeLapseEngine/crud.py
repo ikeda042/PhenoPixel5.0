@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
 import ulid
-
+from scipy.optimize import linear_sum_assignment
 
 def get_ulid() -> str:
     return str(ulid.new())
@@ -733,6 +733,7 @@ class TimelapseEngineCrudBase:
         return
     
     async def extract_cells_with_hungarian(
+        self,
         field: str,
         dbname: str,
         param1: int = 90,
