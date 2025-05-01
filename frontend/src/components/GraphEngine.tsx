@@ -27,17 +27,13 @@ const url_prefix = settings.url_prefix;
  * UI helpers
  * ------------------------------------------------- */
 
-// “黒ベース”のボタン
 const BlackButton = styled("button")(({ theme }) => ({
-  // reset default button styles
   appearance: "none",
   border: "none",
   outline: "none",
   padding: 0,
   margin: 0,
   font: "inherit",
-
-  /* size & layout */
   width: "100%",
   minHeight: 40,
   display: "inline-flex",
@@ -45,24 +41,13 @@ const BlackButton = styled("button")(({ theme }) => ({
   justifyContent: "center",
   gap: theme.spacing(1),
   borderRadius: theme.shape.borderRadius,
-
-  /* colors */
   backgroundColor: "#000",
   color: "#fff",
-
-  /* typography */
   fontWeight: 500,
   letterSpacing: 0.5,
-  textDecoration: "none",
   cursor: "pointer",
-  textTransform: "none",
-
-  /* interaction */
   transition: "background-color 0.2s ease",
-
-  "&:hover": {
-    backgroundColor: "#222",
-  },
+  "&:hover": { backgroundColor: "#222" },
   "&:disabled": {
     backgroundColor: theme.palette.action.disabledBackground,
     color: theme.palette.action.disabled,
@@ -82,13 +67,12 @@ const GraphEngine: React.FC = () => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // MCPR 用パラメータ
+  // MCPR 用パラメータ（★ 数値入力は文字列で保持）
   const [blankIndex, setBlankIndex] = useState("2");
-  const [timespanSec, setTimespanSec] = useState(180);
-  const [lowerOD, setLowerOD] = useState(0.1);
-  const [upperOD, setUpperOD] = useState(0.3);
+  const [timespanSec, setTimespanSec] = useState("180"); // ★
+  const [lowerOD, setLowerOD] = useState("0.1");         // ★
+  const [upperOD, setUpperOD] = useState("0.3");         // ★
 
-  // ブレイクポイント
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -100,10 +84,18 @@ const GraphEngine: React.FC = () => {
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files?.length) {
-      setFile(event.target.files[0]);
-    }
+    if (event.target.files?.length) setFile(event.target.files[0]);
   };
+
+  // ★ 共通数値入力ハンドラ（空文字も許容）
+  const handleNumberChange =
+    (setter: React.Dispatch<React.SetStateAction<string>>) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const v = e.target.value;
+      // 先頭 0 は自動除去したい場合は下行を有効に
+      // const normalized = v.replace(/^0+(?=\d)/, "");
+      setter(v);
+    };
 
   const handleGenerateGraph = async () => {
     if (!file) {
@@ -118,7 +110,11 @@ const GraphEngine: React.FC = () => {
     try {
       const requestUrl =
         mode === "mcpr"
-          ? `${url_prefix}/graph_engine/mcpr?blank_index=${blankIndex}&timespan_sec=${timespanSec}&lower_OD=${lowerOD}&upper_OD=${upperOD}`
+          ? `${url_prefix}/graph_engine/mcpr?blank_index=${blankIndex}&timespan_sec=${Number(
+              timespanSec || "0"
+            )}&lower_OD=${Number(lowerOD || "0")}&upper_OD=${Number(
+              upperOD || "0"
+            )}`
           : `${url_prefix}/graph_engine/${mode}`;
 
       const res = await fetch(requestUrl, { method: "POST", body: formData });
@@ -180,22 +176,11 @@ const GraphEngine: React.FC = () => {
               spacing={2}
               divider={<Divider orientation="vertical" flexItem />}
             >
-              {/* 非表示の blankIndex。必要であれば UI に戻してください */}
-              {/* <TextField
-                label="blank_index"
-                type="number"
-                value={blankIndex}
-                onChange={(e) => setBlankIndex(e.target.value)}
-                disabled={isLoading}
-                fullWidth
-                size="small"
-              /> */}
-
               <TextField
                 label="interval (s)"
                 type="number"
-                value={timespanSec}
-                onChange={(e) => setTimespanSec(Number(e.target.value))}
+                value={timespanSec}               // ★ string
+                onChange={handleNumberChange(setTimespanSec)} // ★
                 disabled={isLoading}
                 fullWidth
                 size="small"
@@ -204,8 +189,8 @@ const GraphEngine: React.FC = () => {
                 label="lower OD"
                 type="number"
                 inputProps={{ step: "0.01" }}
-                value={lowerOD}
-                onChange={(e) => setLowerOD(Number(e.target.value))}
+                value={lowerOD}                   // ★
+                onChange={handleNumberChange(setLowerOD)}     // ★
                 disabled={isLoading}
                 fullWidth
                 size="small"
@@ -214,8 +199,8 @@ const GraphEngine: React.FC = () => {
                 label="upper OD"
                 type="number"
                 inputProps={{ step: "0.01" }}
-                value={upperOD}
-                onChange={(e) => setUpperOD(Number(e.target.value))}
+                value={upperOD}                   // ★
+                onChange={handleNumberChange(setUpperOD)}     // ★
                 disabled={isLoading}
                 fullWidth
                 size="small"
