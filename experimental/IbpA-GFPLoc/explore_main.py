@@ -58,9 +58,9 @@ class IbpaGfpLoc:
     Class for handling image processing and database operations for the IbpA-GFPLoc experiment.
     """
 
-    def __init__(self) -> None:
+    def __init__(self,dbname:str="test_database.db") -> None:
         self._engine: AsyncEngine = create_async_engine(
-            "sqlite+aiosqlite:///experimental/IbpA-GFPLoc/sk326gen120min.db?timeout=30",
+            f"sqlite+aiosqlite:///experimental/IbpA-GFPLoc/{dbname}?timeout=30",
             echo=False,
         )
         self._async_session: sessionmaker = sessionmaker(
