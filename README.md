@@ -1,4 +1,7 @@
 # PhenoPixel5.0
+
+![MIT License](https://img.shields.io/badge/License-MIT-green.svg)
+
 An OpenCV Based High-throughput image analysis program (API)
 
 [日本語ドキュメント](README_JA.md)
