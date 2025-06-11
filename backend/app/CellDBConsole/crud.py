@@ -1924,27 +1924,38 @@ class CellCrudBase:
         return best_contour.squeeze().tolist()
 
     async def deform_contour(self, cell_id: str, offset: int = 0) -> list[list[float]]:
-        """Expand or shrink an existing contour by a number of pixels."""
+        """Expand or shrink an existing contour by a number of pixels.
+
+        The contour is scaled around its minimum enclosing circle so that
+        applying +1 then -1 results in (approximately) the same shape.
+        """
         if offset == 0:
             return await self.get_cell_contour(cell_id)
 
         cell = await self.read_cell(cell_id)
         contour = await AsyncChores.async_pickle_loads(cell.contour)
-        contour_np = np.array(contour, dtype=np.int32)
+        contour_np = np.array(contour, dtype=np.float32)
+
+        # Determine center and radius of the minimum enclosing circle
+        (cx, cy), radius = cv2.minEnclosingCircle(contour_np)
+        radius = max(radius, 1.0)
+
+        scale = (radius + offset) / radius
+        transform_mat = np.array(
+            [[scale, 0, cx - scale * cx], [0, scale, cy - scale * cy]],
+            dtype=np.float32,
+        )
+
+        scaled = cv2.transform(contour_np.reshape(-1, 1, 2), transform_mat)
+        scaled = scaled.reshape(-1, 2)
+
+        # Clip to image bounds
         img = await AsyncChores.async_imdecode(cell.img_ph)
         h, w = img.shape[:2]
-        mask = np.zeros((h, w), dtype=np.uint8)
-        cv2.drawContours(mask, [contour_np], -1, 255, thickness=cv2.FILLED)
-        kernel = np.ones((3, 3), np.uint8)
-        if offset > 0:
-            mask = cv2.dilate(mask, kernel, iterations=offset)
-        else:
-            mask = cv2.erode(mask, kernel, iterations=abs(offset))
-        new_contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        if not new_contours:
-            raise ValueError("No contours found after deformation")
-        new_contour = max(new_contours, key=cv2.contourArea)
-        return new_contour.squeeze().tolist()
+        scaled[:, 0] = np.clip(scaled[:, 0], 0, w - 1)
+        scaled[:, 1] = np.clip(scaled[:, 1], 0, h - 1)
+
+        return scaled.astype(float).tolist()
 
     async def update_contour(
         self, cell_id: str, new_contour: list[list[float]]

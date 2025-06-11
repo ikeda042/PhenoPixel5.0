@@ -153,7 +153,7 @@ const CellImageGrid: React.FC = () => {
   const [detectMode, setDetectMode] = useState<DetectModeType>("None");
   // 追加: Canny の閾値を入力するための state（例: Threshold2）
   const [cannyThresh2, setCannyThresh2] = useState<number>(100);
-  // Elastic deformation amount
+  // Elastic deformation amount (-1, 0, 1)
   const [elasticOffset, setElasticOffset] = useState<number>(0);
 
   // 読み込み状態や輪郭データなど
@@ -770,7 +770,7 @@ const CellImageGrid: React.FC = () => {
                             setElasticOffset(parseInt(e.target.value as string, 10))
                           }
                         >
-                          {[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((v) => (
+                          {[-1, 0, 1].map((v) => (
                             <MenuItem key={v} value={v}>{v}</MenuItem>
                           ))}
                         </Select>
