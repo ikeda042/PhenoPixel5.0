@@ -1923,6 +1923,37 @@ class CellCrudBase:
 
         return best_contour.squeeze().tolist()
 
+    async def elastic_contour(self, cell_id: str, delta: int = 0) -> list[list[float]]:
+        """Expand or shrink contour by |delta| pixels."""
+        cell = await self.read_cell(cell_id)
+        contour_np = np.array(await AsyncChores.async_pickle_loads(cell.contour), dtype=np.int32)
+        contour_np = contour_np.reshape(-1, 1, 2)
+        img = await AsyncChores.async_imdecode(cell.img_ph)
+        mask = np.zeros(img.shape[:2], dtype=np.uint8)
+        cv2.drawContours(mask, [contour_np], -1, 255, -1)
+        if delta > 0:
+            mask = cv2.dilate(mask, np.ones((3, 3), np.uint8), iterations=delta)
+        elif delta < 0:
+            mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=-delta)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        if not contours:
+            return contour_np.squeeze().tolist()
+        M = cv2.moments(contour_np)
+        cx = int(M["m10"] / M["m00"]) if M["m00"] != 0 else 0
+        cy = int(M["m01"] / M["m00"]) if M["m00"] != 0 else 0
+        min_distance = float("inf")
+        best = contours[0]
+        for cnt in contours:
+            M2 = cv2.moments(cnt)
+            if M2["m00"] != 0:
+                cx2 = int(M2["m10"] / M2["m00"])
+                cy2 = int(M2["m01"] / M2["m00"])
+                dist = np.sqrt((cx - cx2) ** 2 + (cy - cy2) ** 2)
+                if dist < min_distance:
+                    min_distance = dist
+                    best = cnt
+        return best.squeeze().tolist()
+
     async def update_contour(
         self, cell_id: str, new_contour: list[list[float]]
     ) -> None:
