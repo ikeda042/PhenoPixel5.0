@@ -765,7 +765,7 @@ const CellImageGrid: React.FC = () => {
                         value={elasticDelta}
                         onChange={(e) => setElasticDelta(parseInt(e.target.value, 10))}
                         InputProps={{
-                          inputProps: { min: -1, max: 1, step: 1 },
+                          inputProps: { min: -3, max: 3, step: 1 },
                           onWheel: handleWheel,
                         }}
                         fullWidth
