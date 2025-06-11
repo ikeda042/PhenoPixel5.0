@@ -57,6 +57,22 @@ async def patch_cell_contour_canny(
     }
 
 
+@router_cell.patch("/elastic_contour/{db_name}/{cell_id}")
+async def patch_cell_contour_elastic(
+    db_name: str,
+    cell_id: str,
+    delta: int = 0,
+):
+    """Expand or shrink contour by delta pixels."""
+    new_contour = await CellCrudBase(db_name).elastic_contour(cell_id, delta)
+    await CellCrudBase(db_name).update_contour(cell_id, new_contour)
+    return {
+        "status": "success",
+        "updated_cell_id": cell_id,
+        "predicted_contour": new_contour,
+    }
+
+
 @router_cell.get("/database/healthcheck")
 async def db_healthcheck():
     return await CellCrudBase(db_name="test_database.db").get_cell_ph(

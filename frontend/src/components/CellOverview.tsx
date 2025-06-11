@@ -96,7 +96,7 @@ const engineLogos: Record<EngineName, string> = {
 //-----------------------------------
 // DetectMode用の型定義
 //-----------------------------------
-type DetectModeType = "None" | "T1(U-net)" | "Canny";
+type DetectModeType = "None" | "T1(U-net)" | "Canny" | "Elastic";
 
 //-----------------------------------
 // まとめて管理したい設定たち
@@ -153,6 +153,8 @@ const CellImageGrid: React.FC = () => {
   const [detectMode, setDetectMode] = useState<DetectModeType>("None");
   // 追加: Canny の閾値を入力するための state（例: Threshold2）
   const [cannyThresh2, setCannyThresh2] = useState<number>(100);
+  // Elastic deformation parameter
+  const [elasticDelta, setElasticDelta] = useState<number>(0);
 
   // 読み込み状態や輪郭データなど
   const [isLoading, setIsLoading] = useState(false);
@@ -518,6 +520,22 @@ const CellImageGrid: React.FC = () => {
   };
 
   //------------------------------------
+  // Elastic Apply ボタン押下時のハンドラ
+  //------------------------------------
+  const handleElasticApply = async () => {
+    if (cellIds.length === 0) return;
+    const cellId = cellIds[currentIndex];
+    try {
+      const patchUrl = `${url_prefix}/cells/elastic_contour/${db_name}/${cellId}?delta=${elasticDelta}`;
+      await axios.patch(patchUrl);
+      await fetchContour(cellId);
+      await fetchStandardImages(cellId);
+    } catch (err) {
+      console.error("Error calling Elastic apply:", err);
+    }
+  };
+
+  //------------------------------------
   // その他ハンドラ
   //------------------------------------
   const handleContourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -696,6 +714,7 @@ const CellImageGrid: React.FC = () => {
                       <MenuItem value="None">None</MenuItem>
                       <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
                       <MenuItem value="Canny">Canny</MenuItem>
+                      <MenuItem value="Elastic">Elastic</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -714,6 +733,7 @@ const CellImageGrid: React.FC = () => {
                         <MenuItem value="None">None</MenuItem>
                         <MenuItem value="T1(U-net)">T1(U-net)</MenuItem>
                         <MenuItem value="Canny">Canny</MenuItem>
+                        <MenuItem value="Elastic">Elastic</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
@@ -735,6 +755,23 @@ const CellImageGrid: React.FC = () => {
                       />
                     </Grid>
                   )}
+                  {detectMode === "Elastic" && (
+                    <Grid item xs={3}>
+                      <TextField
+                        label="Elastic \u0394"
+                        variant="outlined"
+                        type="number"
+                        size="small"
+                        value={elasticDelta}
+                        onChange={(e) => setElasticDelta(parseInt(e.target.value, 10))}
+                        InputProps={{
+                          inputProps: { min: -1, max: 1, step: 1 },
+                          onWheel: handleWheel,
+                        }}
+                        fullWidth
+                      />
+                    </Grid>
+                  )}
 
                   {/* Detect ボタン:
                       detectMode が "T1(U-net)" のとき → T1Detect,
@@ -742,7 +779,7 @@ const CellImageGrid: React.FC = () => {
                   */}
                   <Grid
                     item
-                    xs={detectMode === "Canny" ? 3 : 6}
+                    xs={detectMode === "Canny" || detectMode === "Elastic" ? 3 : 6}
                   >
                     {detectMode === "T1(U-net)" && (
                       <Button
@@ -762,6 +799,16 @@ const CellImageGrid: React.FC = () => {
                         fullWidth
                       >
                         Detect
+                      </Button>
+                    )}
+                    {detectMode === "Elastic" && (
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={handleElasticApply}
+                        fullWidth
+                      >
+                        Apply
                       </Button>
                     )}
                   </Grid>
