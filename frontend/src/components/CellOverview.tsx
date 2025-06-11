@@ -770,9 +770,9 @@ const CellImageGrid: React.FC = () => {
                             setElasticOffset(parseInt(e.target.value as string, 10))
                           }
                         >
-                          <MenuItem value={-1}>-1</MenuItem>
-                          <MenuItem value={0}>0</MenuItem>
-                          <MenuItem value={1}>1</MenuItem>
+                          {[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((v) => (
+                            <MenuItem key={v} value={v}>{v}</MenuItem>
+                          ))}
                         </Select>
                       </FormControl>
                     </Grid>
