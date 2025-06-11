@@ -760,19 +760,21 @@ const CellImageGrid: React.FC = () => {
                   )}
                   {detectMode === "Elastic" && (
                     <Grid item xs={3}>
-                      <TextField
-                        label="Offset"
-                        variant="outlined"
-                        type="number"
-                        size="small"
-                        value={elasticOffset}
-                        onChange={(e) => setElasticOffset(parseInt(e.target.value, 10))}
-                        InputProps={{
-                          inputProps: { min: -1, max: 1, step: 1 },
-                          onWheel: handleWheel,
-                        }}
-                        fullWidth
-                      />
+                      <FormControl fullWidth variant="outlined" size="small">
+                        <InputLabel id="elastic-offset-label">Offset</InputLabel>
+                        <Select
+                          labelId="elastic-offset-label"
+                          label="Offset"
+                          value={elasticOffset}
+                          onChange={(e) =>
+                            setElasticOffset(parseInt(e.target.value as string, 10))
+                          }
+                        >
+                          <MenuItem value={-1}>-1</MenuItem>
+                          <MenuItem value={0}>0</MenuItem>
+                          <MenuItem value={1}>1</MenuItem>
+                        </Select>
+                      </FormControl>
                     </Grid>
                   )}
 
