@@ -1923,6 +1923,29 @@ class CellCrudBase:
 
         return best_contour.squeeze().tolist()
 
+    async def deform_contour(self, cell_id: str, offset: int = 0) -> list[list[float]]:
+        """Expand or shrink an existing contour by a number of pixels."""
+        if offset == 0:
+            return await self.get_cell_contour(cell_id)
+
+        cell = await self.read_cell(cell_id)
+        contour = await AsyncChores.async_pickle_loads(cell.contour)
+        contour_np = np.array(contour, dtype=np.int32)
+        img = await AsyncChores.async_imdecode(cell.img_ph)
+        h, w = img.shape[:2]
+        mask = np.zeros((h, w), dtype=np.uint8)
+        cv2.drawContours(mask, [contour_np], -1, 255, thickness=cv2.FILLED)
+        kernel = np.ones((3, 3), np.uint8)
+        if offset > 0:
+            mask = cv2.dilate(mask, kernel, iterations=offset)
+        else:
+            mask = cv2.erode(mask, kernel, iterations=abs(offset))
+        new_contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        if not new_contours:
+            raise ValueError("No contours found after deformation")
+        new_contour = max(new_contours, key=cv2.contourArea)
+        return new_contour.squeeze().tolist()
+
     async def update_contour(
         self, cell_id: str, new_contour: list[list[float]]
     ) -> None:
