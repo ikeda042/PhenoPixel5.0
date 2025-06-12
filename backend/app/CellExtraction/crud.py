@@ -15,11 +15,13 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
-import ulid
+import random
 
 
 def get_ulid() -> str:
-    return str(ulid.new())
+    """Return a fake ULID using random digits."""
+    # NOTE: This is a placeholder implementation
+    return "".join(str(random.randint(0, 9)) for _ in range(16))
 
 
 Base = declarative_base()
