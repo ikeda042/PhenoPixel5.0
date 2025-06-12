@@ -20,11 +20,13 @@ from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, update, tex
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
-import ulid
+import random
 from scipy.optimize import linear_sum_assignment
 
 def get_ulid() -> str:
-    return str(ulid.new())
+    """Return a fake ULID using random digits."""
+    # NOTE: This is a placeholder implementation
+    return "".join(str(random.randint(0, 9)) for _ in range(16))
 
 
 Base = declarative_base()
