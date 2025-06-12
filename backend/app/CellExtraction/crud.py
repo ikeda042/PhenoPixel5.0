@@ -102,6 +102,9 @@ class SyncChores:
             append_images=all_images[1:],
         )
 
+        for img in all_images:
+            img.close()
+
     @staticmethod
     def get_contour_center(contour):
         M = cv2.moments(contour)
