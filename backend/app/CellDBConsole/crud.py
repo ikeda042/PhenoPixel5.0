@@ -1722,10 +1722,13 @@ class CellCrudBase:
             f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed.db",
         )
         date = datetime.now().strftime("%Y-%m-%d")
-        status = await DropboxCrud().upload_file(
-            file_path=f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed.db",
-            file_name=f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed-{date}.db",
-        )
+        try:
+            await DropboxCrud().upload_file(
+                file_path=f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed.db",
+                file_name=f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed-{date}.db",
+            )
+        except Exception as e:
+            print(f"Failed to upload to Dropbox: {e}")
         return True
 
     async def check_if_database_updated(self):
