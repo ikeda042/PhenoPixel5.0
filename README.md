@@ -745,3 +745,36 @@ Fig. 12-2 staked heatmap with absolute cell lengths.(in pixel)
 Fig. 12-3 staked heatmap with absolute cell lengths. (in µm)
 </p>
 
+## API Endpoints Used by the Frontend
+
+The table below summarizes the REST API routes that the React frontend calls.
+All endpoints are prefixed with `/api`.
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| `GET` | `/healthcheck` | Check backend status. |
+| `GET` | `/dropbox/connection_check` | Verify Dropbox connectivity. |
+| `GET` | `/internet-connection` | Test internet access from the server. |
+| `POST` | `/oauth2/register` | Create a new user account. |
+| `POST` | `/oauth2/token` | Obtain access and refresh tokens. |
+| `GET` | `/oauth2/me` | Retrieve the current user's info. |
+| `PUT` | `/oauth2/change_password` | Update account password. |
+| `GET` | `/cells/{cell_id}/test_database.db/false/false/ph_image` | PH image for the demo cell. |
+| `GET` | `/cells/{cell_id}/test_database.db/false/false/fluo_image` | Fluorescence image for the demo cell. |
+| `GET` | `/cells/{cell_id}/test_database.db/replot?degree={d}` | Replotted contour image. |
+| `GET` | `/cells/test_database.db/{cell_id}/3d` | 3D fluorescence rendering. |
+| `GET` | `/cells/{cell_id}/{db_name}/morphology?degree={d}` | Numerical morphology data. |
+| `GET` | `/databases/{db_name}/has-fluo2` | Check for a second fluorescence channel. |
+| `GET` | `/cells/{db_name}/{label}/{cell_id}/heatmap` | Heatmap visualization of fluorescence. |
+| `GET` | `/cells/{db_name}/{label}/{cell_id}/heatmap/csv` | CSV for a single heatmap path. |
+| `GET` | `/cells/{db_name}/{label}/{cell_id}/heatmap/bulk/csv` | CSV for all heatmap paths. |
+| `POST` | `/graph_engine/heatmap_abs` | Generate a heatmap from a CSV file. |
+| `POST` | `/graph_engine/heatmap_rel` | Generate a normalized heatmap. |
+| `POST` | `/graph_engine/mcpr` | Create MCPR graphs from a CSV file. |
+| `GET` | `/tlengine/nd2_files` | List uploaded timelapse ND2 files. |
+| `POST` | `/tlengine/nd2_files` | Upload a timelapse ND2 file. |
+| `DELETE` | `/tlengine/nd2_files?file_path={path}` | Delete an uploaded ND2 file. |
+| `GET` | `/tlengine/databases` | List timelapse cell databases. |
+| `GET` | `/tlengine/databases/{db}/fields` | List fields in a timelapse database. |
+| `GET` | `/tlengine/nd2_files/{file}/cells/{field}/gif` | Retrieve a GIF preview for a field. |
+
