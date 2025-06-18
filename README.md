@@ -2,7 +2,21 @@
 
 ![MIT License](https://img.shields.io/badge/License-MIT-green.svg)
 
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)
+![React](https://img.shields.io/badge/React-18-61DAFB)
+![Docker](https://img.shields.io/badge/Docker-ready-blue)
+
 An OpenCV Based High-throughput image analysis program (API)
+
+PhenoPixel5.0 provides a RESTful API for cell morphology analysis. The backend
+is built with **Python** and **FastAPI**, while the frontend uses **React** with
+**TypeScript**. The whole application can be deployed via **Docker** for an
+easy setup.
+
+**License:** Released under the [MIT License](LICENSE).
+
+**Software Documentation:** [Docs](Software_Docs.md)
 
 Author: Yunosuke IKEDA (m242128@hiroshima-u.ac.jp) 
 
