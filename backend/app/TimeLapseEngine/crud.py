@@ -22,6 +22,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
 import random
 from scipy.optimize import linear_sum_assignment
+from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
 
 def get_ulid() -> str:
     """Return a fake ULID using random digits."""
