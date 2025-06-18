@@ -544,6 +544,7 @@ class TimelapseEngineCrudBase:
         total_frames = len(ph_files)
         output_size = (crop_size, crop_size)
 
+        # cell_idx -> {'cx': x, 'cy': y, 'contour_shifted': contour, 'area': area, 'perimeter': perimeter}
         active_cells = {}
         next_cell_idx = 1
         base_ids = {}
@@ -604,7 +605,8 @@ class TimelapseEngineCrudBase:
                     min_dist = float("inf")
 
                     # --- ここで distance_threshold を使う ---
-                    for prev_idx, (px, py) in active_cells.items():
+                    for prev_idx, info in active_cells.items():
+                        px, py = info['cx'], info['cy']
                         dist = math.sqrt((cx - px) ** 2 + (cy - py) ** 2)
                         if dist < distance_threshold and dist < min_dist:
                             min_dist = dist
@@ -613,9 +615,6 @@ class TimelapseEngineCrudBase:
                     if assigned_cell_idx is None:
                         assigned_cell_idx = next_cell_idx
                         next_cell_idx += 1
-
-                    if assigned_cell_idx not in new_active_cells:
-                        new_active_cells[assigned_cell_idx] = (cx, cy)
 
                     x1 = max(0, cx - output_size[0] // 2)
                     y1 = max(0, cy - output_size[1] // 2)
@@ -644,6 +643,14 @@ class TimelapseEngineCrudBase:
                     contour_shifted = contour.copy()
                     contour_shifted[:, :, 0] -= x1
                     contour_shifted[:, :, 1] -= y1
+
+                    new_active_cells[assigned_cell_idx] = {
+                        "cx": cx,
+                        "cy": cy,
+                        "contour_shifted": contour_shifted,
+                        "area": area,
+                        "perimeter": perimeter,
+                    }
 
                     new_ulid = get_ulid()
                     if assigned_cell_idx not in base_ids:
@@ -676,6 +683,73 @@ class TimelapseEngineCrudBase:
                     )
                     if existing.scalar() is None:
                         session.add(cell_obj)
+
+                # Track cells that disappeared in this frame
+                missing_cells = set(active_cells.keys()) - set(new_active_cells.keys())
+                for m_idx in missing_cells:
+                    info = active_cells[m_idx]
+                    cx, cy = info["cx"], info["cy"]
+                    contour_shifted = info["contour_shifted"]
+                    area = info.get("area", 0)
+                    perimeter = info.get("perimeter", 0)
+
+                    x1 = max(0, cx - output_size[0] // 2)
+                    y1 = max(0, cy - output_size[1] // 2)
+                    x2 = min(ph_img.shape[1], cx + output_size[0] // 2)
+                    y2 = min(ph_img.shape[0], cy + output_size[1] // 2)
+
+                    if (y2 - y1) != output_size[1] or (x2 - x1) != output_size[0]:
+                        continue
+
+                    cropped_ph = ph_img[y1:y2, x1:x2]
+                    cropped_ph_gray = cv2.cvtColor(cropped_ph, cv2.COLOR_BGR2GRAY)
+                    ph_gray_encode = cv2.imencode(".png", cropped_ph_gray)[1].tobytes()
+
+                    fluo1_gray_encode = None
+                    if fluo1_img is not None:
+                        cropped_fluo1 = fluo1_img[y1:y2, x1:x2]
+                        cropped_fluo1_gray = cv2.cvtColor(cropped_fluo1, cv2.COLOR_BGR2GRAY)
+                        fluo1_gray_encode = cv2.imencode(".png", cropped_fluo1_gray)[1].tobytes()
+
+                    fluo2_gray_encode = None
+                    if fluo2_img is not None:
+                        cropped_fluo2 = fluo2_img[y1:y2, x1:x2]
+                        cropped_fluo2_gray = cv2.cvtColor(cropped_fluo2, cv2.COLOR_BGR2GRAY)
+                        fluo2_gray_encode = cv2.imencode(".png", cropped_fluo2_gray)[1].tobytes()
+
+                    new_ulid = get_ulid()
+                    if m_idx not in base_ids:
+                        base_ids[m_idx] = new_ulid
+
+                    cell_obj = Cell(
+                        cell_id=new_ulid,
+                        label_experiment=field,
+                        manual_label="N/A",
+                        perimeter=perimeter,
+                        area=area,
+                        img_ph=ph_gray_encode,
+                        img_fluo1=fluo1_gray_encode,
+                        img_fluo2=fluo2_gray_encode,
+                        contour=pickle.dumps(contour_shifted),
+                        center_x=cx,
+                        center_y=cy,
+                        field=field,
+                        time=i + 1,
+                        cell=m_idx,
+                        base_cell_id=base_ids[m_idx],
+                        is_dead=0,
+                        gif_ph=None,
+                        gif_fluo1=None,
+                        gif_fluo2=None,
+                    )
+
+                    existing = await session.execute(
+                        select(Cell).filter_by(cell_id=new_ulid, time=i + 1)
+                    )
+                    if existing.scalar() is None:
+                        session.add(cell_obj)
+
+                    new_active_cells[m_idx] = info
 
                 await session.commit()
 
