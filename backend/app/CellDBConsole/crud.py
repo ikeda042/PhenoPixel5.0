@@ -1401,17 +1401,23 @@ class CellCrudBase:
             cell.img_ph, cell.img_fluo1, cell.contour, polyfit_degree
         )
 
-    async def replot(self, cell_id: str, degree: int) -> StreamingResponse:
+    async def replot(
+        self, cell_id: str, degree: int, channel: int = 1
+    ) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
+        img = cell.img_fluo2 if channel == 2 else cell.img_fluo1
         return StreamingResponse(
-            await AsyncChores.replot(cell.img_fluo1, cell.contour, degree),
+            await AsyncChores.replot(img, cell.contour, degree),
             media_type="image/png",
         )
 
-    async def find_path(self, cell_id: str, degree: int) -> StreamingResponse:
+    async def find_path(
+        self, cell_id: str, degree: int, channel: int = 1
+    ) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
+        img = cell.img_fluo2 if channel == 2 else cell.img_fluo1
         return StreamingResponse(
-            await AsyncChores.find_path(cell.img_fluo1, cell.contour, degree),
+            await AsyncChores.find_path(img, cell.contour, degree),
             media_type="image/png",
         )
 
@@ -1513,10 +1519,12 @@ class CellCrudBase:
         self,
         cell_id: str,
         label: str,
+        channel: int = 1,
     ) -> io.BytesIO:
         cell = await self.read_cell(cell_id)
+        img = cell.img_fluo2 if channel == 2 else cell.img_fluo1
         intensity_values = await AsyncChores.get_points_inside_cell(
-            cell.img_fluo1, cell.contour
+            img, cell.contour
         )
         ret = await AsyncChores.histogram(
             values=intensity_values,
@@ -1531,10 +1539,12 @@ class CellCrudBase:
         self,
         cell_id: str,
         label: str,
+        channel: int = 1,
     ) -> io.BytesIO:
         cell = await self.read_cell(cell_id)
+        img = cell.img_fluo2 if channel == 2 else cell.img_fluo1
         intensity_values = await AsyncChores.get_points_inside_cell(
-            cell.img_fluo1, cell.contour
+            img, cell.contour
         )
         max_val = np.max(intensity_values) if len(intensity_values) else 1
         normalized_values = [i / max_val for i in intensity_values]
@@ -1547,10 +1557,13 @@ class CellCrudBase:
         )
         return StreamingResponse(ret, media_type="image/png")
 
-    async def extract_normalized_intensities_raw(self, cell_id: str) -> list[float]:
+    async def extract_normalized_intensities_raw(
+        self, cell_id: str, channel: int = 1
+    ) -> list[float]:
         cell = await self.read_cell(cell_id)
+        img = cell.img_fluo2 if channel == 2 else cell.img_fluo1
         intensity_values = await AsyncChores.get_points_inside_cell(
-            cell.img_fluo1, cell.contour
+            img, cell.contour
         )
         max_val = np.max(intensity_values) if len(intensity_values) else 1
         return [i / max_val for i in intensity_values]
@@ -1853,11 +1866,16 @@ class CellCrudBase:
                 shutil.rmtree(tmp_folder)
 
     async def get_cloud_points(
-        self, cell_id: str, angle: float = 270, mode: Literal["fluo", "ph"] = "fluo"
+        self,
+        cell_id: str,
+        angle: float = 270,
+        mode: Literal["fluo", "ph"] = "fluo",
+        channel: int = 1,
     ) -> io.BytesIO:
         cell = await self.read_cell(cell_id)
         if mode == "fluo":
-            image = np.frombuffer(cell.img_fluo1, dtype=np.uint8)
+            img_blob = cell.img_fluo2 if channel == 2 else cell.img_fluo1
+            image = np.frombuffer(img_blob, dtype=np.uint8)
         else:
             image = np.frombuffer(cell.img_ph, dtype=np.uint8)
 

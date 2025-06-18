@@ -147,6 +147,7 @@ const CellImageGrid: React.FC = () => {
   const [autoPlay, setAutoPlay] = useState<boolean>(false);
   const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
   const [hasFluo2, setHasFluo2] = useState<boolean>(false);
+  const [fluoChannel, setFluoChannel] = useState<'fluo1' | 'fluo2'>('fluo1');
   const [drawMode, setDrawMode] = useState<DrawModeType>(init_draw_mode);
   const [fitDegree, setFitDegree] = useState<number>(4);
   const [engineMode, setEngineMode] = useState<EngineName>("None");
@@ -298,8 +299,9 @@ const CellImageGrid: React.FC = () => {
       switch (mode) {
         case "replot": {
           if (!images[cellId]?.replot) {
+            const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
             const response = await axios.get(
-              `${url_prefix}/cells/${cellId}/${db_name}/replot?degree=${fitDegree}`,
+              `${url_prefix}/cells/${cellId}/${db_name}/replot?degree=${fitDegree}&channel=${channelParam}`,
               { responseType: "blob" }
             );
             const url = URL.createObjectURL(response.data);
@@ -312,8 +314,9 @@ const CellImageGrid: React.FC = () => {
         }
         case "distribution": {
           if (!images[cellId]?.distribution) {
+            const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
             const response = await axios.get(
-              `${url_prefix}/cells/${db_name}/${cellId}/distribution`,
+              `${url_prefix}/cells/${db_name}/${cellId}/distribution?channel=${channelParam}`,
               { responseType: "blob" }
             );
             const url = URL.createObjectURL(response.data);
@@ -326,8 +329,9 @@ const CellImageGrid: React.FC = () => {
         }
         case "distribution_normalized": {
           if (!images[cellId]?.distribution_normalized) {
+            const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
             const response = await axios.get(
-              `${url_prefix}/cells/${db_name}/${selectedLabel}/${cellId}/distribution_normalized`,
+              `${url_prefix}/cells/${db_name}/${selectedLabel}/${cellId}/distribution_normalized?channel=${channelParam}`,
               { responseType: "blob" }
             );
             const url = URL.createObjectURL(response.data);
@@ -340,9 +344,10 @@ const CellImageGrid: React.FC = () => {
         }
         case "path": {
           if (!images[cellId]?.path) {
+            const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
             setIsLoading(true);
             const response = await axios.get(
-              `${url_prefix}/cells/${cellId}/${db_name}/path?degree=${fitDegree}`,
+              `${url_prefix}/cells/${cellId}/${db_name}/path?degree=${fitDegree}&channel=${channelParam}`,
               { responseType: "blob" }
             );
             const url = URL.createObjectURL(response.data);
@@ -369,8 +374,9 @@ const CellImageGrid: React.FC = () => {
         }
         case "cloud_points": {
           if (!images[cellId]?.cloud_points) {
+            const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
             const response = await axios.get(
-              `${url_prefix}/cells/${db_name}/${cellId}/3d`,
+              `${url_prefix}/cells/${db_name}/${cellId}/3d?channel=${channelParam}`,
               { responseType: "blob" }
             );
             const url = URL.createObjectURL(response.data);
@@ -425,7 +431,7 @@ const CellImageGrid: React.FC = () => {
     const cellId = cellIds[currentIndex];
     fetchAdditionalImage(drawMode, cellId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawMode, cellIds, currentIndex, fitDegree]);
+  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel]);
 
   //------------------------------------
   // 現在のセルIDに対応した初期ラベルを取得
@@ -893,6 +899,24 @@ const CellImageGrid: React.FC = () => {
                   fullWidth
                 />
               </Grid>
+              {hasFluo2 && (
+                <Grid item xs={2}>
+                  <FormControl fullWidth variant="outlined" size="small">
+                    <InputLabel id="fluo-channel-label">Fluo</InputLabel>
+                    <Select
+                      labelId="fluo-channel-label"
+                      label="Fluo"
+                      value={fluoChannel}
+                      onChange={(e) =>
+                        setFluoChannel(e.target.value as 'fluo1' | 'fluo2')
+                      }
+                    >
+                      <MenuItem value="fluo1">fluo1</MenuItem>
+                      <MenuItem value="fluo2">fluo2</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
               <Grid item xs={3}>
                 <FormControl fullWidth variant="outlined">
                   <InputLabel id="manual-label-select-label">Manual Label</InputLabel>

@@ -221,15 +221,23 @@ async def get_cell_morphology(cell_id: str, db_name: str, polyfit_degree: int = 
 
 
 @router_cell.get("/{cell_id}/{db_name}/replot", response_class=StreamingResponse)
-async def replot_cell(cell_id: str, db_name: str, degree: int = 3):
+async def replot_cell(
+    cell_id: str, db_name: str, degree: int = 3, channel: int = 1
+):
     await AsyncChores().validate_database_name(db_name)
-    return await CellCrudBase(db_name=db_name).replot(cell_id=cell_id, degree=degree)
+    return await CellCrudBase(db_name=db_name).replot(
+        cell_id=cell_id, degree=degree, channel=channel
+    )
 
 
 @router_cell.get("/{cell_id}/{db_name}/path", response_class=StreamingResponse)
-async def get_cell_path(cell_id: str, db_name: str, degree: int = 3):
+async def get_cell_path(
+    cell_id: str, db_name: str, degree: int = 3, channel: int = 1
+):
     await AsyncChores().validate_database_name(db_name)
-    return await CellCrudBase(db_name=db_name).find_path(cell_id=cell_id, degree=degree)
+    return await CellCrudBase(db_name=db_name).find_path(
+        cell_id=cell_id, degree=degree, channel=channel
+    )
 
 
 @router_cell.get("/{db_name}/{label}/{cell_id}/mean_fluo_intensities")
@@ -306,10 +314,12 @@ async def get_heatmap(db_name: str, label: str, cell_id: str):
 
 
 @router_cell.get("/{db_name}/{cell_id}/distribution", response_class=StreamingResponse)
-async def get_fluo_distribution(db_name: str, cell_id: str):
+async def get_fluo_distribution(
+    db_name: str, cell_id: str, channel: int = 1
+):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).extract_intensity_and_create_histogram(
-        label="", cell_id=cell_id
+        label="", cell_id=cell_id, channel=channel
     )
 
 
@@ -317,23 +327,29 @@ async def get_fluo_distribution(db_name: str, cell_id: str):
     "/{db_name}/{label}/{cell_id}/distribution_normalized",
     response_class=StreamingResponse,
 )
-async def get_fluo_distribution_normalized(db_name: str, cell_id: str):
+async def get_fluo_distribution_normalized(
+    db_name: str, cell_id: str, channel: int = 1
+):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(
         db_name=db_name
-    ).extract_normalized_intensity_and_create_histogram(label="", cell_id=cell_id)
+    ).extract_normalized_intensity_and_create_histogram(
+        label="", cell_id=cell_id, channel=channel
+    )
 
 
 @router_cell.get(
     "/{db_name}/{label}/{cell_id}/distribution_normalized/raw_points",
 )
-async def get_fluo_distribution_normalized_raw_points(db_name: str, cell_id: str):
+async def get_fluo_distribution_normalized_raw_points(
+    db_name: str, cell_id: str, channel: int = 1
+):
     await AsyncChores().validate_database_name(db_name)
     return JSONResponse(
         content={
             "raw_points": await CellCrudBase(
                 db_name=db_name
-            ).extract_normalized_intensities_raw(cell_id=cell_id)
+            ).extract_normalized_intensities_raw(cell_id=cell_id, channel=channel)
         }
     )
 
@@ -374,9 +390,11 @@ async def get_paths_plot(db_name: str, label: str = 1):
 
 
 @router_cell.get("/{db_name}/{cell_id}/3d")
-async def get_3d_plot(db_name: str, cell_id: str):
+async def get_3d_plot(db_name: str, cell_id: str, channel: int = 1):
     await AsyncChores().validate_database_name(db_name)
-    image_buf = await CellCrudBase(db_name=db_name).get_cloud_points(cell_id=cell_id)
+    image_buf = await CellCrudBase(db_name=db_name).get_cloud_points(
+        cell_id=cell_id, channel=channel
+    )
     return StreamingResponse(image_buf, media_type="image/png")
 
 
