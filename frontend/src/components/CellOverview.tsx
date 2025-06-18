@@ -53,6 +53,7 @@ ChartJS.register(
 type ImageState = {
   ph: string; // PH画像
   fluo?: string | null; // 蛍光画像 (single_layer系ではnull)
+  fluo2?: string | null; // 蛍光画像2
   replot?: string; // Replotグラフ画像
   distribution?: string; // Distribution画像
   distribution_normalized?: string; // Distribution Normalized画像
@@ -145,6 +146,7 @@ const CellImageGrid: React.FC = () => {
   const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
   const [autoPlay, setAutoPlay] = useState<boolean>(false);
   const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
+  const [hasFluo2, setHasFluo2] = useState<boolean>(false);
   const [drawMode, setDrawMode] = useState<DrawModeType>(init_draw_mode);
   const [fitDegree, setFitDegree] = useState<number>(4);
   const [engineMode, setEngineMode] = useState<EngineName>("None");
@@ -186,6 +188,18 @@ const CellImageGrid: React.FC = () => {
     fetchCellIds();
   }, [db_name, selectedLabel]);
 
+  useEffect(() => {
+    const checkFluo2 = async () => {
+      try {
+        const res = await axios.get(`${url_prefix}/databases/${db_name}/has-fluo2`);
+        setHasFluo2(res.data.has_fluo2);
+      } catch (e) {
+        console.error('Failed to check fluo2 existence', e);
+      }
+    };
+    checkFluo2();
+  }, [db_name]);
+
   //------------------------------------
   // 輪郭データの取得
   //------------------------------------
@@ -216,8 +230,12 @@ const CellImageGrid: React.FC = () => {
       const phUrl = await fetchImage("ph_image", cellId, db_name);
       // 蛍光画像取得 (single_layer系は蛍光画像が無いのでスキップ)
       let fluoUrl: string | null = null;
+      let fluo2Url: string | null = null;
       if (!db_name.includes("single_layer")) {
         fluoUrl = await fetchImage("fluo_image", cellId, db_name, brightnessFactor);
+        if (hasFluo2) {
+          fluo2Url = await fetchImage("fluo2_image", cellId, db_name, brightnessFactor);
+        }
       }
 
       // ステート更新
@@ -227,6 +245,7 @@ const CellImageGrid: React.FC = () => {
           ...prev[cellId],
           ph: phUrl,
           fluo: fluoUrl,
+          fluo2: fluo2Url,
         },
       }));
 
@@ -242,13 +261,13 @@ const CellImageGrid: React.FC = () => {
   // 通常画像フェッチ用のユーティリティ
   //------------------------------------
   const fetchImage = async (
-    type: "ph_image" | "fluo_image",
+    type: "ph_image" | "fluo_image" | "fluo2_image",
     cellId: string,
     dbName: string,
     brightness: number = 1.0
   ): Promise<string> => {
     let url = `${url_prefix}/cells/${cellId}/${dbName}/${drawContour}/${drawScaleBar}/`;
-    if (type === "fluo_image") {
+    if (type === "fluo_image" || type === "fluo2_image") {
       // 蛍光画像は明るさ係数をクエリで追加
       url += `${type}?brightness_factor=${brightness}`;
     } else {
@@ -396,7 +415,7 @@ const CellImageGrid: React.FC = () => {
     fetchContour(cellId);
     fetchContourT1(cellId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cellIds, currentIndex, db_name, drawContour, drawScaleBar, brightnessFactor]);
+  }, [cellIds, currentIndex, db_name, drawContour, drawScaleBar, brightnessFactor, hasFluo2]);
 
   //------------------------------------
   // drawModeが変わったら追加画像をフェッチ
@@ -950,7 +969,7 @@ const CellImageGrid: React.FC = () => {
 
           {/* PH / Fluo画像 */}
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={hasFluo2 ? 4 : 6}>
               {images[cellIds[currentIndex]] ? (
                 <img
                   src={images[cellIds[currentIndex]].ph}
@@ -961,7 +980,7 @@ const CellImageGrid: React.FC = () => {
                 <div>Loading PH...</div>
               )}
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={hasFluo2 ? 4 : 6}>
               {images[cellIds[currentIndex]] && images[cellIds[currentIndex]].fluo ? (
                 <img
                   src={images[cellIds[currentIndex]].fluo as string}
@@ -988,6 +1007,19 @@ const CellImageGrid: React.FC = () => {
                 <div>Not available</div>
               )}
             </Grid>
+            {hasFluo2 && (
+              <Grid item xs={12} md={4}>
+                {images[cellIds[currentIndex]] && images[cellIds[currentIndex]].fluo2 ? (
+                  <img
+                    src={images[cellIds[currentIndex]].fluo2 as string}
+                    alt={`Cell ${cellIds[currentIndex]} Fluo2`}
+                    style={{ width: "100%", height: "auto" }}
+                  />
+                ) : (
+                  <div>Not available</div>
+                )}
+              </Grid>
+            )}
           </Grid>
         </Grid>
 

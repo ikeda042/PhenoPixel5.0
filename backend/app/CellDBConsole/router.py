@@ -170,6 +170,28 @@ async def get_cell_fluo(
     )
 
 
+@router_cell.get("/{cell_id}/{db_name}/{draw_contour}/{draw_scale_bar}/fluo2_image")
+async def get_cell_fluo2(
+    cell_id: str,
+    db_name: str,
+    draw_contour: bool = False,
+    draw_scale_bar: bool = False,
+    brightness_factor: float = 1.0,
+):
+    if "-single_layer" in db_name:
+        raise HTTPException(
+            status_code=404,
+            detail="Fluo does not exist in single layer databases. Please use the ph endpoint.",
+        )
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).get_cell_fluo2(
+        cell_id=cell_id,
+        draw_contour=draw_contour,
+        draw_scale_bar=draw_scale_bar,
+        brightness_factor=brightness_factor,
+    )
+
+
 @router_cell.get("/{cell_id}/contour/{contour_type}")
 async def get_cell_contour(
     cell_id: str,

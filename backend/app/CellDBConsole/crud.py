@@ -1366,6 +1366,27 @@ class CellCrudBase:
             brightness_factor=brightness_factor,
         )
 
+    async def get_cell_fluo2(
+        self,
+        cell_id: str,
+        draw_contour: bool = False,
+        draw_scale_bar: bool = False,
+        brightness_factor: float = 1.0,
+    ) -> StreamingResponse:
+        cell = await self.read_cell(cell_id)
+        if draw_contour:
+            return await self.parse_image(
+                data=cell.img_fluo2,
+                contour=cell.contour,
+                scale_bar=draw_scale_bar,
+                brightness_factor=brightness_factor,
+            )
+        return await self.parse_image(
+            data=cell.img_fluo2,
+            scale_bar=draw_scale_bar,
+            brightness_factor=brightness_factor,
+        )
+
     async def get_cell_contour(self, cell_id: str) -> list[list[float]]:
         cell = await self.read_cell(cell_id)
         return await AsyncChores.async_pickle_loads(cell.contour)
