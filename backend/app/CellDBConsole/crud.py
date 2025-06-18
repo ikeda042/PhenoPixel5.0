@@ -1791,7 +1791,14 @@ class CellCrudBase:
         self,
         label: str = "1",
         image_size: int = 200,
-        mode: Literal["fluo", "ph", "ph_conotour", "fluo_contour"] = "fluo",
+        mode: Literal[
+            "fluo",
+            "ph",
+            "ph_contour",
+            "fluo_contour",
+            "fluo2",
+            "fluo2_contour",
+        ] = "fluo",
     ):
         async def combine_images_from_folder(
             folder_path, total_rows, total_cols, image_size
@@ -1853,6 +1860,23 @@ class CellCrudBase:
                                 thickness=3,
                             )
                         )
+                    elif mode == "fluo2":
+                        if cell.img_fluo2 is not None:
+                            await f.write(cell.img_fluo2)
+                        else:
+                            continue
+                    elif mode == "fluo2_contour":
+                        if cell.img_fluo2 is not None:
+                            await f.write(
+                                await CellCrudBase.parse_image_to_bytes(
+                                    cell.img_fluo2,
+                                    cell.contour,
+                                    scale_bar=False,
+                                    thickness=3,
+                                )
+                            )
+                        else:
+                            continue
 
             return StreamingResponse(
                 await combine_images_from_folder(
