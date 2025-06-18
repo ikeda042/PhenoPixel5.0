@@ -298,65 +298,57 @@ const CellImageGrid: React.FC = () => {
     try {
       switch (mode) {
         case "replot": {
-          if (!images[cellId]?.replot) {
-            const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
-            const response = await axios.get(
-              `${url_prefix}/cells/${cellId}/${db_name}/replot?degree=${fitDegree}&channel=${channelParam}`,
-              { responseType: "blob" }
-            );
-            const url = URL.createObjectURL(response.data);
-            setImages((prev) => ({
-              ...prev,
-              [cellId]: { ...prev[cellId], replot: url },
-            }));
-          }
+          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const response = await axios.get(
+            `${url_prefix}/cells/${cellId}/${db_name}/replot?degree=${fitDegree}&channel=${channelParam}`,
+            { responseType: "blob" }
+          );
+          const url = URL.createObjectURL(response.data);
+          setImages((prev) => ({
+            ...prev,
+            [cellId]: { ...prev[cellId], replot: url },
+          }));
           break;
         }
         case "distribution": {
-          if (!images[cellId]?.distribution) {
-            const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
-            const response = await axios.get(
-              `${url_prefix}/cells/${db_name}/${cellId}/distribution?channel=${channelParam}`,
-              { responseType: "blob" }
-            );
-            const url = URL.createObjectURL(response.data);
-            setImages((prev) => ({
-              ...prev,
-              [cellId]: { ...prev[cellId], distribution: url },
-            }));
-          }
+          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const response = await axios.get(
+            `${url_prefix}/cells/${db_name}/${cellId}/distribution?channel=${channelParam}`,
+            { responseType: "blob" }
+          );
+          const url = URL.createObjectURL(response.data);
+          setImages((prev) => ({
+            ...prev,
+            [cellId]: { ...prev[cellId], distribution: url },
+          }));
           break;
         }
         case "distribution_normalized": {
-          if (!images[cellId]?.distribution_normalized) {
-            const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
-            const response = await axios.get(
-              `${url_prefix}/cells/${db_name}/${selectedLabel}/${cellId}/distribution_normalized?channel=${channelParam}`,
-              { responseType: "blob" }
-            );
-            const url = URL.createObjectURL(response.data);
-            setImages((prev) => ({
-              ...prev,
-              [cellId]: { ...prev[cellId], distribution_normalized: url },
-            }));
-          }
+          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const response = await axios.get(
+            `${url_prefix}/cells/${db_name}/${selectedLabel}/${cellId}/distribution_normalized?channel=${channelParam}`,
+            { responseType: "blob" }
+          );
+          const url = URL.createObjectURL(response.data);
+          setImages((prev) => ({
+            ...prev,
+            [cellId]: { ...prev[cellId], distribution_normalized: url },
+          }));
           break;
         }
         case "path": {
-          if (!images[cellId]?.path) {
-            const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
-            setIsLoading(true);
-            const response = await axios.get(
-              `${url_prefix}/cells/${cellId}/${db_name}/path?degree=${fitDegree}&channel=${channelParam}`,
-              { responseType: "blob" }
-            );
-            const url = URL.createObjectURL(response.data);
-            setImages((prev) => ({
-              ...prev,
-              [cellId]: { ...prev[cellId], path: url },
-            }));
-            setIsLoading(false);
-          }
+          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          setIsLoading(true);
+          const response = await axios.get(
+            `${url_prefix}/cells/${cellId}/${db_name}/path?degree=${fitDegree}&channel=${channelParam}`,
+            { responseType: "blob" }
+          );
+          const url = URL.createObjectURL(response.data);
+          setImages((prev) => ({
+            ...prev,
+            [cellId]: { ...prev[cellId], path: url },
+          }));
+          setIsLoading(false);
           break;
         }
         case "prediction": {
@@ -373,18 +365,16 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "cloud_points": {
-          if (!images[cellId]?.cloud_points) {
-            const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
-            const response = await axios.get(
-              `${url_prefix}/cells/${db_name}/${cellId}/3d?channel=${channelParam}`,
-              { responseType: "blob" }
-            );
-            const url = URL.createObjectURL(response.data);
-            setImages((prev) => ({
-              ...prev,
-              [cellId]: { ...prev[cellId], cloud_points: url },
-            }));
-          }
+          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const response = await axios.get(
+            `${url_prefix}/cells/${db_name}/${cellId}/3d?channel=${channelParam}`,
+            { responseType: "blob" }
+          );
+          const url = URL.createObjectURL(response.data);
+          setImages((prev) => ({
+            ...prev,
+            [cellId]: { ...prev[cellId], cloud_points: url },
+          }));
           break;
         }
         case "cloud_points_ph": {
@@ -900,6 +890,22 @@ const CellImageGrid: React.FC = () => {
                   fullWidth
                 />
               </Grid>
+              <Grid item xs={hasFluo2 ? 4 : 6}>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="manual-label-select-label">Manual Label</InputLabel>
+                  <Select
+                    labelId="manual-label-select-label"
+                    label="Manual Label"
+                    value={manualLabel}
+                    onChange={handleCellLabelChange}
+                  >
+                    <MenuItem value="1000">N/A</MenuItem>
+                    <MenuItem value="1">1</MenuItem>
+                    <MenuItem value="2">2</MenuItem>
+                    <MenuItem value="3">3</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
               {hasFluo2 && (
                 <Grid item xs={4}>
                   <FormControl fullWidth variant="outlined">
@@ -918,22 +924,6 @@ const CellImageGrid: React.FC = () => {
                   </FormControl>
                 </Grid>
               )}
-              <Grid item xs={hasFluo2 ? 4 : 6}>
-                <FormControl fullWidth variant="outlined">
-                  <InputLabel id="manual-label-select-label">Manual Label</InputLabel>
-                  <Select
-                    labelId="manual-label-select-label"
-                    label="Manual Label"
-                    value={manualLabel}
-                    onChange={handleCellLabelChange}
-                  >
-                    <MenuItem value="1000">N/A</MenuItem>
-                    <MenuItem value="1">1</MenuItem>
-                    <MenuItem value="2">2</MenuItem>
-                    <MenuItem value="3">3</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
             </Grid>
           </Box>
 
