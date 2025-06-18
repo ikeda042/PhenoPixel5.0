@@ -1016,8 +1016,8 @@ class AsyncChores:
         plt.scatter([0], [0], color="red", s=100, label="Centroid (0,0)")
 
         plt.axis("equal")
-        margin_width = 50
-        margin_height = 50
+        margin_width = 20
+        margin_height = 20
         plt.scatter(
             [i[1] for i in U_shifted],  # x
             [i[0] for i in U_shifted],  # y
