@@ -1650,7 +1650,7 @@ class CellCrudBase:
         return StreamingResponse(buf, media_type="text/csv")
 
     async def get_peak_paths_csv(
-        self, degree: int = 4, label: str = "1"
+        self, degree: int = 4, label: str = "1", channel: int = 1
     ) -> StreamingResponse:
         # 1. 指定ラベルの cell_ids を取得
         cell_ids = await self.read_cell_ids(label=label)
@@ -1660,12 +1660,21 @@ class CellCrudBase:
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
         )
 
+        valid_pairs = []
+        for cell in cells:
+            img_blob = cell.img_fluo2 if channel == 2 else cell.img_fluo1
+            if img_blob is not None:
+                valid_pairs.append((img_blob, cell.contour))
+
+        if not valid_pairs:
+            return StreamingResponse(io.BytesIO(), media_type="text/csv")
+
         # 3. find_path_return_list も並列で実行
         #    （各セルの img_fluo1, contour をもとにピークパスを計算）
         paths_list = await asyncio.gather(
             *(
-                AsyncChores.find_path_return_list(cell.img_fluo1, cell.contour, degree)
-                for cell in cells
+                AsyncChores.find_path_return_list(img, contour, degree)
+                for img, contour in valid_pairs
             )
         )
 
@@ -1735,6 +1744,14 @@ class CellCrudBase:
         length_all = len(await self.read_cell_ids())
         length_na = len(await self.read_cell_ids("N/A"))
         return length_all != length_na
+
+    async def has_fluo2(self) -> bool:
+        async for session in get_session(dbname=self.db_name):
+            stmt = select(Cell).where(Cell.img_fluo2.is_not(None))
+            result = await session.execute(stmt)
+            row = result.scalars().first()
+            await session.close()
+            return row is not None
 
     async def get_cell_images_combined(
         self,

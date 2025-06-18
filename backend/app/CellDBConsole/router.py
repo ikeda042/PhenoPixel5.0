@@ -333,12 +333,14 @@ async def get_heatmap_csv(db_name: str, label: str, cell_id: str):
 
 
 @router_cell.get(
-    "/{db_name}/{label}/{cell_id}/heatmap/bulk/csv", response_class=StreamingResponse
+    "/{db_name}/{label}/{cell_id}/heatmap/bulk/csv",
+    response_class=StreamingResponse,
 )
-async def get_heatmap_bulk_csv(db_name: str, label: str = "1"):
-    print(db_name, label)
+async def get_heatmap_bulk_csv(db_name: str, label: str = "1", channel: int = 1):
     await AsyncChores().validate_database_name(db_name)
-    return await CellCrudBase(db_name=db_name).get_peak_paths_csv(degree=4, label=label)
+    return await CellCrudBase(db_name=db_name).get_peak_paths_csv(
+        degree=4, label=label, channel=channel
+    )
 
 
 @router_cell.get(
@@ -428,6 +430,13 @@ async def get_cell_images_combined(
 @router_database.get("/{db_name}/metadata")
 async def get_metadata(db_name: str):
     return await CellCrudBase(db_name=db_name).get_metadata()
+
+
+@router_database.get("/{db_name}/has-fluo2")
+async def check_has_fluo2(db_name: str):
+    await AsyncChores().validate_database_name(db_name)
+    exists = await CellCrudBase(db_name=db_name).has_fluo2()
+    return JSONResponse(content={"has_fluo2": exists})
 
 
 @router_database.patch("/{db_name}/update-metadata")
