@@ -315,7 +315,7 @@ async def replot_cell(
     replot で生成した画像を GIF 化して返すエンドポイント。
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
-    gif_buffer = await crud.replot_cell(field, cell_number, channel, degree)
+    gif_buffer = await crud.replot_cell(field, cell_number, channel, degree=4)
     return StreamingResponse(
         gif_buffer,
         media_type="image/gif",

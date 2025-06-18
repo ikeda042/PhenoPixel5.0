@@ -1022,7 +1022,7 @@ class AsyncChores:
             [i[1] for i in U_shifted],  # x
             [i[0] for i in U_shifted],  # y
             c=points_inside_cell_1,
-            cmap="inferno",
+            cmap="jet",
             marker="o",
             s=20,
             label="Intensity",
