@@ -1,5 +1,5 @@
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 import io
 import math
@@ -262,7 +262,7 @@ class SyncChores:
                 }
 
                 tasks = []
-                with ThreadPoolExecutor() as executor:
+                with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
                     for channel_idx in range(num_channels):
                         for time_idx in range(num_timepoints):
                             frame_data = images.get_frame_2D(
@@ -411,7 +411,8 @@ class SyncChores:
 
 class AsyncChores:
     def __init__(self):
-        self.executor = ThreadPoolExecutor()
+        # use process pool for CPU intensive tasks
+        self.executor = ProcessPoolExecutor(max_workers=os.cpu_count())
 
     async def correct_drift(self, reference_image, target_image):
         loop = asyncio.get_event_loop()
