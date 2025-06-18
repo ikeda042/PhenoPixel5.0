@@ -885,7 +885,7 @@ const CellImageGrid: React.FC = () => {
                 />
               </Grid>
               <Grid item xs={12} />
-              <Grid item xs={3}>
+              <Grid item xs={hasFluo2 ? 4 : 6}>
                 <TextField
                   label="Brightness"
                   variant="outlined"
@@ -901,7 +901,7 @@ const CellImageGrid: React.FC = () => {
                 />
               </Grid>
               {hasFluo2 && (
-                <Grid item xs={2}>
+                <Grid item xs={4}>
                   <FormControl fullWidth variant="outlined">
                     <InputLabel id="fluo-channel-label">Fluo</InputLabel>
                     <Select
@@ -918,7 +918,7 @@ const CellImageGrid: React.FC = () => {
                   </FormControl>
                 </Grid>
               )}
-              <Grid item xs={3}>
+              <Grid item xs={hasFluo2 ? 4 : 6}>
                 <FormControl fullWidth variant="outlined">
                   <InputLabel id="manual-label-select-label">Manual Label</InputLabel>
                   <Select
