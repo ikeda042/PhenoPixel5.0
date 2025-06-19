@@ -594,18 +594,28 @@ const Databases: React.FC = () => {
                   <>
                     <TableCell align="center">Metadata</TableCell>
                     {displayMode === "User uploaded" && (
-                      <TableCell align="center">Mark as Complete</TableCell>
+                      <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
+                        Mark as Complete
+                      </TableCell>
                     )}
                     {displayMode === "Completed" && (
                       <TableCell align="center">Export</TableCell>
                     )}
 
-                    <TableCell align="center">
-                      <Box display="flex" justifyContent="center" alignItems="center">
+                    <TableCell
+                      align="center"
+                      sx={{ whiteSpace: "nowrap" }}
+                    >
+                      <Box
+                        display="flex"
+                        justifyContent="center"
+                        alignItems="center"
+                        flexWrap="nowrap"
+                      >
                         <Box>
                           <Typography>Mode</Typography>
                         </Box>
-                        <Box ml={1}>
+                        <Box ml={1} display="flex" flexWrap="nowrap">
                           <Select
                             value={selectedMode}
                             onChange={(e) => setSelectedMode(e.target.value)}
@@ -735,7 +745,7 @@ const Databases: React.FC = () => {
 
                       {/* User uploaded: Mark as Complete */}
                       {displayMode === "User uploaded" && (
-                        <TableCell align="center">
+                        <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
                           <Button
                             variant="contained"
                             sx={{
@@ -743,6 +753,7 @@ const Databases: React.FC = () => {
                                 ? "green"
                                 : "grey",
                               color: "white",
+                              whiteSpace: "nowrap",
                               "&:hover": {
                                 backgroundColor: markableDatabases[database]
                                   ? "darkgreen"
