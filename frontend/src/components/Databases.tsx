@@ -612,6 +612,7 @@ const Databases: React.FC = () => {
                             <MenuItem value="fluo_contour">Fluo + contour</MenuItem>
                             <MenuItem value="fluo2">fluo2</MenuItem>
                             <MenuItem value="fluo2_contour">fluo2 + contour</MenuItem>
+                            <MenuItem value="replot">replot</MenuItem>
                           </Select>
                           <Select
                             value={selectedLabel}
