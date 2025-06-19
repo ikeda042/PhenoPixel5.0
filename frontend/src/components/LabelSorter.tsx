@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Container, Grid, Typography, Box } from "@mui/material";
+import {
+  Container,
+  Grid,
+  Typography,
+  Box,
+  Breadcrumbs,
+  Link,
+} from "@mui/material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import { settings } from "../settings";
@@ -110,20 +117,35 @@ const LabelSorter: React.FC = () => {
   return (
     <Container>
       <Box mb={2}>
+        <Breadcrumbs aria-label="breadcrumb">
+          <Link underline="hover" color="inherit" href="/">
+            Top
+          </Link>
+          <Link underline="hover" color="inherit" href="/dbconsole">
+            Database Console
+          </Link>
+          <Typography color="text.primary">Sort labels</Typography>
+        </Breadcrumbs>
+      </Box>
+      <Box mb={2}>
         <Typography variant="h6">Database: {dbName}</Typography>
       </Box>
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
-          <Typography variant="h6" gutterBottom>
-            N/A
-          </Typography>
-          {renderCells(naCells, "N/A")}
+          <Box border={1} borderColor="divider" borderRadius={1} p={1} height="100%">
+            <Typography variant="h6" gutterBottom>
+              N/A
+            </Typography>
+            {renderCells(naCells, "N/A")}
+          </Box>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Typography variant="h6" gutterBottom>
-            Label 1
-          </Typography>
-          {renderCells(label1Cells, "1")}
+          <Box border={1} borderColor="divider" borderRadius={1} p={1} height="100%">
+            <Typography variant="h6" gutterBottom>
+              Label 1
+            </Typography>
+            {renderCells(label1Cells, "1")}
+          </Box>
         </Grid>
       </Grid>
     </Container>
