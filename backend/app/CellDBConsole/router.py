@@ -466,7 +466,8 @@ async def get_cell_images_combined(
         "fluo_contour",
         "fluo2",
         "fluo2_contour",
-        "replot",
+        "replot_fluo1",
+        "replot_fluo2",
     ] = "fluo",
 ):
     await AsyncChores().validate_database_name(db_name)

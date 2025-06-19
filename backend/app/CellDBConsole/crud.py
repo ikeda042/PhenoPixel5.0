@@ -1798,7 +1798,8 @@ class CellCrudBase:
             "fluo_contour",
             "fluo2",
             "fluo2_contour",
-            "replot",
+            "replot_fluo1",
+            "replot_fluo2",
         ] = "fluo",
     ):
         async def combine_images_from_folder(
@@ -1878,13 +1879,23 @@ class CellCrudBase:
                             )
                         else:
                             continue
-                    elif mode == "replot":
+                    elif mode == "replot_fluo1":
                         buf = await AsyncChores.replot(
                             cell.img_fluo1,
                             cell.contour,
                             3,
                         )
                         await f.write(buf.getvalue())
+                    elif mode == "replot_fluo2":
+                        if cell.img_fluo2 is not None:
+                            buf = await AsyncChores.replot(
+                                cell.img_fluo2,
+                                cell.contour,
+                                3,
+                            )
+                            await f.write(buf.getvalue())
+                        else:
+                            continue
                     
             return StreamingResponse(
                 await combine_images_from_folder(
