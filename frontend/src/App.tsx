@@ -17,6 +17,7 @@ import TimelapseDatabases from "./components/TimelapseDatabases";
 import TimelapseViewer from "./components/TimelapseCellOverview";
 import Login from "./components/Login";
 import UserInfo from "./components/Userinfo";
+import LabelSorter from "./components/LabelSorter";
 // ↑ 必要なコンポーネントをインポート
 
 /* --------------------------------
@@ -104,6 +105,14 @@ function App() {
               element={
                 <Box component="main" sx={{ p: 1 }}>
                   <CellImageGrid />
+                </Box>
+              }
+            />
+            <Route
+              path="/labelsorter"
+              element={
+                <Box component="main" sx={{ p: 1 }}>
+                  <LabelSorter />
                 </Box>
               }
             />

@@ -412,6 +412,13 @@ const Databases: React.FC = () => {
   };
 
   /**
+   * ラベルソーターページへ遷移
+   */
+  const handleNavigateLabelSorter = (dbName: string) => {
+    navigate(`/labelsorter?db_name=${dbName}`);
+  };
+
+  /**
    * 通常のダイアログを閉じる
    */
   const handleCloseDialog = () => {
@@ -792,6 +799,12 @@ const Databases: React.FC = () => {
                         <TableCell align="right">
                           <IconButton onClick={() => handleNavigate(database)}>
                             <Typography>Access database </Typography>
+                            <NavigateNextIcon />
+                          </IconButton>
+                        </TableCell>
+                        <TableCell align="right">
+                          <IconButton onClick={() => handleNavigateLabelSorter(database)}>
+                            <Typography>Sort labels </Typography>
                             <NavigateNextIcon />
                           </IconButton>
                         </TableCell>
