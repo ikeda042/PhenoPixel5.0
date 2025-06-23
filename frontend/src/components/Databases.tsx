@@ -647,7 +647,7 @@ const Databases: React.FC = () => {
                         </Box>
                       </Box>
                     </TableCell>
-                    <TableCell align="center">Preview</TableCell>
+                  
                     <TableCell align="center">Access</TableCell>
                     <TableCell align="center">Sort labels</TableCell>
                   </>
