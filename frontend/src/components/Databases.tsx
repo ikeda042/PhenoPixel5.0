@@ -647,7 +647,9 @@ const Databases: React.FC = () => {
                         </Box>
                       </Box>
                     </TableCell>
-                    <TableCell align="center"></TableCell>
+                    <TableCell align="center">Preview</TableCell>
+                    <TableCell align="center">Access</TableCell>
+                    <TableCell align="center">Sort labels</TableCell>
                   </>
                 )}
                 {displayMode === "Dropbox" && (
@@ -699,8 +701,8 @@ const Databases: React.FC = () => {
                       <TableCell component="th" scope="row">
                         <Tooltip title={database} placement="top">
                           <Typography noWrap>
-                            {database.length > 15
-                              ? `${database.substring(0, 15)}...`
+                            {database.length > 30
+                              ? `${database.substring(0, 30)}...`
                               : database}
                           </Typography>
                         </Tooltip>
