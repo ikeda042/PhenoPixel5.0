@@ -141,10 +141,14 @@ async def get_cell_ph(
     db_name: str,
     draw_contour: bool = False,
     draw_scale_bar: bool = False,
+    resize_factor: float = 1.0,
 ):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).get_cell_ph(
-        cell_id=cell_id, draw_contour=draw_contour, draw_scale_bar=draw_scale_bar
+        cell_id=cell_id,
+        draw_contour=draw_contour,
+        draw_scale_bar=draw_scale_bar,
+        resize_factor=resize_factor,
     )
 
 
@@ -155,6 +159,7 @@ async def get_cell_fluo(
     draw_contour: bool = False,
     draw_scale_bar: bool = False,
     brightness_factor: float = 1.0,
+    resize_factor: float = 1.0,
 ):
     if "-single_layer" in db_name:
         raise HTTPException(
@@ -167,6 +172,7 @@ async def get_cell_fluo(
         draw_contour=draw_contour,
         draw_scale_bar=draw_scale_bar,
         brightness_factor=brightness_factor,
+        resize_factor=resize_factor,
     )
 
 
@@ -177,6 +183,7 @@ async def get_cell_fluo2(
     draw_contour: bool = False,
     draw_scale_bar: bool = False,
     brightness_factor: float = 1.0,
+    resize_factor: float = 1.0,
 ):
     if "-single_layer" in db_name:
         raise HTTPException(
@@ -189,6 +196,7 @@ async def get_cell_fluo2(
         draw_contour=draw_contour,
         draw_scale_bar=draw_scale_bar,
         brightness_factor=brightness_factor,
+        resize_factor=resize_factor,
     )
 
 

@@ -16,6 +16,7 @@ import { useSearchParams } from "react-router-dom";
 import { settings } from "../settings";
 
 const url_prefix = settings.url_prefix;
+const resizeFactor = 0.5;
 
 const LabelSorter: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -69,7 +70,7 @@ const LabelSorter: React.FC = () => {
                   ? "fluo_image"
                   : "fluo2_image";
               const res = await axios.get(
-                `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}`,
+                `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}?resize_factor=${resizeFactor}`,
                 { responseType: "blob" }
               );
               const url = URL.createObjectURL(res.data);
@@ -98,7 +99,7 @@ const LabelSorter: React.FC = () => {
                   ? "fluo_image"
                   : "fluo2_image";
               const res = await axios.get(
-                `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}`,
+                `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}?resize_factor=${resizeFactor}`,
                 { responseType: "blob" }
               );
               const url = URL.createObjectURL(res.data);

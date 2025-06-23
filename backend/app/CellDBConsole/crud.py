@@ -1238,6 +1238,7 @@ class CellCrudBase:
         contour: bytes | None = None,
         scale_bar: bool = False,
         brightness_factor: float = 1.0,
+        resize_factor: float = 1.0,
     ) -> StreamingResponse:
         img = await AsyncChores.async_imdecode(data)
         if contour:
@@ -1246,6 +1247,10 @@ class CellCrudBase:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
         if scale_bar:
             img = await AsyncChores.draw_scale_bar_with_centered_text(img)
+        if resize_factor != 1.0:
+            width = int(img.shape[1] * resize_factor)
+            height = int(img.shape[0] * resize_factor)
+            img = cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
         _, buffer = await AsyncChores.async_cv2_imencode(img)
         buffer_io = io.BytesIO(buffer)
         return StreamingResponse(buffer_io, media_type="image/png")
@@ -1255,6 +1260,7 @@ class CellCrudBase:
         contour: bytes | None = None,
         scale_bar: bool = False,
         brightness_factor: float = 1.0,
+        resize_factor: float = 1.0,
         thickness: int = 2,
     ) -> bytes:
         img = await AsyncChores.async_imdecode(data)
@@ -1264,6 +1270,10 @@ class CellCrudBase:
             img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
         if scale_bar:
             img = await AsyncChores.draw_scale_bar_with_centered_text(img)
+        if resize_factor != 1.0:
+            width = int(img.shape[1] * resize_factor)
+            height = int(img.shape[0] * resize_factor)
+            img = cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
         success, buffer = await AsyncChores.async_cv2_imencode(img)
         if success:
             return buffer.tobytes()
@@ -1336,14 +1346,25 @@ class CellCrudBase:
         return cell.label_experiment
 
     async def get_cell_ph(
-        self, cell_id: str, draw_contour: bool = False, draw_scale_bar: bool = False
+        self,
+        cell_id: str,
+        draw_contour: bool = False,
+        draw_scale_bar: bool = False,
+        resize_factor: float = 1.0,
     ) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
         if draw_contour:
             return await self.parse_image(
-                data=cell.img_ph, contour=cell.contour, scale_bar=draw_scale_bar
+                data=cell.img_ph,
+                contour=cell.contour,
+                scale_bar=draw_scale_bar,
+                resize_factor=resize_factor,
             )
-        return await self.parse_image(data=cell.img_ph, scale_bar=draw_scale_bar)
+        return await self.parse_image(
+            data=cell.img_ph,
+            scale_bar=draw_scale_bar,
+            resize_factor=resize_factor,
+        )
 
     async def get_cell_fluo(
         self,
@@ -1351,6 +1372,7 @@ class CellCrudBase:
         draw_contour: bool = False,
         draw_scale_bar: bool = False,
         brightness_factor: float = 1.0,
+        resize_factor: float = 1.0,
     ) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
         if draw_contour:
@@ -1359,11 +1381,13 @@ class CellCrudBase:
                 contour=cell.contour,
                 scale_bar=draw_scale_bar,
                 brightness_factor=brightness_factor,
+                resize_factor=resize_factor,
             )
         return await self.parse_image(
             data=cell.img_fluo1,
             scale_bar=draw_scale_bar,
             brightness_factor=brightness_factor,
+            resize_factor=resize_factor,
         )
 
     async def get_cell_fluo2(
@@ -1372,6 +1396,7 @@ class CellCrudBase:
         draw_contour: bool = False,
         draw_scale_bar: bool = False,
         brightness_factor: float = 1.0,
+        resize_factor: float = 1.0,
     ) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
         if draw_contour:
@@ -1380,11 +1405,13 @@ class CellCrudBase:
                 contour=cell.contour,
                 scale_bar=draw_scale_bar,
                 brightness_factor=brightness_factor,
+                resize_factor=resize_factor,
             )
         return await self.parse_image(
             data=cell.img_fluo2,
             scale_bar=draw_scale_bar,
             brightness_factor=brightness_factor,
+            resize_factor=resize_factor,
         )
 
     async def get_cell_contour(self, cell_id: str) -> list[list[float]]:
