@@ -459,7 +459,7 @@ const Databases: React.FC = () => {
   );
 
   return (
-    <Container>
+    <Container maxWidth={false} disableGutters>
       {/* パンくずリスト */}
       <Box>
         <Breadcrumbs aria-label="breadcrumb">

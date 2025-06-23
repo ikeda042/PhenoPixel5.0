@@ -201,7 +201,7 @@ const TimelapseDatabases: React.FC = () => {
   };
 
   return (
-    <Container>
+    <Container maxWidth={false} disableGutters>
       {/* ローディングスピナー */}
       <Backdrop
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
