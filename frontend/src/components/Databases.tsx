@@ -804,9 +804,9 @@ const Databases: React.FC = () => {
                                 backgroundColor: "gray",
                               },
                             }}
-                            onClick={() => handlePreview(database)}
-                          >
-                            Export Preview
+                          onClick={() => handlePreview(database)}
+                        >
+                          Preview
                           </Button>
                         </TableCell>
                         <TableCell align="right">
