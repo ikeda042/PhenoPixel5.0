@@ -150,7 +150,7 @@ const LabelSorter: React.FC = () => {
   );
 
   return (
-    <Container>
+    <Container maxWidth={false} disableGutters>
       <Box mb={2}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link underline="hover" color="inherit" href="/">
