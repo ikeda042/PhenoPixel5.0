@@ -23,7 +23,6 @@ import {
   SelectChangeEvent,
   Link,
   Breadcrumbs,
-  CircularProgress,
   TextField,
   Tooltip,
 } from "@mui/material";
@@ -77,12 +76,6 @@ const Databases: React.FC = () => {
     [key: string]: boolean;
   }>({});
 
-  // プレビュー関連
-  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedMode, setSelectedMode] = useState("fluo");
-  const [selectedLabel, setSelectedLabel] = useState("1");
-  const [loadingPreview, setLoadingPreview] = useState(false);
 
   // メタデータ
   const [metadata, setMetadata] = useState<{ [key: string]: string }>({});
@@ -375,34 +368,6 @@ const Databases: React.FC = () => {
     }
   };
 
-  /**
-   * 画像プレビュー取得
-   */
-  const handlePreview = async (database: string) => {
-    setLoadingPreview(true);
-    try {
-      const response = await axios.get(
-        `${url_prefix}/databases/${database}/combined_images`,
-        {
-          params: {
-            label: selectedLabel,
-            mode: selectedMode,
-          },
-          responseType: "blob",
-        }
-      );
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      setPreviewImage(url);
-      setIsPreviewDialogOpen(true);
-    } catch (error) {
-      setDialogMessage("Failed to fetch preview image.");
-      setIsDialogOpen(true);
-      console.error("Failed to fetch preview image", error);
-    } finally {
-      setLoadingPreview(false);
-    }
-  };
 
   /**
    * 指定のDBに画面遷移
@@ -425,13 +390,6 @@ const Databases: React.FC = () => {
     setIsDialogOpen(false);
   };
 
-  /**
-   * プレビュー用ダイアログを閉じる
-   */
-  const handleClosePreviewDialog = () => {
-    setIsPreviewDialogOpen(false);
-    setPreviewImage(null);
-  };
 
   // displayMode と検索ワードに合わせてフィルタリング
   const filteredDatabases = databases.filter((database) => {
@@ -602,52 +560,6 @@ const Databases: React.FC = () => {
                       <TableCell align="center">Export</TableCell>
                     )}
 
-                    <TableCell
-                      align="center"
-                      sx={{ whiteSpace: "nowrap" }}
-                    >
-                      <Box
-                        display="flex"
-                        justifyContent="center"
-                        alignItems="center"
-                        flexWrap="nowrap"
-                      >
-                        <Box>
-                          <Typography>Mode</Typography>
-                        </Box>
-                        <Box ml={1} display="flex" flexWrap="nowrap">
-                          <Select
-                            value={selectedMode}
-                            onChange={(e) => setSelectedMode(e.target.value)}
-                            displayEmpty
-                            inputProps={{ "aria-label": "Without label" }}
-                            sx={{ marginRight: 1, height: "25px" }}
-                          >
-                            <MenuItem value="fluo">Fluo</MenuItem>
-                            <MenuItem value="ph">Ph</MenuItem>
-                            <MenuItem value="ph_contour">Ph + contour</MenuItem>
-                            <MenuItem value="fluo_contour">Fluo + contour</MenuItem>
-                            <MenuItem value="fluo2">fluo2</MenuItem>
-                            <MenuItem value="fluo2_contour">fluo2 + contour</MenuItem>
-                            <MenuItem value="replot_fluo1">replot fluo1</MenuItem>
-                            <MenuItem value="replot_fluo2">replot fluo2</MenuItem>
-                          </Select>
-                          <Select
-                            value={selectedLabel}
-                            onChange={(e) => setSelectedLabel(e.target.value)}
-                            displayEmpty
-                            inputProps={{ "aria-label": "Without label" }}
-                            sx={{ marginRight: 1, height: "25px" }}
-                          >
-                            <MenuItem value="N/A">N/A</MenuItem>
-                            <MenuItem value="1">1</MenuItem>
-                            <MenuItem value="2">2</MenuItem>
-                            <MenuItem value="3">3</MenuItem>
-                          </Select>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="center">Preview</TableCell>
                     <TableCell align="center">Access</TableCell>
                     <TableCell align="center">Sort labels</TableCell>
                   </>
@@ -791,24 +703,8 @@ const Databases: React.FC = () => {
                         </TableCell>
                       )}
 
-                      {/* プレビューとDBアクセスボタン */}
+                      {/* DB access and label sorting */}
                       <>
-                        <TableCell align="center">
-                          <Button
-                            variant="contained"
-                            sx={{
-                              backgroundColor: "black",
-                              color: "white",
-                              textTransform: "none",
-                              "&:hover": {
-                                backgroundColor: "gray",
-                              },
-                            }}
-                            onClick={() => handlePreview(database)}
-                          >
-                            Export Preview
-                          </Button>
-                        </TableCell>
                         <TableCell align="right">
                           <IconButton onClick={() => handleNavigate(database)}>
                             <Typography>Access database </Typography>
@@ -860,26 +756,6 @@ const Databases: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* プレビュー用ダイアログ */}
-      <Dialog open={isPreviewDialogOpen} onClose={handleClosePreviewDialog}>
-        <DialogTitle>{"Preview Image"}</DialogTitle>
-        <DialogContent>
-          {loadingPreview ? (
-            <Box display="flex" justifyContent="center">
-              <CircularProgress />
-            </Box>
-          ) : (
-            previewImage && (
-              <img src={previewImage} alt="Preview" style={{ width: "100%" }} />
-            )
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClosePreviewDialog} color="primary">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Container>
   );
 };
