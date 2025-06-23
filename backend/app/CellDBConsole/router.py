@@ -130,6 +130,12 @@ async def update_cell_label(db_name: str, cell_id: str, label: str):
         )
 
     await AsyncChores().validate_database_name(db_name)
+
+    # "1000" is used on the frontend to represent "N/A" since slashes are not
+    # allowed in the URL path parameters. Convert it back before updating the DB.
+    if label == "1000":
+        label = "N/A"
+
     return await CellCrudBase(db_name=db_name).update_label(
         cell_id=cell_id, label=label
     )
