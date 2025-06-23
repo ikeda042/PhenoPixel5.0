@@ -15,6 +15,8 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import ScienceIcon from '@mui/icons-material/Science';
+import DatabaseIcon from '@mui/icons-material/Storage';
 import { settings } from '../settings';
 
 interface Props {
@@ -94,6 +96,20 @@ export default function Nav(props: Props) {
                     </Link>
                     {/* ロゴと右側アイコン群の間にスペーサーを配置 */}
                     <Box sx={{ flexGrow: 1 }} />
+                    <IconButton
+                        color="inherit"
+                        onClick={() => navigate('/nd2files')}
+                        sx={{ color: '#000' }}
+                    >
+                        <ScienceIcon />
+                    </IconButton>
+                    <IconButton
+                        color="inherit"
+                        onClick={() => navigate('/dbconsole')}
+                        sx={{ color: '#000' }}
+                    >
+                        <DatabaseIcon />
+                    </IconButton>
                     <IconButton
                         color="inherit"
                         component="a"
