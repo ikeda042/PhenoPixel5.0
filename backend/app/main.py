@@ -12,6 +12,7 @@ from CellExtraction.router import router_cell_extraction
 from Dev.router import router_dev
 from Dropbox.router import router_dropbox
 from GraphEngine.router import router_graphengine
+from CDT.router import router_cdt
 from TimeLapseEngine.router import router_tl_engine
 from results.router import router_results
 from Auth.router import router_auth
@@ -144,6 +145,7 @@ app.include_router(router_cell_ai, prefix=api_prefix)
 app.include_router(router_tl_engine, prefix=api_prefix)
 app.include_router(router_dropbox, prefix=api_prefix)
 app.include_router(router_graphengine, prefix=api_prefix)
+app.include_router(router_cdt, prefix=api_prefix)
 app.include_router(router_results, prefix=api_prefix)
 app.include_router(router_oauth2, prefix=api_prefix)
 

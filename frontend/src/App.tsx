@@ -18,6 +18,7 @@ import TimelapseViewer from "./components/TimelapseCellOverview";
 import Login from "./components/Login";
 import UserInfo from "./components/Userinfo";
 import LabelSorter from "./components/LabelSorter";
+import CDT from "./components/CDT";
 // ↑ 必要なコンポーネントをインポート
 
 /* --------------------------------
@@ -138,6 +139,14 @@ function App() {
                 // Navが確保した余白をさらに詰めるなら p:1 など少なめに設定
                 <Box component="main" sx={{ p: 1 }}>
                   <GraphEngine />
+                </Box>
+              }
+            />
+            <Route
+              path="/cdt"
+              element={
+                <Box component="main" sx={{ p: 1 }}>
+                  <CDT />
                 </Box>
               }
             />
