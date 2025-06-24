@@ -274,11 +274,11 @@ const MenuGrid: React.FC<MenuGridProps> = ({ handleNavigate }) => {
         external: false,
       },
       {
-        title: "Swagger UI",
+        title: "CDT",
         icon: <TerminalIcon sx={{ fontSize: 50 }} />,
-        path: `${settings.url_prefix}/docs`,
-        description: "Test the API endpoints.",
-        external: true,
+        path: "/cdt",
+        description: "Calculate nagg from CSV files.",
+        external: false,
       },
       {
         title: "Github",
