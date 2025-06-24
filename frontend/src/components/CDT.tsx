@@ -179,7 +179,7 @@ const CDT: React.FC = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>Filename</TableCell>
-                    <TableCell>Mean Length</TableCell>
+                    <TableCell>Mean Length (μm)</TableCell>
                     <TableCell>Nagg Rate</TableCell>
                     <TableCell>Heatmap</TableCell>
                   </TableRow>
