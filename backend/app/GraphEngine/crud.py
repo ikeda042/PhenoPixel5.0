@@ -65,9 +65,9 @@ class SyncChores:
         ax.set_ylabel("Cell length (px)")
         ax.set_xlabel("Cell number")
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=500)
+        fig.savefig(buf, format="png", dpi=500)
         buf.seek(0)
-        plt.clf()
+        plt.close(fig)
 
         return buf
 
@@ -121,9 +121,9 @@ class SyncChores:
         ax.set_xlabel("Cell number")
 
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=500)
+        fig.savefig(buf, format="png", dpi=500)
         buf.seek(0)
-        plt.clf()
+        plt.close(fig)
 
         return buf
 
