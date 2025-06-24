@@ -61,7 +61,9 @@ const CDT: React.FC = () => {
   const [files, setFiles] = useState<FileList | null>(null);
   const [results, setResults] = useState<ResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [heatmaps, setHeatmaps] = useState<Record<string, string>>({});
+  const [heatmaps, setHeatmaps] = useState<
+    Record<string, { abs: string; rel: string }>
+  >({});
 
   const handleCtrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) setCtrlFile(e.target.files[0]);
@@ -86,25 +88,38 @@ const CDT: React.FC = () => {
       const res = await axios.post<ResultItem[]>(`${url_prefix}/cdt/nagg`, formData);
       setResults(res.data);
 
-      // Generate heatmaps for each file
+      // Generate heatmaps for each file (abs. and rel.)
       const heatmapPromises = Array.from(files).map(async (file) => {
-        const fd = new FormData();
-        fd.append("file", file);
-        const r = await fetch(`${url_prefix}/graph_engine/heatmap_abs`, {
+        const fdAbs = new FormData();
+        fdAbs.append("file", file);
+        const absRes = await fetch(`${url_prefix}/graph_engine/heatmap_abs`, {
           method: "POST",
-          body: fd,
+          body: fdAbs,
         });
-        if (!r.ok) throw new Error("Failed to generate heatmap");
-        const blob = await r.blob();
-        return [file.name, URL.createObjectURL(blob)] as [string, string];
+        if (!absRes.ok) throw new Error("Failed to generate abs heatmap");
+        const absBlob = await absRes.blob();
+
+        const fdRel = new FormData();
+        fdRel.append("file", file);
+        const relRes = await fetch(`${url_prefix}/graph_engine/heatmap_rel`, {
+          method: "POST",
+          body: fdRel,
+        });
+        if (!relRes.ok) throw new Error("Failed to generate rel heatmap");
+        const relBlob = await relRes.blob();
+
+        return [
+          file.name,
+          { abs: URL.createObjectURL(absBlob), rel: URL.createObjectURL(relBlob) },
+        ] as [string, { abs: string; rel: string }];
       });
 
       const heatmapEntries = await Promise.allSettled(heatmapPromises);
-      const map: Record<string, string> = {};
+      const map: Record<string, { abs: string; rel: string }> = {};
       for (const h of heatmapEntries) {
         if (h.status === "fulfilled") {
-          const [name, url] = h.value;
-          map[name] = url;
+          const [name, urls] = h.value;
+          map[name] = urls;
         }
       }
       setHeatmaps(map);
@@ -181,7 +196,8 @@ const CDT: React.FC = () => {
                     <TableCell>Filename</TableCell>
                     <TableCell>Mean Length (μm)</TableCell>
                     <TableCell>Nagg Rate</TableCell>
-                    <TableCell>Heatmap</TableCell>
+                    <TableCell>Heatmap (abs.)</TableCell>
+                    <TableCell>Heatmap (rel.)</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -191,11 +207,21 @@ const CDT: React.FC = () => {
                       <TableCell>{r.mean_length.toFixed(2)}</TableCell>
                       <TableCell>{(r.nagg_rate * 100).toFixed(2)}%</TableCell>
                       <TableCell>
-                        {heatmaps[r.filename] && (
+                        {heatmaps[r.filename]?.abs && (
                           <Box
                             component="img"
-                            src={heatmaps[r.filename]}
-                            alt="heatmap"
+                            src={heatmaps[r.filename].abs}
+                            alt="heatmap abs"
+                            sx={{ width: 120, borderRadius: 1 }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {heatmaps[r.filename]?.rel && (
+                          <Box
+                            component="img"
+                            src={heatmaps[r.filename].rel}
+                            alt="heatmap rel"
                             sx={{ width: 120, borderRadius: 1 }}
                           />
                         )}
