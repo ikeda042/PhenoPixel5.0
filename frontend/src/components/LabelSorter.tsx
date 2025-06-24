@@ -128,14 +128,7 @@ const LabelSorter: React.FC = () => {
       await axios.patch(`${url_prefix}/cells/${dbName}/${cellId}/${newLabel}`);
       if (fromLabel === "N/A") {
         setNaCells((prev) => prev.filter((id) => id !== cellId));
-        setLabelCells((prev) => {
-          const newArr = [...prev];
-          if (newArr.length === 0) {
-            return [cellId];
-          }
-          newArr.splice(0, 0, cellId);
-          return newArr;
-        });
+        setLabelCells((prev) => [...prev, cellId]);
       } else {
         setLabelCells((prev) => prev.filter((id) => id !== cellId));
         setNaCells((prev) => [...prev, cellId]);
