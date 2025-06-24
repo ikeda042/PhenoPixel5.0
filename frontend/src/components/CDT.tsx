@@ -70,70 +70,12 @@ const CDT: React.FC = () => {
         </Link>
         <Typography color="text.primary">CDT</Typography>
       </Breadcrumbs>
-      <Box mt={2}>
-        <Stack spacing={2}>
-          <Box>
-            <input
-              id="ctrl-file"
-              type="file"
-              accept=".csv"
-              onChange={handleCtrlChange}
-              style={{ display: "none" }}
-            />
-            <label htmlFor="ctrl-file">
-              <Button
-                variant="contained"
-                component="span"
-                sx={{
-                  backgroundColor: "#000",
-                  color: "#fff",
-                  "&:hover": { backgroundColor: "#333" },
-                }}
-              >
-                {ctrlFile ? ctrlFile.name : "Select Control CSV"}
-              </Button>
-            </label>
-          </Box>
-          <Box>
-            <input
-              id="sample-files"
-              type="file"
-              accept=".csv"
-              multiple
-              onChange={handleFilesChange}
-              style={{ display: "none" }}
-            />
-            <label htmlFor="sample-files">
-              <Button
-                variant="contained"
-                component="span"
-                sx={{
-                  backgroundColor: "#000",
-                  color: "#fff",
-                  "&:hover": { backgroundColor: "#333" },
-                }}
-              >
-                {files?.length
-                  ? `${files.length} file${files.length > 1 ? "s" : ""} selected`
-                  : "Select CSV files"}
-              </Button>
-            </label>
-          </Box>
-          <Box>
-            <Button
-              variant="contained"
-              onClick={handleAnalyze}
-              disabled={isLoading}
-              sx={{
-                backgroundColor: "#000",
-                color: "#fff",
-                "&:hover": { backgroundColor: "#333" },
-              }}
-            >
-              {isLoading ? "Analyzing..." : "Analyze"}
-            </Button>
-          </Box>
-        </Stack>
+      <Box mt={2} display="flex" flexDirection="column" gap={2}>
+        <input type="file" accept=".csv" onChange={handleCtrlChange} />
+        <input type="file" accept=".csv" multiple onChange={handleFilesChange} />
+        <Button variant="contained" onClick={handleAnalyze} disabled={isLoading}>
+          Analyze
+        </Button>
       </Box>
       {results.length > 0 && (
         <TableContainer component={Paper} sx={{ mt: 4 }}>
