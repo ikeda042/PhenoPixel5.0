@@ -14,6 +14,8 @@ import {
   TableRow,
   Paper,
   Stack,
+  Backdrop,
+  CircularProgress,
 } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
@@ -64,19 +66,31 @@ const CDT: React.FC = () => {
 
   return (
     <Container sx={{ py: 4 }}>
-      <Breadcrumbs aria-label="breadcrumb">
+      <Backdrop open={isLoading} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link underline="hover" color="inherit" href="/">
           Top
         </Link>
         <Typography color="text.primary">CDT</Typography>
       </Breadcrumbs>
-      <Box mt={2} display="flex" flexDirection="column" gap={2}>
-        <input type="file" accept=".csv" onChange={handleCtrlChange} />
-        <input type="file" accept=".csv" multiple onChange={handleFilesChange} />
+      <Typography variant="h5" fontWeight="bold" mb={2}>
+        CDT Analyzer
+      </Typography>
+      <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} alignItems="center">
+        <Button variant="outlined" component="label">
+          {ctrlFile ? ctrlFile.name : 'Select Control CSV'}
+          <input type="file" accept=".csv" hidden onChange={handleCtrlChange} />
+        </Button>
+        <Button variant="outlined" component="label">
+          {files ? `${files.length} file(s) selected` : 'Select CSV files'}
+          <input type="file" accept=".csv" multiple hidden onChange={handleFilesChange} />
+        </Button>
         <Button variant="contained" onClick={handleAnalyze} disabled={isLoading}>
           Analyze
         </Button>
-      </Box>
+      </Stack>
       {results.length > 0 && (
         <TableContainer component={Paper} sx={{ mt: 4 }}>
           <Table>
