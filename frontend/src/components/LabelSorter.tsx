@@ -25,8 +25,10 @@ const LabelSorter: React.FC = () => {
   const dbName = searchParams.get("db_name") ?? "";
 
   const [naCells, setNaCells] = useState<string[]>([]);
+  const [naLoaded, setNaLoaded] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState<string>("1");
   const [labelCells, setLabelCells] = useState<string[]>([]);
+  const [labelLoaded, setLabelLoaded] = useState(false);
   const [channel, setChannel] = useState<"ph" | "fluo1" | "fluo2">("ph");
   const [images, setImages] = useState<{ [key: string]: string }>({});
 
@@ -39,8 +41,11 @@ const LabelSorter: React.FC = () => {
         setNaCells(naRes.data.map((c: { cell_id: string }) => c.cell_id));
       } catch (error) {
         console.error("Failed to fetch N/A cell ids", error);
+      } finally {
+        setNaLoaded(true);
       }
     };
+    setNaLoaded(false);
     if (dbName) fetchNaCells();
   }, [dbName]);
 
@@ -53,8 +58,11 @@ const LabelSorter: React.FC = () => {
         setLabelCells(res.data.map((c: { cell_id: string }) => c.cell_id));
       } catch (error) {
         console.error("Failed to fetch label cell ids", error);
+      } finally {
+        setLabelLoaded(true);
       }
     };
+    setLabelLoaded(false);
     if (dbName && selectedLabel) fetchLabelCells();
   }, [dbName, selectedLabel]);
 
@@ -117,8 +125,8 @@ const LabelSorter: React.FC = () => {
   }, [labelCells, dbName, channel, images]);
 
   const isLoading =
-    naCells.length === 0 ||
-    labelCells.length === 0 ||
+    !naLoaded ||
+    !labelLoaded ||
     naCells.some((id) => !images[`${id}_${channel}`]) ||
     labelCells.some((id) => !images[`${id}_${channel}`]);
 
