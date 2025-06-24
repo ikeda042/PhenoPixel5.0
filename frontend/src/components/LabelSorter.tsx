@@ -10,6 +10,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Backdrop,
+  CircularProgress,
 } from "@mui/material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
@@ -114,6 +116,12 @@ const LabelSorter: React.FC = () => {
     fetchImages(labelCells);
   }, [labelCells, dbName, channel, images]);
 
+  const isLoading =
+    naCells.length === 0 ||
+    labelCells.length === 0 ||
+    naCells.some((id) => !images[`${id}_${channel}`]) ||
+    labelCells.some((id) => !images[`${id}_${channel}`]);
+
   const handleClick = async (cellId: string, fromLabel: "N/A" | "selected") => {
     const newLabel = fromLabel === "N/A" ? selectedLabel : "1000";
     try {
@@ -151,6 +159,12 @@ const LabelSorter: React.FC = () => {
 
   return (
     <Container maxWidth={false} disableGutters>
+      <Backdrop
+        sx={{ color: "black", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
       <Box mb={2}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link underline="hover" color="inherit" href="/">
