@@ -80,7 +80,7 @@ const LabelSorter: React.FC = () => {
                   ? "fluo_image"
                   : "fluo2_image";
               const res = await axios.get(
-                `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}?resize_factor=${resizeFactor}`,
+                `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}?resize_factor=${resizeFactor}&contour_thickness=3`,
                 { responseType: "blob" }
               );
               const url = URL.createObjectURL(res.data);
@@ -109,7 +109,7 @@ const LabelSorter: React.FC = () => {
                   ? "fluo_image"
                   : "fluo2_image";
               const res = await axios.get(
-                `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}?resize_factor=${resizeFactor}`,
+                `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}?resize_factor=${resizeFactor}&contour_thickness=3`,
                 { responseType: "blob" }
               );
               const url = URL.createObjectURL(res.data);
