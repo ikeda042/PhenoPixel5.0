@@ -133,7 +133,7 @@ const LabelSorter: React.FC = () => {
           if (newArr.length === 0) {
             return [cellId];
           }
-          newArr.splice(1, 0, cellId);
+          newArr.splice(0, 0, cellId);
           return newArr;
         });
       } else {
