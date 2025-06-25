@@ -206,7 +206,7 @@ class SyncChores:
         plt.legend()
         plt.gca().axes.get_xaxis().set_visible(False)
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=100)
+        fig.savefig(buf, format="png", dpi=100)
         buf.seek(0)
         plt.close(fig)
         return buf
@@ -286,7 +286,7 @@ class SyncChores:
 
         # バッファにプロットを書き出し
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=200)
+        fig.savefig(buf, format="png", dpi=200)
         # バッファのポインタを先頭に戻す
         buf.seek(0)
 
@@ -306,7 +306,7 @@ class SyncChores:
         plt.xlabel("Relative position")
         plt.ylabel("Normalized Fluorescence Intensity")
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=100)
+        fig.savefig(buf, format="png", dpi=100)
         buf.seek(0)
         plt.close(fig)
         return buf
@@ -324,7 +324,7 @@ class SyncChores:
         fig.colorbar(cax)
         plt.ylabel("Relative position")
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=100)
+        fig.savefig(buf, format="png", dpi=100)
         buf.seek(0)
         plt.close(fig)
         return buf
@@ -388,7 +388,7 @@ class SyncChores:
         ax.set_xlabel("cell number")
 
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=200)
+        fig.savefig(buf, format="png", dpi=200)
         buf.seek(0)
         plt.close(fig)
         return buf
@@ -931,7 +931,7 @@ class AsyncChores:
         plt.plot(px, py, color="magenta")
 
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=100)
+        fig.savefig(buf, format="png", dpi=100)
         buf.seek(0)
         plt.close(fig)
         return buf
@@ -1088,7 +1088,7 @@ class AsyncChores:
 
         # 出力用バッファ
         buf = io.BytesIO()
-        plt.savefig(buf, format="png")
+        fig.savefig(buf, format="png")
         buf.seek(0)
         plt.close(fig)
 
@@ -1989,7 +1989,7 @@ class CellCrudBase:
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=90, bbox_inches="tight")
+        fig.savefig(buf, format="png", dpi=90, bbox_inches="tight")
         buf.seek(0)
         plt.close(fig)
         return buf
