@@ -745,6 +745,19 @@ Fig. 12-2 staked heatmap with absolute cell lengths.(in pixel)
 Fig. 12-3 staked heatmap with absolute cell lengths. (in µm)
 </p>
 
+## Nagg Rate Calculation Algorithm
+
+### Objective:
+To calculate the "Nagg rate" from CSV files by comparing cell intensities to a control threshold.
+
+### Methodologies:
+1. **Control Value Extraction**: The backend parses the control CSV, normalizes each trace, computes their averages, sorts them in descending order, and selects the 95th percentile as the control value.
+2. **Sample Analysis**: Each sample CSV contains alternating lines of positional data and peak intensities. For each cell, the peak intensities are normalized and averaged. Cells with averages below the control value are counted.
+3. **Rate Computation**: The Nagg rate equals the number of cells below the control threshold divided by the total number of cells in the file.
+
+### Result:
+The API returns the mean cell length and the Nagg rate for each analyzed file.
+
 ## API Endpoints Used by the Frontend
 
 The table below summarizes the REST API routes that the React frontend calls.
