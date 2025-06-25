@@ -12,6 +12,7 @@ import {
   MenuItem,
   Backdrop,
   CircularProgress,
+  Button,
 } from "@mui/material";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
@@ -31,8 +32,27 @@ const LabelSorter: React.FC = () => {
   const [labelLoaded, setLabelLoaded] = useState(false);
   const [channel, setChannel] = useState<"ph" | "fluo1" | "fluo2">("ph");
   const [images, setImages] = useState<{ [key: string]: string }>({});
+  const [shiftPressed, setShiftPressed] = useState<boolean>(false);
+  const [selectedCells, setSelectedCells] = useState<{
+    [id: string]: "N/A" | "selected";
+  }>({});
 
   const labelOptions = ["1", "2", "3", "4"];
+
+  useEffect(() => {
+    const downHandler = (e: KeyboardEvent) => {
+      if (e.key === "Shift") setShiftPressed(true);
+    };
+    const upHandler = (e: KeyboardEvent) => {
+      if (e.key === "Shift") setShiftPressed(false);
+    };
+    window.addEventListener("keydown", downHandler);
+    window.addEventListener("keyup", upHandler);
+    return () => {
+      window.removeEventListener("keydown", downHandler);
+      window.removeEventListener("keyup", upHandler);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchNaCells = async () => {
@@ -130,7 +150,10 @@ const LabelSorter: React.FC = () => {
     naCells.some((id) => !images[`${id}_${channel}`]) ||
     labelCells.some((id) => !images[`${id}_${channel}`]);
 
-  const handleClick = async (cellId: string, fromLabel: "N/A" | "selected") => {
+  const updateCellLabel = async (
+    cellId: string,
+    fromLabel: "N/A" | "selected"
+  ) => {
     const newLabel = fromLabel === "N/A" ? selectedLabel : "1000";
     try {
       await axios.patch(`${url_prefix}/cells/${dbName}/${cellId}/${newLabel}`);
@@ -146,6 +169,29 @@ const LabelSorter: React.FC = () => {
     }
   };
 
+  const handleClick = (cellId: string, fromLabel: "N/A" | "selected") => {
+    if (shiftPressed) {
+      setSelectedCells((prev) => {
+        const newMap = { ...prev };
+        if (newMap[cellId]) {
+          delete newMap[cellId];
+        } else {
+          newMap[cellId] = fromLabel;
+        }
+        return newMap;
+      });
+      return;
+    }
+    updateCellLabel(cellId, fromLabel);
+  };
+
+  const handleApplySelected = async () => {
+    for (const [id, fromLabel] of Object.entries(selectedCells)) {
+      await updateCellLabel(id, fromLabel);
+    }
+    setSelectedCells({});
+  };
+
   const renderCells = (cellIds: string[], column: "N/A" | "selected") => (
     <Grid container spacing={1}>
       {cellIds.map((id) => (
@@ -154,7 +200,11 @@ const LabelSorter: React.FC = () => {
             component="img"
             src={images[`${id}_${channel}`]}
             alt={id}
-            sx={{ width: "100%", cursor: "pointer" }}
+            sx={{
+              width: "100%",
+              cursor: "pointer",
+              border: selectedCells[id] ? "2px solid red" : "none",
+            }}
             onClick={() => handleClick(id, column)}
           />
           <Typography variant="caption" display="block" align="center">
@@ -199,6 +249,11 @@ const LabelSorter: React.FC = () => {
             <MenuItem value="fluo2">fluo2</MenuItem>
           </Select>
         </FormControl>
+        {Object.keys(selectedCells).length > 0 && (
+          <Button variant="contained" onClick={handleApplySelected}>
+            Apply to {Object.keys(selectedCells).length} cells
+          </Button>
+        )}
       </Box>
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
