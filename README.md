@@ -748,15 +748,29 @@ Fig. 12-3 staked heatmap with absolute cell lengths. (in µm)
 ## Nagg Rate Calculation Algorithm
 
 ### Objective:
-To calculate the "Nagg rate" from CSV files by comparing cell intensities to a control threshold.
+To compute the "Nagg rate," describing the fraction of cells whose fluorescence falls below a threshold derived from control data.
 
 ### Methodologies:
-1. **Control Value Extraction**: The backend parses the control CSV, normalizes each trace, computes their averages, sorts them in descending order, and selects the 95th percentile as the control value.
-2. **Sample Analysis**: Each sample CSV contains alternating lines of positional data and peak intensities. For each cell, the peak intensities are normalized and averaged. Cells with averages below the control value are counted.
-3. **Rate Computation**: The Nagg rate equals the number of cells below the control threshold divided by the total number of cells in the file.
+1. **Control Threshold**  
+   Each control trace $\mathbf{Y}_i=(y_{i1},\dots,y_{im})$ is min&ndash;max normalized
+   $$\tilde{y}_{ij}=\frac{y_{ij}-\min_j y_{ij}}{\max_j y_{ij}-\min_j y_{ij}}.$$
+   Its mean intensity is
+   $$\bar{y}_i=\frac{1}{m}\sum_{j=1}^m \tilde{y}_{ij}.$$
+   The threshold $C$ equals the 95th percentile of $\{\bar{y}_i\}$.
+2. **Sample Evaluation**  
+   A sample cell provides positions $(x_{i1},\ldots,x_{i35})$ and peaks $\mathbf{S}_i=(s_{i1},\dots,s_{im})$. Its length is
+   $$L_i=(x_{i35}-x_{i1})\times0.065.$$
+   After normalizing
+   $$\tilde{s}_{ij}=\frac{s_{ij}-\min_j s_{ij}}{\max_j s_{ij}-\min_j s_{ij}},$$
+   we compute
+   $$\bar{s}_i=\frac{1}{m}\sum_{j=1}^m \tilde{s}_{ij}.$$
+   Cells with $\bar{s}_i<C$ are counted.
+3. **Rate Calculation**  
+   For $N$ cells we obtain
+   $$R=\frac{\#\{i\mid\bar{s}_i<C\}}{N},\qquad \bar{L}=\frac{1}{N}\sum_{i=1}^N L_i.$$
 
 ### Result:
-The API returns the mean cell length and the Nagg rate for each analyzed file.
+The API returns $(\bar{L},R)$ for each analyzed file.
 
 ## API Endpoints Used by the Frontend
 
