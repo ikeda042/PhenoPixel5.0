@@ -791,3 +791,14 @@ All endpoints are prefixed with `/api`.
 | `GET` | `/tlengine/databases/{db}/fields` | List fields in a timelapse database. |
 | `GET` | `/tlengine/nd2_files/{file}/cells/{field}/gif` | Retrieve a GIF preview for a field. |
 
+
+## Additional Algorithms
+
+### Volume and Width Estimation
+PhenoPixel includes utilities to approximate cell volume by slicing the contour along its major axis. The function `calculate_volume_and_widths()` iterates over evenly spaced segments, computes the mean radius in each slice, and accumulates `\pi r^2 \Delta L` to estimate volume. The routine also returns the list of radii, enabling downstream width analysis.
+
+### Timelapse Drift Correction and Tracking
+The `TimeLapseEngine` module processes multi-field timelapse ND2 files while compensating for stage drift. Several correction strategies are available, including ORB feature matching, ECC alignment, and phase correlation (`correct_drift`, `correct_drift_ecc`, `correct_drift_phase_correlation`). After alignment, contours are detected in each frame and assigned consistent indices based on centroid proximity so that individual cells can be followed through time.
+
+### Cell Extraction Pipeline
+When ND2 files are uploaded, the `CellExtraction` workflow converts them into multipage TIFF images and splits channels per frame. OpenCV is used for thresholding, contour detection, and cropping around each cell to a fixed size. Images, contours, and metadata are then stored asynchronously in SQLite databases, enabling high-throughput batch processing.
