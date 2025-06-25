@@ -62,7 +62,7 @@ const CDT: React.FC = () => {
   const [results, setResults] = useState<ResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [heatmaps, setHeatmaps] = useState<
-    Record<string, { abs: string; rel: string }>
+    Record<string, { abs: string; rel: string; dist: string }>
   >({});
 
   const handleCtrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,7 +88,7 @@ const CDT: React.FC = () => {
       const res = await axios.post<ResultItem[]>(`${url_prefix}/cdt/nagg`, formData);
       setResults(res.data);
 
-      // Generate heatmaps for each file (abs. and rel.)
+      // Generate heatmaps and distribution for each file
       const heatmapPromises = Array.from(files).map(async (file) => {
         const fdAbs = new FormData();
         fdAbs.append("file", file);
@@ -108,14 +108,27 @@ const CDT: React.FC = () => {
         if (!relRes.ok) throw new Error("Failed to generate rel heatmap");
         const relBlob = await relRes.blob();
 
+        const fdDist = new FormData();
+        fdDist.append("file", file);
+        const distRes = await fetch(`${url_prefix}/graph_engine/distribution`, {
+          method: "POST",
+          body: fdDist,
+        });
+        if (!distRes.ok) throw new Error("Failed to generate distribution");
+        const distBlob = await distRes.blob();
+
         return [
           file.name,
-          { abs: URL.createObjectURL(absBlob), rel: URL.createObjectURL(relBlob) },
-        ] as [string, { abs: string; rel: string }];
+          {
+            abs: URL.createObjectURL(absBlob),
+            rel: URL.createObjectURL(relBlob),
+            dist: URL.createObjectURL(distBlob),
+          },
+        ] as [string, { abs: string; rel: string; dist: string }];
       });
 
       const heatmapEntries = await Promise.allSettled(heatmapPromises);
-      const map: Record<string, { abs: string; rel: string }> = {};
+      const map: Record<string, { abs: string; rel: string; dist: string }> = {};
       for (const h of heatmapEntries) {
         if (h.status === "fulfilled") {
           const [name, urls] = h.value;
@@ -198,6 +211,7 @@ const CDT: React.FC = () => {
                     <TableCell>Nagg Rate</TableCell>
                     <TableCell>Heatmap (abs.)</TableCell>
                     <TableCell>Heatmap (rel.)</TableCell>
+                    <TableCell>Distribution</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -222,6 +236,16 @@ const CDT: React.FC = () => {
                             component="img"
                             src={heatmaps[r.filename].rel}
                             alt="heatmap rel"
+                            sx={{ width: 120, borderRadius: 1 }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {heatmaps[r.filename]?.dist && (
+                          <Box
+                            component="img"
+                            src={heatmaps[r.filename].dist}
+                            alt="distribution"
                             sx={{ width: 120, borderRadius: 1 }}
                           />
                         )}

@@ -16,7 +16,7 @@ from GraphEngine.schemas import HeatMapVectorAbs, HeatMapVectorRel
 
 
 class SyncChores:
-    def process_heatmap_abs(data):
+    def process_heatmap_abs(data, dpi: int = 500):
         heatmap_vectors = sorted(
             [
                 HeatMapVectorAbs(
@@ -65,13 +65,27 @@ class SyncChores:
         ax.set_ylabel("Cell length (px)")
         ax.set_xlabel("Cell number")
         buf = io.BytesIO()
-        fig.savefig(buf, format="png", dpi=500)
+        fig.savefig(buf, format="png", dpi=dpi)
         buf.seek(0)
         plt.close(fig)
 
         return buf
 
-    def process_heatmap_rel(data):
+    def process_distribution(data, dpi: int = 500):
+        """Create histogram of total intensities for each cell."""
+        totals = [sum(data[2 * i + 1]) for i in range(len(data) // 2)]
+
+        fig = plt.figure(figsize=(6, 4))
+        plt.hist(totals, bins=20, edgecolor="black", color="skyblue")
+        plt.xlabel("Total intensity")
+        plt.ylabel("Count")
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=dpi)
+        buf.seek(0)
+        plt.close(fig)
+        return buf
+
+    def process_heatmap_rel(data, dpi: int = 500):
         heatmap_vectors = sorted(
             [
                 HeatMapVectorRel(
@@ -121,7 +135,7 @@ class SyncChores:
         ax.set_xlabel("Cell number")
 
         buf = io.BytesIO()
-        fig.savefig(buf, format="png", dpi=500)
+        fig.savefig(buf, format="png", dpi=dpi)
         buf.seek(0)
         plt.close(fig)
 
@@ -129,18 +143,25 @@ class SyncChores:
 
 
 class AsyncChores:
-    async def process_heatmap_abs(self, data):
+    async def process_heatmap_abs(self, data, dpi: int = 500):
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, SyncChores.process_heatmap_abs, data)
+        return await loop.run_in_executor(None, SyncChores.process_heatmap_abs, data, dpi)
 
-    async def process_heatmap_rel(self, data):
+    async def process_heatmap_rel(self, data, dpi: int = 500):
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, SyncChores.process_heatmap_rel, data)
+        return await loop.run_in_executor(None, SyncChores.process_heatmap_rel, data, dpi)
+
+    async def process_distribution(self, data, dpi: int = 500):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, SyncChores.process_distribution, data, dpi)
 
 
 class GraphEngineCrudBase:
-    async def process_heatmap_abs(data):
-        return await AsyncChores().process_heatmap_abs(data)
+    async def process_heatmap_abs(data, dpi: int = 500):
+        return await AsyncChores().process_heatmap_abs(data, dpi)
 
-    async def process_heatmap_rel(data):
-        return await AsyncChores().process_heatmap_rel(data)
+    async def process_heatmap_rel(data, dpi: int = 500):
+        return await AsyncChores().process_heatmap_rel(data, dpi)
+
+    async def process_distribution(data, dpi: int = 500):
+        return await AsyncChores().process_distribution(data, dpi)
