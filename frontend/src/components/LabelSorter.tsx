@@ -46,16 +46,16 @@ const LabelSorter: React.FC = () => {
       if (e.key === "Shift") setShiftPressed(true);
     };
     const upHandler = (e: KeyboardEvent) => {
-      if (e.key === "Shift") setShiftPressed(false);
+      if (e.key === "Shift") {
+        setShiftPressed(false);
+        setDragging(false);
+      }
     };
     window.addEventListener("keydown", downHandler);
     window.addEventListener("keyup", upHandler);
-    const mouseUpHandler = () => setDragging(false);
-    window.addEventListener("mouseup", mouseUpHandler);
     return () => {
       window.removeEventListener("keydown", downHandler);
       window.removeEventListener("keyup", upHandler);
-      window.removeEventListener("mouseup", mouseUpHandler);
     };
   }, []);
 
@@ -190,24 +190,24 @@ const LabelSorter: React.FC = () => {
     updateCellLabel(cellId, fromLabel);
   };
 
-  const startDrag = (cellId: string, fromLabel: "N/A" | "selected") => {
-    setDragging(true);
-    const shouldSelect = !selectedCells[cellId];
-    setDragMode(shouldSelect ? "select" : "deselect");
-    toggleSelection(cellId, fromLabel);
-  };
-
-  const dragOver = (cellId: string, fromLabel: "N/A" | "selected") => {
-    if (!dragging) return;
-    setSelectedCells((prev) => {
-      const newMap = { ...prev };
-      if (dragMode === "select") {
-        if (!newMap[cellId]) newMap[cellId] = fromLabel;
-      } else if (newMap[cellId]) {
-        delete newMap[cellId];
-      }
-      return newMap;
-    });
+  const hoverSelect = (cellId: string, fromLabel: "N/A" | "selected") => {
+    if (!shiftPressed) return;
+    if (!dragging) {
+      setDragging(true);
+      const shouldSelect = !selectedCells[cellId];
+      setDragMode(shouldSelect ? "select" : "deselect");
+      toggleSelection(cellId, fromLabel);
+    } else {
+      setSelectedCells((prev) => {
+        const newMap = { ...prev };
+        if (dragMode === "select") {
+          if (!newMap[cellId]) newMap[cellId] = fromLabel;
+        } else if (newMap[cellId]) {
+          delete newMap[cellId];
+        }
+        return newMap;
+      });
+    }
   };
 
   const handleApplySelected = async () => {
@@ -231,8 +231,7 @@ const LabelSorter: React.FC = () => {
               border: selectedCells[id] ? "2px solid red" : "none",
             }}
             onClick={() => !shiftPressed && handleClick(id, column)}
-            onMouseDown={() => shiftPressed && startDrag(id, column)}
-            onMouseEnter={() => shiftPressed && dragOver(id, column)}
+            onMouseEnter={() => hoverSelect(id, column)}
           />
           <Typography variant="caption" display="block" align="center">
             {id}
