@@ -36,6 +36,8 @@ const LabelSorter: React.FC = () => {
   const [selectedCells, setSelectedCells] = useState<{
     [id: string]: "N/A" | "selected";
   }>({});
+  const [dragging, setDragging] = useState(false);
+  const [dragMode, setDragMode] = useState<"select" | "deselect">("select");
 
   const labelOptions = ["1", "2", "3", "4"];
 
@@ -48,9 +50,12 @@ const LabelSorter: React.FC = () => {
     };
     window.addEventListener("keydown", downHandler);
     window.addEventListener("keyup", upHandler);
+    const mouseUpHandler = () => setDragging(false);
+    window.addEventListener("mouseup", mouseUpHandler);
     return () => {
       window.removeEventListener("keydown", downHandler);
       window.removeEventListener("keyup", upHandler);
+      window.removeEventListener("mouseup", mouseUpHandler);
     };
   }, []);
 
@@ -169,20 +174,40 @@ const LabelSorter: React.FC = () => {
     }
   };
 
+  const toggleSelection = (cellId: string, fromLabel: "N/A" | "selected") => {
+    setSelectedCells((prev) => {
+      const newMap = { ...prev };
+      if (newMap[cellId]) {
+        delete newMap[cellId];
+      } else {
+        newMap[cellId] = fromLabel;
+      }
+      return newMap;
+    });
+  };
+
   const handleClick = (cellId: string, fromLabel: "N/A" | "selected") => {
-    if (shiftPressed) {
-      setSelectedCells((prev) => {
-        const newMap = { ...prev };
-        if (newMap[cellId]) {
-          delete newMap[cellId];
-        } else {
-          newMap[cellId] = fromLabel;
-        }
-        return newMap;
-      });
-      return;
-    }
     updateCellLabel(cellId, fromLabel);
+  };
+
+  const startDrag = (cellId: string, fromLabel: "N/A" | "selected") => {
+    setDragging(true);
+    const shouldSelect = !selectedCells[cellId];
+    setDragMode(shouldSelect ? "select" : "deselect");
+    toggleSelection(cellId, fromLabel);
+  };
+
+  const dragOver = (cellId: string, fromLabel: "N/A" | "selected") => {
+    if (!dragging) return;
+    setSelectedCells((prev) => {
+      const newMap = { ...prev };
+      if (dragMode === "select") {
+        if (!newMap[cellId]) newMap[cellId] = fromLabel;
+      } else if (newMap[cellId]) {
+        delete newMap[cellId];
+      }
+      return newMap;
+    });
   };
 
   const handleApplySelected = async () => {
@@ -205,7 +230,9 @@ const LabelSorter: React.FC = () => {
               cursor: "pointer",
               border: selectedCells[id] ? "2px solid red" : "none",
             }}
-            onClick={() => handleClick(id, column)}
+            onClick={() => !shiftPressed && handleClick(id, column)}
+            onMouseDown={() => shiftPressed && startDrag(id, column)}
+            onMouseEnter={() => shiftPressed && dragOver(id, column)}
           />
           <Typography variant="caption" display="block" align="center">
             {id}
@@ -250,7 +277,11 @@ const LabelSorter: React.FC = () => {
           </Select>
         </FormControl>
         {Object.keys(selectedCells).length > 0 && (
-          <Button variant="contained" onClick={handleApplySelected}>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleApplySelected}
+          >
             Apply to {Object.keys(selectedCells).length} cells
           </Button>
         )}
