@@ -89,9 +89,12 @@ class SyncChores:
         """Create box plot of total intensities for each cell."""
         totals = [sum(data[2 * i + 1]) for i in range(len(data) // 2)]
 
-        fig = plt.figure(figsize=(6, 4))
-        plt.boxplot(totals, vert=False)
-        plt.xlabel("Total intensity")
+        fig = plt.figure(figsize=(8, 6))
+        x = np.random.normal(1, 0.04, size=len(totals))
+        plt.plot(x, totals, "o", alpha=0.5)
+        plt.boxplot(totals, flierprops=dict(marker=""))
+        plt.ylabel("Total intensity")
+        plt.gca().axes.get_xaxis().set_visible(False)
         buf = io.BytesIO()
         fig.savefig(buf, format="png", dpi=dpi)
         buf.seek(0)
