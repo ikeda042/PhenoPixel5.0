@@ -94,6 +94,8 @@ class SyncChores:
         plt.plot(x, totals, "o", alpha=0.5)
         plt.boxplot(totals, flierprops=dict(marker=""))
         plt.ylabel("Total intensity")
+        max_total = max(totals) if totals else 0
+        plt.ylim(0, max_total * 1.05)
         plt.gca().axes.get_xaxis().set_visible(False)
         buf = io.BytesIO()
         fig.savefig(buf, format="png", dpi=dpi)
