@@ -61,7 +61,11 @@ async def delete_nd2_file(file_name: str):
 async def extract_cells(
     db_name: str,
     mode: Literal[
-        "single_layer", "dual_layer", "triple_layer", "dual_layer_reversed"
+        "single_layer",
+        "dual_layer",
+        "triple_layer",
+        "quad_layer",
+        "dual_layer_reversed",
     ] = "dual",
     param1: int = 100,
     image_size: int = 200,

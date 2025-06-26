@@ -229,6 +229,7 @@ const Extraction: React.FC = () => {
                 <MenuItem value="dual_layer">Dual Layer</MenuItem>
                 <MenuItem value="dual_layer_reversed">Dual Layer (Reversed)</MenuItem>
                 <MenuItem value="triple_layer">Triple Layer</MenuItem>
+                <MenuItem value="quad_layer">Quad Layer</MenuItem>
               </Select>
             </FormControl>
 
