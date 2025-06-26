@@ -62,7 +62,7 @@ const CDT: React.FC = () => {
   const [results, setResults] = useState<ResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [heatmaps, setHeatmaps] = useState<
-    Record<string, { abs: string; rel: string; dist: string }>
+    Record<string, { abs: string; rel: string; dist: string; dist_box: string }>
   >({});
 
   const handleCtrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,18 +117,37 @@ const CDT: React.FC = () => {
         if (!distRes.ok) throw new Error("Failed to generate distribution");
         const distBlob = await distRes.blob();
 
+        const fdDistBox = new FormData();
+        fdDistBox.append("file", file);
+        const distBoxRes = await fetch(
+          `${url_prefix}/graph_engine/distribution_box`,
+          {
+            method: "POST",
+            body: fdDistBox,
+          }
+        );
+        if (!distBoxRes.ok) throw new Error("Failed to generate distribution box");
+        const distBoxBlob = await distBoxRes.blob();
+
         return [
           file.name,
           {
             abs: URL.createObjectURL(absBlob),
             rel: URL.createObjectURL(relBlob),
             dist: URL.createObjectURL(distBlob),
+            dist_box: URL.createObjectURL(distBoxBlob),
           },
-        ] as [string, { abs: string; rel: string; dist: string }];
+        ] as [
+          string,
+          { abs: string; rel: string; dist: string; dist_box: string }
+        ];
       });
 
       const heatmapEntries = await Promise.allSettled(heatmapPromises);
-      const map: Record<string, { abs: string; rel: string; dist: string }> = {};
+      const map: Record<
+        string,
+        { abs: string; rel: string; dist: string; dist_box: string }
+      > = {};
       for (const h of heatmapEntries) {
         if (h.status === "fulfilled") {
           const [name, urls] = h.value;
@@ -212,6 +231,7 @@ const CDT: React.FC = () => {
                     <TableCell>Heatmap (abs.)</TableCell>
                     <TableCell>Heatmap (rel.)</TableCell>
                     <TableCell>Distribution</TableCell>
+                    <TableCell>Distribution Box</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -246,6 +266,16 @@ const CDT: React.FC = () => {
                             component="img"
                             src={heatmaps[r.filename].dist}
                             alt="distribution"
+                            sx={{ width: 120, borderRadius: 1 }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {heatmaps[r.filename]?.dist_box && (
+                          <Box
+                            component="img"
+                            src={heatmaps[r.filename].dist_box}
+                            alt="distribution box"
                             sx={{ width: 120, borderRadius: 1 }}
                           />
                         )}

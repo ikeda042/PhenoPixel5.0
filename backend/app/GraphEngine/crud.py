@@ -85,6 +85,19 @@ class SyncChores:
         plt.close(fig)
         return buf
 
+    def process_distribution_box(data, dpi: int = 500):
+        """Create box plot of total intensities for each cell."""
+        totals = [sum(data[2 * i + 1]) for i in range(len(data) // 2)]
+
+        fig = plt.figure(figsize=(6, 4))
+        plt.boxplot(totals, vert=False)
+        plt.xlabel("Total intensity")
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=dpi)
+        buf.seek(0)
+        plt.close(fig)
+        return buf
+
     def process_heatmap_rel(data, dpi: int = 500):
         heatmap_vectors = sorted(
             [
@@ -155,6 +168,10 @@ class AsyncChores:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, SyncChores.process_distribution, data, dpi)
 
+    async def process_distribution_box(self, data, dpi: int = 500):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, SyncChores.process_distribution_box, data, dpi)
+
 
 class GraphEngineCrudBase:
     async def process_heatmap_abs(data, dpi: int = 500):
@@ -165,3 +182,6 @@ class GraphEngineCrudBase:
 
     async def process_distribution(data, dpi: int = 500):
         return await AsyncChores().process_distribution(data, dpi)
+
+    async def process_distribution_box(data, dpi: int = 500):
+        return await AsyncChores().process_distribution_box(data, dpi)
