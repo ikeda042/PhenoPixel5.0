@@ -30,15 +30,17 @@ async def get_ph_contours(frame_num: int, session_ulid: str):
 
 @router_cell_extraction.post("/nd2_files")
 async def upload_nd2_file(file: UploadFile):
-    file_path = file.filename
-    file_path = os.path.join("uploaded_files", file_path)
+    filename = os.path.basename(file.filename)
+    base, ext = os.path.splitext(filename)
+    sanitized = base.replace(".", "p") + ext
+    file_path = os.path.join("uploaded_files", sanitized)
     try:
         async with aiofiles.open(file_path, "wb") as out_file:
             while content := await file.read(1024 * 1024 * 100):
                 await out_file.write(content)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    return JSONResponse(content={"filename": file.filename})
+    return JSONResponse(content={"filename": sanitized})
 
 
 @router_cell_extraction.get("/nd2_files")
