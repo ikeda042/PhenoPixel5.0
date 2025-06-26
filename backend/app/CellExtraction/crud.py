@@ -161,7 +161,7 @@ class SyncChores:
     def extract_tiff(
         tiff_path: str,
         ulid: str,
-        mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual_layer",
+        mode: Literal["single_layer", "dual_layer", "triple_layer", "quad_layer"] = "dual_layer",
         reverse: bool = False,
     ) -> int:
         temp_dir = f"TempData{ulid}"
@@ -173,6 +173,7 @@ class SyncChores:
         ]
 
         layers = {
+            "quad_layer": ["Fluo1", "Fluo2", "PH"],  # Fluo3 is ignored
             "triple_layer": ["Fluo1", "Fluo2", "PH"],
             "single_layer": ["PH"],
             "dual_layer": ["Fluo1", "PH"],
@@ -186,6 +187,12 @@ class SyncChores:
             img_num = 0
 
             layer_map = {
+                "quad_layer": [
+                    (0, "PH"),
+                    (1, "Fluo1"),
+                    (2, "Fluo2"),
+                    (3, None),  # skip Fluo3
+                ],
                 "triple_layer": [(0, "PH"), (1, "Fluo1"), (2, "Fluo2")],
                 "single_layer": [(0, "PH")],
                 "dual_layer": (
@@ -199,9 +206,10 @@ class SyncChores:
                 tiff.seek(i)
                 layer_idx = i % len(layer_map[mode])
                 layer = layer_map[mode][layer_idx][1]
-                filename = f"{temp_dir}/{layer}/{img_num}.tif"
-                print(filename)
-                tiff.save(filename, format="TIFF")
+                if layer is not None:
+                    filename = f"{temp_dir}/{layer}/{img_num}.tif"
+                    print(filename)
+                    tiff.save(filename, format="TIFF")
                 if layer_idx == len(layer_map[mode]) - 1:
                     img_num += 1
 
@@ -252,12 +260,20 @@ class SyncChores:
         ulid: str,
         param1: int = 130,
         image_size: int = 200,
-        mode: Literal["single_layer", "dual_layer", "triple_layer"] = "dual_layer",
+        mode: Literal[
+            "single_layer",
+            "dual_layer",
+            "triple_layer",
+            "quad_layer",
+        ] = "dual_layer",
     ) -> int:
         temp_dir = f"TempData{ulid}"
         print(f"Initializing {temp_dir}")
         print("}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}")
-        if mode == "triple_layer":
+        if mode == "quad_layer":
+            set_num = 4
+            init_folders = ["Fluo1", "Fluo2", "PH", "frames", "app_data"]
+        elif mode == "triple_layer":
             set_num = 3
             init_folders = ["Fluo1", "Fluo2", "PH", "frames", "app_data"]
         elif mode == "single_layer":
@@ -306,7 +322,7 @@ class SyncChores:
             except Exception as e:
                 print(e)
 
-            if mode == "triple_layer":
+            if mode in ("triple_layer", "quad_layer"):
                 try:
                     os.mkdir(f"{temp_dir}/frames/tiff_{i}/Cells/fluo2")
                 except Exception as e:
@@ -323,9 +339,9 @@ class SyncChores:
         for k in range(loop_num):
             image_ph = cv2.imread(f"{temp_dir}/PH/{k}.tif")
             print(num_tiff)
-            if mode == "dual_layer" or mode == "triple_layer":
+            if mode == "dual_layer" or mode == "triple_layer" or mode == "quad_layer":
                 image_fluo_1 = cv2.imread(f"{temp_dir}/Fluo1/{k}.tif")
-            if mode == "triple_layer":
+            if mode == "triple_layer" or mode == "quad_layer":
                 image_fluo_2 = cv2.imread(f"{temp_dir}/Fluo2/{k}.tif")
             img_gray = cv2.cvtColor(image_ph, cv2.COLOR_BGR2GRAY)
 
@@ -359,11 +375,11 @@ class SyncChores:
             cropped_images_ph = SyncChores.crop_contours(
                 image_ph, contours, output_size
             )
-            if mode == "triple_layer" or mode == "dual_layer":
+            if mode == "triple_layer" or mode == "dual_layer" or mode == "quad_layer":
                 cropped_images_fluo_1 = SyncChores.crop_contours(
                     image_fluo_1, contours, output_size
                 )
-            if mode == "triple_layer":
+            if mode == "triple_layer" or mode == "quad_layer":
                 cropped_images_fluo_2 = SyncChores.crop_contours(
                     image_fluo_2, contours, output_size
                 )
@@ -372,7 +388,7 @@ class SyncChores:
             cv2.drawContours(image_ph_copy, contours, -1, (0, 255, 0), 3)
             cv2.imwrite(f"ph_contours{ulid}/{k}.png", image_ph_copy)
             n = 0
-            if mode == "triple_layer":
+            if mode in ("triple_layer", "quad_layer"):
                 for ph, fluo1, fluo2 in zip(
                     cropped_images_ph, cropped_images_fluo_1, cropped_images_fluo_2
                 ):
@@ -495,7 +511,7 @@ class ExtractionCrudBase:
                         img_fluo1_data = cv2.imencode(".png", img_fluo1_gray)[
                             1
                         ].tobytes()
-                    if self.mode == "triple_layer":
+                    if self.mode in ("triple_layer", "quad_layer"):
                         img_fluo2 = await self.load_image(
                             f"TempData{self.ulid}/frames/tiff_{i}/Cells/fluo2/{j}.png"
                         )
@@ -555,6 +571,7 @@ class ExtractionCrudBase:
 
         iter_n = {
             "triple_layer": num_tiff // 3,
+            "quad_layer": num_tiff // 4,
             "single_layer": num_tiff,
             "dual_layer": num_tiff // 2,
         }
