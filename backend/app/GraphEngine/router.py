@@ -44,6 +44,16 @@ async def create_distribution(file: UploadFile):
     )
 
 
+@router_graphengine.post("/distribution_box")
+async def create_distribution_box(file: UploadFile):
+    content = await file.read()
+    data = pd.read_csv(io.StringIO(content.decode("utf-8")), header=None).values.tolist()
+    return StreamingResponse(
+        await GraphEngineCrudBase.process_distribution_box(data, dpi=100),
+        media_type="image/png",
+    )
+
+
 @router_graphengine.post("/mcpr")
 async def mcpr(
     file: UploadFile,
