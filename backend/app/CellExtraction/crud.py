@@ -161,7 +161,9 @@ class SyncChores:
     def extract_tiff(
         tiff_path: str,
         ulid: str,
-        mode: Literal["single_layer", "dual_layer", "triple_layer", "quad_layer"] = "dual_layer",
+        mode: Literal[
+            "single_layer", "dual_layer", "triple_layer", "quad_layer"
+        ] = "dual_layer",
         reverse: bool = False,
     ) -> int:
         temp_dir = f"TempData{ulid}"
@@ -437,7 +439,9 @@ class ExtractionCrudBase:
     ):
         self.nd2_path = nd2_path
         self.nd2_path = self.nd2_path.replace("\\", "/")
-        self.file_prefix = self.nd2_path.split("/")[-1].split(".")[0]
+        basename = os.path.basename(self.nd2_path)
+        base, _ = os.path.splitext(basename)
+        self.file_prefix = base.replace(".", "p")
         self.mode = mode
         self.param1 = param1
         self.image_size = image_size

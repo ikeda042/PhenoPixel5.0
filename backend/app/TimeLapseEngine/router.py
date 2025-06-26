@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, UploadFile, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 import os
@@ -6,8 +5,9 @@ import aiofiles
 import io
 from typing import Literal
 
-from TimeLapseEngine.crud import TimelapseDatabaseCrud  
-from TimeLapseEngine.crud import TimelapseEngineCrudBase  
+from TimeLapseEngine.crud import TimelapseDatabaseCrud
+from TimeLapseEngine.crud import TimelapseEngineCrudBase
+
 router_tl_engine = APIRouter(prefix="/tlengine", tags=["tlengine"])
 
 
@@ -19,10 +19,11 @@ async def upload_nd2_file(file: UploadFile):
     if not file.filename.endswith(".nd2"):
         raise HTTPException(status_code=400, detail="Only .nd2 files are accepted")
 
-    filename = file.filename.split(".")[0]
-    ext = file.filename.split(".")[1]
-    file_path = filename + "_timelapse." + ext
-    file_path = os.path.join("uploaded_files", file_path)
+    filename = os.path.basename(file.filename)
+    base, ext = os.path.splitext(filename)
+    sanitized = base.replace(".", "p")
+    stored_filename = sanitized + "_timelapse" + ext
+    file_path = os.path.join("uploaded_files", stored_filename)
 
     try:
         async with aiofiles.open(file_path, "wb") as out_file:
@@ -30,7 +31,7 @@ async def upload_nd2_file(file: UploadFile):
                 await out_file.write(content)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    return JSONResponse(content={"filename": file.filename})
+    return JSONResponse(content={"filename": stored_filename})
 
 
 @router_tl_engine.get("/nd2_files")
@@ -88,7 +89,9 @@ async def extract_all_cells(file_name: str, param_1: int, crop_size: int = 200):
     """
     全てのフィールドからセルを抽出し、データベースに保存するエンドポイント。
     """
-    db_name = file_name.split(".")[0] + "_cells.db"
+    base = os.path.splitext(file_name)[0]
+    base = base.replace(".", "p")
+    db_name = f"{base}_cells.db"
     fields = await TimelapseEngineCrudBase(file_name).get_fields_of_nd2()
     db_path = f"timelapse_databases/{db_name}"
     if os.path.exists(db_path):
@@ -107,7 +110,9 @@ async def create_gif_for_cell_endpoint(
     """
     セル番号に対応する GIF を生成し、ストリーミングで返すエンドポイント。
     """
-    db_name = file_name.split(".")[0] + f"_cells.db"
+    base = os.path.splitext(file_name)[0]
+    base = base.replace(".", "p")
+    db_name = f"{base}_cells.db"
     crud = TimelapseEngineCrudBase(file_name)
     gif_buffer = await crud.create_gif_for_cell(
         field=field_name, cell_number=cell_number, dbname=db_name
@@ -127,7 +132,9 @@ async def create_gif_for_cells_endpoint(
     """
     指定したフィールド内の全セルについて、GIF を生成し、ストリーミングで返すエンドポイント。
     """
-    db_name = file_name.split(".")[0] + f"_cells.db"
+    base = os.path.splitext(file_name)[0]
+    base = base.replace(".", "p")
+    db_name = f"{base}_cells.db"
     gif_buffer = await TimelapseEngineCrudBase(file_name).create_gif_for_cells(
         field=field_name, dbname=db_name, channel=channel
     )
@@ -359,7 +366,10 @@ async def get_cell_timecourse_as_single_image(
         },
     )
 
-@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/timecourse_png/all_channels")
+
+@router_tl_engine.get(
+    "/databases/{db_name}/cells/{field}/{cell_number}/timecourse_png/all_channels"
+)
 async def get_cell_timecourse_for_all_channels(
     db_name: str,
     field: str,
