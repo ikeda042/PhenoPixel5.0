@@ -5,7 +5,6 @@ from typing import List
 
 import joblib
 import numpy as np
-
 from CellDBConsole.crud import CellCrudBase
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -26,6 +25,7 @@ class AutoLabelCrud:
 
     @staticmethod
     def resample_vector(vec: np.ndarray, target_len: int = 256) -> np.ndarray:
+        vec = np.asarray(vec).reshape(-1)
         if len(vec) == target_len:
             return vec
         old_x = np.linspace(0.0, 1.0, len(vec))
@@ -50,4 +50,3 @@ class AutoLabelCrud:
                 await CellCrudBase(self.db_name).update_label(cell.cell_id, "1")
             else:
                 await CellCrudBase(self.db_name).update_label(cell.cell_id, "N/A")
-
