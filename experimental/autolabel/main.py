@@ -3,16 +3,18 @@
 Visualize cell contours.
 
 Produces two figures:
-1. lda_result.png     – 2-D scatter (LDA, or PCA fallback when one class).
+1. lda_result.png     – 2-D scatter (LDA on *resampled* vectors, or PCA fallback when one class).
 2. vectors_overlay.png – Overlay of *true* radial-distance vectors
-                         (trailing zero padding is now hidden).
+                         (trailing zero padding is hidden).
 
-Changes vs previous version
----------------------------
-* `prepare_vectors` now returns both the zero-padded matrix **and** the
-  true length of each original vector.
-* `plot_overlay` now draws only the first *length* elements for every
-  contour, so artificial zeros from padding never appear.
+NEW in this version
+-------------------
+* **Uniform-length resampling** — every distance vector is linearly
+  resampled to `TARGET_LEN` points before passing to LDA/PCA.
+  Padding with artificial zeros is no longer used for dimensionality
+  reduction, so class statistics are not skewed.
+* Old zero-padding path is kept **only** for the overlay plot
+  (it still needs the true length of each vector).
 """
 
 import os
@@ -28,9 +30,10 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 DB_PATH: str = "experimental/autolabel/250626_SK450_Gen_1p0-completed.db"
-LABEL_FILTER: Optional[str] = None  # e.g. "1" or "N/A"; None = no filter
+LABEL_FILTER: Optional[str] = None        # e.g. "1" or "N/A"; None = no filter
+TARGET_LEN: int = 256                     # resampled length for LDA/PCA
 EMBEDDING_PLOT = "lda_result.png"
-OVERLAY_PLOT = "vectors_overlay.png"
+OVERLAY_PLOT   = "vectors_overlay.png"
 # ──────────────────────────────────────────────────────────────────────────────
 
 
@@ -68,12 +71,35 @@ def contour_to_vector(contour: np.ndarray) -> np.ndarray:
     return np.sort(distances)
 
 
-def prepare_vectors(
+# ── ① Uniform-length vectors for LDA/PCA  ─────────────────────────────────────
+def resample_vector(vec: np.ndarray, target_len: int = TARGET_LEN) -> np.ndarray:
+    """
+    Resample an arbitrary-length 1-D array to *target_len* points
+    using linear interpolation.
+    """
+    if len(vec) == target_len:
+        return vec
+    old_x = np.linspace(0.0, 1.0, len(vec))
+    new_x = np.linspace(0.0, 1.0, target_len)
+    return np.interp(new_x, old_x, vec)
+
+
+def prepare_resampled_vectors(
+    contours: List[np.ndarray], target_len: int = TARGET_LEN
+) -> np.ndarray:
+    """Return an (M × target_len) matrix of resampled distance vectors."""
+    raw_vecs = [contour_to_vector(c) for c in contours]
+    resampled = np.vstack([resample_vector(v, target_len) for v in raw_vecs])
+    return resampled
+
+
+# ── ② Padded vectors + true lengths for overlay plot ─────────────────────────
+def prepare_vectors_for_overlay(
     contours: List[np.ndarray],
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Return:
-      padded_vectors : (M × L) float array (zero-padded)
+      padded_vectors : (M × L_max) float array (zero-padded)
       lengths        : (M,) int array of true vector lengths
     """
     raw_vecs = [contour_to_vector(c) for c in contours]
@@ -96,10 +122,11 @@ def project_vectors(
         n_comp = min(2, vectors.shape[1], len(classes) - 1)
         lda = LinearDiscriminantAnalysis(n_components=n_comp)
         emb = lda.fit_transform(vectors, labels)
-        if n_comp == 1:  # pad to 2-D
+        if n_comp == 1:  # pad to 2-D so downstream code is uniform
             emb = np.column_stack([emb, np.zeros_like(emb)])
-        method = f"LDA ({n_comp}-D)"
+        method = f"LDA on resampled ({n_comp}-D)"
     else:
+        # one class → PCA fallback
         n_comp = 2 if vectors.shape[1] >= 2 else 1
         pca = PCA(n_components=n_comp)
         emb = pca.fit_transform(vectors)
@@ -173,15 +200,18 @@ def main() -> None:
         print("No data found in DB.")
         return
 
-    vectors, lengths = prepare_vectors(contours)
-    print(f"Prepared {len(vectors)} vectors | padded shape = {vectors.shape}")
+    # vectors for LDA/PCA (uniform length)
+    resampled_vectors = prepare_resampled_vectors(contours, TARGET_LEN)
+    print(f"Prepared {len(resampled_vectors)} resampled vectors "
+          f"| shape = {resampled_vectors.shape}")
 
     # 1) 2-D embedding
-    emb, method = project_vectors(vectors, labels)
+    emb, method = project_vectors(resampled_vectors, labels)
     plot_embedding(emb, labels, method, EMBEDDING_PLOT)
 
-    # 2) Overlay (true vectors)
-    plot_overlay(vectors, lengths, labels, OVERLAY_PLOT)
+    # 2) Overlay using true-length vectors
+    padded_vectors, lengths = prepare_vectors_for_overlay(contours)
+    plot_overlay(padded_vectors, lengths, labels, OVERLAY_PLOT)
 
 
 if __name__ == "__main__":
