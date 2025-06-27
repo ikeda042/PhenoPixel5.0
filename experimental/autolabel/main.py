@@ -3,8 +3,9 @@
 Visualize cell contours.
 
 Produces three figures:
-1. lda_result.png      – 2-D scatter (LDA on *resampled* vectors,
-                         or PCA fallback when only one class).
+1. lda_result.png      – **1-D** LDA scatter (x axis = 1-component LDA,
+                         y axis = small random jitter so overlaps are visible).
+                         Falls back to 1-D PCA if only one class.
 2. pca_result.png      – 2-D scatter (explicit 2-component PCA on the
                          same *resampled* vectors for easy comparison).
 3. vectors_overlay.png – Overlay of *true* radial-distance vectors
@@ -14,9 +15,8 @@ NEW in this version
 -------------------
 * **Uniform-length resampling** — every distance vector is linearly
   resampled to `TARGET_LEN` points before LDA/PCA.
-  Padding with artificial zeros is no longer used for dimensionality
-  reduction, so class statistics are not skewed.
-* **Added explicit PCA plot** (always 2 components) alongside LDA.
+* **LDA plot is now 1-D** (overlap visualised via vertical jitter).
+* **Explicit 2-D PCA plot** added alongside LDA.
 * Old zero-padding path is kept **only** for the overlay plot
   (it still needs the true length of each vector).
 """
@@ -37,8 +37,10 @@ DB_PATH: str = "experimental/autolabel/250626_SK450_Gen_1p0-completed.db"
 LABEL_FILTER: Optional[str] = None        # e.g. "1" or "N/A"; None = no filter
 TARGET_LEN: int = 256                     # resampled length for LDA/PCA
 EMBEDDING_PLOT = "lda_result.png"
-PCA_PLOT       = "pca_result.png"         # ← added
+PCA_PLOT       = "pca_result.png"
 OVERLAY_PLOT   = "vectors_overlay.png"
+JITTER_SCALE   = 0.05                     # relative to x-range for LDA jitter
+RNG_SEED       = 42                       # reproducible jitter
 # ──────────────────────────────────────────────────────────────────────────────
 
 
@@ -78,10 +80,7 @@ def contour_to_vector(contour: np.ndarray) -> np.ndarray:
 
 # ── ① Uniform-length vectors for LDA/PCA ──────────────────────────────────────
 def resample_vector(vec: np.ndarray, target_len: int = TARGET_LEN) -> np.ndarray:
-    """
-    Resample an arbitrary-length 1-D array to *target_len* points
-    using linear interpolation.
-    """
+    """Linearly resample a 1-D array to *target_len* points."""
     if len(vec) == target_len:
         return vec
     old_x = np.linspace(0.0, 1.0, len(vec))
@@ -94,8 +93,7 @@ def prepare_resampled_vectors(
 ) -> np.ndarray:
     """Return an (M × target_len) matrix of resampled distance vectors."""
     raw_vecs = [contour_to_vector(c) for c in contours]
-    resampled = np.vstack([resample_vector(v, target_len) for v in raw_vecs])
-    return resampled
+    return np.vstack([resample_vector(v, target_len) for v in raw_vecs])
 
 
 # ── ② Padded vectors + true lengths for overlay plot ─────────────────────────
@@ -120,37 +118,49 @@ def prepare_vectors_for_overlay(
 def project_vectors(
     vectors: np.ndarray, labels: List[str]
 ) -> Tuple[np.ndarray, str]:
-    """Return 2-D embedding + method string (LDA or PCA fallback)."""
+    """
+    Return 1-D embedding (as (N,1) array) + method string.
+    Uses LDA when ≥2 classes, PCA fallback when only one class.
+    """
     classes = np.unique(labels)
 
     if len(classes) >= 2:
-        n_comp = min(2, vectors.shape[1], len(classes) - 1)
-        lda = LinearDiscriminantAnalysis(n_components=n_comp)
-        emb = lda.fit_transform(vectors, labels)
-        if n_comp == 1:  # pad to 2-D so downstream code is uniform
-            emb = np.column_stack([emb, np.zeros_like(emb)])
-        method = f"LDA on resampled ({n_comp}-D)"
+        lda = LinearDiscriminantAnalysis(n_components=1)
+        emb = lda.fit_transform(vectors, labels)  # shape (N, 1)
+        method = "LDA (1-D)"
     else:
-        # one class → PCA fallback
-        n_comp = 2 if vectors.shape[1] >= 2 else 1
-        pca = PCA(n_components=n_comp)
+        pca = PCA(n_components=1)
         emb = pca.fit_transform(vectors)
-        if n_comp == 1:
-            emb = np.column_stack([emb, np.zeros_like(emb)])
-        method = f"PCA ({n_comp}-D fallback)"
+        method = "PCA (1-D fallback)"
 
     return emb, method
 
 
 # ─── Plotting ────────────────────────────────────────────────────────────────
 def plot_embedding(
-    emb: np.ndarray, labels: List[str], title: str, out_path: str
+    emb: np.ndarray, labels: List[str], title: str, out_path: str, jitter: bool = False
 ) -> None:
-    """Scatter plot of 2-D embeddings."""
+    """Scatter plot of embeddings (1-D or 2-D)."""
+    emb = np.asarray(emb)
+    if emb.ndim == 1:  # convert to (N,1)
+        emb = emb[:, None]
+
+    if emb.shape[1] == 1:  # 1-D → add jitter for visibility
+        x = emb[:, 0]
+        rng = np.random.default_rng(RNG_SEED)
+        y = rng.normal(
+            loc=0.0,
+            scale=JITTER_SCALE * (x.ptp() if x.ptp() > 0 else 1.0),
+            size=len(x),
+        )
+        coords = np.column_stack([x, y])
+    else:
+        coords = emb[:, :2]
+
     plt.figure(figsize=(6, 6))
     for lab in sorted(set(labels)):
         idx = [i for i, l in enumerate(labels) if l == lab]
-        plt.scatter(emb[idx, 0], emb[idx, 1], label=lab, s=14)
+        plt.scatter(coords[idx, 0], coords[idx, 1], label=lab, s=14)
     if len(set(labels)) > 1:
         plt.legend(markerscale=1.5, fontsize=8)
     plt.title(title)
@@ -169,10 +179,7 @@ def plot_overlay(
     cmap_name: str = "tab10",
     alpha: float = 0.25,
 ) -> None:
-    """
-    Overlay all radial-distance vectors without showing zero padding.
-    Each actual vector length is respected.
-    """
+    """Overlay all radial-distance vectors (zero padding hidden)."""
     plt.figure(figsize=(9, 5))
     cmap = get_cmap(cmap_name)
     label_colors: Dict[str, str] = {
@@ -207,18 +214,20 @@ def main() -> None:
 
     # vectors for LDA/PCA (uniform length)
     resampled_vectors = prepare_resampled_vectors(contours, TARGET_LEN)
-    print(f"Prepared {len(resampled_vectors)} resampled vectors "
-          f"| shape = {resampled_vectors.shape}")
+    print(
+        f"Prepared {len(resampled_vectors)} resampled vectors "
+        f"| shape = {resampled_vectors.shape}"
+    )
 
-    # 1) 2-D embedding via LDA (or PCA fallback if only one class)
-    emb, method = project_vectors(resampled_vectors, labels)
-    plot_embedding(emb, labels, method, EMBEDDING_PLOT)
+    # 1) 1-D embedding via LDA (or PCA fallback if only one class)
+    emb_1d, method = project_vectors(resampled_vectors, labels)
+    plot_embedding(emb_1d, labels, method, EMBEDDING_PLOT)
 
-    # 1') 2-D PCA (explicit, always 2 components)
+    # 2) 2-D PCA (explicit, always 2 components)
     pca_emb = PCA(n_components=2).fit_transform(resampled_vectors)
     plot_embedding(pca_emb, labels, "PCA (2-D)", PCA_PLOT)
 
-    # 2) Overlay using true-length vectors
+    # 3) Overlay using true-length vectors
     padded_vectors, lengths = prepare_vectors_for_overlay(contours)
     plot_overlay(padded_vectors, lengths, labels, OVERLAY_PLOT)
 
