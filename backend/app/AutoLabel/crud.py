@@ -1,5 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import List
 
 import joblib
@@ -7,14 +8,15 @@ import numpy as np
 
 from CellDBConsole.crud import CellCrudBase
 
-MODEL_PATH = "experimental/autolabel/autolabel_lda.joblib"
+ROOT_DIR = Path(__file__).resolve().parents[2]
+MODEL_PATH = ROOT_DIR / "experimental" / "autolabel" / "autolabel_lda.joblib"
 THRESHOLD = 5.0
 
 
 class AutoLabelCrud:
-    def __init__(self, db_name: str, model_path: str = MODEL_PATH):
+    def __init__(self, db_name: str, model_path: Path = MODEL_PATH):
         self.db_name = db_name
-        self.model = joblib.load(model_path)
+        self.model = joblib.load(str(model_path))
 
     @staticmethod
     def contour_to_vector(contour: np.ndarray) -> np.ndarray:

@@ -296,7 +296,13 @@ const LabelSorter: React.FC = () => {
             Apply to {Object.keys(selectedCells).length} cells
           </Button>
         )}
-        <Button variant="outlined" onClick={handleUseAI}>Use AI</Button>
+        <Button
+          variant="outlined"
+          onClick={handleUseAI}
+          sx={{ color: "#000", borderColor: "#000" }}
+        >
+          Use AI
+        </Button>
       </Box>
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
