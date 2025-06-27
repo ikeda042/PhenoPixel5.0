@@ -9,7 +9,7 @@ import numpy as np
 from CellDBConsole.crud import CellCrudBase
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-MODEL_PATH = ROOT_DIR / "experimental" / "autolabel" / "autolabel_lda.joblib"
+MODEL_PATH = "AutoLabel/autolabel_lda.joblib"
 THRESHOLD = 5.0
 
 
