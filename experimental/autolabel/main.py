@@ -2,17 +2,21 @@
 """
 Visualize cell contours.
 
-Produces two figures:
-1. lda_result.png     – 2-D scatter (LDA on *resampled* vectors, or PCA fallback when one class).
-2. vectors_overlay.png – Overlay of *true* radial-distance vectors
+Produces three figures:
+1. lda_result.png      – 2-D scatter (LDA on *resampled* vectors,
+                         or PCA fallback when only one class).
+2. pca_result.png      – 2-D scatter (explicit 2-component PCA on the
+                         same *resampled* vectors for easy comparison).
+3. vectors_overlay.png – Overlay of *true* radial-distance vectors
                          (trailing zero padding is hidden).
 
 NEW in this version
 -------------------
 * **Uniform-length resampling** — every distance vector is linearly
-  resampled to `TARGET_LEN` points before passing to LDA/PCA.
+  resampled to `TARGET_LEN` points before LDA/PCA.
   Padding with artificial zeros is no longer used for dimensionality
   reduction, so class statistics are not skewed.
+* **Added explicit PCA plot** (always 2 components) alongside LDA.
 * Old zero-padding path is kept **only** for the overlay plot
   (it still needs the true length of each vector).
 """
@@ -33,6 +37,7 @@ DB_PATH: str = "experimental/autolabel/250626_SK450_Gen_1p0-completed.db"
 LABEL_FILTER: Optional[str] = None        # e.g. "1" or "N/A"; None = no filter
 TARGET_LEN: int = 256                     # resampled length for LDA/PCA
 EMBEDDING_PLOT = "lda_result.png"
+PCA_PLOT       = "pca_result.png"         # ← added
 OVERLAY_PLOT   = "vectors_overlay.png"
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -71,7 +76,7 @@ def contour_to_vector(contour: np.ndarray) -> np.ndarray:
     return np.sort(distances)
 
 
-# ── ① Uniform-length vectors for LDA/PCA  ─────────────────────────────────────
+# ── ① Uniform-length vectors for LDA/PCA ──────────────────────────────────────
 def resample_vector(vec: np.ndarray, target_len: int = TARGET_LEN) -> np.ndarray:
     """
     Resample an arbitrary-length 1-D array to *target_len* points
@@ -205,9 +210,13 @@ def main() -> None:
     print(f"Prepared {len(resampled_vectors)} resampled vectors "
           f"| shape = {resampled_vectors.shape}")
 
-    # 1) 2-D embedding
+    # 1) 2-D embedding via LDA (or PCA fallback if only one class)
     emb, method = project_vectors(resampled_vectors, labels)
     plot_embedding(emb, labels, method, EMBEDDING_PLOT)
+
+    # 1') 2-D PCA (explicit, always 2 components)
+    pca_emb = PCA(n_components=2).fit_transform(resampled_vectors)
+    plot_embedding(pca_emb, labels, "PCA (2-D)", PCA_PLOT)
 
     # 2) Overlay using true-length vectors
     padded_vectors, lengths = prepare_vectors_for_overlay(contours)
