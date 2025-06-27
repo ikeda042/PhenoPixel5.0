@@ -120,7 +120,7 @@ const LabelSorter: React.FC = () => {
       );
     };
     fetchImages(naCells);
-  }, [naCells, dbName, channel, images]);
+  }, [naCells, dbName, channel]);
 
   useEffect(() => {
     const fetchImages = async (cellIds: string[]) => {
@@ -149,7 +149,7 @@ const LabelSorter: React.FC = () => {
       );
     };
     fetchImages(labelCells);
-  }, [labelCells, dbName, channel, images]);
+  }, [labelCells, dbName, channel]);
 
   const isLoading =
     !naLoaded ||
