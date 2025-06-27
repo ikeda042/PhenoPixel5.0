@@ -6,8 +6,10 @@ cross‑validated accuracy. The database format is the same as used in
 """
 
 import pickle
-import sqlite3
 from typing import List, Optional, Tuple
+
+from sqlalchemy import Column, Integer, String, BLOB, FLOAT, create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 import numpy as np
 from sklearn.model_selection import cross_val_score
@@ -20,19 +22,39 @@ DB_PATH: str = "experimental/autolabel/250626_SK450_Gen_1p0-completed.db"
 TARGET_LEN: int = 256
 RNG_SEED: int = 42
 
-# Data loading ----------------------------------------------------------------
+# SQLAlchemy setup -------------------------------------------------------------
+Base = declarative_base()
+
+
+class Cell(Base):
+    """ORM model reflecting the ``cells`` table."""
+
+    __tablename__ = "cells"
+
+    id = Column(Integer, primary_key=True)
+    cell_id = Column(String)
+    label_experiment = Column(String)
+    manual_label = Column(Integer)
+    area = Column(FLOAT)
+    perimeter = Column(FLOAT)
+    img_ph = Column(BLOB)
+    img_fluo1 = Column(BLOB, nullable=True)
+    img_fluo2 = Column(BLOB, nullable=True)
+    contour = Column(BLOB)
+    center_x = Column(FLOAT)
+    center_y = Column(FLOAT)
+    user_id = Column(String, nullable=True)
+
+
 def fetch_contours(db_path: str, label: Optional[str] = None) -> Tuple[List[np.ndarray], List[str]]:
-    """Fetch contours and labels from SQLite DB."""
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    query = "SELECT contour, manual_label FROM cells"
-    params: Tuple = ()
-    if label is not None:
-        query += " WHERE manual_label = ?"
-        params = (label,)
-    cur.execute(query, params)
-    rows = cur.fetchall()
-    conn.close()
+    """Fetch contours and labels using SQLAlchemy."""
+    engine = create_engine(f"sqlite:///{db_path}")
+    Session = sessionmaker(bind=engine)
+    with Session() as session:
+        query = session.query(Cell.contour, Cell.manual_label)
+        if label is not None:
+            query = query.filter(Cell.manual_label == label)
+        rows = query.all()
 
     contours, labels = [], []
     for contour_blob, manual_label in rows:
