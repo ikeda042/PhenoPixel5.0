@@ -1,29 +1,13 @@
 #!/usr/bin/env python3
 """
-Cell-contour classifier (SVM)
+Cell-contour classifier (SVM) ― revised
 
-This module:
-
-1. Trains an SVM pipeline on contours stored in an SQLite database.
-2. Saves the fitted model to disk so it can be reused later.
-3. Exposes helpers to load the model and predict the label of an
-   unknown contour.
-
-Typical usage
--------------
-# ——————————————————————————————————————————
-# (A) Train once (creates 'svm_cell_classifier.pkl')
-# ——————————————————————————————————————————
-import cell_svm
-cell_svm.train_svm_classifier()      # prints CV accuracy & save location
-
-# ——————————————————————————————————————————
-# (B) Anywhere else in your codebase
-# ——————————————————————————————————————————
-from cell_svm import load_svm_classifier, predict_contour
-model = load_svm_classifier()        # loads the saved pipeline
-label, score = predict_contour(contour_ndarray, model, return_proba=True)
-print(label, score)
+変更点
+------
+* **contour_to_features** を導入し，形状ベクトル（256 点に線形補間した中心距離）
+  ＋ Hu モーメント (7 次元) を連結した 263 次元特徴量を使います。
+* 欠損ラベル(None, "N/A", "") は学習から除外。
+* SVM は `class_weight="balanced"` を指定してクラス不均衡を緩和。
 """
 
 # ─────────────────────────── Imports ────────────────────────────
@@ -31,6 +15,7 @@ import os
 import pickle
 from typing import List, Optional, Tuple
 
+import cv2                       # ← NEW: Hu モーメント計算用
 import numpy as np
 from sqlalchemy import BLOB, FLOAT, Column, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -55,32 +40,41 @@ class Cell(Base):
     """ORM mapping for the `cells` table."""
     __tablename__ = "cells"
 
-    id = Column(Integer, primary_key=True)
-    cell_id = Column(String)
+    id        = Column(Integer, primary_key=True)
+    cell_id   = Column(String)
     label_experiment = Column(String)
-    manual_label = Column(Integer)
-    area = Column(FLOAT)
-    perimeter = Column(FLOAT)
-    img_ph = Column(BLOB)
-    img_fluo1 = Column(BLOB, nullable=True)
-    img_fluo2 = Column(BLOB, nullable=True)
-    contour = Column(BLOB)
-    center_x = Column(FLOAT)
-    center_y = Column(FLOAT)
-    user_id = Column(String, nullable=True)
+    manual_label     = Column(Integer)
+    area       = Column(FLOAT)
+    perimeter  = Column(FLOAT)
+    img_ph     = Column(BLOB)
+    img_fluo1  = Column(BLOB, nullable=True)
+    img_fluo2  = Column(BLOB, nullable=True)
+    contour    = Column(BLOB)
+    center_x   = Column(FLOAT)
+    center_y   = Column(FLOAT)
+    user_id    = Column(String, nullable=True)
 
 
 # ──────────────────────────── Helpers ───────────────────────────
 def fetch_contours(
-    db_path: str = DB_PATH, label: Optional[str] = None
+    db_path: str = DB_PATH,
+    label: Optional[str] = None,
+    exclude_missing: bool = True
 ) -> Tuple[List[np.ndarray], List[str]]:
     """
-    Retrieve contours (as numpy arrays) and labels from the SQLite DB.
-    If *label* is given, only that class is fetched.
+    Retrieve contours and labels from the SQLite DB.
+
+    Parameters
+    ----------
+    label : str or None
+        If given, fetch only that class.
+    exclude_missing : bool
+        True → rows with manual_label in {None, "", "N/A"} are skipped.
     """
     abs_path = os.path.abspath(db_path)
-    engine = create_engine(f"sqlite:///{abs_path}")
-    Session = sessionmaker(bind=engine)
+    engine   = create_engine(f"sqlite:///{abs_path}")
+    Session  = sessionmaker(bind=engine)
+
     with Session() as session:
         query = session.query(Cell.contour, Cell.manual_label)
         if label is not None:
@@ -89,17 +83,14 @@ def fetch_contours(
 
     contours, labels = [], []
     for contour_blob, manual_label in rows:
-        contour = np.asarray(pickle.loads(contour_blob)).reshape(-1, 2)
+        if exclude_missing and (
+            manual_label is None or str(manual_label).strip().upper() in {"", "N/A"}
+        ):
+            continue
+        contour = np.asarray(pickle.loads(contour_blob)).reshape(-1, 2).astype(np.float32)
         contours.append(contour)
         labels.append(str(manual_label))
     return contours, labels
-
-
-def contour_to_vector(contour: np.ndarray) -> np.ndarray:
-    """Convert an N×2 contour to an ordered vector of radial distances."""
-    center = contour.mean(axis=0)
-    distances = np.linalg.norm(contour - center, axis=1)
-    return np.sort(distances)  # sort for rotation invariance
 
 
 def resample_vector(vec: np.ndarray, target_len: int = TARGET_LEN) -> np.ndarray:
@@ -111,12 +102,30 @@ def resample_vector(vec: np.ndarray, target_len: int = TARGET_LEN) -> np.ndarray
     return np.interp(new_x, old_x, vec)
 
 
-def prepare_vectors(
+def contour_to_features(
+    contour: np.ndarray,
+    target_len: int = TARGET_LEN
+) -> np.ndarray:
+    """
+    Extract 1-D radial-distance profile **＋** 7 Hu moments → (target_len + 7) dims.
+    """
+    # --- 1. Radial-distance profile (rotation不変化のため距離を昇順ソート) ---
+    center     = contour.mean(axis=0)
+    distances  = np.linalg.norm(contour - center, axis=1)
+    profile    = resample_vector(np.sort(distances), target_len)
+
+    # --- 2. Hu moments (log scale推奨だが SVM+標準化なので raw で OK) ---
+    hu         = cv2.HuMoments(cv2.moments(contour)).flatten()  # 7-D
+
+    return np.hstack([profile, hu])  # (target_len + 7,)
+
+
+def prepare_features(
     contours: List[np.ndarray], target_len: int = TARGET_LEN
 ) -> np.ndarray:
-    """Stack resampled contour vectors into a 2-D design matrix."""
-    raw_vecs = [contour_to_vector(c) for c in contours]
-    return np.vstack([resample_vector(v, target_len) for v in raw_vecs])
+    """Stack features for all contours into a 2-D design matrix."""
+    feats = [contour_to_features(c, target_len) for c in contours]
+    return np.vstack(feats)
 
 
 # ─────────────────────── Train & persist model ──────────────────
@@ -136,15 +145,20 @@ def train_svm_classifier(
     """
     contours, labels = fetch_contours(db_path)
     if not contours:
-        print("No data found in DB.")
+        print("No usable data found in DB.")
         return None
 
-    X = prepare_vectors(contours, target_len)
+    X = prepare_features(contours, target_len)
     y = np.array(labels)
 
     svm = make_pipeline(
         StandardScaler(),
-        SVC(kernel="rbf", gamma="scale", random_state=rng_seed),
+        SVC(
+            kernel="rbf",
+            gamma="scale",
+            class_weight="balanced",    # ← NEW
+            random_state=rng_seed,
+        ),
     )
 
     scores = cross_val_score(svm, X, y, cv=5)
@@ -202,8 +216,8 @@ def predict_contour(
     float  (optional)
         Decision function value (signed distance to the separating hyper-plane).
     """
-    vec = prepare_vectors([contour], target_len)[0].reshape(1, -1)
-    label = model.predict(vec)[0]
+    vec    = contour_to_features(contour, target_len).reshape(1, -1)
+    label  = model.predict(vec)[0]
     if return_proba:
         score = model.decision_function(vec)[0]
         return label, float(score)
@@ -219,7 +233,7 @@ if __name__ == "__main__":
     model = load_svm_classifier()
 
     # 3. Dummy prediction example (replace with real contour)
-    # unknown_contour = np.random.rand(150, 2) * 10  # Fake contour for demo
+    # unknown_contour = np.random.rand(150, 2).astype(np.float32) * 10
     # label, score = predict_contour(unknown_contour, model, return_proba=True)
     # print(f"Predicted label: {label}   (decision score: {score:.4f})")
 
