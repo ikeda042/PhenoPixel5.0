@@ -40,7 +40,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
 # ────────────────────────── Configuration ───────────────────────
-DB_PATH: str = "experimental/autolabel/250626_SK450_Gen_1p0-completed.db"
+DB_PATH: str = os.path.join(
+    os.path.dirname(__file__), "..", "..", "backend", "app", "databases", "test_database.db"
+)
 MODEL_PATH: str = "svm_cell_classifier.pkl"          # file created by train
 TARGET_LEN: int = 256
 RNG_SEED: int = 42
@@ -76,7 +78,8 @@ def fetch_contours(
     Retrieve contours (as numpy arrays) and labels from the SQLite DB.
     If *label* is given, only that class is fetched.
     """
-    engine = create_engine(f"sqlite:///{db_path}")
+    abs_path = os.path.abspath(db_path)
+    engine = create_engine(f"sqlite:///{abs_path}")
     Session = sessionmaker(bind=engine)
     with Session() as session:
         query = session.query(Cell.contour, Cell.manual_label)

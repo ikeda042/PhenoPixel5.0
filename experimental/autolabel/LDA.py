@@ -14,8 +14,30 @@ NumPy ≥ 2.0 / scikit-learn ≥ 1.5 compatible
 
 import os
 import pickle
-import sqlite3
 from typing import Dict, List, Optional, Tuple
+
+from sqlalchemy import BLOB, FLOAT, Column, Integer, String, create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+Base = declarative_base()
+
+
+class Cell(Base):
+    __tablename__ = "cells"
+
+    id = Column(Integer, primary_key=True)
+    cell_id = Column(String)
+    label_experiment = Column(String)
+    manual_label = Column(Integer)
+    perimeter = Column(FLOAT)
+    area = Column(FLOAT)
+    img_ph = Column(BLOB)
+    img_fluo1 = Column(BLOB, nullable=True)
+    img_fluo2 = Column(BLOB, nullable=True)
+    contour = Column(BLOB)
+    center_x = Column(FLOAT)
+    center_y = Column(FLOAT)
+    user_id = Column(String, nullable=True)
 
 import joblib                        # ← NEW
 import matplotlib.pyplot as plt
@@ -25,7 +47,9 @@ from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 # ─── Configuration ────────────────────────────────────────────────────────────
-DB_PATH: str = "experimental/autolabel/250626_SK450_Gen_1p0-completed.db"
+DB_PATH: str = os.path.join(
+    os.path.dirname(__file__), "..", "..", "backend", "app", "databases", "test_database.db"
+)
 LABEL_FILTER: Optional[str] = None
 TARGET_LEN: int = 256
 EMBEDDING_PLOT = "lda_result.png"
@@ -41,16 +65,14 @@ RNG_SEED       = 42
 def fetch_contours(
     db_path: str, label: Optional[str] = None
 ) -> Tuple[List[np.ndarray], List[str]]:
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    query = "SELECT contour, manual_label FROM cells"
-    params: Tuple = ()
-    if label is not None:
-        query += " WHERE manual_label = ?"
-        params = (label,)
-    cur.execute(query, params)
-    rows = cur.fetchall()
-    conn.close()
+    abs_path = os.path.abspath(db_path)
+    engine = create_engine(f"sqlite:///{abs_path}")
+    Session = sessionmaker(bind=engine)
+    with Session() as session:
+        query = session.query(Cell.contour, Cell.manual_label)
+        if label is not None:
+            query = query.filter(Cell.manual_label == label)
+        rows = query.all()
 
     contours, labels = [], []
     for contour_blob, manual_label in rows:
