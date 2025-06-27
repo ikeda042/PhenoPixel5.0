@@ -9,7 +9,7 @@ from CellDBConsole.crud import CellCrudBase
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 MODEL_PATH = "AutoLabel/autolabel_lda.joblib"
-THRESHOLD = 5.0
+THRESHOLD =  -4.875273
 
 
 class AutoLabelCrud:
