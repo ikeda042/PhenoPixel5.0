@@ -1,4 +1,3 @@
-import argparse
 import os
 import pickle
 import sqlite3
@@ -7,6 +6,12 @@ from typing import List, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+# ─── 設定 ──────────────────────────────────────────────────────────────
+DB_PATH: str = "experimental/U-net_Pytorch/test_contour_label_data.db"  # ← ここを書き換える
+LABEL_FILTER: Optional[str] = None   # 例: "1" や "N/A"。フィルタしないなら None
+OUTPUT_FILE: str = "lda_result.png"
+# ───────────────────────────────────────────────────────────────────────
 
 
 def fetch_contours(db_path: str, label: Optional[str] = None) -> Tuple[List[np.ndarray], List[str]]:
@@ -60,26 +65,15 @@ def plot_lda(vectors: np.ndarray, labels: List[str], output: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="LDA of contour vectors")
-    parser.add_argument(
-        "--db",
-        default="experimental/U-net_Pytorch/test_contour_label_data.db",
-        help="Path to SQLite DB",
-    )
-    parser.add_argument(
-        "--label", help="Filter manual_label (e.g. 'N/A' or '1')", default=None
-    )
-    parser.add_argument("--output", default="lda_result.png", help="Output image file")
-    args = parser.parse_args()
-
-    contours, labels = fetch_contours(args.db, args.label)
+    # 設定に従って処理を実行
+    contours, labels = fetch_contours(DB_PATH, LABEL_FILTER)
     if not contours:
         print("No data found.")
         return
 
     vectors = prepare_vectors(contours)
-    plot_lda(vectors, labels, args.output)
-    print(f"Saved figure to {args.output}")
+    plot_lda(vectors, labels, OUTPUT_FILE)
+    print(f"Saved figure to {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":
