@@ -28,8 +28,8 @@ from sklearn.svm import SVC
 
 # ───────── Config ─────────
 DB_PATH   = os.path.join(
-    os.path.dirname(__file__), "..", "..", "backend", "app", "databases",
-    "test_database.db"
+    os.path.dirname(__file__), "..", "..", "experimental", "autolabel", 
+    "250626_SK450_Gen_1p0-completed.db"
 )
 MODEL_PATH = "svm_cell_classifier.pkl"
 TARGET_LEN = 256
