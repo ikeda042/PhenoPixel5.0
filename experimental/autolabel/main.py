@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 # ─── 設定 ──────────────────────────────────────────────────────────────
-DB_PATH: str = "experimental/U-net_Pytorch/test_contour_label_data.db"  # ← ここを書き換える
+DB_PATH: str = "experimental/autolabel/250626_SK450_Gen_1p0-completed.db" 
 LABEL_FILTER: Optional[str] = None   # 例: "1" や "N/A"。フィルタしないなら None
 OUTPUT_FILE: str = "lda_result.png"
 # ───────────────────────────────────────────────────────────────────────
