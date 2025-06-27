@@ -86,16 +86,15 @@ def prepare_vectors_for_overlay(
     padded = [np.pad(v, (0, max_len - len(v)), constant_values=0.0) for v in raw_vecs]
     return np.vstack(padded), lengths
 
-
-# ─── Dimensionality Reduction ────────────────────────────────────────────────
-def project_vectors(
-    vectors: np.ndarray, labels: List[str]
-) -> Tuple[np.ndarray, str]:
+def project_vectors(vectors: np.ndarray, labels: List[str]) -> Tuple[np.ndarray, str]:
     classes = np.unique(labels)
     if len(classes) >= 2:
-        # ★ CHANGED – shrinkage='auto' で数値安定性向上
-        lda = LinearDiscriminantAnalysis(n_components=1, solver="lsqr",
-                                         shrinkage="auto")
+        # ↓ solver を 'eigen' に変更（lsqr → eigen）
+        lda = LinearDiscriminantAnalysis(
+            n_components=1,
+            solver="eigen",       # ★ CHANGED
+            shrinkage="auto"      # 数値安定化
+        )
         emb = lda.fit_transform(vectors, labels)
         method = "LDA (1-D, shrinkage)"
     else:
@@ -103,7 +102,6 @@ def project_vectors(
         emb = pca.fit_transform(vectors)
         method = "PCA (1-D fallback)"
     return emb, method
-
 
 # ─── Plotting ────────────────────────────────────────────────────────────────
 def plot_embedding(
