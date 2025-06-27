@@ -72,6 +72,9 @@ def main() -> None:
         return
 
     vectors = prepare_vectors(contours)
+    print(f"Prepared {len(vectors)} vectors with shape {vectors.shape}")
+    for i in range(len(vectors)):
+        print(f"Vector {i}: {vectors[i]} (Label: {labels[i]})")
     plot_lda(vectors, labels, OUTPUT_FILE)
     print(f"Saved figure to {OUTPUT_FILE}")
 
