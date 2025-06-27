@@ -1,22 +1,32 @@
 #!/usr/bin/env python3
 """
-Train and persist an SVM-based classifier to separate cell contours
-labelled as “N/A” and “1”, then reuse it for unseen samples.
+Cell-contour classifier (SVM)
 
-➡  Usage examples
------------------
-# (1) Train and save the model
-$ python cell_svm.py --train
+This module:
 
-# (2) Predict an unknown contour from inside another script
-from cell_svm import load_svm_classifier, predict_contour, TARGET_LEN
-model = load_svm_classifier()          # loads default 'svm_cell_classifier.pkl'
-label = predict_contour(unknown_cnt, model, target_len=TARGET_LEN)
-print(label)
+1. Trains an SVM pipeline on contours stored in an SQLite database.
+2. Saves the fitted model to disk so it can be reused later.
+3. Exposes helpers to load the model and predict the label of an
+   unknown contour.
+
+Typical usage
+-------------
+# ——————————————————————————————————————————
+# (A) Train once (creates 'svm_cell_classifier.pkl')
+# ——————————————————————————————————————————
+import cell_svm
+cell_svm.train_svm_classifier()      # prints CV accuracy & save location
+
+# ——————————————————————————————————————————
+# (B) Anywhere else in your codebase
+# ——————————————————————————————————————————
+from cell_svm import load_svm_classifier, predict_contour
+model = load_svm_classifier()        # loads the saved pipeline
+label, score = predict_contour(contour_ndarray, model, return_proba=True)
+print(label, score)
 """
 
 # ─────────────────────────── Imports ────────────────────────────
-import argparse
 import os
 import pickle
 from typing import List, Optional, Tuple
@@ -31,7 +41,7 @@ from sklearn.svm import SVC
 
 # ────────────────────────── Configuration ───────────────────────
 DB_PATH: str = "experimental/autolabel/250626_SK450_Gen_1p0-completed.db"
-MODEL_PATH: str = "svm_cell_classifier.pkl"          # ← saved model file
+MODEL_PATH: str = "svm_cell_classifier.pkl"          # file created by train
 TARGET_LEN: int = 256
 RNG_SEED: int = 42
 
@@ -60,9 +70,12 @@ class Cell(Base):
 
 # ──────────────────────────── Helpers ───────────────────────────
 def fetch_contours(
-    db_path: str, label: Optional[str] = None
+    db_path: str = DB_PATH, label: Optional[str] = None
 ) -> Tuple[List[np.ndarray], List[str]]:
-    """Fetch contours and labels from the DB."""
+    """
+    Retrieve contours (as numpy arrays) and labels from the SQLite DB.
+    If *label* is given, only that class is fetched.
+    """
     engine = create_engine(f"sqlite:///{db_path}")
     Session = sessionmaker(bind=engine)
     with Session() as session:
@@ -79,16 +92,15 @@ def fetch_contours(
     return contours, labels
 
 
-# -------- contour → fixed-length vector -------------------------
 def contour_to_vector(contour: np.ndarray) -> np.ndarray:
-    """Convert a 2-D contour (N×2) to ordered radial-distance vector."""
+    """Convert an N×2 contour to an ordered vector of radial distances."""
     center = contour.mean(axis=0)
     distances = np.linalg.norm(contour - center, axis=1)
-    return np.sort(distances)
+    return np.sort(distances)  # sort for rotation invariance
 
 
 def resample_vector(vec: np.ndarray, target_len: int = TARGET_LEN) -> np.ndarray:
-    """Linear-resample a 1-D vector to `target_len` samples."""
+    """Linearly resample *vec* to *target_len* points."""
     if len(vec) == target_len:
         return vec
     old_x = np.linspace(0.0, 1.0, len(vec))
@@ -96,19 +108,29 @@ def resample_vector(vec: np.ndarray, target_len: int = TARGET_LEN) -> np.ndarray
     return np.interp(new_x, old_x, vec)
 
 
-def prepare_vectors(contours: List[np.ndarray], target_len: int = TARGET_LEN) -> np.ndarray:
-    """Create a design matrix (num_samples × target_len)."""
+def prepare_vectors(
+    contours: List[np.ndarray], target_len: int = TARGET_LEN
+) -> np.ndarray:
+    """Stack resampled contour vectors into a 2-D design matrix."""
     raw_vecs = [contour_to_vector(c) for c in contours]
     return np.vstack([resample_vector(v, target_len) for v in raw_vecs])
 
 
-# ──────────────────────── Train & persist ───────────────────────
+# ─────────────────────── Train & persist model ──────────────────
 def train_svm_classifier(
     db_path: str = DB_PATH,
     model_path: str = MODEL_PATH,
     target_len: int = TARGET_LEN,
+    rng_seed: int = RNG_SEED,
 ) -> Optional[SVC]:
-    """Train an SVM classifier, report CV accuracy, and save the model."""
+    """
+    Train an SVM classifier, report CV accuracy, and pickle to *model_path*.
+
+    Returns
+    -------
+    sklearn.svm.SVC
+        The fitted Pipeline (StandardScaler → SVC) or None if no data.
+    """
     contours, labels = fetch_contours(db_path)
     if not contours:
         print("No data found in DB.")
@@ -119,7 +141,7 @@ def train_svm_classifier(
 
     svm = make_pipeline(
         StandardScaler(),
-        SVC(kernel="rbf", gamma="scale", random_state=RNG_SEED),
+        SVC(kernel="rbf", gamma="scale", random_state=rng_seed),
     )
 
     scores = cross_val_score(svm, X, y, cv=5)
@@ -127,20 +149,26 @@ def train_svm_classifier(
 
     svm.fit(X, y)
 
-    # ── Save the fitted pipeline ──
     with open(model_path, "wb") as f:
         pickle.dump(svm, f)
-    print(f"Model saved to: {os.path.abspath(model_path)}")
+    print(f"Model saved → {os.path.abspath(model_path)}")
 
     return svm
 
 
-# ────────────────────────── Re-use API ──────────────────────────
+# ─────────────────────────── Re-use helpers ─────────────────────
 def load_svm_classifier(model_path: str = MODEL_PATH) -> SVC:
-    """Load a previously saved SVM pipeline."""
+    """
+    Load and return a previously saved classifier.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the pickle file does not exist.
+    """
     if not os.path.isfile(model_path):
         raise FileNotFoundError(
-            f"Model file '{model_path}' not found. Train it first with --train."
+            f"Model file '{model_path}' not found. Run train_svm_classifier() first."
         )
     with open(model_path, "rb") as f:
         return pickle.load(f)
@@ -151,22 +179,25 @@ def predict_contour(
     model: SVC,
     target_len: int = TARGET_LEN,
     return_proba: bool = False,
-) -> str:
+) -> Tuple[str, float] | str:
     """
-    Predict the label ('N/A' or '1') for a single contour.
+    Classify a single contour.
 
     Parameters
     ----------
-    contour : np.ndarray
-        Raw contour (N×2) from your image-processing pipeline.
+    contour : np.ndarray (N×2)
+        Raw contour points.
     model   : SVC
-        The fitted pipeline from `load_svm_classifier`.
-    return_proba : bool
-        If True, also return the decision function value.
+        Trained pipeline from load_svm_classifier().
+    return_proba : bool, default=False
+        If True, also return the decision function score.
 
     Returns
     -------
-    str  (or Tuple[str, float] if return_proba is True)
+    str
+        Predicted class label.
+    float  (optional)
+        Decision function value (signed distance to the separating hyper-plane).
     """
     vec = prepare_vectors([contour], target_len)[0].reshape(1, -1)
     label = model.predict(vec)[0]
@@ -176,36 +207,17 @@ def predict_contour(
     return label
 
 
-# ─────────────────────────── CLI entry ──────────────────────────
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train or query the SVM cell classifier.")
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "--train",
-        action="store_true",
-        help="(Re)train the model and save it to disk.",
-    )
-    group.add_argument(
-        "--predict",
-        metavar="NPY_FILE",
-        help="Path to .npy file containing an unknown contour (N×2) to classify.",
-    )
-    parser.add_argument("--db", default=DB_PATH, help="SQLite DB path.")
-    parser.add_argument("--model", default=MODEL_PATH, help="Path to save/load the model.")
-    return parser.parse_args()
-
-
-def _main() -> None:
-    args = _parse_args()
-
-    if args.train:
-        train_svm_classifier(db_path=args.db, model_path=args.model)
-    else:  # predict mode
-        contour = np.load(args.predict)
-        model = load_svm_classifier(args.model)
-        label, score = predict_contour(contour, model, return_proba=True)
-        print(f"Predicted label: {label}   (decision score: {score:.4f})")
-
-
+# ──────────────────────── Demo workflow (optional) ──────────────
 if __name__ == "__main__":
-    _main()
+    # 1. Train the model and save it
+    model = train_svm_classifier()
+
+    # 2. Example of loading the model later
+    model = load_svm_classifier()
+
+    # 3. Dummy prediction example (replace with real contour)
+    # unknown_contour = np.random.rand(150, 2) * 10  # Fake contour for demo
+    # label, score = predict_contour(unknown_contour, model, return_proba=True)
+    # print(f"Predicted label: {label}   (decision score: {score:.4f})")
+
+    print("\nDemo complete. Uncomment the lines above to test prediction.")
