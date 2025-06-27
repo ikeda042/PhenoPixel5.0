@@ -3,12 +3,15 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List
 
+import cv2
+
 import joblib
 import numpy as np
 from CellDBConsole.crud import CellCrudBase
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 MODEL_PATH = "AutoLabel/svm_cell_classifier.pkl"
+TARGET_LEN = 256
 
 
 class AutoLabelCrud:
@@ -17,13 +20,7 @@ class AutoLabelCrud:
         self.model = joblib.load(str(model_path))
 
     @staticmethod
-    def contour_to_vector(contour: np.ndarray) -> np.ndarray:
-        center = contour.mean(axis=0)
-        distances = np.linalg.norm(contour - center, axis=1)
-        return np.sort(distances)
-
-    @staticmethod
-    def resample_vector(vec: np.ndarray, target_len: int = 256) -> np.ndarray:
+    def resample_vector(vec: np.ndarray, target_len: int = TARGET_LEN) -> np.ndarray:
         vec = np.asarray(vec).reshape(-1)
         if len(vec) == target_len:
             return vec
@@ -31,21 +28,26 @@ class AutoLabelCrud:
         new_x = np.linspace(0.0, 1.0, target_len)
         return np.interp(new_x, old_x, vec)
 
+    @staticmethod
+    def contour_to_features(contour: np.ndarray, target_len: int = TARGET_LEN) -> np.ndarray:
+        center = contour.mean(axis=0)
+        dist_vec = np.linalg.norm(contour - center, axis=1)
+        profile = AutoLabelCrud.resample_vector(np.sort(dist_vec), target_len)
+        hu = cv2.HuMoments(cv2.moments(contour.astype(np.float32))).flatten()
+        return np.hstack([profile, hu])
+
     async def predict_label(self, contour: List[List[float]]) -> str:
         """Predict label for a contour using the loaded SVM model."""
         np_contour = np.array(contour)
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as executor:
-            vec = await loop.run_in_executor(
-                executor, self.contour_to_vector, np_contour
-            )
-            resampled = await loop.run_in_executor(
-                executor, self.resample_vector, vec
+            features = await loop.run_in_executor(
+                executor, self.contour_to_features, np_contour
             )
             label = await loop.run_in_executor(
                 executor,
                 self.model.predict,
-                resampled.reshape(1, -1),
+                features.reshape(1, -1),
             )
         return str(label[0])
 
