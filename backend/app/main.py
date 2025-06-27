@@ -7,6 +7,7 @@ from OAuth2.database import BaseAuth
 from settings import settings
 
 from CellAI.router import router_cell_ai
+from AutoLabel.router import router_autolabel
 from CellDBConsole.router import router_cell, router_database
 from CellExtraction.router import router_cell_extraction
 from Dev.router import router_dev
@@ -147,6 +148,7 @@ app.include_router(router_dropbox, prefix=api_prefix)
 app.include_router(router_graphengine, prefix=api_prefix)
 app.include_router(router_cdt, prefix=api_prefix)
 app.include_router(router_results, prefix=api_prefix)
+app.include_router(router_autolabel, prefix=api_prefix)
 app.include_router(router_oauth2, prefix=api_prefix)
 
 if __name__ == "__main__":
