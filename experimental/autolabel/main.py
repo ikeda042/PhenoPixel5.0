@@ -215,7 +215,20 @@ def main() -> None:
     # 3) Overlay plot
     padded_vectors, lengths = prepare_vectors_for_overlay(contours)
     plot_overlay(padded_vectors, lengths, labels, OVERLAY_PLOT)
+     # ─── ここから追加 ──────────────────────────────────────────────
+    # 「N/A」と「1」の判別境界（クラス平均の中点）を計算して表示
+    if lda_model is not None and {"N/A", "1"}.issubset(labels):
+        proj = emb_1d.ravel()                     # (N,) に整形
+        lbl_arr = np.asarray(labels)
 
+        na_vals = proj[lbl_arr == "N/A"]
+        one_vals = proj[lbl_arr == "1"]
+
+        if na_vals.size and one_vals.size:        # 念のため空でないか確認
+            boundary = 0.5 * (na_vals.mean() + one_vals.mean())
+            print(f"Optimal LDA boundary between 'N/A' and '1': {boundary:.6f}")
+        else:
+            print("Either 'N/A' or '1' class is missing – boundary not computed.")
 
 if __name__ == "__main__":
     main()
