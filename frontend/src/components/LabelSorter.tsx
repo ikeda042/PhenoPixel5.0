@@ -41,6 +41,30 @@ const LabelSorter: React.FC = () => {
 
   const labelOptions = ["1", "2", "3", "4"];
 
+  const fetchNaCells = async () => {
+    try {
+      const naRes = await axios.get(`${url_prefix}/cells/${dbName}/1000`);
+      setNaCells(naRes.data.map((c: { cell_id: string }) => c.cell_id));
+    } catch (error) {
+      console.error("Failed to fetch N/A cell ids", error);
+    } finally {
+      setNaLoaded(true);
+    }
+  };
+
+  const fetchLabelCells = async () => {
+    try {
+      const res = await axios.get(
+        `${url_prefix}/cells/${dbName}/${selectedLabel}`
+      );
+      setLabelCells(res.data.map((c: { cell_id: string }) => c.cell_id));
+    } catch (error) {
+      console.error("Failed to fetch label cell ids", error);
+    } finally {
+      setLabelLoaded(true);
+    }
+  };
+
   useEffect(() => {
     const downHandler = (e: KeyboardEvent) => {
       if (e.key === "Shift") setShiftPressed(true);
@@ -60,33 +84,11 @@ const LabelSorter: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const fetchNaCells = async () => {
-      try {
-        const naRes = await axios.get(`${url_prefix}/cells/${dbName}/1000`);
-        setNaCells(naRes.data.map((c: { cell_id: string }) => c.cell_id));
-      } catch (error) {
-        console.error("Failed to fetch N/A cell ids", error);
-      } finally {
-        setNaLoaded(true);
-      }
-    };
     setNaLoaded(false);
     if (dbName) fetchNaCells();
   }, [dbName]);
 
   useEffect(() => {
-    const fetchLabelCells = async () => {
-      try {
-        const res = await axios.get(
-          `${url_prefix}/cells/${dbName}/${selectedLabel}`
-        );
-        setLabelCells(res.data.map((c: { cell_id: string }) => c.cell_id));
-      } catch (error) {
-        console.error("Failed to fetch label cell ids", error);
-      } finally {
-        setLabelLoaded(true);
-      }
-    };
     setLabelLoaded(false);
     if (dbName && selectedLabel) fetchLabelCells();
   }, [dbName, selectedLabel]);
@@ -217,6 +219,16 @@ const LabelSorter: React.FC = () => {
     setSelectedCells({});
   };
 
+  const handleUseAI = async () => {
+    try {
+      await axios.post(`${url_prefix}/autolabel/${dbName}`);
+      await fetchNaCells();
+      await fetchLabelCells();
+    } catch (err) {
+      console.error("Failed to autolabel", err);
+    }
+  };
+
   const renderCells = (cellIds: string[], column: "N/A" | "selected") => (
     <Grid container spacing={1}>
       {cellIds.map((id) => (
@@ -284,6 +296,7 @@ const LabelSorter: React.FC = () => {
             Apply to {Object.keys(selectedCells).length} cells
           </Button>
         )}
+        <Button variant="outlined" onClick={handleUseAI}>Use AI</Button>
       </Box>
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
