@@ -31,7 +31,7 @@ TARGET_LEN: int = 256
 EMBEDDING_PLOT = "lda_result.png"
 PCA_PLOT       = "pca_result.png"
 OVERLAY_PLOT   = "vectors_overlay.png"
-LDA_MODEL_FILE = "lda_model.joblib"       # ← NEW
+LDA_MODEL_FILE = "autolabel_lda.joblib"       # ← NEW
 JITTER_SCALE   = 0.05
 RNG_SEED       = 42
 # ──────────────────────────────────────────────────────────────────────────────
