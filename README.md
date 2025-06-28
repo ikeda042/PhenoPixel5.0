@@ -753,49 +753,49 @@ To compute the "Nagg rate," describing the fraction of cells whose fluorescence 
 ### Methodologies:
 1. **Control Threshold**
 
-    Each control trace $\mathbf{Y}_i=(y_{i1},\dots,y_{im})$ is min–max normalized
+   Each control trace $\mathbf{Y}_i=(y_{i1},\dots,y_{im})$ is min–max normalized
 
-    $$
-    \tilde{y}_{ij}=\frac{y_{ij}-\min_j y_{ij}}{\max_j y_{ij}-\min_j y_{ij}}
-    $$
+$$
+\tilde{y}_{ij}=\frac{y_{ij}-\min_j y_{ij}}{\max_j y_{ij}-\min_j y_{ij}}
+$$
 
-    Its mean intensity is
+   Its mean intensity is
 
-    $$
-    \bar{y}_i=\frac{1}{m}\sum_{j=1}^m \tilde{y}_{ij}
-    $$
+$$
+\bar{y}_i=\frac{1}{m}\sum_{j=1}^m \tilde{y}_{ij}
+$$
 
-    The threshold $C$ equals the 95th percentile of $\{\bar{y}_i\}$.
+   The threshold $C$ equals the 95th percentile of $\{\bar{y}_i\}$.
 
 2. **Sample Evaluation**
 
-    A sample cell provides positions $(x_{i1},\ldots,x_{i35})$ and peaks $\mathbf{S}_i=(s_{i1},\dots,s_{im})$. Its length is
+   A sample cell provides positions $(x_{i1},\ldots,x_{i35})$ and peaks $\mathbf{S}_i=(s_{i1},\dots,s_{im})$. Its length is
 
-    $$
-    L_i=(x_{i35}-x_{i1})\times 0.065
-    $$
+$$
+L_i=(x_{i35}-x_{i1})\times 0.065
+$$
 
-    After normalizing
+   After normalizing
 
-    $$
-    \tilde{s}_{ij}=\frac{s_{ij}-\min_j s_{ij}}{\max_j s_{ij}-\min_j s_{ij}}
-    $$
+$$
+\tilde{s}_{ij}=\frac{s_{ij}-\min_j s_{ij}}{\max_j s_{ij}-\min_j s_{ij}}
+$$
 
-    we compute
+   we compute
 
-    $$
-    \bar{s}_i=\frac{1}{m}\sum_{j=1}^m \tilde{s}_{ij}
-    $$
+$$
+\bar{s}_i=\frac{1}{m}\sum_{j=1}^m \tilde{s}_{ij}
+$$
 
-    Cells with $\bar{s}_i < C$ are counted.
+   Cells with $\bar{s}_i < C$ are counted.
 
 3. **Rate Calculation**
 
-    For $N$ cells we obtain
+   For $N$ cells we obtain
 
-    $$
-    R=\frac{\#\{i\mid\bar{s}_i<C\}}{N},\qquad \bar{L}=\frac{1}{N}\sum_{i=1}^N L_i.
-    $$
+$$
+R=\frac{\#\{i\mid\bar{s}_i<C\}}{N},\qquad \bar{L}=\frac{1}{N}\sum_{i=1}^N L_i.
+$$
 
 ### Result:
 The API returns $(\bar{L},R)$ for each analyzed file.
