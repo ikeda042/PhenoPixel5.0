@@ -1,9 +1,11 @@
 from sqlalchemy import create_engine, Column, Integer, String, BLOB, FLOAT, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.exc import OperationalError
+from pathlib import Path
 import os
 
 Base = declarative_base()
+DB_DIR = Path(__file__).resolve().parent
 
 
 class Cell(Base):
@@ -24,7 +26,7 @@ class Cell(Base):
 
 
 def migrate(dbname: str) -> None:
-    engine = create_engine(f"sqlite:///backend/app/databases/{dbname}")
+    engine = create_engine(f"sqlite:///{DB_DIR / dbname}")
     Base.metadata.create_all(engine)
 
     Session = sessionmaker(bind=engine)
@@ -77,7 +79,7 @@ def migrate(dbname: str) -> None:
         session.close()
 
 
-for i in os.listdir("backend/app/databases"):
+for i in os.listdir(DB_DIR):
     if i.endswith(".db"):
         print(i)
         migrate(i)
