@@ -2324,6 +2324,38 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="image/png")
 
+    async def get_map64_clip(
+        self,
+        cell_id: str,
+        degree: int = 4,
+        channel: int = 1,
+        img_type: Literal["fluo", "ph"] = "fluo",
+    ) -> StreamingResponse:
+        """Return Map64 image after clipping and Gaussian blur subtraction."""
+        cell = await self.read_cell(cell_id)
+        if img_type == "ph":
+            img_blob = cell.img_ph
+        else:
+            img_blob = cell.img_fluo2 if channel == 2 else cell.img_fluo1
+        array = await AsyncChores.generate_map_array(img_blob, cell.contour, degree, img_type)
+
+        mean = float(array.mean())
+        std = float(array.std())
+        lower = max(0, mean - 3 * std)
+        upper = min(255, mean + 3 * std)
+        clipped = np.clip(array.astype(np.float32), lower, upper)
+        if upper > lower:
+            clipped = ((clipped - lower) / (upper - lower) * 255).astype(np.uint8)
+        else:
+            clipped = np.zeros_like(array, dtype=np.uint8)
+        blur = cv2.GaussianBlur(clipped, (5, 5), 0)
+        processed = cv2.subtract(clipped, blur)
+
+        _, buffer = cv2.imencode(".png", processed)
+        buf = io.BytesIO(buffer)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="image/png")
+
     async def get_contour_canny_draw(
         self, cell_id: str, canny_thresh2: int = 100
     ) -> list[list[float]]:
