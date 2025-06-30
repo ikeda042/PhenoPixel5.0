@@ -630,9 +630,23 @@ class AsyncChores:
             if vmax - vmin < 1e-6:
                 return 0.0
 
-            norm = (cell_pixels - vmin) / (vmax - vmin)
-            thr = threshold_otsu(norm)
-            nucleoid_area = int((norm >= thr).sum())
+            # normalize to 0-255 for robust thresholding
+            norm_img = ((img_gray.astype(np.float32) - vmin) / (vmax - vmin))
+            norm_img = np.clip(norm_img, 0, 1)
+            norm_img = (norm_img * 255).astype(np.uint8)
+
+            # Otsu threshold to extract nucleoid region
+            _, binary = cv2.threshold(
+                norm_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+            )
+
+            # Mask outside the cell and clean up noise
+            binary = cv2.bitwise_and(binary, mask)
+            kernel = np.ones((3, 3), np.uint8)
+            binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+            binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+
+            nucleoid_area = int(np.count_nonzero(binary))
             return round(nucleoid_area / cell_area, 4)
 
     @staticmethod
