@@ -65,6 +65,7 @@ type ImageState = {
   laplacian?: string; // Laplacian画像
   sobel?: string; // Sobel画像
   hu_mask?: string; // HU Mask画像
+  map64?: string; // Map64画像
 };
 
 // 「どのモードにするか」を列挙型的に管理する
@@ -77,6 +78,7 @@ type DrawModeType =
   | "laplacian"
   | "sobel"
   | "hu_mask"
+  | "map64"
   | "t1contour"
   | "prediction"
   | "cloud_points"
@@ -127,6 +129,7 @@ const DRAW_MODES: {
   { value: "laplacian", label: "Laplacian" },
   { value: "sobel", label: "Sobel" },
   { value: "hu_mask", label: "HU Mask" },
+  { value: "map64", label: "Map64", needsPolyfit: true },
   { value: "t1contour", label: "Light+Model T1" },
   { value: "prediction", label: "Model T1(Torch GPU)" },
   { value: "cloud_points", label: "3D Fluo" },
@@ -401,6 +404,19 @@ const CellImageGrid: React.FC = () => {
           setImages((prev) => ({
             ...prev,
             [cellId]: { ...prev[cellId], hu_mask: url },
+          }));
+          break;
+        }
+        case "map64": {
+          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const response = await axios.get(
+            `${url_prefix}/cells/${cellId}/${db_name}/map64?degree=${fitDegree}&channel=${channelParam}`,
+            { responseType: "blob" }
+          );
+          const url = URL.createObjectURL(response.data);
+          setImages((prev) => ({
+            ...prev,
+            [cellId]: { ...prev[cellId], map64: url },
           }));
           break;
         }
@@ -1199,6 +1215,22 @@ const CellImageGrid: React.FC = () => {
                   </Select>
                 </FormControl>
               )}
+              {drawMode === "map64" && hasFluo2 && (
+                <FormControl variant="outlined" sx={{ minWidth: 120 }}>
+                  <InputLabel id="map64-channel-label">Fluo</InputLabel>
+                  <Select
+                    labelId="map64-channel-label"
+                    label="Fluo"
+                    value={fluoChannel}
+                    onChange={(e) =>
+                      setFluoChannel(e.target.value as "fluo1" | "fluo2")
+                    }
+                  >
+                    <MenuItem value="fluo1">fluo1</MenuItem>
+                    <MenuItem value="fluo2">fluo2</MenuItem>
+                  </Select>
+                </FormControl>
+              )}
             </Box>
 
             {DRAW_MODES.find((m) => m.value === drawMode)?.needsPolyfit && (
@@ -1278,6 +1310,15 @@ const CellImageGrid: React.FC = () => {
                 <img
                   src={images[cellIds[currentIndex]]?.hu_mask}
                   alt={`Cell ${cellIds[currentIndex]} HU Mask`}
+                  style={{ width: "100%" }}
+                />
+              )}
+
+            {drawMode === "map64" &&
+              images[cellIds[currentIndex]]?.map64 && (
+                <img
+                  src={images[cellIds[currentIndex]]?.map64}
+                  alt={`Cell ${cellIds[currentIndex]} Map64`}
                   style={{ width: "100%" }}
                 />
               )}
