@@ -285,6 +285,17 @@ async def test_get_cell_laplacian(client: AsyncClient):
 
 
 @pytest.mark.anyio
+async def test_get_cell_sobel(client: AsyncClient):
+    """
+    GET /cells/{cell_id}/{db_name}/sobel
+    """
+    response = await client.get(
+        "/api/cells/F0C5/test_database.db/sobel?brightness_factor=1.5"
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio
 async def test_get_mean_fluo_intensities(client: AsyncClient):
     """
     GET /cells/{db_name}/{label}/{cell_id}/mean_fluo_intensities

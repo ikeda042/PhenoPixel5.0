@@ -270,6 +270,16 @@ async def get_cell_laplacian(
     )
 
 
+@router_cell.get("/{cell_id}/{db_name}/sobel", response_class=StreamingResponse)
+async def get_cell_sobel(
+    cell_id: str, db_name: str, channel: int = 1, brightness_factor: float = 1.0
+):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).get_sobel(
+        cell_id, channel, brightness_factor
+    )
+
+
 @router_cell.get("/{db_name}/{label}/{cell_id}/mean_fluo_intensities")
 async def get_mean_fluo_intensities(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
