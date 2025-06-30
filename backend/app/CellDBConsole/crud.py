@@ -2157,6 +2157,41 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="image/png")
 
+    async def get_hu_mask(
+        self, cell_id: str, channel: int = 1
+    ) -> StreamingResponse:
+        """Return binary HU-GFP mask inside the cell."""
+        cell = await self.read_cell(cell_id)
+        img_blob = cell.img_fluo2 if channel == 2 else cell.img_fluo1
+        img = cv2.imdecode(np.frombuffer(img_blob, np.uint8), cv2.IMREAD_GRAYSCALE)
+        contour = await AsyncChores.async_pickle_loads(cell.contour)
+        cell_mask = np.zeros_like(img)
+        cv2.fillPoly(cell_mask, [np.array(contour, dtype=np.int32)], 255)
+        cell_pixels = img[cell_mask > 0].astype(np.float32)
+        if cell_pixels.size == 0:
+            binary = np.zeros_like(img)
+        else:
+            vmin = float(cell_pixels.min())
+            vmax = float(cell_pixels.max())
+            if vmax - vmin < 1e-6:
+                binary = np.zeros_like(img)
+            else:
+                norm_img = ((img.astype(np.float32) - vmin) / (vmax - vmin))
+                norm_img = np.clip(norm_img, 0, 1)
+                norm_img = (norm_img * 255).astype(np.uint8)
+                _, binary = cv2.threshold(
+                    norm_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+                )
+                binary = cv2.bitwise_and(binary, cell_mask)
+                kernel = np.ones((3, 3), np.uint8)
+                binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+                binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+
+        _, buffer = cv2.imencode(".png", binary)
+        buf = io.BytesIO(buffer)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="image/png")
+
     async def get_contour_canny_draw(
         self, cell_id: str, canny_thresh2: int = 100
     ) -> list[list[float]]:
