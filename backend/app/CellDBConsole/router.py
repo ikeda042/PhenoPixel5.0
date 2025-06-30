@@ -288,6 +288,20 @@ async def get_cell_hu_mask(cell_id: str, db_name: str, channel: int = 1):
     return await CellCrudBase(db_name=db_name).get_hu_mask(cell_id, channel)
 
 
+@router_cell.get("/{cell_id}/{db_name}/map64", response_class=StreamingResponse)
+async def get_cell_map64(
+    cell_id: str,
+    db_name: str,
+    degree: int = 4,
+    channel: int = 1,
+    img_type: Literal["fluo", "ph"] = "fluo",
+):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).get_map64(
+        cell_id, degree=degree, channel=channel, img_type=img_type
+    )
+
+
 @router_cell.get("/{db_name}/{label}/{cell_id}/mean_fluo_intensities")
 async def get_mean_fluo_intensities(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)

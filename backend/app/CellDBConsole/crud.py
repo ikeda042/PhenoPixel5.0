@@ -826,6 +826,91 @@ class AsyncChores:
             plt.close(fig)
 
     @staticmethod
+    async def extract_map(
+        image_raw: bytes,
+        contour_raw: bytes,
+        degree: int,
+        img_type: Literal["fluo", "ph"] = "fluo",
+    ) -> io.BytesIO:
+        """Return Map64 image as PNG buffer."""
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as executor:
+            img_color = await loop.run_in_executor(
+                executor, cv2.imdecode, np.frombuffer(image_raw, np.uint8), cv2.IMREAD_COLOR
+            )
+            img_gray = await loop.run_in_executor(executor, cv2.cvtColor, img_color, cv2.COLOR_BGR2GRAY)
+
+            if img_type == "fluo":
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (21, 21))
+                background = cv2.morphologyEx(img_gray, cv2.MORPH_OPEN, kernel)
+                img_gray = cv2.subtract(img_gray, background)
+
+            mask = np.zeros_like(img_gray)
+            contour = await loop.run_in_executor(executor, pickle.loads, contour_raw)
+            await loop.run_in_executor(executor, cv2.fillPoly, mask, [contour], 255)
+
+            coords_inside = np.column_stack(np.where(mask))
+            points_inside = img_gray[coords_inside[:, 0], coords_inside[:, 1]]
+
+            X = np.array([[i[1] for i in coords_inside], [i[0] for i in coords_inside]])
+            (
+                u1,
+                u2,
+                _,
+                _,
+                min_u1,
+                _,
+                _,
+                _,
+                U,
+                _,
+            ) = SyncChores.basis_conversion(
+                [list(i[0]) for i in contour],
+                X,
+                img_color.shape[0] / 2,
+                img_color.shape[1] / 2,
+                coords_inside,
+            )
+
+            theta = await AsyncChores.poly_fit(U, degree=degree)
+
+            raw_points = []
+            for i, j, G in zip(u1, u2, points_inside):
+                dist, foot = await AsyncChores.find_minimum_distance_and_point(theta, i, j)
+                p = await AsyncChores.calc_arc_length(theta, min_u1, foot[0])
+                sign = 1 if j > foot[1] else -1
+                raw_points.append((p, dist * sign, int(G)))
+
+        ps = np.array([p for p, _, _ in raw_points])
+        dists = np.array([d for _, d, _ in raw_points])
+        gs = np.array([g for _, _, g in raw_points], dtype=np.uint8)
+
+        w = int(ps.max() - ps.min()) if len(ps) else 1
+        h = int(dists.max() - dists.min()) if len(dists) else 1
+        w = max(w, 1)
+        h = max(h, 1)
+
+        lowest = int(points_inside.min()) if len(points_inside) else 0
+        high_res = np.full((h, w), lowest, dtype=np.uint8)
+
+        for p, d, G in raw_points:
+            px = int(p - ps.min())
+            py = int(d - dists.min())
+            if 0 <= px < w and 0 <= py < h:
+                cv2.circle(high_res, (px, py), 1, int(G), -1)
+
+        high_res = cv2.resize(high_res, (516, 128), interpolation=cv2.INTER_NEAREST)
+        left_mean = high_res[:, : high_res.shape[1] // 2].mean()
+        right_mean = high_res[:, high_res.shape[1] // 2 :].mean()
+        if right_mean > left_mean:
+            high_res = cv2.flip(high_res, 1)
+
+        _, buffer = cv2.imencode(".png", high_res)
+        buf = io.BytesIO(buffer)
+        buf.seek(0)
+        return buf
+
+    @staticmethod
     async def morpho_analysis(
         image_ph: bytes, image_fluo_raw: bytes, contour_raw: bytes, degree: int
     ) -> np.ndarray:
@@ -2190,6 +2275,22 @@ class CellCrudBase:
         _, buffer = cv2.imencode(".png", binary)
         buf = io.BytesIO(buffer)
         buf.seek(0)
+        return StreamingResponse(buf, media_type="image/png")
+
+    async def get_map64(
+        self,
+        cell_id: str,
+        degree: int = 4,
+        channel: int = 1,
+        img_type: Literal["fluo", "ph"] = "fluo",
+    ) -> StreamingResponse:
+        """Return Map64 normalized image."""
+        cell = await self.read_cell(cell_id)
+        if img_type == "ph":
+            img_blob = cell.img_ph
+        else:
+            img_blob = cell.img_fluo2 if channel == 2 else cell.img_fluo1
+        buf = await AsyncChores.extract_map(img_blob, cell.contour, degree, img_type)
         return StreamingResponse(buf, media_type="image/png")
 
     async def get_contour_canny_draw(
