@@ -3,6 +3,8 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, UploadFile, Depends
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+import asyncio
+from databases.migration import migrate
 
 from CellDBConsole.crud import AsyncChores, CellCrudBase
 from CellDBConsole.schemas import CellMorhology, MetadataUpdateRequest
@@ -479,6 +481,9 @@ async def upload_database(file: UploadFile = UploadFile(...)):
     if db_name in exisisting_dbs:
         return JSONResponse(content={"message": f"Database {db_name} already exists."})
     await AsyncChores().upload_file_chunked(file)
+    saved_name = f"{file.filename.split('/')[-1].split('.')[0]}-uploaded.db"
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, migrate, saved_name)
     return file.filename
 
 
