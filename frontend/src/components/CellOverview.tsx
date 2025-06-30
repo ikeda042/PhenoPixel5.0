@@ -1058,21 +1058,39 @@ const CellImageGrid: React.FC = () => {
         <Grid item xs={12} md={6} lg={4}>
           <Box sx={{ mb: 2 }}>
             {/* DrawMode セレクト + Polyfit Degree */}
-            <FormControl fullWidth variant="outlined">
-              <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
-              <Select
-                labelId="draw-mode-select-label"
-                label="Draw Mode"
-                value={drawMode}
-                onChange={handleDrawModeChange}
-              >
-                {DRAW_MODES.map((mode) => (
-                  <MenuItem key={mode.value} value={mode.value}>
-                    {mode.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <FormControl fullWidth variant="outlined" sx={{ flex: 1 }}>
+                <InputLabel id="draw-mode-select-label">Draw Mode</InputLabel>
+                <Select
+                  labelId="draw-mode-select-label"
+                  label="Draw Mode"
+                  value={drawMode}
+                  onChange={handleDrawModeChange}
+                >
+                  {DRAW_MODES.map((mode) => (
+                    <MenuItem key={mode.value} value={mode.value}>
+                      {mode.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              {drawMode === "laplacian" && hasFluo2 && (
+                <FormControl variant="outlined" sx={{ minWidth: 120 }}>
+                  <InputLabel id="laplacian-channel-label">Fluo</InputLabel>
+                  <Select
+                    labelId="laplacian-channel-label"
+                    label="Fluo"
+                    value={fluoChannel}
+                    onChange={(e) =>
+                      setFluoChannel(e.target.value as "fluo1" | "fluo2")
+                    }
+                  >
+                    <MenuItem value="fluo1">fluo1</MenuItem>
+                    <MenuItem value="fluo2">fluo2</MenuItem>
+                  </Select>
+                </FormControl>
+              )}
+            </Box>
 
             {DRAW_MODES.find((m) => m.value === drawMode)?.needsPolyfit && (
               <Box mt={2}>
