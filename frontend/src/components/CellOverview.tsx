@@ -355,8 +355,9 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "laplacian": {
+          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
           const response = await axios.get(
-            `${url_prefix}/cells/${cellId}/${db_name}/laplacian`,
+            `${url_prefix}/cells/${cellId}/${db_name}/laplacian?channel=${channelParam}`,
             { responseType: "blob" }
           );
           const url = URL.createObjectURL(response.data);
