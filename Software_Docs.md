@@ -148,6 +148,10 @@ If you choose `MedianEngine`, it shows you the normalized median of the pixels i
 
 ![](docs_images/27.png)
 
+`AreaFractionEngine` compares the nucleoid area fraction of the selected cell with other cells sharing the same label and visualizes the position of the current cell within the distribution.
+
+![](docs_images/26.png)
+
 `HeatmapEngine` qualitatively visualizes the localization of the fluorescence at relative positions from the edge of the cell.
 
 ![](docs_images/28.png)

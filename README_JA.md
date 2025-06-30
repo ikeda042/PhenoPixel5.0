@@ -116,6 +116,11 @@
 
     ![](docs_images/27.png)
 
+   `AreaFractionEngine` は HU-GFP 画像から核様体領域の面積比を算出し、他のラベル
+   選択細胞と比較した分布の中で現在の細胞がどこに位置するかを示す。
+
+    ![](docs_images/26.png)
+
     最後に、`HeatmapEngine`で描画されるヒートマップは三次元蛍光輝度情報を長軸ベースに圧縮し、さらにそれを上から見たものになる。
 
     ![](docs_images/28.png)
