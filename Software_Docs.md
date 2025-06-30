@@ -148,7 +148,7 @@ If you choose `MedianEngine`, it shows you the normalized median of the pixels i
 
 ![](docs_images/27.png)
 
-`AreaFractionEngine` compares the nucleoid area fraction of the selected cell with other cells sharing the same label and visualizes the position of the current cell within the distribution.
+`AreaFractionEngine` segments the HU-GFP signal within each cell and compares the resulting nucleoid area fraction with other cells sharing the same label, visualizing the position of the current cell within the distribution.
 
 ![](docs_images/26.png)
 

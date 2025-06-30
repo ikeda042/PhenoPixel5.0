@@ -646,8 +646,11 @@ class AsyncChores:
             binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
             binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
 
-            nucleoid_area = int(np.count_nonzero(binary))
-            return round(nucleoid_area / cell_area, 4)
+            contours, _ = cv2.findContours(
+                binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
+            nucleoid_area = sum(cv2.contourArea(c) for c in contours)
+            return round(float(nucleoid_area) / cell_area, 4)
 
     @staticmethod
     async def get_points_inside_cell(
