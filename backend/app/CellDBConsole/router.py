@@ -260,6 +260,12 @@ async def get_cell_path(
     )
 
 
+@router_cell.get("/{cell_id}/{db_name}/laplacian", response_class=StreamingResponse)
+async def get_cell_laplacian(cell_id: str, db_name: str):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).get_laplacian(cell_id)
+
+
 @router_cell.get("/{db_name}/{label}/{cell_id}/mean_fluo_intensities")
 async def get_mean_fluo_intensities(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)

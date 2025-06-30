@@ -274,6 +274,15 @@ async def test_get_cell_path(client: AsyncClient):
 
 
 @pytest.mark.anyio
+async def test_get_cell_laplacian(client: AsyncClient):
+    """
+    GET /cells/{cell_id}/{db_name}/laplacian
+    """
+    response = await client.get("/api/cells/F0C5/test_database.db/laplacian")
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio
 async def test_get_mean_fluo_intensities(client: AsyncClient):
     """
     GET /cells/{db_name}/{label}/{cell_id}/mean_fluo_intensities
