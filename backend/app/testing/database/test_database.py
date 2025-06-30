@@ -278,7 +278,9 @@ async def test_get_cell_laplacian(client: AsyncClient):
     """
     GET /cells/{cell_id}/{db_name}/laplacian
     """
-    response = await client.get("/api/cells/F0C5/test_database.db/laplacian")
+    response = await client.get(
+        "/api/cells/F0C5/test_database.db/laplacian?brightness_factor=1.5"
+    )
     assert response.status_code == 200
 
 

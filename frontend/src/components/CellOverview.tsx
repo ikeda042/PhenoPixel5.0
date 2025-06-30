@@ -149,6 +149,7 @@ const CellImageGrid: React.FC = () => {
   const [drawScaleBar, setDrawScaleBar] = useState<boolean>(false);
   const [autoPlay, setAutoPlay] = useState<boolean>(false);
   const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
+  const [laplacianBrightness, setLaplacianBrightness] = useState<number>(1.0);
   const [hasFluo2, setHasFluo2] = useState<boolean>(false);
   const [fluoChannel, setFluoChannel] = useState<'fluo1' | 'fluo2'>('fluo1');
   const [drawMode, setDrawMode] = useState<DrawModeType>(init_draw_mode);
@@ -357,7 +358,7 @@ const CellImageGrid: React.FC = () => {
         case "laplacian": {
           const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
           const response = await axios.get(
-            `${url_prefix}/cells/${cellId}/${db_name}/laplacian?channel=${channelParam}`,
+            `${url_prefix}/cells/${cellId}/${db_name}/laplacian?channel=${channelParam}&brightness_factor=${laplacianBrightness}`,
             { responseType: "blob" }
           );
           const url = URL.createObjectURL(response.data);
@@ -437,7 +438,7 @@ const CellImageGrid: React.FC = () => {
     const cellId = cellIds[currentIndex];
     fetchAdditionalImage(drawMode, cellId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel]);
+  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel, laplacianBrightness]);
 
   //------------------------------------
   // 現在のセルIDに対応した初期ラベルを取得
@@ -580,6 +581,11 @@ const CellImageGrid: React.FC = () => {
   };
   const handleBrightnessChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setBrightnessFactor(parseFloat(e.target.value));
+  };
+  const handleLaplacianBrightnessChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setLaplacianBrightness(parseFloat(e.target.value));
   };
   const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     event.currentTarget.blur();
@@ -1089,6 +1095,21 @@ const CellImageGrid: React.FC = () => {
                     <MenuItem value="fluo2">fluo2</MenuItem>
                   </Select>
                 </FormControl>
+              )}
+              {drawMode === "laplacian" && (
+                <TextField
+                  label="Brightness"
+                  variant="outlined"
+                  type="number"
+                  value={laplacianBrightness}
+                  onChange={handleLaplacianBrightnessChange}
+                  InputProps={{
+                    inputProps: { min: 0.1, step: 0.1 },
+                    onWheel: handleWheel,
+                    autoComplete: "off",
+                  }}
+                  sx={{ width: 120 }}
+                />
               )}
             </Box>
 
