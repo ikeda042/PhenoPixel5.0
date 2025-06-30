@@ -67,6 +67,7 @@ type ImageState = {
   hu_mask?: string; // HU Mask画像
   map64?: string; // Map64画像
   map64_jet?: string; // Map64 Jet画像
+  map64_clip?: string; // Map64 clipped image
 };
 
 // 「どのモードにするか」を列挙型的に管理する
@@ -413,7 +414,7 @@ const CellImageGrid: React.FC = () => {
           const channelParam = map64Source === 'fluo2' ? 2 : 1;
           const imgTypeParam = map64Source === 'ph' ? 'ph' : 'fluo';
           setIsLoading(true);
-          const [rawRes, jetRes] = await Promise.all([
+          const [rawRes, jetRes, clipRes] = await Promise.all([
             axios.get(
               `${url_prefix}/cells/${cellId}/${db_name}/map64?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
               { responseType: "blob" }
@@ -422,12 +423,17 @@ const CellImageGrid: React.FC = () => {
               `${url_prefix}/cells/${cellId}/${db_name}/map64_jet?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
               { responseType: "blob" }
             ),
+            axios.get(
+              `${url_prefix}/cells/${cellId}/${db_name}/map64_clip?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
+              { responseType: "blob" }
+            ),
           ]);
           const rawUrl = URL.createObjectURL(rawRes.data);
           const jetUrl = URL.createObjectURL(jetRes.data);
+          const clipUrl = URL.createObjectURL(clipRes.data);
           setImages((prev) => ({
             ...prev,
-            [cellId]: { ...prev[cellId], map64: rawUrl, map64_jet: jetUrl },
+            [cellId]: { ...prev[cellId], map64: rawUrl, map64_jet: jetUrl, map64_clip: clipUrl },
           }));
           setIsLoading(false);
           break;
@@ -1347,6 +1353,13 @@ const CellImageGrid: React.FC = () => {
                     alt={`Cell ${cellIds[currentIndex]} Map64`}
                     style={{ width: "100%" }}
                   />
+                  {images[cellIds[currentIndex]]?.map64_clip && (
+                    <img
+                      src={images[cellIds[currentIndex]]?.map64_clip}
+                      alt={`Cell ${cellIds[currentIndex]} Map64 Clip`}
+                      style={{ width: "100%" }}
+                    />
+                  )}
                   {images[cellIds[currentIndex]]?.map64_jet && (
                     <img
                       src={images[cellIds[currentIndex]]?.map64_jet}
