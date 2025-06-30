@@ -826,13 +826,13 @@ class AsyncChores:
             plt.close(fig)
 
     @staticmethod
-    async def extract_map(
+    async def generate_map_array(
         image_raw: bytes,
         contour_raw: bytes,
         degree: int,
         img_type: Literal["fluo", "ph"] = "fluo",
-    ) -> io.BytesIO:
-        """Return Map64 image as PNG buffer."""
+    ) -> np.ndarray:
+        """Return Map64 image as ndarray."""
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as executor:
             img_color = await loop.run_in_executor(
@@ -899,12 +899,23 @@ class AsyncChores:
             if 0 <= px < w and 0 <= py < h:
                 cv2.circle(high_res, (px, py), 1, int(G), -1)
 
-        high_res = cv2.resize(high_res, (516, 128), interpolation=cv2.INTER_NEAREST)
+        high_res = cv2.resize(high_res, (516 * 4, 128 * 4), interpolation=cv2.INTER_NEAREST)
         left_mean = high_res[:, : high_res.shape[1] // 2].mean()
         right_mean = high_res[:, high_res.shape[1] // 2 :].mean()
         if right_mean > left_mean:
             high_res = cv2.flip(high_res, 1)
 
+        return high_res
+
+    @staticmethod
+    async def extract_map(
+        image_raw: bytes,
+        contour_raw: bytes,
+        degree: int,
+        img_type: Literal["fluo", "ph"] = "fluo",
+    ) -> io.BytesIO:
+        """Return Map64 image as PNG buffer."""
+        high_res = await AsyncChores.generate_map_array(image_raw, contour_raw, degree, img_type)
         _, buffer = cv2.imencode(".png", high_res)
         buf = io.BytesIO(buffer)
         buf.seek(0)
@@ -2291,6 +2302,26 @@ class CellCrudBase:
         else:
             img_blob = cell.img_fluo2 if channel == 2 else cell.img_fluo1
         buf = await AsyncChores.extract_map(img_blob, cell.contour, degree, img_type)
+        return StreamingResponse(buf, media_type="image/png")
+
+    async def get_map64_jet(
+        self,
+        cell_id: str,
+        degree: int = 4,
+        channel: int = 1,
+        img_type: Literal["fluo", "ph"] = "fluo",
+    ) -> StreamingResponse:
+        """Return Map64 image with JET colormap."""
+        cell = await self.read_cell(cell_id)
+        if img_type == "ph":
+            img_blob = cell.img_ph
+        else:
+            img_blob = cell.img_fluo2 if channel == 2 else cell.img_fluo1
+        array = await AsyncChores.generate_map_array(img_blob, cell.contour, degree, img_type)
+        jet_img = cv2.applyColorMap(array, cv2.COLORMAP_JET)
+        _, buffer = cv2.imencode(".png", jet_img)
+        buf = io.BytesIO(buffer)
+        buf.seek(0)
         return StreamingResponse(buf, media_type="image/png")
 
     async def get_contour_canny_draw(

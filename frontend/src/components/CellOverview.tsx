@@ -66,6 +66,7 @@ type ImageState = {
   sobel?: string; // Sobel画像
   hu_mask?: string; // HU Mask画像
   map64?: string; // Map64画像
+  map64_jet?: string; // Map64 Jet画像
 };
 
 // 「どのモードにするか」を列挙型的に管理する
@@ -409,15 +410,24 @@ const CellImageGrid: React.FC = () => {
         }
         case "map64": {
           const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
-          const response = await axios.get(
-            `${url_prefix}/cells/${cellId}/${db_name}/map64?degree=${fitDegree}&channel=${channelParam}`,
-            { responseType: "blob" }
-          );
-          const url = URL.createObjectURL(response.data);
+          setIsLoading(true);
+          const [rawRes, jetRes] = await Promise.all([
+            axios.get(
+              `${url_prefix}/cells/${cellId}/${db_name}/map64?degree=${fitDegree}&channel=${channelParam}`,
+              { responseType: "blob" }
+            ),
+            axios.get(
+              `${url_prefix}/cells/${cellId}/${db_name}/map64_jet?degree=${fitDegree}&channel=${channelParam}`,
+              { responseType: "blob" }
+            ),
+          ]);
+          const rawUrl = URL.createObjectURL(rawRes.data);
+          const jetUrl = URL.createObjectURL(jetRes.data);
           setImages((prev) => ({
             ...prev,
-            [cellId]: { ...prev[cellId], map64: url },
+            [cellId]: { ...prev[cellId], map64: rawUrl, map64_jet: jetUrl },
           }));
+          setIsLoading(false);
           break;
         }
         case "prediction": {
@@ -1314,14 +1324,34 @@ const CellImageGrid: React.FC = () => {
                 />
               )}
 
-            {drawMode === "map64" &&
+            {drawMode === "map64" && isLoading ? (
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                style={{ height: 400 }}
+              >
+                <Spinner />
+              </Box>
+            ) : (
+              drawMode === "map64" &&
               images[cellIds[currentIndex]]?.map64 && (
-                <img
-                  src={images[cellIds[currentIndex]]?.map64}
-                  alt={`Cell ${cellIds[currentIndex]} Map64`}
-                  style={{ width: "100%" }}
-                />
-              )}
+                <Box>
+                  <img
+                    src={images[cellIds[currentIndex]]?.map64}
+                    alt={`Cell ${cellIds[currentIndex]} Map64`}
+                    style={{ width: "100%" }}
+                  />
+                  {images[cellIds[currentIndex]]?.map64_jet && (
+                    <img
+                      src={images[cellIds[currentIndex]]?.map64_jet}
+                      alt={`Cell ${cellIds[currentIndex]} Map64 Jet`}
+                      style={{ width: "100%" }}
+                    />
+                  )}
+                </Box>
+              )
+            )}
 
             {drawMode === "path" && isLoading ? (
               <Box
