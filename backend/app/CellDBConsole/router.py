@@ -282,6 +282,12 @@ async def get_cell_sobel(
     )
 
 
+@router_cell.get("/{cell_id}/{db_name}/hu_mask", response_class=StreamingResponse)
+async def get_cell_hu_mask(cell_id: str, db_name: str, channel: int = 1):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(db_name=db_name).get_hu_mask(cell_id, channel)
+
+
 @router_cell.get("/{db_name}/{label}/{cell_id}/mean_fluo_intensities")
 async def get_mean_fluo_intensities(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
