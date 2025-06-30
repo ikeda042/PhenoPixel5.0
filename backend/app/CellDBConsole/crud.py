@@ -2011,7 +2011,7 @@ class CellCrudBase:
         return buf
 
     async def get_laplacian(
-        self, cell_id: str, channel: int = 1
+        self, cell_id: str, channel: int = 1, brightness_factor: float = 1.0
     ) -> StreamingResponse:
         """Return Laplacian filtered fluo image with outside masked."""
         cell = await self.read_cell(cell_id)
@@ -2023,6 +2023,8 @@ class CellCrudBase:
         masked = cv2.bitwise_and(img, mask)
         lap = cv2.Laplacian(masked, cv2.CV_64F)
         lap = cv2.convertScaleAbs(lap)
+        if brightness_factor != 1.0:
+            lap = cv2.convertScaleAbs(lap, alpha=brightness_factor, beta=0)
         _, buffer = cv2.imencode(".png", lap)
         buf = io.BytesIO(buffer)
         buf.seek(0)
