@@ -168,6 +168,7 @@ const CellImageGrid: React.FC = () => {
   const [fluoChannel, setFluoChannel] = useState<'fluo1' | 'fluo2'>('fluo1');
   const [drawMode, setDrawMode] = useState<DrawModeType>(init_draw_mode);
   const [fitDegree, setFitDegree] = useState<number>(4);
+  const [map64Source, setMap64Source] = useState<'ph' | 'fluo1' | 'fluo2'>('fluo1');
   const [engineMode, setEngineMode] = useState<EngineName>("None");
 
   // DetectMode 用の state
@@ -409,15 +410,16 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "map64": {
-          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const channelParam = map64Source === 'fluo2' ? 2 : 1;
+          const imgTypeParam = map64Source === 'ph' ? 'ph' : 'fluo';
           setIsLoading(true);
           const [rawRes, jetRes] = await Promise.all([
             axios.get(
-              `${url_prefix}/cells/${cellId}/${db_name}/map64?degree=${fitDegree}&channel=${channelParam}`,
+              `${url_prefix}/cells/${cellId}/${db_name}/map64?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
               { responseType: "blob" }
             ),
             axios.get(
-              `${url_prefix}/cells/${cellId}/${db_name}/map64_jet?degree=${fitDegree}&channel=${channelParam}`,
+              `${url_prefix}/cells/${cellId}/${db_name}/map64_jet?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
               { responseType: "blob" }
             ),
           ]);
@@ -500,7 +502,7 @@ const CellImageGrid: React.FC = () => {
     const cellId = cellIds[currentIndex];
     fetchAdditionalImage(drawMode, cellId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel, laplacianBrightness, sobelBrightness]);
+  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel, laplacianBrightness, sobelBrightness, map64Source]);
 
   //------------------------------------
   // 現在のセルIDに対応した初期ラベルを取得
@@ -1225,26 +1227,10 @@ const CellImageGrid: React.FC = () => {
                   </Select>
                 </FormControl>
               )}
-              {drawMode === "map64" && hasFluo2 && (
-                <FormControl variant="outlined" sx={{ minWidth: 120 }}>
-                  <InputLabel id="map64-channel-label">Fluo</InputLabel>
-                  <Select
-                    labelId="map64-channel-label"
-                    label="Fluo"
-                    value={fluoChannel}
-                    onChange={(e) =>
-                      setFluoChannel(e.target.value as "fluo1" | "fluo2")
-                    }
-                  >
-                    <MenuItem value="fluo1">fluo1</MenuItem>
-                    <MenuItem value="fluo2">fluo2</MenuItem>
-                  </Select>
-                </FormControl>
-              )}
             </Box>
 
             {DRAW_MODES.find((m) => m.value === drawMode)?.needsPolyfit && (
-              <Box mt={2}>
+              <Box mt={2} sx={{ display: "flex", gap: 2 }}>
                 <TextField
                   label="Polyfit Degree"
                   variant="outlined"
@@ -1256,8 +1242,27 @@ const CellImageGrid: React.FC = () => {
                     onWheel: handleWheel,
                     autoComplete: "off",
                   }}
-                  fullWidth
+                  sx={{ flex: 1 }}
                 />
+                {drawMode === "map64" && (
+                  <FormControl variant="outlined" sx={{ minWidth: 120 }}>
+                    <InputLabel id="map64-source-label">Channel</InputLabel>
+                    <Select
+                      labelId="map64-source-label"
+                      label="Channel"
+                      value={map64Source}
+                      onChange={(e) =>
+                        setMap64Source(
+                          e.target.value as "ph" | "fluo1" | "fluo2"
+                        )
+                      }
+                    >
+                      <MenuItem value="ph">ph</MenuItem>
+                      <MenuItem value="fluo1">fluo1</MenuItem>
+                      {hasFluo2 && <MenuItem value="fluo2">fluo2</MenuItem>}
+                    </Select>
+                  </FormControl>
+                )}
               </Box>
             )}
           </Box>
