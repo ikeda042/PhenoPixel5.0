@@ -315,6 +315,19 @@ async def get_var_fluo_intensities(db_name: str, label: str, cell_id: str):
     return ret
 
 
+@router_cell.get("/{db_name}/{label}/{cell_id}/area_fraction")
+async def get_area_fraction(db_name: str, label: str, cell_id: str):
+    await AsyncChores().validate_database_name(db_name)
+    ret: StreamingResponse = await CellCrudBase(
+        db_name=db_name
+    ).get_all_area_fractions(
+        label=label,
+        cell_id=cell_id,
+        y_label="Nucleoid Area Fraction",
+    )
+    return ret
+
+
 @router_cell.get(
     "/{db_name}/{label}/median_fluo_intensities/csv", response_class=StreamingResponse
 )
@@ -343,6 +356,16 @@ async def get_var_fluo_intensities_csv(db_name: str, label: str):
     return await CellCrudBase(
         db_name=db_name
     ).get_all_variance_normalized_fluo_intensities_csv(label=label)
+
+
+@router_cell.get(
+    "/{db_name}/{label}/area_fraction/csv", response_class=StreamingResponse
+)
+async def get_area_fraction_csv(db_name: str, label: str):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(
+        db_name=db_name
+    ).get_all_area_fractions_csv(label=label)
 
 
 @router_cell.get(

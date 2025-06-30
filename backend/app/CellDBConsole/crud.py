@@ -25,6 +25,7 @@ from scipy.optimize import minimize
 from sqlalchemy import update
 from sqlalchemy.future import select
 from typing import Literal
+from skimage.filters import threshold_otsu
 from CellDBConsole.schemas import CellId, CellMorhology, ListDBresponse
 from Dropbox.crud import DropboxCrud
 from database import get_session, Cell
@@ -596,6 +597,43 @@ class AsyncChores:
         )
         max_val = np.max(points) if len(points) else 1
         return round(np.var([p / max_val for p in points]), 2)
+
+    @staticmethod
+    async def calc_area_fraction(
+        image_fluo_raw: bytes, contour_raw: bytes
+    ) -> float:
+        """HU-GFP 画像から核様体領域の面積比を計算する。"""
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as executor:
+            img_gray = await loop.run_in_executor(
+                executor,
+                cv2.imdecode,
+                np.frombuffer(image_fluo_raw, np.uint8),
+                cv2.IMREAD_GRAYSCALE,
+            )
+            contour = await loop.run_in_executor(executor, pickle.loads, contour_raw)
+            cell_area = await loop.run_in_executor(executor, cv2.contourArea, contour)
+
+            if cell_area == 0:
+                return 0.0
+
+            mask = np.zeros_like(img_gray)
+            await loop.run_in_executor(
+                executor, cv2.drawContours, mask, [contour], -1, 255, -1
+            )
+            cell_pixels = img_gray[mask > 0].astype(np.float32)
+            if cell_pixels.size == 0:
+                return 0.0
+
+            vmin = float(cell_pixels.min())
+            vmax = float(cell_pixels.max())
+            if vmax - vmin < 1e-6:
+                return 0.0
+
+            norm = (cell_pixels - vmin) / (vmax - vmin)
+            thr = threshold_otsu(norm)
+            nucleoid_area = int((norm >= thr).sum())
+            return round(nucleoid_area / cell_area, 4)
 
     @staticmethod
     async def get_points_inside_cell(
@@ -1689,6 +1727,56 @@ class CellCrudBase:
             variance_intensities,
             columns=[
                 f"Variance normalized fluorescence intensity {self.db_name} cells with label {label}"
+            ],
+        )
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
+
+    async def get_all_area_fractions(
+        self, cell_id: str, y_label: str, label: str | None = None
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        target_cell = await self.read_cell(cell_id=cell_id)
+        target_val = await AsyncChores.calc_area_fraction(
+            target_cell.img_fluo1, target_cell.contour
+        )
+        fractions = await asyncio.gather(
+            *(
+                AsyncChores.calc_area_fraction(cell.img_fluo1, cell.contour)
+                for cell in cells
+            )
+        )
+        buf = await AsyncChores.box_plot(
+            fractions,
+            target_val=target_val,
+            y_label=y_label,
+            cell_id=cell_id,
+            label=None,
+        )
+        return StreamingResponse(buf, media_type="image/png")
+
+    async def get_all_area_fractions_csv(
+        self, label: str | None = None
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        fractions = await asyncio.gather(
+            *(
+                AsyncChores.calc_area_fraction(cell.img_fluo1, cell.contour)
+                for cell in cells
+            )
+        )
+        df = pd.DataFrame(
+            fractions,
+            columns=[
+                f"Nucleoid area fraction {self.db_name} cells with label {label}"
             ],
         )
         buf = io.BytesIO()

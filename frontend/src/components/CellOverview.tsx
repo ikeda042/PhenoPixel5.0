@@ -26,6 +26,7 @@ import MedianEngine from "./MedianEngine";
 import MeanEngine from "./MeanEngine";
 import HeatmapEngine from "./HeatmapEngine";
 import VarEngine from "./VarEngine";
+import AreaFractionEngine from "./AreaFractionEngine";
 
 import {
   Chart as ChartJS,
@@ -86,7 +87,8 @@ type EngineName =
   | "MedianEngine"
   | "MeanEngine"
   | "HeatmapEngine"
-  | "VarEngine";
+  | "VarEngine"
+  | "AreaFractionEngine";
 
 // MorphoEngineロゴマッピング
 const engineLogos: Record<EngineName, string> = {
@@ -95,6 +97,7 @@ const engineLogos: Record<EngineName, string> = {
   MedianEngine: "/logo_dots.png",
   MeanEngine: "/logo_circular.png",
   VarEngine: "/var_logo.png",
+  AreaFractionEngine: "/logo_cross.png",
   HeatmapEngine: "/logo_heatmap.png",
 };
 
@@ -1389,6 +1392,16 @@ const CellImageGrid: React.FC = () => {
           {engineMode === "VarEngine" && (
             <Box mt={6}>
               <VarEngine
+                dbName={db_name}
+                label={selectedLabel}
+                cellId={cellIds[currentIndex]}
+              />
+            </Box>
+          )}
+
+          {engineMode === "AreaFractionEngine" && (
+            <Box mt={6}>
+              <AreaFractionEngine
                 dbName={db_name}
                 label={selectedLabel}
                 cellId={cellIds[currentIndex]}

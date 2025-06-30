@@ -329,6 +329,17 @@ async def test_get_var_fluo_intensities(client: AsyncClient):
 
 
 @pytest.mark.anyio
+async def test_get_area_fraction(client: AsyncClient):
+    """
+    GET /cells/{db_name}/{label}/{cell_id}/area_fraction
+    """
+    response = await client.get(
+        "/api/cells/test_database.db/1/F0C5/area_fraction"
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio
 async def test_get_median_fluo_intensities_csv(client: AsyncClient):
     """
     GET /cells/{db_name}/{label}/median_fluo_intensities/csv
@@ -357,6 +368,17 @@ async def test_get_var_fluo_intensities_csv(client: AsyncClient):
     """
     response = await client.get(
         "/api/cells/test_database.db/1/var_fluo_intensities/csv"
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_get_area_fraction_csv(client: AsyncClient):
+    """
+    GET /cells/{db_name}/{label}/area_fraction/csv
+    """
+    response = await client.get(
+        "/api/cells/test_database.db/1/area_fraction/csv"
     )
     assert response.status_code == 200
 
