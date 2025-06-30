@@ -61,6 +61,7 @@ type ImageState = {
   prediction?: string; // AI推論画像
   cloud_points?: string; // 3D表示
   cloud_points_ph?: string; // 3D PH表示
+  laplacian?: string; // Laplacian画像
 };
 
 // 「どのモードにするか」を列挙型的に管理する
@@ -70,6 +71,7 @@ type DrawModeType =
   | "distribution"
   | "distribution_normalized"
   | "path"
+  | "laplacian"
   | "t1contour"
   | "prediction"
   | "cloud_points"
@@ -115,6 +117,7 @@ const DRAW_MODES: {
   { value: "distribution", label: "Distribution" },
   { value: "distribution_normalized", label: "Distribution (Normalized)" },
   { value: "path", label: "Peak-path", needsPolyfit: true },
+  { value: "laplacian", label: "Laplacian" },
   { value: "t1contour", label: "Light+Model T1" },
   { value: "prediction", label: "Model T1(Torch GPU)" },
   { value: "cloud_points", label: "3D Fluo" },
@@ -349,6 +352,18 @@ const CellImageGrid: React.FC = () => {
             [cellId]: { ...prev[cellId], path: url },
           }));
           setIsLoading(false);
+          break;
+        }
+        case "laplacian": {
+          const response = await axios.get(
+            `${url_prefix}/cells/${cellId}/${db_name}/laplacian`,
+            { responseType: "blob" }
+          );
+          const url = URL.createObjectURL(response.data);
+          setImages((prev) => ({
+            ...prev,
+            [cellId]: { ...prev[cellId], laplacian: url },
+          }));
           break;
         }
         case "prediction": {
@@ -1108,6 +1123,15 @@ const CellImageGrid: React.FC = () => {
                 <img
                   src={images[cellIds[currentIndex]]?.distribution_normalized}
                   alt={`Cell ${cellIds[currentIndex]} Distribution (Normalized)`}
+                  style={{ width: "100%" }}
+                />
+              )}
+
+            {drawMode === "laplacian" &&
+              images[cellIds[currentIndex]]?.laplacian && (
+                <img
+                  src={images[cellIds[currentIndex]]?.laplacian}
+                  alt={`Cell ${cellIds[currentIndex]} Laplacian`}
                   style={{ width: "100%" }}
                 />
               )}

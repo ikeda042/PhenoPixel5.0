@@ -2010,6 +2010,25 @@ class CellCrudBase:
         plt.close(fig)
         return buf
 
+    async def get_laplacian(
+        self, cell_id: str
+    ) -> StreamingResponse:
+        """Return Laplacian filtered PH image with outside masked."""
+        cell = await self.read_cell(cell_id)
+        img = cv2.imdecode(
+            np.frombuffer(cell.img_ph, np.uint8), cv2.IMREAD_GRAYSCALE
+        )
+        contour = await AsyncChores.async_pickle_loads(cell.contour)
+        mask = np.zeros_like(img)
+        cv2.fillPoly(mask, [np.array(contour, dtype=np.int32)], 255)
+        masked = cv2.bitwise_and(img, mask)
+        lap = cv2.Laplacian(masked, cv2.CV_64F)
+        lap = cv2.convertScaleAbs(lap)
+        _, buffer = cv2.imencode(".png", lap)
+        buf = io.BytesIO(buffer)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="image/png")
+
     async def get_contour_canny_draw(
         self, cell_id: str, canny_thresh2: int = 100
     ) -> list[list[float]]:
