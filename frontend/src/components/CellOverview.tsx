@@ -62,6 +62,7 @@ type ImageState = {
   cloud_points?: string; // 3D表示
   cloud_points_ph?: string; // 3D PH表示
   laplacian?: string; // Laplacian画像
+  sobel?: string; // Sobel画像
 };
 
 // 「どのモードにするか」を列挙型的に管理する
@@ -72,6 +73,7 @@ type DrawModeType =
   | "distribution_normalized"
   | "path"
   | "laplacian"
+  | "sobel"
   | "t1contour"
   | "prediction"
   | "cloud_points"
@@ -118,6 +120,7 @@ const DRAW_MODES: {
   { value: "distribution_normalized", label: "Distribution (Normalized)" },
   { value: "path", label: "Peak-path", needsPolyfit: true },
   { value: "laplacian", label: "Laplacian" },
+  { value: "sobel", label: "Sobel" },
   { value: "t1contour", label: "Light+Model T1" },
   { value: "prediction", label: "Model T1(Torch GPU)" },
   { value: "cloud_points", label: "3D Fluo" },
@@ -150,6 +153,7 @@ const CellImageGrid: React.FC = () => {
   const [autoPlay, setAutoPlay] = useState<boolean>(false);
   const [brightnessFactor, setBrightnessFactor] = useState<number>(1.0);
   const [laplacianBrightness, setLaplacianBrightness] = useState<number>(1.0);
+  const [sobelBrightness, setSobelBrightness] = useState<number>(1.0);
   const [hasFluo2, setHasFluo2] = useState<boolean>(false);
   const [fluoChannel, setFluoChannel] = useState<'fluo1' | 'fluo2'>('fluo1');
   const [drawMode, setDrawMode] = useState<DrawModeType>(init_draw_mode);
@@ -368,6 +372,19 @@ const CellImageGrid: React.FC = () => {
           }));
           break;
         }
+        case "sobel": {
+          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const response = await axios.get(
+            `${url_prefix}/cells/${cellId}/${db_name}/sobel?channel=${channelParam}&brightness_factor=${sobelBrightness}`,
+            { responseType: "blob" }
+          );
+          const url = URL.createObjectURL(response.data);
+          setImages((prev) => ({
+            ...prev,
+            [cellId]: { ...prev[cellId], sobel: url },
+          }));
+          break;
+        }
         case "prediction": {
           if (!images[cellId]?.prediction) {
             const response = await axios.get(`${url_prefix}/cell_ai/${db_name}/${cellId}`, {
@@ -438,7 +455,7 @@ const CellImageGrid: React.FC = () => {
     const cellId = cellIds[currentIndex];
     fetchAdditionalImage(drawMode, cellId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel, laplacianBrightness]);
+  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel, laplacianBrightness, sobelBrightness]);
 
   //------------------------------------
   // 現在のセルIDに対応した初期ラベルを取得
@@ -586,6 +603,11 @@ const CellImageGrid: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     setLaplacianBrightness(parseFloat(e.target.value));
+  };
+  const handleSobelBrightnessChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setSobelBrightness(parseFloat(e.target.value));
   };
   const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     event.currentTarget.blur();
@@ -1111,6 +1133,37 @@ const CellImageGrid: React.FC = () => {
                   sx={{ width: 120 }}
                 />
               )}
+              {drawMode === "sobel" && hasFluo2 && (
+                <FormControl variant="outlined" sx={{ minWidth: 120 }}>
+                  <InputLabel id="sobel-channel-label">Fluo</InputLabel>
+                  <Select
+                    labelId="sobel-channel-label"
+                    label="Fluo"
+                    value={fluoChannel}
+                    onChange={(e) =>
+                      setFluoChannel(e.target.value as "fluo1" | "fluo2")
+                    }
+                  >
+                    <MenuItem value="fluo1">fluo1</MenuItem>
+                    <MenuItem value="fluo2">fluo2</MenuItem>
+                  </Select>
+                </FormControl>
+              )}
+              {drawMode === "sobel" && (
+                <TextField
+                  label="Brightness"
+                  variant="outlined"
+                  type="number"
+                  value={sobelBrightness}
+                  onChange={handleSobelBrightnessChange}
+                  InputProps={{
+                    inputProps: { min: 0.1, step: 0.1 },
+                    onWheel: handleWheel,
+                    autoComplete: "off",
+                  }}
+                  sx={{ width: 120 }}
+                />
+              )}
             </Box>
 
             {DRAW_MODES.find((m) => m.value === drawMode)?.needsPolyfit && (
@@ -1172,6 +1225,15 @@ const CellImageGrid: React.FC = () => {
                 <img
                   src={images[cellIds[currentIndex]]?.laplacian}
                   alt={`Cell ${cellIds[currentIndex]} Laplacian`}
+                  style={{ width: "100%" }}
+                />
+              )}
+
+            {drawMode === "sobel" &&
+              images[cellIds[currentIndex]]?.sobel && (
+                <img
+                  src={images[cellIds[currentIndex]]?.sobel}
+                  alt={`Cell ${cellIds[currentIndex]} Sobel`}
                   style={{ width: "100%" }}
                 />
               )}

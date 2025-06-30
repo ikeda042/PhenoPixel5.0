@@ -2030,6 +2030,28 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="image/png")
 
+    async def get_sobel(
+        self, cell_id: str, channel: int = 1, brightness_factor: float = 1.0
+    ) -> StreamingResponse:
+        """Return Sobel filtered fluo image with outside masked."""
+        cell = await self.read_cell(cell_id)
+        img_blob = cell.img_fluo2 if channel == 2 else cell.img_fluo1
+        img = cv2.imdecode(np.frombuffer(img_blob, np.uint8), cv2.IMREAD_GRAYSCALE)
+        contour = await AsyncChores.async_pickle_loads(cell.contour)
+        mask = np.zeros_like(img)
+        cv2.fillPoly(mask, [np.array(contour, dtype=np.int32)], 255)
+        masked = cv2.bitwise_and(img, mask)
+        sobelx = cv2.Sobel(masked, cv2.CV_64F, 1, 0, ksize=3)
+        sobely = cv2.Sobel(masked, cv2.CV_64F, 0, 1, ksize=3)
+        sob = cv2.magnitude(sobelx, sobely)
+        sob = cv2.convertScaleAbs(sob)
+        if brightness_factor != 1.0:
+            sob = cv2.convertScaleAbs(sob, alpha=brightness_factor, beta=0)
+        _, buffer = cv2.imencode(".png", sob)
+        buf = io.BytesIO(buffer)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="image/png")
+
     async def get_contour_canny_draw(
         self, cell_id: str, canny_thresh2: int = 100
     ) -> list[list[float]]:
