@@ -516,22 +516,17 @@ $$L_{\min} = \min \{ \mathbf{L}(u_{1_i}^\star) : u_{1_i}^\star \in u_1 \}$$
 $$L_{\max} = \max \{ \mathbf{L}(u_{1_i}^\star) : u_{1_i}^\star \in u_1 \}$$
 
 
-The bounding rectangle $R$ that encompasses $\mathbf{C}^\star$ can be expressed as:
+The bounding rectangle $R$ that encompasses $\mathbf{C}^\star$ is
+$$R = [u_{1_{\min}}^\star, u_{1_{\max}}^\star] \times [L_{\min}, L_{\max}]$$.
 
-$$R = [u_{1_{\min}}^\star, u_{1_{\max}}^\star] \times [L_{\min}, L_{\max}]$$
-
-If we treat $R$ as an image with dimensions $m \times n$, resizing it to $64 \times 64$ pixels using nearest-neighbor interpolation can be expressed mathematically as follows:
-
-
-**Original pixel positions**: $(x, y)$ where $x \in \{0, 1, \ldots, n-1\}$ and $y \in \{0, 1, \ldots, m-1\}$ 
-
-**New pixel positions**: $(x', y')$ where $x' \in \{0, 1, \ldots, 63\}$ and $y' \in \{0, 1, \ldots, 63\}$
-
-The mapping from the original image to the resized image is given by:
-
-$$x' = \left\lfloor \frac{x \cdot 64}{n} \right\rfloor, \quad y' = \left\lfloor \frac{y \cdot 64}{m} \right\rfloor$$
-
-where $\lfloor \cdot \rfloor$ denotes the floor function, which truncates the value to the nearest integer. The interpolation method `cv2.INTER_NEAREST` ensures that the pixel value chosen for each $(x', y')$ corresponds to the nearest pixel from the original image.
+The points in $\mathbf{C}^\star$ are rasterized onto a high-resolution grid
+whose width represents the arc-length dimension and whose height corresponds to
+the signed distance from the center line.  This grid is then resized to
+$516\times128$ pixels using nearest-neighbor interpolation.  The mean
+brightness of the left and right halves of the resulting image is compared and
+the entire map is horizontally flipped when the right side is brighter.  For
+phenotypic pattern analysis another $512\times128$ version is generated and its
+pixel intensities are normalized to the range 0--255.
 
 ### Results:
 
@@ -580,7 +575,7 @@ Figure 8-4 shows the map64 image of the cell.
 </div>
 
 <p align="center">
-Fig. 8-4 the map64 image of the cell. (64 x 64)
+Fig. 8-4 the map64 image of the cell (516 x 128)
 </p>
 
 
