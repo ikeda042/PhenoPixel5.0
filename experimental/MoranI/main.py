@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-images/ に保存された各細胞画像（サイズ 516x128 のPNG）に対して、
+images/ に保存された各細胞画像（サイズ 1024x256 のPNG）に対して、
 Moran's I を計算し、結果を表示するスクリプトの例。
 
 Python 3.12 での実行を想定。
@@ -50,11 +50,11 @@ def main():
     results = []
     for path in image_paths:
         # 画像読み込み (グレースケール想定)
-        img = imread(path, as_gray=True)  # shape: (516,128) を想定
+        img = imread(path, as_gray=True)  # shape: (1024,256) を想定
         
         # 画像サイズが想定と異なる場合はスキップ or 警告
-        if img.shape != (516, 128):
-            print(f"警告: {path} の画像サイズが (516,128) ではありません -> {img.shape}")
+        if img.shape != (1024, 256):
+            print(f"警告: {path} の画像サイズが (1024,256) ではありません -> {img.shape}")
             # 必要に応じて continue や resize を検討
             # ここでは強行的に計算する例
             pass

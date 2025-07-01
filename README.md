@@ -470,7 +470,7 @@ Figure 7-5 describes the result of the peak-path finder algorithm.
 Fig.7-5: The estimated peak path by the algorithm.
 </p>
 
-# Normalization Based on the Major Axis of Cell Morphology (Map64)
+# Normalization Based on the Major Axis of Cell Morphology (Map256)
 
 In the previous chapter, we analytically derived the centerline of the cell. Utilizing this, we attempted to "stretch" any curved cell along its major axis to create a straightened cell, thereby normalizing the fluorescence localization within the cell.
 
@@ -522,10 +522,10 @@ $$R = [u_{1_{\min}}^\star, u_{1_{\max}}^\star] \times [L_{\min}, L_{\max}]$$.
 The points in $\mathbf{C}^\star$ are rasterized onto a high-resolution grid
 whose width represents the arc-length dimension and whose height corresponds to
 the signed distance from the center line.  This grid is then resized to
-$516\times128$ pixels using nearest-neighbor interpolation.  The mean
+$1024\times256$ pixels using nearest-neighbor interpolation.  The mean
 brightness of the left and right halves of the resulting image is compared and
 the entire map is horizontally flipped when the right side is brighter.  For
-phenotypic pattern analysis another $512\times128$ version is generated and its
+phenotypic pattern analysis another $1024\times256$ version is generated and its
 pixel intensities are normalized to the range 0--255.
 
 ### Results:
@@ -557,7 +557,7 @@ Figure 8-3 shows the reconstructed cell image as n x m matrix.
 
 <div align="center">
 
-<img src="docs_images/map64_raw.png" width="800">
+<img src="docs_images/map256_raw.png" width="800">
 
 </div>
 
@@ -566,27 +566,27 @@ Fig. 8-3 the reconstructed cell image as n x m matrix.
 </p>
 
 
-Figure 8-4 shows the map64 image of the cell. 
+Figure 8-4 shows the map256 image of the cell.
 
 <div align="center">
 
-<img src="docs_images/map_64.png" width="800">
+<img src="docs_images/map_256.png" width="800">
 
 </div>
 
 <p align="center">
-Fig. 8-4 the map64 image of the cell (516 x 128)
+Fig. 8-4 the map256 image of the cell (1024 x 256)
 </p>
 
 
 
-# Phenotipic expression patterns with map64
+# Phenotipic expression patterns with map256
 
-[Scripts for map64 normalization](experimental/DotPatternMap/main.py)
+[Scripts for map256 normalization](experimental/DotPatternMap/main.py)
 
 
 
-With the Map64 normalization algorighms, cells' phenotipic GFP-expressions patterns. 
+With the Map256 normalization algorithms, cells' phenotipic GFP-expressions patterns.
 
 Here is the example of the antibiotic treated population.
 
@@ -600,10 +600,10 @@ Fig. 10-1 Streched cells of the population with fluorescent information.
 
 <div align="center">
 
-![Start-up window](docs_images/map_64_combined.png)
+![Start-up window](docs_images/map_256_combined.png)
 </div>
 <p align="center">
-Fig. 10-2 Map64 normalized cells of the population.
+Fig. 10-2 Map256 normalized cells of the population.
 </p>
 
 
