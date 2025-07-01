@@ -57,7 +57,7 @@ class AutoLabelCrud:
 
             iou = self.contour_iou(actual_np, predicted_np, shape)
 
-            if iou >= 0.4:
+            if iou < 0.2:
                 await CellCrudBase(self.db_name).update_label(cell.cell_id, "1")
             else:
                 await CellCrudBase(self.db_name).update_label(cell.cell_id, "N/A")
