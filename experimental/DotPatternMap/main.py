@@ -54,16 +54,16 @@ def ensure_dirs():
     """
     base_dir = "experimental/DotPatternMap/images"
     subdirs = [
-        "map64",
+        "map256",
         "points_box",
         # "pca_2d",  # PCA-2D 関連はコメントアウト
         # "pca_1d",  # PCA-1D 関連はコメントアウト
         "fluo_raw",
-        "map64_jet",
-        "map64_raw",
+        "map256_jet",
+        "map256_raw",
         # "polar",   # polar 処理はコメントアウト
         "dot_loc",          # dot位置結果の出力先
-        "map_64_normalized" # ★ 512×128の画像を保存するディレクトリ
+        "map_256_normalized" # ★ 1024×256の画像を保存するディレクトリ
     ]
     if not os.path.exists(base_dir):
         os.makedirs(base_dir)
@@ -85,7 +85,7 @@ def delete_pngs(dir: str) -> None:
         os.remove(os.path.join(f"experimental/DotPatternMap/images/{dir}", filename))
 
 
-class Map64:
+class Map256:
     @dataclass
     class Point:
         def __init__(
@@ -116,7 +116,7 @@ class Map64:
             return f"({self.u1},{self.G})"
 
     @classmethod
-    def flip_image_if_needed(cls: Map64, image: np.ndarray) -> np.ndarray:
+    def flip_image_if_needed(cls: Map256, image: np.ndarray) -> np.ndarray:
         """
         画像の左右輝度を見て、右側が明るければ水平反転
         """
@@ -156,7 +156,7 @@ class Map64:
         return min_distance, min_point
 
     @classmethod
-    def poly_fit(cls: Map64, U: list[list[float]], degree: int = 1) -> list[float]:
+    def poly_fit(cls: Map256, U: list[list[float]], degree: int = 1) -> list[float]:
         """
         U = [[u2, u1], [u2, u1], ...] の2次元点から、
         u1 を入力（x）、u2 を出力（y）として 多項式近似を行い係数を返す
@@ -168,7 +168,7 @@ class Map64:
 
     @classmethod
     def basis_conversion(
-        cls: Map64,
+        cls: Map256,
         contour: list[list[int]],
         X: np.ndarray,
         center_x: float,
@@ -206,7 +206,7 @@ class Map64:
 
     @classmethod
     def replot(
-        cls: Map64, image_fluo_raw: bytes, contour_raw: bytes, degree: int
+        cls: Map256, image_fluo_raw: bytes, contour_raw: bytes, degree: int
     ) -> None:
         """
         既存の画像バッファと輪郭データから再度plotする例
@@ -289,7 +289,7 @@ class Map64:
         """
         与えられた蛍光画像バイナリと輪郭を用いて、
         基底変換＋曲線近似＋細胞内部座標の可視化を行い、
-        背景差分後の map64_raw を出力する。
+        背景差分後の map256_raw を出力する。
 
         隙間部分のパディングを 「細胞内の最小輝度」に修正済み。
         """
@@ -416,7 +416,7 @@ class Map64:
         plt.clf()
 
         # ==================================
-        # map64_rawの作成 (可変サイズ)
+        # map256_rawの作成 (可変サイズ)
         # ==================================
         scale_factor = 1
         scaled_width = int((max_p - min_p) * scale_factor)
@@ -436,63 +436,63 @@ class Map64:
 
         # background-sub後の raw 画像を保存
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64_raw/{DB_PREFIX}_{cell_id}.png",
+            f"experimental/DotPatternMap/images/map256_raw/{DB_PREFIX}_{cell_id}.png",
             high_res_image,
         )
 
-        # この段階で 516×128 にリサイズ＆左右反転チェック
+        # この段階で 1024×256 にリサイズ＆左右反転チェック
         high_res_image = cv2.resize(
-            high_res_image, (516, 128), interpolation=cv2.INTER_NEAREST
+            high_res_image, (1024, 256), interpolation=cv2.INTER_NEAREST
         )
         high_res_image = cls.flip_image_if_needed(high_res_image)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64/{DB_PREFIX}_{cell_id}.png",
+            f"experimental/DotPatternMap/images/map256/{DB_PREFIX}_{cell_id}.png",
             high_res_image,
         )
 
         # Jet カラーマップ
         high_res_image_colormap = cv2.applyColorMap(high_res_image, cv2.COLORMAP_JET)
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64_jet/{DB_PREFIX}_{cell_id}.png",
+            f"experimental/DotPatternMap/images/map256_jet/{DB_PREFIX}_{cell_id}.png",
             high_res_image_colormap,
         )
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map64_jet/{DB_PREFIX}_map64_jet.png",
+            f"experimental/DotPatternMap/images/map256_jet/{DB_PREFIX}_map256_jet.png",
             high_res_image_colormap,
         )
 
         # ==================================
-        # 512×128 ピクセルでの保存 (リクエスト箇所: 輝度正規化)
+        # 1024×256 ピクセルでの保存 (リクエスト箇所: 輝度正規化)
         # ==================================
-        map64_normalized_image = cv2.resize(
-            high_res_image, (512, 128), interpolation=cv2.INTER_NEAREST
+        map256_normalized_image = cv2.resize(
+            high_res_image, (1024, 256), interpolation=cv2.INTER_NEAREST
         )
         # 左右反転の要否チェック
-        map64_normalized_image = cls.flip_image_if_needed(map64_normalized_image)
+        map256_normalized_image = cls.flip_image_if_needed(map256_normalized_image)
         # 輝度を0～255へ正規化
-        map64_normalized_image = cv2.normalize(
-            map64_normalized_image, None, 0, 255, cv2.NORM_MINMAX
+        map256_normalized_image = cv2.normalize(
+            map256_normalized_image, None, 0, 255, cv2.NORM_MINMAX
         )
         cv2.imwrite(
-            f"experimental/DotPatternMap/images/map_64_normalized/{DB_PREFIX}_{cell_id}.png",
-            map64_normalized_image,
+            f"experimental/DotPatternMap/images/map_256_normalized/{DB_PREFIX}_{cell_id}.png",
+            map256_normalized_image,
         )
 
         return high_res_image
 
     @classmethod
-    def combine_images(cls: Map64, out_name: str = "combined_image.png") -> None:
+    def combine_images(cls: Map256, out_name: str = "combined_image.png") -> None:
         """
-        map64, points_box, map64_jet の画像をそれぞれまとめて並べた画像を作成
+        map256, points_box, map256_jet の画像をそれぞれまとめて並べた画像を作成
         """
-        map64_dir = "experimental/DotPatternMap/images/map64"
+        map256_dir = "experimental/DotPatternMap/images/map256"
         points_box_dir = "experimental/DotPatternMap/images/points_box"
-        map64_jet_dir = "experimental/DotPatternMap/images/map64_jet"
+        map256_jet_dir = "experimental/DotPatternMap/images/map256_jet"
 
-        map64_images = [
-            cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
-            for filename in os.listdir(map64_dir)
-            if cv2.imread(os.path.join(map64_dir, filename), cv2.IMREAD_GRAYSCALE)
+        map256_images = [
+            cv2.imread(os.path.join(map256_dir, filename), cv2.IMREAD_GRAYSCALE)
+            for filename in os.listdir(map256_dir)
+            if cv2.imread(os.path.join(map256_dir, filename), cv2.IMREAD_GRAYSCALE)
             is not None
         ]
         points_box_images = [
@@ -501,19 +501,19 @@ class Map64:
             if cv2.imread(os.path.join(points_box_dir, filename), cv2.IMREAD_COLOR)
             is not None
         ]
-        map64_jet_images = [
-            cv2.imread(os.path.join(map64_jet_dir, filename), cv2.IMREAD_COLOR)
-            for filename in os.listdir(map64_jet_dir)
-            if cv2.imread(os.path.join(map64_jet_dir, filename), cv2.IMREAD_COLOR)
+        map256_jet_images = [
+            cv2.imread(os.path.join(map256_jet_dir, filename), cv2.IMREAD_COLOR)
+            for filename in os.listdir(map256_jet_dir)
+            if cv2.imread(os.path.join(map256_jet_dir, filename), cv2.IMREAD_COLOR)
             is not None
         ]
 
         # 明るい順にソート（単純に和の大きいものを先頭に）
-        brightness = [np.sum(img) for img in map64_images]
+        brightness = [np.sum(img) for img in map256_images]
         sorted_indices = np.argsort(brightness)[::-1]
-        map64_images = [map64_images[i] for i in sorted_indices]
+        map256_images = [map256_images[i] for i in sorted_indices]
         points_box_images = [points_box_images[i] for i in sorted_indices]
-        map64_jet_images = [map64_jet_images[i] for i in sorted_indices]
+        map256_jet_images = [map256_jet_images[i] for i in sorted_indices]
 
         def calculate_grid_size(n):
             row = int(np.sqrt(n))
@@ -537,10 +537,10 @@ class Map64:
                 combined_image[y : y + image_size, x : x + image_size] = img
             return combined_image
 
-        combined_map64_image = combine_images_grid(map64_images, 64, 1)
+        combined_map256_image = combine_images_grid(map256_images, 64, 1)
         cv2.imwrite(
             f"experimental/DotPatternMap/images/{DB_PREFIX}_combined_image.png",
-            combined_map64_image,
+            combined_map256_image,
         )
 
         combined_points_box_image = combine_images_grid(points_box_images, 256, 3)
@@ -549,16 +549,16 @@ class Map64:
             combined_points_box_image,
         )
 
-        combined_map64_jet_image = combine_images_grid(map64_jet_images, 64, 3)
+        combined_map256_jet_image = combine_images_grid(map256_jet_images, 64, 3)
         cv2.imwrite(
             f"experimental/DotPatternMap/images/{DB_PREFIX}_combined_image_jet.png",
-            combined_map64_jet_image,
+            combined_map256_jet_image,
         )
 
 
 def detect_dot(image_path: str) -> list[tuple[int, int, float]]:
     """
-    map64_raw の画像を読み込み、輝度の高いドットを検出し、
+    map256_raw の画像を読み込み、輝度の高いドットを検出し、
     各ドットの(x, y, ドット領域の平均輝度)を返す。
     また、2値化画像（binary）と正規化画像（norm）、
     ドット検出結果（detected）の各画像を dot_loc フォルダに保存する。
@@ -668,22 +668,22 @@ def compute_avg_brightness(image: np.ndarray, x: float, y: float, radius=2) -> f
 
 def process_dot_locations(db_name: str):
     """
-    experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
+    experimental/DotPatternMap/images/map256_raw 内の各画像に対し、
     detect_dot() を用いてドットの中心座標と輝度を取得し、
     個別の散布図を保存し、全画像のドット位置と輝度をまとめたヒートマップを表示。
     """
     import csv
 
-    map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
+    map256_raw_dir = "experimental/DotPatternMap/images/map256_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
     if not os.path.exists(dot_loc_dir):
         os.makedirs(dot_loc_dir)
 
     all_normalized_dots: list[tuple[float, float, float]] = []
 
-    for filename in os.listdir(map64_raw_dir):
+    for filename in os.listdir(map256_raw_dir):
         if filename.endswith(".png"):
-            image_path = os.path.join(map64_raw_dir, filename)
+            image_path = os.path.join(map256_raw_dir, filename)
             print(f"Processing {filename}")
             dots = detect_dot(image_path)
 
@@ -853,7 +853,7 @@ def combine_dot_loc_combined_images():
 
 def extract_probability_map(out_name: str) -> np.ndarray:
     """
-    64x64の map64 をAugmentationして、単純平均した確率マップを作る例
+    64x64の map256 をAugmentationして、単純平均した確率マップを作る例
     """
     # ダミー実装
     return np.zeros((64, 64), dtype=np.float32)
@@ -861,22 +861,22 @@ def extract_probability_map(out_name: str) -> np.ndarray:
 
 def process_dot_locations_relative(db_name: str) -> None:
     """
-    experimental/DotPatternMap/images/map64_raw 内の各画像に対し、
+    experimental/DotPatternMap/images/map256_raw 内の各画像に対し、
     detect_dot() を用いてドットの中心座標と輝度を取得し、
     さらに相対座標(中心を0,0とみなす)に変換して可視化する。
     """
     import csv
 
-    map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
+    map256_raw_dir = "experimental/DotPatternMap/images/map256_raw"
     dot_loc_dir = "experimental/DotPatternMap/images/dot_loc"
     if not os.path.exists(dot_loc_dir):
         os.makedirs(dot_loc_dir)
 
     all_relative_dots: list[tuple[float, float, float]] = []
 
-    for filename in os.listdir(map64_raw_dir):
+    for filename in os.listdir(map256_raw_dir):
         if filename.endswith(".png"):
-            image_path = os.path.join(map64_raw_dir, filename)
+            image_path = os.path.join(map256_raw_dir, filename)
             print(f"Processing {filename} (relative coordinates)")
             dots = detect_dot(image_path)
 
@@ -976,18 +976,18 @@ def clean_directory(dir_path: str) -> None:
 
 
 # -------------------------------------------------------
-# 修正: 512×128 画像を縦向きに回転し、
+# 修正: 1024×256 画像を縦向きに回転し、
 # 画像の合計輝度が大きい順に並べて横に結合する。
 # -------------------------------------------------------
-def combine_map64_normalized(db_name: str) -> None:
+def combine_map256_normalized(db_name: str) -> None:
     """
-    map_64_normalized ディレクトリ内の 512×128 の画像を
-    90度回転させ(128×512の縦向きにし)、画像の合計輝度が大きい順に並べて
+    map_256_normalized ディレクトリ内の 1024×256 の画像を
+    90度回転させ(256×1024の縦向きにし)、画像の合計輝度が大きい順に並べて
     すべて横に連結して1枚の画像として保存する。
     
-    出力先: experimental/DotPatternMap/images/{db_name}_map64_normalized_all.png
+    出力先: experimental/DotPatternMap/images/{db_name}_map256_normalized_all.png
     """
-    normalized_dir = "experimental/DotPatternMap/images/map_64_normalized"
+    normalized_dir = "experimental/DotPatternMap/images/map_256_normalized"
     files = sorted(f for f in os.listdir(normalized_dir) if f.endswith(".png"))
 
     images_info = []
@@ -998,7 +998,7 @@ def combine_map64_normalized(db_name: str) -> None:
             continue
         # 回転前の輝度合計を測る場合はここで sum
         brightness = np.sum(img)
-        # 512×128 -> 90度回転で (128×512) にする
+        # 1024×256 -> 90度回転で (256×1024) にする
         rotated = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
         images_info.append((rotated, brightness))
 
@@ -1006,7 +1006,7 @@ def combine_map64_normalized(db_name: str) -> None:
     images_info.sort(key=lambda x: x[1], reverse=True)
 
     if not images_info:
-        print("No images to combine in map_64_normalized.")
+        print("No images to combine in map_256_normalized.")
         return
 
     # 横方向に連結
@@ -1014,7 +1014,7 @@ def combine_map64_normalized(db_name: str) -> None:
     for i in range(1, len(images_info)):
         combined_image = cv2.hconcat([combined_image, images_info[i][0]])
 
-    output_path = f"experimental/DotPatternMap/images/{db_name}_map64_normalized_all.png"
+    output_path = f"experimental/DotPatternMap/images/{db_name}_map256_normalized_all.png"
     cv2.imwrite(output_path, combined_image)
     print(f"Saved combined normalized image to {output_path}")
 
@@ -1027,24 +1027,24 @@ def main(db: str):
     print("+++++++++++++++++++++++++++++++++++++++++")
     print("+++++++++++++++++++++++++++++++++++++++++")
     print(f"Processing {db}")
-    for i in ["map64", "points_box", "fluo_raw", "map64_jet", "map64_raw"]:
+    for i in ["map256", "points_box", "fluo_raw", "map256_jet", "map256_raw"]:
         delete_pngs(i)
 
-    # 512×128用フォルダの掃除
-    clean_directory("experimental/DotPatternMap/images/map_64_normalized")
+    # 1024×256用フォルダの掃除
+    clean_directory("experimental/DotPatternMap/images/map_256_normalized")
 
     cells: list[Cell] = database_parser(db)[:100]
-    map64: Map64 = Map64()
+    map256: Map256 = Map256()
     vectors = []
     for cell in tqdm(cells):
-        vectors.append(map64.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
+        vectors.append(map256.extract_map(cell.img_fluo1, cell.contour, 4, cell.cell_id))
 
     # combine_imagesは DB_PREFIX を用いて保存
-    map64.combine_images(out_name=db.replace(".db", ".png"))
+    map256.combine_images(out_name=db.replace(".db", ".png"))
     extract_probability_map(db.replace(".db", ""))
 
-    # 追加: combine_map64_normalizedを呼び出して、一枚にまとめる（輝度順で結合）
-    combine_map64_normalized(db.replace(".db", ""))
+    # 追加: combine_map256_normalizedを呼び出して、一枚にまとめる（輝度順で結合）
+    combine_map256_normalized(db.replace(".db", ""))
 
     return vectors
 
@@ -1060,14 +1060,14 @@ if __name__ == "__main__":
             fluo_raw_dir = "experimental/DotPatternMap/images/fluo_raw"
             clean_directory(fluo_raw_dir)
 
-            map64_dir = "experimental/DotPatternMap/images/map64"
-            clean_directory(map64_dir)
+            map256_dir = "experimental/DotPatternMap/images/map256"
+            clean_directory(map256_dir)
 
-            map64_jet_dir = "experimental/DotPatternMap/images/map64_jet"
-            clean_directory(map64_jet_dir)
+            map256_jet_dir = "experimental/DotPatternMap/images/map256_jet"
+            clean_directory(map256_jet_dir)
 
-            map64_raw_dir = "experimental/DotPatternMap/images/map64_raw"
-            clean_directory(map64_raw_dir)
+            map256_raw_dir = "experimental/DotPatternMap/images/map256_raw"
+            clean_directory(map256_raw_dir)
 
             db_name = i.split("/")[-1].replace(".db", "")
             vectors_out_path = f"experimental/DotPatternMap/images/{i}_vectors.txt"

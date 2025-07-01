@@ -832,7 +832,7 @@ class AsyncChores:
         degree: int,
         img_type: Literal["fluo", "ph"] = "fluo",
     ) -> np.ndarray:
-        """Return Map64 image as ndarray."""
+        """Return Map256 image as ndarray."""
         loop = asyncio.get_running_loop()
         with ThreadPoolExecutor() as executor:
             img_color = await loop.run_in_executor(
@@ -899,7 +899,7 @@ class AsyncChores:
             if 0 <= px < w and 0 <= py < h:
                 cv2.circle(high_res, (px, py), 1, int(G), -1)
 
-        high_res = cv2.resize(high_res, (516 * 4, 128 * 4), interpolation=cv2.INTER_NEAREST)
+        high_res = cv2.resize(high_res, (1024 * 4, 256 * 4), interpolation=cv2.INTER_NEAREST)
         left_mean = high_res[:, : high_res.shape[1] // 2].mean()
         right_mean = high_res[:, high_res.shape[1] // 2 :].mean()
         if right_mean > left_mean:
@@ -914,7 +914,7 @@ class AsyncChores:
         degree: int,
         img_type: Literal["fluo", "ph"] = "fluo",
     ) -> io.BytesIO:
-        """Return Map64 image as PNG buffer."""
+        """Return Map256 image as PNG buffer."""
         high_res = await AsyncChores.generate_map_array(image_raw, contour_raw, degree, img_type)
         _, buffer = cv2.imencode(".png", high_res)
         buf = io.BytesIO(buffer)
@@ -2288,14 +2288,14 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="image/png")
 
-    async def get_map64(
+    async def get_map256(
         self,
         cell_id: str,
         degree: int = 4,
         channel: int = 1,
         img_type: Literal["fluo", "ph"] = "fluo",
     ) -> StreamingResponse:
-        """Return Map64 normalized image."""
+        """Return Map256 normalized image."""
         cell = await self.read_cell(cell_id)
         if img_type == "ph":
             img_blob = cell.img_ph
@@ -2304,14 +2304,14 @@ class CellCrudBase:
         buf = await AsyncChores.extract_map(img_blob, cell.contour, degree, img_type)
         return StreamingResponse(buf, media_type="image/png")
 
-    async def get_map64_jet(
+    async def get_map256_jet(
         self,
         cell_id: str,
         degree: int = 4,
         channel: int = 1,
         img_type: Literal["fluo", "ph"] = "fluo",
     ) -> StreamingResponse:
-        """Return Map64 image with JET colormap."""
+        """Return Map256 image with JET colormap."""
         cell = await self.read_cell(cell_id)
         if img_type == "ph":
             img_blob = cell.img_ph
@@ -2324,14 +2324,14 @@ class CellCrudBase:
         buf.seek(0)
         return StreamingResponse(buf, media_type="image/png")
 
-    async def get_map64_clip(
+    async def get_map256_clip(
         self,
         cell_id: str,
         degree: int = 4,
         channel: int = 1,
         img_type: Literal["fluo", "ph"] = "fluo",
     ) -> StreamingResponse:
-        """Return Map64 image after clipping and Gaussian blur subtraction."""
+        """Return Map256 image after clipping and Gaussian blur subtraction."""
         cell = await self.read_cell(cell_id)
         if img_type == "ph":
             img_blob = cell.img_ph

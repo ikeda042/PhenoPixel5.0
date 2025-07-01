@@ -65,9 +65,9 @@ type ImageState = {
   laplacian?: string; // Laplacian画像
   sobel?: string; // Sobel画像
   hu_mask?: string; // HU Mask画像
-  map64?: string; // Map64画像
-  map64_jet?: string; // Map64 Jet画像
-  map64_clip?: string; // Map64 clipped image
+  map256?: string; // Map256画像
+  map256_jet?: string; // Map256 Jet画像
+  map256_clip?: string; // Map256 clipped image
 };
 
 // 「どのモードにするか」を列挙型的に管理する
@@ -80,7 +80,7 @@ type DrawModeType =
   | "laplacian"
   | "sobel"
   | "hu_mask"
-  | "map64"
+  | "map256"
   | "t1contour"
   | "prediction"
   | "cloud_points"
@@ -131,7 +131,7 @@ const DRAW_MODES: {
   { value: "laplacian", label: "Laplacian" },
   { value: "sobel", label: "Sobel" },
   { value: "hu_mask", label: "HU Mask" },
-  { value: "map64", label: "Map64", needsPolyfit: true },
+  { value: "map256", label: "Map256", needsPolyfit: true },
   { value: "t1contour", label: "Light+Model T1" },
   { value: "prediction", label: "Model T1(Torch GPU)" },
   { value: "cloud_points", label: "3D Fluo" },
@@ -169,7 +169,7 @@ const CellImageGrid: React.FC = () => {
   const [fluoChannel, setFluoChannel] = useState<'fluo1' | 'fluo2'>('fluo1');
   const [drawMode, setDrawMode] = useState<DrawModeType>(init_draw_mode);
   const [fitDegree, setFitDegree] = useState<number>(4);
-  const [map64Source, setMap64Source] = useState<'ph' | 'fluo1' | 'fluo2'>('fluo1');
+  const [map256Source, setMap256Source] = useState<'ph' | 'fluo1' | 'fluo2'>('fluo1');
   const [engineMode, setEngineMode] = useState<EngineName>("None");
 
   // DetectMode 用の state
@@ -410,21 +410,21 @@ const CellImageGrid: React.FC = () => {
           }));
           break;
         }
-        case "map64": {
-          const channelParam = map64Source === 'fluo2' ? 2 : 1;
-          const imgTypeParam = map64Source === 'ph' ? 'ph' : 'fluo';
+        case "map256": {
+          const channelParam = map256Source === 'fluo2' ? 2 : 1;
+          const imgTypeParam = map256Source === 'ph' ? 'ph' : 'fluo';
           setIsLoading(true);
           const [rawRes, jetRes, clipRes] = await Promise.all([
             axios.get(
-              `${url_prefix}/cells/${cellId}/${db_name}/map64?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
+              `${url_prefix}/cells/${cellId}/${db_name}/map256?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
               { responseType: "blob" }
             ),
             axios.get(
-              `${url_prefix}/cells/${cellId}/${db_name}/map64_jet?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
+              `${url_prefix}/cells/${cellId}/${db_name}/map256_jet?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
               { responseType: "blob" }
             ),
             axios.get(
-              `${url_prefix}/cells/${cellId}/${db_name}/map64_clip?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
+              `${url_prefix}/cells/${cellId}/${db_name}/map256_clip?degree=${fitDegree}&channel=${channelParam}&img_type=${imgTypeParam}`,
               { responseType: "blob" }
             ),
           ]);
@@ -433,7 +433,7 @@ const CellImageGrid: React.FC = () => {
           const clipUrl = URL.createObjectURL(clipRes.data);
           setImages((prev) => ({
             ...prev,
-            [cellId]: { ...prev[cellId], map64: rawUrl, map64_jet: jetUrl, map64_clip: clipUrl },
+            [cellId]: { ...prev[cellId], map256: rawUrl, map256_jet: jetUrl, map256_clip: clipUrl },
           }));
           setIsLoading(false);
           break;
@@ -508,7 +508,7 @@ const CellImageGrid: React.FC = () => {
     const cellId = cellIds[currentIndex];
     fetchAdditionalImage(drawMode, cellId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel, laplacianBrightness, sobelBrightness, map64Source]);
+  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel, laplacianBrightness, sobelBrightness, map256Source]);
 
   //------------------------------------
   // 現在のセルIDに対応した初期ラベルを取得
@@ -1250,15 +1250,15 @@ const CellImageGrid: React.FC = () => {
                   }}
                   sx={{ flex: 1 }}
                 />
-                {drawMode === "map64" && (
+                {drawMode === "map256" && (
                   <FormControl variant="outlined" sx={{ minWidth: 120 }}>
-                    <InputLabel id="map64-source-label">Channel</InputLabel>
+                    <InputLabel id="map256-source-label">Channel</InputLabel>
                     <Select
-                      labelId="map64-source-label"
+                      labelId="map256-source-label"
                       label="Channel"
-                      value={map64Source}
+                      value={map256Source}
                       onChange={(e) =>
-                        setMap64Source(
+                        setMap256Source(
                           e.target.value as "ph" | "fluo1" | "fluo2"
                         )
                       }
@@ -1335,7 +1335,7 @@ const CellImageGrid: React.FC = () => {
                 />
               )}
 
-            {drawMode === "map64" && isLoading ? (
+            {drawMode === "map256" && isLoading ? (
               <Box
                 display="flex"
                 justifyContent="center"
@@ -1345,25 +1345,25 @@ const CellImageGrid: React.FC = () => {
                 <Spinner />
               </Box>
             ) : (
-              drawMode === "map64" &&
-              images[cellIds[currentIndex]]?.map64 && (
+              drawMode === "map256" &&
+              images[cellIds[currentIndex]]?.map256 && (
                 <Box>
                   <img
-                    src={images[cellIds[currentIndex]]?.map64}
-                    alt={`Cell ${cellIds[currentIndex]} Map64`}
+                    src={images[cellIds[currentIndex]]?.map256}
+                    alt={`Cell ${cellIds[currentIndex]} Map256`}
                     style={{ width: "100%" }}
                   />
-                  {images[cellIds[currentIndex]]?.map64_clip && (
+                  {images[cellIds[currentIndex]]?.map256_clip && (
                     <img
-                      src={images[cellIds[currentIndex]]?.map64_clip}
-                      alt={`Cell ${cellIds[currentIndex]} Map64 Clip`}
+                      src={images[cellIds[currentIndex]]?.map256_clip}
+                      alt={`Cell ${cellIds[currentIndex]} Map256 Clip`}
                       style={{ width: "100%" }}
                     />
                   )}
-                  {images[cellIds[currentIndex]]?.map64_jet && (
+                  {images[cellIds[currentIndex]]?.map256_jet && (
                     <img
-                      src={images[cellIds[currentIndex]]?.map64_jet}
-                      alt={`Cell ${cellIds[currentIndex]} Map64 Jet`}
+                      src={images[cellIds[currentIndex]]?.map256_jet}
+                      alt={`Cell ${cellIds[currentIndex]} Map256 Jet`}
                       style={{ width: "100%" }}
                     />
                   )}

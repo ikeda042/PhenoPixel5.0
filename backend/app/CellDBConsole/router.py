@@ -288,8 +288,8 @@ async def get_cell_hu_mask(cell_id: str, db_name: str, channel: int = 1):
     return await CellCrudBase(db_name=db_name).get_hu_mask(cell_id, channel)
 
 
-@router_cell.get("/{cell_id}/{db_name}/map64", response_class=StreamingResponse)
-async def get_cell_map64(
+@router_cell.get("/{cell_id}/{db_name}/map256", response_class=StreamingResponse)
+async def get_cell_map256(
     cell_id: str,
     db_name: str,
     degree: int = 4,
@@ -297,13 +297,13 @@ async def get_cell_map64(
     img_type: Literal["fluo", "ph"] = "fluo",
 ):
     await AsyncChores().validate_database_name(db_name)
-    return await CellCrudBase(db_name=db_name).get_map64(
+    return await CellCrudBase(db_name=db_name).get_map256(
         cell_id, degree=degree, channel=channel, img_type=img_type
     )
 
 
-@router_cell.get("/{cell_id}/{db_name}/map64_jet", response_class=StreamingResponse)
-async def get_cell_map64_jet(
+@router_cell.get("/{cell_id}/{db_name}/map256_jet", response_class=StreamingResponse)
+async def get_cell_map256_jet(
     cell_id: str,
     db_name: str,
     degree: int = 4,
@@ -311,13 +311,13 @@ async def get_cell_map64_jet(
     img_type: Literal["fluo", "ph"] = "fluo",
 ):
     await AsyncChores().validate_database_name(db_name)
-    return await CellCrudBase(db_name=db_name).get_map64_jet(
+    return await CellCrudBase(db_name=db_name).get_map256_jet(
         cell_id, degree=degree, channel=channel, img_type=img_type
     )
 
 
-@router_cell.get("/{cell_id}/{db_name}/map64_clip", response_class=StreamingResponse)
-async def get_cell_map64_clip(
+@router_cell.get("/{cell_id}/{db_name}/map256_clip", response_class=StreamingResponse)
+async def get_cell_map256_clip(
     cell_id: str,
     db_name: str,
     degree: int = 4,
@@ -325,7 +325,7 @@ async def get_cell_map64_clip(
     img_type: Literal["fluo", "ph"] = "fluo",
 ):
     await AsyncChores().validate_database_name(db_name)
-    return await CellCrudBase(db_name=db_name).get_map64_clip(
+    return await CellCrudBase(db_name=db_name).get_map256_clip(
         cell_id, degree=degree, channel=channel, img_type=img_type
     )
 
