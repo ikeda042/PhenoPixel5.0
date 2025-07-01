@@ -56,8 +56,10 @@ class AutoLabelCrud:
             shape = img.shape[:2]
 
             iou = self.contour_iou(actual_np, predicted_np, shape)
-
-            if iou < 0.2:
+            print(
+                f"Cell ID: {cell.cell_id}, IOU: {iou:.4f}, Aspect Ratio: {self.contour_aspect_ratio(actual_np):.4f}"
+            )
+            if iou > 0.95:
                 await CellCrudBase(self.db_name).update_label(cell.cell_id, "1")
             else:
                 await CellCrudBase(self.db_name).update_label(cell.cell_id, "N/A")
