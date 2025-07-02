@@ -9,7 +9,7 @@ import re
 import shutil
 from functools import partial
 from PIL import Image, ImageDraw, ImageFont
-from typing import Literal
+from typing import Literal, Any
 import cv2
 import nd2reader
 import numpy as np
@@ -215,6 +215,100 @@ class SyncChores:
         return aligned
 
     @staticmethod
+    def estimate_transform_orb(reference_image, target_image):
+        orb = cv2.ORB_create()
+        kp1, des1 = orb.detectAndCompute(reference_image, None)
+        kp2, des2 = orb.detectAndCompute(target_image, None)
+
+        if des1 is None or des2 is None:
+            print("Descriptor is None, skipping drift calculation.")
+            return None
+
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        matches = bf.match(des1, des2)
+        if len(matches) < 300:
+            print("Insufficient matches, skipping drift calculation.")
+            return None
+
+        src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
+        dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+        height, width = reference_image.shape[:2]
+        src_pts[:, :, 0] = width - src_pts[:, :, 0]
+        src_pts[:, :, 1] = height - src_pts[:, :, 1]
+        dst_pts[:, :, 0] = width - dst_pts[:, :, 0]
+        dst_pts[:, :, 1] = height - dst_pts[:, :, 1]
+
+        matrix, _ = cv2.estimateAffinePartial2D(
+            src_pts, dst_pts, method=cv2.RANSAC, ransacReprojThreshold=5.0
+        )
+        return matrix
+
+    @staticmethod
+    def estimate_transform_ecc(reference_image, target_image, warp_mode=cv2.MOTION_AFFINE):
+        ref_gray = (
+            reference_image
+            if len(reference_image.shape) == 2
+            else cv2.cvtColor(reference_image, cv2.COLOR_BGR2GRAY)
+        )
+        tgt_gray = (
+            target_image
+            if len(target_image.shape) == 2
+            else cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
+        )
+
+        if warp_mode == cv2.MOTION_HOMOGRAPHY:
+            warp_matrix = np.eye(3, 3, dtype=np.float32)
+        else:
+            warp_matrix = np.eye(2, 3, dtype=np.float32)
+
+        number_of_iterations = 100
+        termination_eps = 1e-4
+        criteria = (
+            cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+            number_of_iterations,
+            termination_eps,
+        )
+
+        try:
+            _, warp_matrix = cv2.findTransformECC(
+                ref_gray, tgt_gray, warp_matrix, warp_mode, criteria
+            )
+        except cv2.error as e:
+            print(f"[ECC] Alignment failed with OpenCV error: {e}")
+            return None
+
+        return warp_matrix
+
+    @staticmethod
+    def apply_transform(image, transform, method):
+        if transform is None:
+            return image
+        h, w = image.shape[:2]
+        if method == "phase":
+            vertical_shift, horizontal_shift = transform
+            M = np.float32([[1, 0, horizontal_shift], [0, 1, vertical_shift]])
+            return cv2.warpAffine(image, M, (w, h))
+        elif method == "orb":
+            return cv2.warpAffine(image, transform, (w, h))
+        elif method == "ecc":
+            if transform.shape == (2, 3):
+                return cv2.warpAffine(
+                    image,
+                    transform,
+                    (w, h),
+                    flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP,
+                )
+            else:
+                return cv2.warpPerspective(
+                    image,
+                    transform,
+                    (w, h),
+                    flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP,
+                )
+        else:
+            return image
+
+    @staticmethod
     def process_image(array):
         array = array.astype(np.float32)
         array_min = array.min()
@@ -256,67 +350,60 @@ class SyncChores:
                 os.makedirs(base_output_subdir_fluo1, exist_ok=True)
                 os.makedirs(base_output_subdir_fluo2, exist_ok=True)
 
-                reference_images = {
-                    "ph": None,
-                    "fluo1": None,
-                    "fluo2": None,
-                }
+                reference_ph = None
+                drift_transforms: dict[int, Any] = {}
 
-                tasks = []
-                with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-                    for channel_idx in range(num_channels):
-                        for time_idx in range(num_timepoints):
-                            frame_data = images.get_frame_2D(
-                                v=field_idx, c=channel_idx, t=time_idx
-                            )
-                            channel_image = cls.process_image(frame_data)
+                # first process phase contrast (channel 0) to calculate drifts
+                for time_idx in range(num_timepoints):
+                    frame_data = images.get_frame_2D(v=field_idx, c=0, t=time_idx)
+                    channel_image = cls.process_image(frame_data)
+                    tiff_filename = os.path.join(
+                        base_output_subdir_ph, f"time_{time_idx + 1}.tif"
+                    )
 
-                            if channel_idx == 0:
-                                channel_label = "ph"
-                                save_dir = base_output_subdir_ph
-                            elif channel_idx == 1:
-                                channel_label = "fluo1"
-                                save_dir = base_output_subdir_fluo1
-                            else:
-                                channel_label = "fluo2"
-                                save_dir = base_output_subdir_fluo2
-
-                            tiff_filename = os.path.join(
-                                save_dir, f"time_{time_idx + 1}.tif"
+                    if time_idx == 0:
+                        reference_ph = channel_image
+                        drift_transforms[time_idx] = None
+                        Image.fromarray(channel_image).save(tiff_filename)
+                    else:
+                        if drift_method == "ecc":
+                            transform = cls.estimate_transform_ecc(reference_ph, channel_image)
+                        elif drift_method == "orb":
+                            transform = cls.estimate_transform_orb(reference_ph, channel_image)
+                        else:
+                            transform = cls.calc_shift_by_phase_correlation(
+                                reference_ph if len(reference_ph.shape)==2 else cv2.cvtColor(reference_ph, cv2.COLOR_BGR2GRAY),
+                                channel_image if len(channel_image.shape)==2 else cv2.cvtColor(channel_image, cv2.COLOR_BGR2GRAY),
                             )
 
-                            if time_idx == 0:
-                                reference_images[channel_label] = channel_image
-                                Image.fromarray(channel_image).save(tiff_filename)
-                            else:
-                                if drift_method == "ecc":
-                                    drift_func = cls.correct_drift_ecc
-                                elif drift_method == "orb":
-                                    drift_func = cls.correct_drift
-                                else:
-                                    drift_func = cls.correct_drift_phase_correlation
+                        drift_transforms[time_idx] = transform
+                        corrected = cls.apply_transform(channel_image, transform, drift_method)
+                        Image.fromarray(corrected).save(tiff_filename)
 
-                                tasks.append(
-                                    executor.submit(
-                                        cls._drift_and_save,
-                                        reference_images[channel_label],
-                                        channel_image,
-                                        tiff_filename,
-                                        drift_func,
-                                    )
-                                )
+                # process remaining channels using the same drift transforms
+                for channel_idx in range(1, num_channels):
+                    if channel_idx == 1:
+                        channel_label = "fluo1"
+                        save_dir = base_output_subdir_fluo1
+                    else:
+                        channel_label = "fluo2"
+                        save_dir = base_output_subdir_fluo2
 
-                    for future in as_completed(tasks):
-                        try:
-                            saved_path = future.result()
-                        except Exception as e:
-                            print(f"Error in parallel task: {e}")
+                    for time_idx in range(num_timepoints):
+                        frame_data = images.get_frame_2D(
+                            v=field_idx, c=channel_idx, t=time_idx
+                        )
+                        channel_image = cls.process_image(frame_data)
+                        tiff_filename = os.path.join(
+                            save_dir, f"time_{time_idx + 1}.tif"
+                        )
 
-    @classmethod
-    def _drift_and_save(cls, reference_image, target_image, save_path, drift_func):
-        corrected = drift_func(reference_image, target_image)
-        Image.fromarray(corrected).save(save_path)
-        return save_path
+                        if time_idx == 0:
+                            Image.fromarray(channel_image).save(tiff_filename)
+                        else:
+                            transform = drift_transforms.get(time_idx)
+                            corrected = cls.apply_transform(channel_image, transform, drift_method)
+                            Image.fromarray(corrected).save(tiff_filename)
 
     @classmethod
     def create_combined_gif(
