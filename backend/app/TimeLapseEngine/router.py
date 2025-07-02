@@ -401,3 +401,23 @@ async def get_cell_timecourse_for_all_channels(
             "Content-Disposition": f'attachment; filename="{field}_{cell_number}_all_channels.png"'
         },
     )
+
+
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/heatmap")
+async def get_cell_heatmap(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel: Literal["fluo1", "fluo2"] = "fluo1",
+    degree: int = 3,
+):
+    """Return heatmap image for the specified cell."""
+
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    buf = await crud.get_cell_heatmap(
+        field=field,
+        cell_number=cell_number,
+        channel=channel,
+        degree=degree,
+    )
+    return StreamingResponse(buf, media_type="image/png")
