@@ -1694,6 +1694,66 @@ class TimelapseDatabaseCrud:
         gif_buf.seek(0)
         return gif_buf
 
+    async def get_cell_heatmap_gif(
+        self,
+        field: str,
+        cell_number: int,
+        channel: Literal["fluo1", "fluo2"] = "fluo1",
+        degree: int = 3,
+    ) -> io.BytesIO:
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        frames: list[Image.Image] = []
+
+        for cell in cells:
+            if channel == "fluo1":
+                img_blob = cell.img_fluo1
+            else:
+                img_blob = cell.img_fluo2
+
+            if not img_blob or not cell.contour:
+                continue
+
+            path = await CellDBAsyncChores.find_path_return_list(
+                img_blob, cell.contour, degree
+            )
+            buf = await CellDBAsyncChores.heatmap_path(path)
+            buf.seek(0)
+            frames.append(Image.open(buf))
+
+        if not frames:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"No heatmap frames generated for field={field}, "
+                    f"cell={cell_number}, channel={channel}"
+                ),
+            )
+
+        gif_buf = io.BytesIO()
+        frames[0].save(
+            gif_buf,
+            format="GIF",
+            save_all=True,
+            append_images=frames[1:],
+            loop=0,
+            duration=200,
+        )
+        gif_buf.seek(0)
+        return gif_buf
+
     async def get_cell_timecourse_as_single_image(
         self,
         field: str,

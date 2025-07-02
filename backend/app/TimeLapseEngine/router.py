@@ -332,6 +332,26 @@ async def replot_cell(
     )
 
 
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/heatmap_gif")
+async def get_cell_heatmap_gif(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel: Literal["fluo1", "fluo2"] = "fluo1",
+    degree: int = 3,
+):
+    """Return heatmap GIF for the specified cell across all frames."""
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    gif_buffer = await crud.get_cell_heatmap_gif(field, cell_number, channel, degree)
+    return StreamingResponse(
+        gif_buffer,
+        media_type="image/gif",
+        headers={
+            "Content-Disposition": f"attachment; filename={field}_{cell_number}_{channel}_heatmap.gif"
+        },
+    )
+
+
 # --- ここから新規追加: タイムコースを1枚のPNGとして返すエンドポイント ---
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/timecourse_png")
 async def get_cell_timecourse_as_single_image(
