@@ -311,7 +311,7 @@ const TimelapseViewer: React.FC = () => {
   const normalGifUrls = channels.map((ch) => {
     if (!dbName) return "";
     if (ch === "heatmap") {
-      return `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/heatmap?degree=3&_syncKey=${reloadKey}`;
+      return `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/heatmap_gif?degree=3&_syncKey=${reloadKey}`;
     }
     return `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200&_syncKey=${reloadKey}`;
   });
