@@ -1859,3 +1859,47 @@ class TimelapseDatabaseCrud:
         combined_img.save(out_buf, format="PNG")
         out_buf.seek(0)
         return out_buf
+
+    async def get_cell_heatmap(
+        self,
+        field: str,
+        cell_number: int,
+        channel: Literal["fluo1", "fluo2"] = "fluo1",
+        degree: int = 3,
+    ) -> io.BytesIO:
+        """Return heatmap PNG for the specified cell."""
+
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cell = result.scalars().first()
+
+        if not cell:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        if channel == "fluo1":
+            img_blob = cell.img_fluo1
+        else:
+            img_blob = cell.img_fluo2
+
+        if not img_blob:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No {channel} data found for field={field}, cell={cell_number}",
+            )
+        if not cell.contour:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No contour data found for field={field}, cell={cell_number}",
+            )
+
+        path = await CellDBAsyncChores.find_path_return_list(img_blob, cell.contour, degree)
+        buf = await CellDBAsyncChores.heatmap_path(path)
+        buf.seek(0)
+        return buf

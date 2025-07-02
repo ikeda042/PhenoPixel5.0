@@ -120,7 +120,7 @@ const TimelapseViewer: React.FC = () => {
   const [allCellsGifUrl, setAllCellsGifUrl] = useState<string>("");
 
   // 画像チャンネル (GIF 用)
-  const channels = ["ph", "fluo1", "fluo2"] as const;
+  const channels = ["ph", "fluo1", "fluo2", "heatmap"] as const;
 
   // 輪郭面積グラフ用データ
   const [contourAreas, setContourAreas] = useState<ContourArea[]>([]);
@@ -307,12 +307,14 @@ const TimelapseViewer: React.FC = () => {
     setImagesLoadedCount((prev) => prev + 1);
   };
 
-  // 通常GIF 3枚
-  const normalGifUrls = channels.map((ch) =>
-    dbName
-      ? `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200&_syncKey=${reloadKey}`
-      : ""
-  );
+  // 通常GIF 3枚 + heatmap
+  const normalGifUrls = channels.map((ch) => {
+    if (!dbName) return "";
+    if (ch === "heatmap") {
+      return `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/heatmap?degree=3&_syncKey=${reloadKey}`;
+    }
+    return `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200&_syncKey=${reloadKey}`;
+  });
 
   // Replot 用 GIF
   const replotGifUrl = dbName
@@ -656,7 +658,7 @@ const TimelapseViewer: React.FC = () => {
 
                 {allLoaded && (
                   <>
-                    {/* 通常3枚 GIF (ph, fluo1, fluo2) */}
+                    {/* 通常GIF + Heatmap */}
                     {normalGifUrls.map((url, idx) => (
                       <Grid item xs={12} md={3} key={`normal-gif-${idx}-${reloadKey}`}>
                         <CardMedia
