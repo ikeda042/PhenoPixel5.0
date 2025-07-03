@@ -398,11 +398,10 @@ async def get_cell_timecourse_for_all_channels(
     draw_contour: bool = True,
 ):
     """
-    【新規APIエンドポイント】
-    "ph", "ph_replot", "fluo1", "fluo1_replot", "fluo2", "fluo2_replot"
-    の6パターン全てのタイムコース画像を縦方向に並べ、1枚のPNGで返す。
+    "ph", "fluo1", "fluo2" の3チャネルに加えて
+    ヒートマップのタイムコースを4行目に追加したPNGを返す。
 
-    404等が出たモードはスキップされるため、出力が6段未満になる可能性があります。
+    いずれかのチャネルで404が返された場合、その行はスキップされます。
     """
 
     crud = TimelapseDatabaseCrud(dbname=db_name)
