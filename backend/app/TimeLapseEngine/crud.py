@@ -1754,6 +1754,70 @@ class TimelapseDatabaseCrud:
         gif_buf.seek(0)
         return gif_buf
 
+    async def get_cell_heatmap_timecourse_as_single_image(
+        self,
+        field: str,
+        cell_number: int,
+        channel: Literal["fluo1", "fluo2"] = "fluo1",
+        degree: int = 3,
+    ) -> io.BytesIO:
+        """Return heatmap timecourse as a single PNG lined horizontally."""
+
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        frames: list[Image.Image] = []
+        for cell in cells:
+            if channel == "fluo1":
+                img_blob = cell.img_fluo1
+            else:
+                img_blob = cell.img_fluo2
+
+            if not img_blob or not cell.contour:
+                continue
+
+            path = await CellDBAsyncChores.find_path_return_list(
+                img_blob, cell.contour, degree
+            )
+            buf = await CellDBAsyncChores.heatmap_path(path)
+            buf.seek(0)
+            img = Image.open(buf).resize((200, 200), Image.Resampling.LANCZOS)
+            frames.append(img)
+
+        if not frames:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"No heatmap frames generated for field={field}, "
+                    f"cell={cell_number}, channel={channel}"
+                ),
+            )
+
+        total_width = 200 * len(frames)
+        out_img = Image.new("RGB", (total_width, 200), (0, 0, 0))
+        offset_x = 0
+        for img in frames:
+            if img.mode not in ["RGB", "RGBA"]:
+                img = img.convert("RGB")
+            out_img.paste(img, (offset_x, 0))
+            offset_x += 200
+
+        buf_out = io.BytesIO()
+        out_img.save(buf_out, format="PNG")
+        buf_out.seek(0)
+        return buf_out
+
     async def get_cell_timecourse_as_single_image(
         self,
         field: str,
@@ -1872,11 +1936,8 @@ class TimelapseDatabaseCrud:
     ) -> io.BytesIO:
         modes = [
             "ph",
-            "ph_replot",
             "fluo1",
-            "fluo1_replot",
             "fluo2",
-            "fluo2_replot",
         ]
 
         row_images = []
@@ -1895,6 +1956,17 @@ class TimelapseDatabaseCrud:
 
             row_img = Image.open(buf)
             row_images.append(row_img)
+
+        try:
+            hm_buf = await self.get_cell_heatmap_timecourse_as_single_image(
+                field=field,
+                cell_number=cell_number,
+                channel="fluo1",
+                degree=degree,
+            )
+            row_images.append(Image.open(hm_buf))
+        except HTTPException as e:
+            print(f"[WARN] Skipped heatmap: {e.detail}")
 
         if not row_images:
             raise HTTPException(

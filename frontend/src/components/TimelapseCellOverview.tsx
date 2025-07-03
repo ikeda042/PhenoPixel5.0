@@ -120,7 +120,7 @@ const TimelapseViewer: React.FC = () => {
   const [allCellsGifUrl, setAllCellsGifUrl] = useState<string>("");
 
   // 画像チャンネル (GIF 用)
-  const channels = ["ph", "fluo1", "fluo2", "heatmap"] as const;
+  const channels = ["ph", "fluo1", "fluo2"] as const;
 
   // 輪郭面積グラフ用データ
   const [contourAreas, setContourAreas] = useState<ContourArea[]>([]);
@@ -307,12 +307,9 @@ const TimelapseViewer: React.FC = () => {
     setImagesLoadedCount((prev) => prev + 1);
   };
 
-  // 通常GIF 3枚 + heatmap
+  // 通常GIF 3枚
   const normalGifUrls = channels.map((ch) => {
     if (!dbName) return "";
-    if (ch === "heatmap") {
-      return `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/heatmap_gif?degree=3&_syncKey=${reloadKey}`;
-    }
     return `${url_prefix}/tlengine/databases/${dbName}/cells/gif/${selectedField}/${selectedCellNumber}?channel=${ch}&duration=200&_syncKey=${reloadKey}`;
   });
 
@@ -403,28 +400,34 @@ const TimelapseViewer: React.FC = () => {
   };
 
   // ContourAreas グラフ
-  const fetchContourAreas = async () => {
+  const fetchContourAreas = async (controller: AbortController) => {
     if (!dbName || !selectedField || !selectedCellNumber) {
       setContourAreas([]);
       return;
     }
     try {
       const response = await axios.get<GetContourAreasResponse>(
-        `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/contour_areas`
+        `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/contour_areas`,
+        { signal: controller.signal }
       );
+      if (controller.signal.aborted) return;
       const converted = response.data.areas.map((value, index) => ({
         frame: index,
         area: value,
       }));
       setContourAreas(converted);
     } catch (error) {
-      console.error("Failed to fetch contour areas:", error);
-      setContourAreas([]);
+      if (!controller.signal.aborted) {
+        console.error("Failed to fetch contour areas:", error);
+        setContourAreas([]);
+      }
     }
   };
 
   useEffect(() => {
-    fetchContourAreas();
+    const controller = new AbortController();
+    fetchContourAreas(controller);
+    return () => controller.abort();
   }, [dbName, selectedField, selectedCellNumber]);
 
   const contourAreasChartData: ChartData<"line"> = {
@@ -658,7 +661,7 @@ const TimelapseViewer: React.FC = () => {
 
                 {allLoaded && (
                   <>
-                    {/* 通常GIF + Heatmap */}
+                    {/* 通常GIF */}
                     {normalGifUrls.map((url, idx) => (
                       <Grid item xs={12} md={3} key={`normal-gif-${idx}-${reloadKey}`}>
                         <CardMedia
