@@ -1,54 +1,179 @@
 import { useEffect, useState, type DragEvent } from 'react';
-import {
-  Upload,
-  Download,
-  Trash2,
-  FileText,
-  Image,
-  Video,
-  Music,
-  Archive,
-  File,
-  Grid3x3,
-  List,
-  Search,
-  Plus,
-  Folder,
-  HardDrive,
-  FileSpreadsheet,
-  Presentation,
-  FileCode,
-  Settings
-} from 'lucide-react';
-import { settings } from '../settings';
 
-const API_URL = settings.url_prefix;
+// API設定（デモ用）
+const API_URL = 'http://localhost:3000';
 
+// SVGアイコンコンポーネント
+const icons = {
+  Upload: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <path d="M14.5 3h-5v7l-3-3m0 6h12l-6-6h-3z"/>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 5 17 10"/>
+      <line x1="12" y1="5" x2="12" y2="15"/>
+    </svg>
+  ),
+  Download: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  ),
+  Trash2: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <polyline points="3 6 5 6 21 6"/>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      <line x1="10" y1="11" x2="10" y2="17"/>
+      <line x1="14" y1="11" x2="14" y2="17"/>
+    </svg>
+  ),
+  FileText: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+  ),
+  Image: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <polyline points="21 15 16 10 5 21"/>
+    </svg>
+  ),
+  Video: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <polygon points="23 7 16 12 23 17 23 7"/>
+      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+    </svg>
+  ),
+  Music: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <path d="M9 18V5l12-2v13"/>
+      <circle cx="6" cy="18" r="3"/>
+      <circle cx="18" cy="16" r="3"/>
+    </svg>
+  ),
+  Archive: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <polyline points="21 8 21 21 3 21 3 8"/>
+      <rect x="1" y="3" width="22" height="5"/>
+      <line x1="10" y1="12" x2="14" y2="12"/>
+    </svg>
+  ),
+  File: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+    </svg>
+  ),
+  Grid3x3: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <rect x="3" y="3" width="7" height="7"/>
+      <rect x="14" y="3" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/>
+    </svg>
+  ),
+  List: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <line x1="8" y1="6" x2="21" y2="6"/>
+      <line x1="8" y1="12" x2="21" y2="12"/>
+      <line x1="8" y1="18" x2="21" y2="18"/>
+      <line x1="3" y1="6" x2="3.01" y2="6"/>
+      <line x1="3" y1="12" x2="3.01" y2="12"/>
+      <line x1="3" y1="18" x2="3.01" y2="18"/>
+    </svg>
+  ),
+  Search: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <circle cx="11" cy="11" r="8"/>
+      <path d="m21 21-4.35-4.35"/>
+    </svg>
+  ),
+  Plus: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  ),
+  Folder: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z"/>
+    </svg>
+  ),
+  HardDrive: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <line x1="22" y1="12" x2="2" y2="12"/>
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+      <line x1="6" y1="16" x2="6.01" y2="16"/>
+      <line x1="10" y1="16" x2="10.01" y2="16"/>
+    </svg>
+  ),
+  FileSpreadsheet: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <path d="M8 13h8M8 17h8M8 9h2"/>
+    </svg>
+  ),
+  Presentation: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <path d="M2 3h20v14H2z"/>
+      <path d="M8 21h8"/>
+      <path d="M12 17v4"/>
+      <path d="m7 8 3 3-3 3"/>
+      <path d="M13 8h3"/>
+    </svg>
+  ),
+  FileCode: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <polyline points="10 13 8 15 10 17"/>
+      <polyline points="14 13 16 15 14 17"/>
+    </svg>
+  ),
+  Settings: ({ style }: { style?: React.CSSProperties }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={style}>
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1m11-7h6m-6 0H1"/>
+    </svg>
+  ),
+};
+
+// デモ用のAPI関数
 async function listFiles(): Promise<string[]> {
-  const res = await fetch(`${API_URL}/files`);
-  if (!res.ok) throw new Error('Failed to fetch files');
-  return await res.json();
+  // デモ用のファイルリスト
+  return [
+    'プレゼンテーション.pptx',
+    'レポート.pdf',
+    'データ分析.xlsx',
+    'プロジェクト資料.docx',
+    '写真.jpg',
+    '動画.mp4',
+    '音楽.mp3',
+    'アーカイブ.zip',
+    'スクリプト.js',
+    '設定.json'
+  ];
 }
 
 async function uploadFile(file: File): Promise<void> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const res = await fetch(`${API_URL}/upload`, {
-    method: 'POST',
-    body: formData,
-  });
-  if (!res.ok) throw new Error('Upload failed');
+  // デモ用のアップロード処理
+  await new Promise(resolve => setTimeout(resolve, 1000));
 }
 
 function downloadFile(filename: string) {
-  window.open(`${API_URL}/download/${encodeURIComponent(filename)}`);
+  console.log(`ダウンロード: ${filename}`);
 }
 
 async function deleteFile(filename: string): Promise<void> {
-  const res = await fetch(`${API_URL}/delete/${encodeURIComponent(filename)}`, {
-    method: 'DELETE',
-  });
-  if (!res.ok) throw new Error('Delete failed');
+  // デモ用の削除処理
+  await new Promise(resolve => setTimeout(resolve, 500));
 }
 
 interface FileInfo {
@@ -93,8 +218,8 @@ function MiniFileManager() {
       const fileInfos = names.map((name) => ({
         name,
         type: name.split('.').pop(),
-        size: '-- KB',
-        modified: new Date().toLocaleDateString('ja-JP'),
+        size: `${Math.floor(Math.random() * 500 + 50)} KB`,
+        modified: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('ja-JP'),
       }));
       setFiles(fileInfos);
     } catch (error) {
@@ -158,22 +283,23 @@ function MiniFileManager() {
   const getFileIcon = (type: string) => {
     const iconSize = isMobile ? '20px' : '24px';
     const iconStyle = { width: iconSize, height: iconSize };
+    
     switch (type?.toLowerCase()) {
       case 'pdf':
-        return <FileText style={{ ...iconStyle, color: '#dc2626' }} />;
+        return <icons.FileText style={{ ...iconStyle, color: '#dc2626' }} />;
       case 'doc':
       case 'docx':
-        return <FileText style={{ ...iconStyle, color: '#2563eb' }} />;
+        return <icons.FileText style={{ ...iconStyle, color: '#2563eb' }} />;
       case 'txt':
       case 'rtf':
-        return <FileText style={{ ...iconStyle, color: '#6b7280' }} />;
+        return <icons.FileText style={{ ...iconStyle, color: '#6b7280' }} />;
       case 'xls':
       case 'xlsx':
       case 'csv':
-        return <FileSpreadsheet style={{ ...iconStyle, color: '#059669' }} />;
+        return <icons.FileSpreadsheet style={{ ...iconStyle, color: '#059669' }} />;
       case 'ppt':
       case 'pptx':
-        return <Presentation style={{ ...iconStyle, color: '#dc2626' }} />;
+        return <icons.Presentation style={{ ...iconStyle, color: '#dc2626' }} />;
       case 'jpg':
       case 'jpeg':
       case 'png':
@@ -182,7 +308,7 @@ function MiniFileManager() {
       case 'webp':
       case 'bmp':
       case 'tiff':
-        return <Image style={{ ...iconStyle, color: '#0061ff' }} />;
+        return <icons.Image style={{ ...iconStyle, color: '#0061ff' }} />;
       case 'mp4':
       case 'avi':
       case 'mov':
@@ -190,21 +316,21 @@ function MiniFileManager() {
       case 'wmv':
       case 'flv':
       case 'webm':
-        return <Video style={{ ...iconStyle, color: '#7c3aed' }} />;
+        return <icons.Video style={{ ...iconStyle, color: '#7c3aed' }} />;
       case 'mp3':
       case 'wav':
       case 'flac':
       case 'aac':
       case 'ogg':
       case 'm4a':
-        return <Music style={{ ...iconStyle, color: '#059669' }} />;
+        return <icons.Music style={{ ...iconStyle, color: '#059669' }} />;
       case 'zip':
       case 'rar':
       case '7z':
       case 'tar':
       case 'gz':
       case 'bz2':
-        return <Archive style={{ ...iconStyle, color: '#d97706' }} />;
+        return <icons.Archive style={{ ...iconStyle, color: '#d97706' }} />;
       case 'js':
       case 'ts':
       case 'jsx':
@@ -221,7 +347,7 @@ function MiniFileManager() {
       case 'rs':
       case 'swift':
       case 'kt':
-        return <FileCode style={{ ...iconStyle, color: '#f59e0b' }} />;
+        return <icons.FileCode style={{ ...iconStyle, color: '#f59e0b' }} />;
       case 'json':
       case 'xml':
       case 'yaml':
@@ -229,9 +355,9 @@ function MiniFileManager() {
       case 'toml':
       case 'ini':
       case 'cfg':
-        return <Settings style={{ ...iconStyle, color: '#8b5cf6' }} />;
+        return <icons.Settings style={{ ...iconStyle, color: '#8b5cf6' }} />;
       default:
-        return <File style={{ ...iconStyle, color: '#6b7280' }} />;
+        return <icons.File style={{ ...iconStyle, color: '#6b7280' }} />;
     }
   };
 
@@ -345,7 +471,7 @@ function MiniFileManager() {
                   justifyContent: 'center',
                 }}
               >
-                <HardDrive
+                <icons.HardDrive
                   style={{
                     width: isMobile ? '16px' : '18px',
                     height: isMobile ? '16px' : '18px',
@@ -367,7 +493,7 @@ function MiniFileManager() {
             {!isMobile && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ position: 'relative' }}>
-                  <Search
+                  <icons.Search
                     style={{
                       position: 'absolute',
                       left: '12px',
@@ -409,7 +535,7 @@ function MiniFileManager() {
                         viewMode === 'grid' ? '0 1px 2px rgba(0, 0, 0, 0.1)' : 'none',
                     }}
                   >
-                    <Grid3x3 style={{ width: '16px', height: '16px' }} />
+                    <icons.Grid3x3 style={{ width: '16px', height: '16px' }} />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
@@ -424,7 +550,7 @@ function MiniFileManager() {
                         viewMode === 'list' ? '0 1px 2px rgba(0, 0, 0, 0.1)' : 'none',
                     }}
                   >
-                    <List style={{ width: '16px', height: '16px' }} />
+                    <icons.List style={{ width: '16px', height: '16px' }} />
                   </button>
                 </div>
               </div>
@@ -441,13 +567,13 @@ function MiniFileManager() {
                   color: TEXT_SECONDARY,
                 }}
               >
-                <Search style={{ width: '20px', height: '20px' }} />
+                <icons.Search style={{ width: '20px', height: '20px' }} />
               </button>
             )}
           </div>
           {isMobile && showMobileSearch && (
             <div style={{ paddingBottom: '16px', position: 'relative' }}>
-              <Search
+              <icons.Search
                 style={{
                   position: 'absolute',
                   left: '12px',
@@ -477,7 +603,7 @@ function MiniFileManager() {
           onDragLeave={handleDragLeave}
         >
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-            <Upload
+            <icons.Upload
               style={{
                 width: isMobile ? '32px' : '40px',
                 height: isMobile ? '32px' : '40px',
@@ -507,7 +633,7 @@ function MiniFileManager() {
                       e.currentTarget.style.backgroundColor = DROPBOX_BLUE;
                     }}
                   >
-                    <Plus style={{ width: '16px', height: '16px', marginRight: '6px' }} />
+                    <icons.Plus style={{ width: '16px', height: '16px', marginRight: '6px' }} />
                     ファイルを選択
                   </span>
                   <input
@@ -630,7 +756,7 @@ function MiniFileManager() {
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <Download style={{ width: '16px', height: '16px' }} />
+                    <icons.Download style={{ width: '16px', height: '16px' }} />
                   </button>
                   <button
                     onClick={(e) => {
@@ -648,7 +774,7 @@ function MiniFileManager() {
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <Trash2 style={{ width: '16px', height: '16px' }} />
+                    <icons.Trash2 style={{ width: '16px', height: '16px' }} />
                   </button>
                 </div>
               </div>
@@ -733,7 +859,7 @@ function MiniFileManager() {
                             e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
-                          <Download style={{ width: '16px', height: '16px' }} />
+                          <icons.Download style={{ width: '16px', height: '16px' }} />
                         </button>
                         <button
                           onClick={() => handleDelete(file.name)}
@@ -748,7 +874,7 @@ function MiniFileManager() {
                             e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
-                          <Trash2 style={{ width: '16px', height: '16px' }} />
+                          <icons.Trash2 style={{ width: '16px', height: '16px' }} />
                         </button>
                       </div>
                     </div>
@@ -792,7 +918,7 @@ function MiniFileManager() {
                             e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
-                          <Download style={{ width: '16px', height: '16px' }} />
+                          <icons.Download style={{ width: '16px', height: '16px' }} />
                         </button>
                         <button
                           onClick={() => handleDelete(file.name)}
@@ -807,7 +933,7 @@ function MiniFileManager() {
                             e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
-                          <Trash2 style={{ width: '16px', height: '16px' }} />
+                          <icons.Trash2 style={{ width: '16px', height: '16px' }} />
                         </button>
                       </div>
                     </div>
@@ -825,7 +951,7 @@ function MiniFileManager() {
               ...cardStyle,
             }}
           >
-            <Folder
+            <icons.Folder
               style={{
                 width: isMobile ? '40px' : '48px',
                 height: isMobile ? '40px' : '48px',
