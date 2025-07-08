@@ -19,6 +19,7 @@ import Login from "./components/Login";
 import UserInfo from "./components/Userinfo";
 import LabelSorter from "./components/LabelSorter";
 import CDT from "./components/CDT";
+import MiniFileManager from "./components/MiniFileManager";
 // ↑ 必要なコンポーネントをインポート
 
 /* --------------------------------
@@ -183,13 +184,21 @@ function App() {
               }
             />
             <Route
-            path="/tlengine/databases/"
-            element={
-              <Box component="main" sx={{ p: 1 }}>
-                <TimelapseViewer />
-              </Box>
-            }
-          />
+              path="/tlengine/databases/"
+              element={
+                <Box component="main" sx={{ p: 1 }}>
+                  <TimelapseViewer />
+                </Box>
+              }
+            />
+            <Route
+              path="/files"
+              element={
+                <Box component="main" sx={{ p: 1 }}>
+                  <MiniFileManager />
+                </Box>
+              }
+            />
             <Route
               path="/login"
               element={
