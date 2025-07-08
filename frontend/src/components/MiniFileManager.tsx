@@ -9,7 +9,7 @@ import {
   Music,
   Archive,
   File,
-  Grid3X3,
+  Grid3x3,
   List,
   Search,
   Plus,
@@ -409,7 +409,7 @@ function MiniFileManager() {
                         viewMode === 'grid' ? '0 1px 2px rgba(0, 0, 0, 0.1)' : 'none',
                     }}
                   >
-                    <Grid3X3 style={{ width: '16px', height: '16px' }} />
+                    <Grid3x3 style={{ width: '16px', height: '16px' }} />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
