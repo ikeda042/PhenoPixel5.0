@@ -1,7 +1,9 @@
 import { useEffect, useState, type DragEvent } from 'react';
+import axios from 'axios';
+import { settings } from '../settings';
 
-// API設定（デモ用）
-const API_URL = 'http://localhost:3000';
+// API設定
+const API_URL = settings.url_prefix;
 
 // SVGアイコンコンポーネント
 const icons = {
@@ -145,35 +147,35 @@ const icons = {
   ),
 };
 
-// デモ用のAPI関数
+// API 関数
 async function listFiles(): Promise<string[]> {
-  // デモ用のファイルリスト
-  return [
-    'プレゼンテーション.pptx',
-    'レポート.pdf',
-    'データ分析.xlsx',
-    'プロジェクト資料.docx',
-    '写真.jpg',
-    '動画.mp4',
-    '音楽.mp3',
-    'アーカイブ.zip',
-    'スクリプト.js',
-    '設定.json'
-  ];
+  const response = await axios.get<string[]>(`${API_URL}/files`);
+  return response.data;
 }
 
 async function uploadFile(file: File): Promise<void> {
-  // デモ用のアップロード処理
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  const formData = new FormData();
+  formData.append('file', file);
+  await axios.post(`${API_URL}/upload`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
 }
 
-function downloadFile(filename: string) {
-  console.log(`ダウンロード: ${filename}`);
+async function downloadFile(filename: string) {
+  const response = await axios.get(`${API_URL}/download/${encodeURIComponent(filename)}`, {
+    responseType: 'blob'
+  });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
 async function deleteFile(filename: string): Promise<void> {
-  // デモ用の削除処理
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await axios.delete(`${API_URL}/delete/${encodeURIComponent(filename)}`);
 }
 
 interface FileInfo {
