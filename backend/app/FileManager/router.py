@@ -3,7 +3,7 @@ import aiofiles
 from fastapi import APIRouter, UploadFile, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 
-UPLOAD_DIR = "uploaded_files"
+UPLOAD_DIR = "filemanager_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 router_file_manager = APIRouter(tags=["file_manager"])
