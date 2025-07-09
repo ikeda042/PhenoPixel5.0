@@ -11,7 +11,7 @@ router_file_manager = APIRouter(tags=["file_manager"])
 @router_file_manager.get("/files")
 async def list_files():
     try:
-        return [f for f in os.listdir(UPLOAD_DIR) if os.path.isfile(os.path.join(UPLOAD_DIR, f))]
+        return [f for f in os.listdir(UPLOAD_DIR) if os.path.isfile(os.path.join(UPLOAD_DIR, f)) and not f.startswith('.')]
     except FileNotFoundError:
         return []
 
