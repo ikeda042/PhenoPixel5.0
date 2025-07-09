@@ -13,7 +13,7 @@ import {
 import DatabaseIcon from "@mui/icons-material/Storage";
 import ScienceIcon from "@mui/icons-material/Science";
 import TerminalIcon from "@mui/icons-material/Terminal";
-// import GitHubIcon from "@mui/icons-material/GitHub";
+import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
 import BarChartIcon from "@mui/icons-material/BarChart";
 import DisplaySettingsIcon from "@mui/icons-material/DisplaySettings";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
@@ -282,7 +282,7 @@ const MenuGrid: React.FC<MenuGridProps> = ({ handleNavigate }) => {
       },
       {
         title: "File Manager",
-        icon: <GitHubIcon sx={{ fontSize: 50 }} />,
+        icon: <DriveFileMoveIcon sx={{ fontSize: 50 }} />,
         path: "/files",
         description: "Manage files on the local server.",
         external: true,
