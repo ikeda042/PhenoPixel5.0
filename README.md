@@ -791,7 +791,6 @@ All endpoints are prefixed with `/api`.
 | Method | Endpoint | Description |
 | ------ | -------- | ----------- |
 | `GET` | `/healthcheck` | Check backend status. |
-| `GET` | `/dropbox/connection_check` | Verify Dropbox connectivity. |
 | `GET` | `/internet-connection` | Test internet access from the server. |
 | `POST` | `/oauth2/register` | Create a new user account. |
 | `POST` | `/oauth2/token` | Obtain access and refresh tokens. |

@@ -11,7 +11,6 @@ from AutoLabel.router import router_autolabel
 from CellDBConsole.router import router_cell, router_database
 from CellExtraction.router import router_cell_extraction
 from Dev.router import router_dev
-from Dropbox.router import router_dropbox
 from GraphEngine.router import router_graphengine
 from CDT.router import router_cdt
 from TimeLapseEngine.router import router_tl_engine
@@ -145,7 +144,6 @@ app.include_router(router_database, prefix=api_prefix)
 app.include_router(router_cell_extraction, prefix=api_prefix)
 app.include_router(router_cell_ai, prefix=api_prefix)
 app.include_router(router_tl_engine, prefix=api_prefix)
-app.include_router(router_dropbox, prefix=api_prefix)
 app.include_router(router_graphengine, prefix=api_prefix)
 app.include_router(router_cdt, prefix=api_prefix)
 app.include_router(router_results, prefix=api_prefix)

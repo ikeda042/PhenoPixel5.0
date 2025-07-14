@@ -51,7 +51,6 @@ const Databases: React.FC = () => {
   const defaultSearchWord = queryParams.get("default_search_word") ?? "";
 
   const [databases, setDatabases] = useState<string[]>([]);
-  const [dropboxFiles, setDropboxFiles] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState(defaultSearchWord);
 
   // 表示モード
@@ -156,44 +155,11 @@ const Databases: React.FC = () => {
   }, []);
 
   /**
-   * Dropbox用データを取得
-   */
-  const fetchDropboxFiles = useCallback(async () => {
-    try {
-      const response = await axios.get(`${url_prefix}/dropbox/list_databases`);
-      setDropboxFiles(response.data.files);
-    } catch (error) {
-      console.error("Failed to fetch Dropbox files", error);
-    }
-  }, []);
-
-  /**
    * displayMode の変更に応じてデータを取得
    */
   useEffect(() => {
-    if (displayMode === "Dropbox") {
-      fetchDropboxFiles();
-    } else {
-      fetchDatabases();
-    }
-  }, [displayMode, fetchDatabases, fetchDropboxFiles]);
-
-  /**
-   * Dropboxからファイルをダウンロード
-   */
-  const handleDropboxDownload = async (file: string) => {
-    try {
-      await axios.get(`${url_prefix}/dropbox/download/${file}`, {
-        responseType: "blob",
-      });
-      setDialogMessage("Dropbox file download initiated!");
-      setIsDialogOpen(true);
-    } catch (error) {
-      setDialogMessage("Failed to download database.");
-      setIsDialogOpen(true);
-      console.error("Failed to download database", error);
-    }
-  };
+    fetchDatabases();
+  }, [displayMode, fetchDatabases]);
 
   /**
    * 表示モードを切り替え
@@ -259,20 +225,6 @@ const Databases: React.FC = () => {
     }
   };
 
-  /**
-   * データベースをDropboxにバックアップ
-   */
-  const handleBackup = async () => {
-    try {
-      await axios.post(`${url_prefix}/dropbox/databases/backup`);
-      setDialogMessage("Backup completed successfully!");
-      setIsDialogOpen(true);
-    } catch (error) {
-      setDialogMessage("Failed to backup the database.");
-      setIsDialogOpen(true);
-      console.error("Backup failed", error);
-    }
-  };
 
   /**
    * メタデータを更新
@@ -453,10 +405,6 @@ const Databases: React.FC = () => {
     return searchMatch;
   });
 
-  // Dropboxファイル一覧のフィルタ
-  const filteredDropboxFiles = dropboxFiles.filter((file) =>
-    file.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <Container maxWidth={false} disableGutters>
@@ -502,7 +450,6 @@ const Databases: React.FC = () => {
               <MenuItem value="Validated">Validated</MenuItem>
               <MenuItem value="User uploaded">Uploaded</MenuItem>
               <MenuItem value="Completed">Completed</MenuItem>
-              <MenuItem value="Dropbox">Dropbox</MenuItem>
             </Select>
           </Grid>
 
@@ -558,27 +505,6 @@ const Databases: React.FC = () => {
             </Grid>
           )}
 
-          {displayMode === "Completed" && (
-            <Grid item xs={3}>
-              <Button
-                onClick={handleBackup}
-                variant="contained"
-                sx={{
-                  backgroundColor: "#0061FE",
-                  color: "white",
-                  width: "100%",
-                  height: "56px",
-                  textTransform: "none",
-                  "&:hover": {
-                    backgroundColor: "grey",
-                  },
-                }}
-                startIcon={<DriveFileMoveIcon />}
-              >
-                Sync to Dropbox
-              </Button>
-            </Grid>
-          )}
         </Grid>
       </Box>
 
@@ -590,114 +516,70 @@ const Databases: React.FC = () => {
               <TableRow>
                 <TableCell>Database Name</TableCell>
                 <TableCell>Copy</TableCell>
-                {displayMode !== "Dropbox" && (
-                  <>
-                    <TableCell align="center">Metadata</TableCell>
-                    {displayMode === "User uploaded" && (
-                      <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
-                        Mark as Complete
-                      </TableCell>
-                    )}
-                    {displayMode === "Completed" && (
-                      <TableCell align="center">Export</TableCell>
-                    )}
+                <TableCell align="center">Metadata</TableCell>
+                {displayMode === "User uploaded" && (
+                  <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
+                    Mark as Complete
+                  </TableCell>
+                )}
+                {displayMode === "Completed" && (
+                  <TableCell align="center">Export</TableCell>
+                )}
 
-                    <TableCell
-                      align="center"
-                      sx={{ whiteSpace: "nowrap" }}
-                    >
-                      <Box
-                        display="flex"
-                        justifyContent="center"
-                        alignItems="center"
-                        flexWrap="nowrap"
+                <TableCell
+                  align="center"
+                  sx={{ whiteSpace: "nowrap" }}
+                >
+                  <Box
+                    display="flex"
+                    justifyContent="center"
+                    alignItems="center"
+                    flexWrap="nowrap"
+                  >
+                    <Box>
+                      <Typography>Mode</Typography>
+                    </Box>
+                    <Box ml={1} display="flex" flexWrap="nowrap">
+                      <Select
+                        value={selectedMode}
+                        onChange={(e) => setSelectedMode(e.target.value)}
+                        displayEmpty
+                        inputProps={{ "aria-label": "Without label" }}
+                        sx={{ marginRight: 1, height: "25px" }}
                       >
-                        <Box>
-                          <Typography>Mode</Typography>
-                        </Box>
-                        <Box ml={1} display="flex" flexWrap="nowrap">
-                          <Select
-                            value={selectedMode}
-                            onChange={(e) => setSelectedMode(e.target.value)}
-                            displayEmpty
-                            inputProps={{ "aria-label": "Without label" }}
-                            sx={{ marginRight: 1, height: "25px" }}
-                          >
-                            <MenuItem value="fluo">Fluo</MenuItem>
-                            <MenuItem value="ph">Ph</MenuItem>
-                            <MenuItem value="ph_contour">Ph + contour</MenuItem>
-                            <MenuItem value="fluo_contour">Fluo + contour</MenuItem>
-                            <MenuItem value="fluo2">fluo2</MenuItem>
-                            <MenuItem value="fluo2_contour">fluo2 + contour</MenuItem>
-                            <MenuItem value="replot_fluo1">replot fluo1</MenuItem>
-                            <MenuItem value="replot_fluo2">replot fluo2</MenuItem>
-                          </Select>
-                          <Select
-                            value={selectedLabel}
-                            onChange={(e) => setSelectedLabel(e.target.value)}
-                            displayEmpty
-                            inputProps={{ "aria-label": "Without label" }}
-                            sx={{ marginRight: 1, height: "25px" }}
-                          >
-                            <MenuItem value="N/A">N/A</MenuItem>
-                            <MenuItem value="1">1</MenuItem>
-                            <MenuItem value="2">2</MenuItem>
-                            <MenuItem value="3">3</MenuItem>
-                          </Select>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                  
-                    <TableCell align="center">Access</TableCell>
-                    <TableCell align="center">Sort labels</TableCell>
-                  </>
-                )}
-                {displayMode === "Dropbox" && (
-                  <TableCell align="center">Download</TableCell>
-                )}
+                        <MenuItem value="fluo">Fluo</MenuItem>
+                        <MenuItem value="ph">Ph</MenuItem>
+                        <MenuItem value="ph_contour">Ph + contour</MenuItem>
+                        <MenuItem value="fluo_contour">Fluo + contour</MenuItem>
+                        <MenuItem value="fluo2">fluo2</MenuItem>
+                        <MenuItem value="fluo2_contour">fluo2 + contour</MenuItem>
+                        <MenuItem value="replot_fluo1">replot fluo1</MenuItem>
+                        <MenuItem value="replot_fluo2">replot fluo2</MenuItem>
+                      </Select>
+                      <Select
+                        value={selectedLabel}
+                        onChange={(e) => setSelectedLabel(e.target.value)}
+                        displayEmpty
+                        inputProps={{ "aria-label": "Without label" }}
+                        sx={{ marginRight: 1, height: "25px" }}
+                      >
+                        <MenuItem value="N/A">N/A</MenuItem>
+                        <MenuItem value="1">1</MenuItem>
+                        <MenuItem value="2">2</MenuItem>
+                        <MenuItem value="3">3</MenuItem>
+                      </Select>
+                    </Box>
+                  </Box>
+                </TableCell>
+
+                <TableCell align="center">Access</TableCell>
+                <TableCell align="center">Sort labels</TableCell>
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {/* Dropbox用 */}
-              {displayMode === "Dropbox"
-                ? filteredDropboxFiles.map((file, index) => (
-                    <TableRow key={index}>
-                      <TableCell component="th" scope="row">
-                        <Tooltip title={file} placement="top">
-                          <Typography noWrap>
-                            {file.length > 30 ? `${file.substring(0, 30)}...` : file}
-                          </Typography>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell>
-                        <Tooltip title="Copy to clipboard">
-                          <IconButton onClick={() => handleCopyToClipboard(file)}>
-                            <ContentCopyIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Button
-                          variant="contained"
-                          sx={{
-                            backgroundColor: "black",
-                            color: "white",
-                            "&:hover": {
-                              backgroundColor: "gray",
-                            },
-                          }}
-                          onClick={() => handleDropboxDownload(file)}
-                          startIcon={<DownloadIcon />}
-                        >
-                          Download
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                : // 通常DB用
-                  filteredDatabases.map((database, index) => (
-                    <TableRow key={index}>
+              {filteredDatabases.map((database, index) => (
+                  <TableRow key={index}>
                       <TableCell component="th" scope="row">
                         <Tooltip title={database} placement="top">
                           <Typography noWrap>
