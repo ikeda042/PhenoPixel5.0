@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.sql import select
 import random
+import os
 
 
 def get_ulid() -> str:
@@ -44,9 +45,21 @@ class Cell(Base):
     user_id = Column(String, nullable=True)
 
 
+def get_db_path(dbname: str) -> str:
+    """Return an absolute path for the database and ensure the directory exists."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    if os.path.isabs(dbname):
+        abs_path = dbname
+    else:
+        abs_path = os.path.join(base_dir, dbname)
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    return abs_path
+
+
 async def get_session(dbname: str):
+    db_path = get_db_path(dbname)
     engine = create_async_engine(
-        f"sqlite+aiosqlite:///{dbname}?timeout=30",
+        f"sqlite+aiosqlite:///{db_path}?timeout=30",
         echo=False,
         connect_args={"check_same_thread": False},
     )
@@ -56,8 +69,9 @@ async def get_session(dbname: str):
 
 
 async def create_database(dbname: str):
+    db_path = get_db_path(dbname)
     engine = create_async_engine(
-        f"sqlite+aiosqlite:///{dbname}?timeout=30",
+        f"sqlite+aiosqlite:///{db_path}?timeout=30",
         echo=True,
         connect_args={"check_same_thread": False},
     )
@@ -480,8 +494,9 @@ class ExtractionCrudBase:
         return contour, img_ph_gray, img_fluo1_gray, img_fluo2_gray
 
     async def process_cell(self, dbname, i, j, user_id: str | None = None):
+        db_path = get_db_path(dbname)
         engine = create_async_engine(
-            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
+            f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
         )
         async_session = sessionmaker(
             engine, expire_on_commit=False, class_=AsyncSession
@@ -554,8 +569,10 @@ class ExtractionCrudBase:
             else f"databases/{self.file_prefix}-single_layer-uploaded.db"
         )
 
+        db_path = get_db_path(dbname)
+
         try:
-            await asyncio.to_thread(os.remove, dbname)
+            await asyncio.to_thread(os.remove, db_path)
         except FileNotFoundError:
             pass
 
@@ -580,8 +597,9 @@ class ExtractionCrudBase:
             "dual_layer": num_tiff // 2,
         }
 
-        await create_database(dbname)
-        engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30")
+        db_path = get_db_path(dbname)
+        await create_database(db_path)
+        engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}?timeout=30")
 
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
