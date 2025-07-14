@@ -94,13 +94,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, description, imageUrl }) =
 // ------------------------------
 interface StatusBarProps {
   backendStatus: string | null;
-  dropboxStatus: boolean | null;
   internetStatus: boolean | null;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({
   backendStatus,
-  dropboxStatus,
   internetStatus,
 }) => {
   return (
@@ -114,13 +112,6 @@ const StatusBar: React.FC<StatusBarProps> = ({
           color={backendStatus === "ready" ? "success.main" : "error.main"}
         >
           Backend: {backendStatus || "unknown"}
-        </Typography>
-        <Typography
-          variant="body2"
-          color={dropboxStatus ? "success.main" : "error.main"}
-        >
-          Dropbox:{" "}
-          {dropboxStatus !== null ? (dropboxStatus ? "Connected" : "Not connected") : "unknown"}
         </Typography>
         <Typography
           variant="body2"
@@ -363,7 +354,6 @@ const TopPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [backendStatus, setBackendStatus] = useState<string | null>(null);
-  const [dropboxStatus, setDropboxStatus] = useState<boolean | null>(null);
   const [internetStatus, setInternetStatus] = useState<boolean | null>(null);
   const [showDemo, setShowDemo] = useState<boolean>(false);
 
@@ -372,17 +362,12 @@ const TopPage: React.FC = () => {
       const backendResponse = await fetch(`${settings.url_prefix}/healthcheck`);
       setBackendStatus(backendResponse.status === 200 ? "ready" : "not working");
 
-      const dropboxRes = await fetch(`${settings.url_prefix}/dropbox/connection_check`);
-      const dropboxData = await dropboxRes.json();
-      setDropboxStatus(dropboxRes.status === 200 && dropboxData.status);
-
       const internetRes = await fetch(`${settings.url_prefix}/internet-connection`);
       const internetData = await internetRes.json();
       setInternetStatus(internetRes.status === 200 && internetData.status);
     } catch (error) {
       console.error("Error checking statuses:", error);
       setBackendStatus("not working");
-      setDropboxStatus(false);
       setInternetStatus(false);
     }
   }, []);
@@ -407,7 +392,6 @@ const TopPage: React.FC = () => {
     <Container maxWidth="lg" sx={{ minHeight: "100vh", py: 4 }}>
       <StatusBar
         backendStatus={backendStatus}
-        dropboxStatus={dropboxStatus}
         internetStatus={internetStatus}
       />
       <Box display="flex" flexDirection="column" alignItems="center">
