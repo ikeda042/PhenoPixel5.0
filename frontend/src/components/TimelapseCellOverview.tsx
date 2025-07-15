@@ -216,8 +216,9 @@ const TimelapseViewer: React.FC = () => {
         setCurrentCellData(null);
         return;
       }
-      const baseCellId = cells[0].base_cell_id; // 同じ cell_number の全フレームは同じ base_cell_id
-      const detail = await fetchCellDataById(baseCellId);
+      // cell_id を使って詳細情報を取得する
+      const cellId = cells[0].cell_id;
+      const detail = await fetchCellDataById(cellId);
       if (detail) {
         setCurrentCellData(detail);
       } else {
