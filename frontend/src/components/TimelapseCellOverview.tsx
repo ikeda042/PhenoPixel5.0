@@ -57,6 +57,7 @@ interface GetCellNumbersResponse {
 interface CellDataByFieldNumber {
   id: number;
   cell_id: string;
+  base_cell_id: string;
   field: string;
   time: number;
   cell: number;
@@ -71,6 +72,7 @@ interface GetCellsResponseByFieldNumber {
 interface CellDataById {
   id: number;
   cell_id: string;
+  base_cell_id: string;
   field: string;
   time: number;
   cell: number;
@@ -212,7 +214,7 @@ const TimelapseViewer: React.FC = () => {
         setCurrentCellData(null);
         return;
       }
-      const baseCellId = cells[0].cell_id; // 同じ cell_number の全フレームは同じ base_cell_id
+      const baseCellId = cells[0].base_cell_id; // 同じ cell_number の全フレームは同じ base_cell_id
       const detail = await fetchCellDataById(baseCellId);
       if (detail) {
         setCurrentCellData(detail);
@@ -229,7 +231,7 @@ const TimelapseViewer: React.FC = () => {
   const handleChangeManualLabel = async (value: string) => {
     if (!dbName || !currentCellData) return;
     try {
-      const baseCellId = currentCellData.cell_id;
+      const baseCellId = currentCellData.base_cell_id;
       await axios.patch(
         `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/label?label=${value}`
       );
@@ -244,7 +246,7 @@ const TimelapseViewer: React.FC = () => {
   const handleChangeIsDead = async (checked: boolean) => {
     if (!dbName || !currentCellData) return;
     try {
-      const baseCellId = currentCellData.cell_id;
+      const baseCellId = currentCellData.base_cell_id;
       const isDeadValue = checked ? 1 : 0;
       await axios.patch(
         `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/dead/${isDeadValue}`

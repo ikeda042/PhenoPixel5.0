@@ -181,6 +181,7 @@ async def read_cell_by_cell_id(db_name: str, cell_id: str):
             content={
                 "id": cell.id,
                 "cell_id": cell.cell_id,
+                "base_cell_id": cell.base_cell_id,
                 "field": cell.field,
                 "time": cell.time,
                 "cell": cell.cell,
@@ -215,6 +216,7 @@ async def read_cells_by_cell_number(db_name: str, field: str, cell_number: int):
             {
                 "id": c.id,
                 "cell_id": c.cell_id,
+                "base_cell_id": c.base_cell_id,
                 "field": c.field,
                 "time": c.time,
                 "cell": c.cell,
