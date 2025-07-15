@@ -236,7 +236,7 @@ const TimelapseViewer: React.FC = () => {
         `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/label?label=${value}`
       );
       // 更新後再取得
-      fetchCurrentCellData();
+      await fetchCurrentCellData();
     } catch (error) {
       console.error("Failed to update manual_label:", error);
     }
@@ -251,7 +251,7 @@ const TimelapseViewer: React.FC = () => {
       await axios.patch(
         `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/dead/${isDeadValue}`
       );
-      fetchCurrentCellData();
+      await fetchCurrentCellData();
     } catch (error) {
       console.error("Failed to update is_dead:", error);
     }
@@ -560,6 +560,10 @@ const TimelapseViewer: React.FC = () => {
                 }
                 label="is_dead"
               />
+
+              <Typography variant="body2" sx={{ ml: 2 }}>
+                BaseID: {currentCellData.base_cell_id}
+              </Typography>
             </>
           )}
 
