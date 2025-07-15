@@ -22,6 +22,8 @@ import {
   CircularProgress,
   Checkbox,
   FormControlLabel,
+  Radio,
+  RadioGroup,
   Grid,
 } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
@@ -111,7 +113,7 @@ const TimelapseViewer: React.FC = () => {
   const [currentCellData, setCurrentCellData] = useState<CellDataById | null>(null);
 
   // manual_label のセレクトボックス用
-  const manualLabelOptions = ["N/A", "1", "2", "3", "4"];
+  const manualLabelOptions = ["N/A", "1", "2", "3"];
 
   // 「全 GIF を同じタイミングで再生開始する」ためのキー
   const [reloadKey, setReloadKey] = useState<number>(0);
@@ -357,7 +359,6 @@ const TimelapseViewer: React.FC = () => {
         case "1":
         case "2":
         case "3":
-        case "4":
           e.preventDefault();
           handleChangeManualLabel(e.key);
           break;
@@ -550,16 +551,26 @@ const TimelapseViewer: React.FC = () => {
                 </Select>
               </FormControl>
 
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    color="error"
-                    checked={currentCellData.is_dead === 1}
-                    onChange={(e) => handleChangeIsDead(e.target.checked)}
+              <FormControl>
+                <RadioGroup
+                  row
+                  value={currentCellData.is_dead === 1 ? "dead" : "alive"}
+                  onChange={(e) =>
+                    handleChangeIsDead(e.target.value === "dead")
+                  }
+                >
+                  <FormControlLabel
+                    value="alive"
+                    control={<Radio color="primary" />}
+                    label="Alive"
                   />
-                }
-                label="is_dead"
-              />
+                  <FormControlLabel
+                    value="dead"
+                    control={<Radio color="error" />}
+                    label="Dead"
+                  />
+                </RadioGroup>
+              </FormControl>
 
               <Typography variant="body2" sx={{ ml: 2 }}>
                 BaseID: {currentCellData.base_cell_id}
