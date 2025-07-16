@@ -94,7 +94,9 @@ const Databases: React.FC = () => {
    */
   const fetchDatabases = useCallback(async () => {
     try {
-      const response = await axios.get<ListDBResponse>(`${url_prefix}/databases`);
+      const token = localStorage.getItem("access_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await axios.get<ListDBResponse>(`${url_prefix}/databases`, { headers });
       setDatabases(response.data.databases);
 
       // アップロード済みDBを抽出
