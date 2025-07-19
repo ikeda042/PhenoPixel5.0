@@ -22,6 +22,8 @@ import {
   CircularProgress,
   Checkbox,
   FormControlLabel,
+  Radio,
+  RadioGroup,
   Grid,
 } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
@@ -57,6 +59,7 @@ interface GetCellNumbersResponse {
 interface CellDataByFieldNumber {
   id: number;
   cell_id: string;
+  base_cell_id: string;
   field: string;
   time: number;
   cell: number;
@@ -71,6 +74,7 @@ interface GetCellsResponseByFieldNumber {
 interface CellDataById {
   id: number;
   cell_id: string;
+  base_cell_id: string;
   field: string;
   time: number;
   cell: number;
@@ -109,7 +113,7 @@ const TimelapseViewer: React.FC = () => {
   const [currentCellData, setCurrentCellData] = useState<CellDataById | null>(null);
 
   // manual_label のセレクトボックス用
-  const manualLabelOptions = ["N/A", "1", "2", "3", "4"];
+  const manualLabelOptions = ["N/A", "1", "2", "3"];
 
   // 「全 GIF を同じタイミングで再生開始する」ためのキー
   const [reloadKey, setReloadKey] = useState<number>(0);
@@ -212,8 +216,9 @@ const TimelapseViewer: React.FC = () => {
         setCurrentCellData(null);
         return;
       }
-      const baseCellId = cells[0].cell_id; // 同じ cell_number の全フレームは同じ base_cell_id
-      const detail = await fetchCellDataById(baseCellId);
+      // cell_id を使って詳細情報を取得する
+      const cellId = cells[0].cell_id;
+      const detail = await fetchCellDataById(cellId);
       if (detail) {
         setCurrentCellData(detail);
       } else {
@@ -229,12 +234,12 @@ const TimelapseViewer: React.FC = () => {
   const handleChangeManualLabel = async (value: string) => {
     if (!dbName || !currentCellData) return;
     try {
-      const baseCellId = currentCellData.cell_id;
+      const baseCellId = currentCellData.base_cell_id;
       await axios.patch(
         `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/label?label=${value}`
       );
       // 更新後再取得
-      fetchCurrentCellData();
+      await fetchCurrentCellData();
     } catch (error) {
       console.error("Failed to update manual_label:", error);
     }
@@ -244,12 +249,12 @@ const TimelapseViewer: React.FC = () => {
   const handleChangeIsDead = async (checked: boolean) => {
     if (!dbName || !currentCellData) return;
     try {
-      const baseCellId = currentCellData.cell_id;
+      const baseCellId = currentCellData.base_cell_id;
       const isDeadValue = checked ? 1 : 0;
       await axios.patch(
         `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/dead/${isDeadValue}`
       );
-      fetchCurrentCellData();
+      await fetchCurrentCellData();
     } catch (error) {
       console.error("Failed to update is_dead:", error);
     }
@@ -355,7 +360,6 @@ const TimelapseViewer: React.FC = () => {
         case "1":
         case "2":
         case "3":
-        case "4":
           e.preventDefault();
           handleChangeManualLabel(e.key);
           break;
@@ -548,16 +552,30 @@ const TimelapseViewer: React.FC = () => {
                 </Select>
               </FormControl>
 
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    color="error"
-                    checked={currentCellData.is_dead === 1}
-                    onChange={(e) => handleChangeIsDead(e.target.checked)}
+              <FormControl>
+                <RadioGroup
+                  row
+                  value={currentCellData.is_dead === 1 ? "dead" : "alive"}
+                  onChange={(e) =>
+                    handleChangeIsDead(e.target.value === "dead")
+                  }
+                >
+                  <FormControlLabel
+                    value="alive"
+                    control={<Radio color="primary" />}
+                    label="Alive"
                   />
-                }
-                label="is_dead"
-              />
+                  <FormControlLabel
+                    value="dead"
+                    control={<Radio color="error" />}
+                    label="Dead"
+                  />
+                </RadioGroup>
+              </FormControl>
+
+              <Typography variant="body2" sx={{ ml: 2 }}>
+                BaseID: {currentCellData.base_cell_id}
+              </Typography>
             </>
           )}
 

@@ -94,7 +94,15 @@ const Databases: React.FC = () => {
    */
   const fetchDatabases = useCallback(async () => {
     try {
-      const response = await axios.get<ListDBResponse>(`${url_prefix}/databases`);
+      const token = localStorage.getItem("access_token");
+      const headers =
+        token && displayMode !== "Validated"
+          ? { Authorization: `Bearer ${token}` }
+          : {};
+      const response = await axios.get<ListDBResponse>(
+        `${url_prefix}/databases`,
+        { headers }
+      );
       setDatabases(response.data.databases);
 
       // アップロード済みDBを抽出
@@ -152,7 +160,7 @@ const Databases: React.FC = () => {
     } catch (error) {
       console.error("Failed to fetch databases", error);
     }
-  }, []);
+  }, [displayMode]);
 
   /**
    * displayMode の変更に応じてデータを取得
