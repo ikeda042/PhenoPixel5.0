@@ -539,11 +539,14 @@ async def upload_database(file: UploadFile = UploadFile(...)):
 async def get_databases(account=Depends(get_account_optional)):
     if account is None:
         return await AsyncChores().get_database_names()
-    user_id = account["id"]
-    handle_id = account["handle_id"]
-    account = await UserCrud.get_by_id(user_id)
-    if account.is_admin:
+
+    user_id = account.id
+    handle_id = account.handle_id
+
+    account_obj = await UserCrud.get_by_id(user_id)
+    if account_obj.is_admin:
         return await AsyncChores().get_database_names()
+
     return await AsyncChores().get_database_names(handle_id=handle_id)
 
 
