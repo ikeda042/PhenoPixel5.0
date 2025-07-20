@@ -20,6 +20,7 @@ import UserInfo from "./components/Userinfo";
 import LabelSorter from "./components/LabelSorter";
 import CDT from "./components/CDT";
 import MiniFileManager from "./components/MiniFileManager";
+import ImagePlayground from "./components/ImagePlayground";
 // ↑ 必要なコンポーネントをインポート
 
 /* --------------------------------
@@ -196,6 +197,14 @@ function App() {
               element={
                 <Box component="main" sx={{ p: 1 }}>
                   <MiniFileManager />
+                </Box>
+              }
+            />
+            <Route
+              path="/image-playground"
+              element={
+                <Box component="main" sx={{ p: 1 }}>
+                  <ImagePlayground />
                 </Box>
               }
             />

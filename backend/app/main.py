@@ -16,6 +16,7 @@ from CDT.router import router_cdt
 from TimeLapseEngine.router import router_tl_engine
 from results.router import router_results
 from FileManager.router import router_file_manager
+from image_playground.router import router_image_playground
 from Auth.router import router_auth
 from Admin.router import router_admin
 from OAuth2.router import router_oauth2
@@ -148,6 +149,7 @@ app.include_router(router_graphengine, prefix=api_prefix)
 app.include_router(router_cdt, prefix=api_prefix)
 app.include_router(router_results, prefix=api_prefix)
 app.include_router(router_file_manager, prefix=api_prefix)
+app.include_router(router_image_playground, prefix=api_prefix)
 app.include_router(router_autolabel, prefix=api_prefix)
 app.include_router(router_oauth2, prefix=api_prefix)
 
