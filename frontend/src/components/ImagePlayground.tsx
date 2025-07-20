@@ -429,7 +429,7 @@ const ImagePlayground: React.FC = () => {
                     letterSpacing: '0.5px',
                     margin: 0
                   }}>
-                    Computer Vision Research Lab
+                    Computer Vision PlayGround
                   </h1>
                 </div>
                 <p style={{
