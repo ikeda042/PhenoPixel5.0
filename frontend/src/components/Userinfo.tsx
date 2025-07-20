@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Button,
@@ -41,7 +41,7 @@ const UserInfo: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const fetchUserInfo = async () => {
+  const fetchUserInfo = useCallback(async () => {
     setLoading(true);
     setError("");
     const accessToken = localStorage.getItem("access_token");
@@ -72,11 +72,11 @@ const UserInfo: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     fetchUserInfo();
-  }, [navigate]);
+  }, [fetchUserInfo]);
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
