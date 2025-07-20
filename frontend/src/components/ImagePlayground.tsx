@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import axios from "axios";
+import { settings } from "../settings";
 import { 
   Upload, Settings, Image, ChevronRight, Activity, 
   Zap, Eye, BarChart3, Menu, X, Play, Download,
@@ -93,6 +95,8 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'Image Analysis': BarChart3,
 };
 
+const url_prefix = settings.url_prefix;
+
 const ImagePlayground: React.FC = () => {
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<keyof typeof ALGORITHMS>('canny');
   const [parameters, setParameters] = useState<Record<string, Record<string, number | boolean>>>(() => {
@@ -130,31 +134,55 @@ const ImagePlayground: React.FC = () => {
     }));
   };
 
+  const getImageDimensions = (imageUrl: string): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.width, height: img.height });
+      img.onerror = reject;
+      img.src = imageUrl;
+    });
+  };
+
   const handleProcess = async () => {
     if (!file) return;
     setIsLoading(true);
-    
+
     try {
-      // Mock processing
-      setTimeout(() => {
-        const newResult: Result = {
-          id: Date.now().toString(),
-          algorithm: selectedAlgorithm,
-          imageSrc: `https://via.placeholder.com/400x300/1f2937/9ca3af?text=${currentAlgorithm.name}+Result`,
-          metadata: {
-            parameters: parameters[selectedAlgorithm],
-            processingTime: Math.random() * 2000 + 500,
-            fileSize: file.size,
-            dimensions: { width: 400, height: 300 }
-          },
-          timestamp: new Date()
-        };
-        setResults(prev => [newResult, ...prev]);
-        setIsLoading(false);
-      }, 1500);
+      const formData = new FormData();
+      formData.append("file", file);
+      const params = parameters[selectedAlgorithm];
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => query.append(key, String(value)));
+
+      const start = performance.now();
+      const response = await axios.post(
+        `${url_prefix}/image_playground/${selectedAlgorithm}?${query.toString()}`,
+        formData,
+        { responseType: "blob" }
+      );
+      const processingTime = performance.now() - start;
+      const blob = response.data as Blob;
+      const imageUrl = URL.createObjectURL(blob);
+      const dim = await getImageDimensions(imageUrl);
+
+      const newResult: Result = {
+        id: Date.now().toString(),
+        algorithm: selectedAlgorithm,
+        imageSrc: imageUrl,
+        metadata: {
+          parameters: params,
+          processingTime,
+          fileSize: blob.size,
+          dimensions: dim
+        },
+        timestamp: new Date()
+      };
+
+      setResults(prev => [newResult, ...prev]);
     } catch (err) {
       console.error(err);
       alert("Failed to process image");
+    } finally {
       setIsLoading(false);
     }
   };
