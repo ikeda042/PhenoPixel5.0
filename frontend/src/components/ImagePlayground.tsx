@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { settings } from "../settings";
-import { 
-  Upload, Settings, Image, ChevronRight, Activity, 
+import {
+  Upload, Settings, Image as ImageIcon, ChevronRight, Activity,
   Zap, Eye, BarChart3, Menu, X, Play, Download,
   Info, Clock, Cpu, LucideIcon
 } from "lucide-react";
@@ -764,7 +764,7 @@ const ImagePlayground: React.FC = () => {
                     padding: '32px',
                     color: '#6b7280'
                   }}>
-                    <Image size={48} style={{ 
+                    <ImageIcon size={48} style={{
                       margin: '0 auto 12px auto', 
                       opacity: 0.5,
                       display: 'block'

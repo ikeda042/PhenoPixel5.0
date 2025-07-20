@@ -154,6 +154,13 @@ const DemoDataset: React.FC<DemoDatasetProps> = ({ showDemo, cellId }) => {
     }
 
     let active = true;
+    let fetchedUrls: { ph: string | null; fluo: string | null; replot: string | null; plot3d: string | null } = {
+      ph: null,
+      fluo: null,
+      replot: null,
+      plot3d: null,
+    };
+
     const fetchDemoImages = async () => {
       try {
         const [res1, res2, res3, res4] = await Promise.all([
@@ -163,7 +170,7 @@ const DemoDataset: React.FC<DemoDatasetProps> = ({ showDemo, cellId }) => {
           fetch(`${settings.url_prefix}/cells/test_database.db/${cellId}/3d`),
         ]);
 
-        const newImageUrls = {
+        fetchedUrls = {
           ph: res1.ok ? URL.createObjectURL(await res1.blob()) : null,
           fluo: res2.ok ? URL.createObjectURL(await res2.blob()) : null,
           replot: res3.ok ? URL.createObjectURL(await res3.blob()) : null,
@@ -171,7 +178,7 @@ const DemoDataset: React.FC<DemoDatasetProps> = ({ showDemo, cellId }) => {
         };
 
         if (active) {
-          setImageUrls(newImageUrls);
+          setImageUrls(fetchedUrls);
         }
       } catch (error) {
         console.error("Error fetching demo images:", error);
@@ -182,7 +189,7 @@ const DemoDataset: React.FC<DemoDatasetProps> = ({ showDemo, cellId }) => {
 
     return () => {
       active = false;
-      Object.values(imageUrls).forEach((url) => {
+      Object.values(fetchedUrls).forEach((url) => {
         if (url) URL.revokeObjectURL(url);
       });
     };
