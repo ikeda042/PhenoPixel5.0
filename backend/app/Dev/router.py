@@ -27,7 +27,9 @@ async def login_to_hinet():
     return JSONResponse(content={"message": "Login successful."})
 
 
-# @router_dev.get("/git-pull")
-# async def pull_from_git():
-#     await git_pull()
-#     return JSONResponse(content={"message": "Git pull successful."})
+@router_dev.get("/git-pull")
+async def pull_from_git():
+    await HINETLogin.git_pull()
+    return JSONResponse(content={"message": "Git pull successful."})
+
+
