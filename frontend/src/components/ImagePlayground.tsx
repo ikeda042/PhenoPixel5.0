@@ -254,12 +254,13 @@ const ImagePlayground: React.FC = () => {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #111827 0%, #000000 50%, #1f2937 100%)',
-      display: 'flex',
-      fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif'
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        width: '100%',
+        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif'
+      }}
+    >
       {/* Sidebar */}
       <div style={{
         width: sidebarOpen ? '320px' : '0',
