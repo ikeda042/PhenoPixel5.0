@@ -192,11 +192,11 @@ const ImagePlayground: React.FC = () => {
     
     const inputStyle: React.CSSProperties = {
       width: '100%',
-      backgroundColor: '#374151',
-      border: '1px solid #4b5563',
+      backgroundColor: '#ffffff',
+      border: '1px solid #d1d5db',
       borderRadius: '8px',
       padding: '8px 12px',
-      color: '#f3f4f6',
+      color: '#374151',
       outline: 'none',
       fontSize: '14px'
     };
@@ -206,7 +206,7 @@ const ImagePlayground: React.FC = () => {
     };
     
     const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
-      (e.target as HTMLElement).style.borderColor = '#4b5563';
+      (e.target as HTMLElement).style.borderColor = '#d1d5db';
     };
     
     switch (param.type) {
@@ -220,7 +220,7 @@ const ImagePlayground: React.FC = () => {
             onBlur={handleBlur}
           >
             {param.options?.map((option: number) => (
-              <option key={option} value={option} style={{ backgroundColor: '#374151' }}>{option}</option>
+              <option key={option} value={option} style={{ backgroundColor: '#ffffff' }}>{option}</option>
             ))}
           </select>
         );
@@ -235,8 +235,8 @@ const ImagePlayground: React.FC = () => {
               width: '16px',
               height: '16px',
               accentColor: '#3b82f6',
-              backgroundColor: '#374151',
-              border: '1px solid #4b5563',
+              backgroundColor: '#ffffff',
+              border: '1px solid #d1d5db',
               borderRadius: '4px'
             }}
           />
@@ -260,11 +260,11 @@ const ImagePlayground: React.FC = () => {
   };
 
   const cardStyle: React.CSSProperties = {
-    background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
-    border: '1px solid #374151',
+    background: '#ffffff',
+    border: '1px solid #e5e7eb',
     borderRadius: '12px',
     padding: '24px',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+    boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)'
   };
 
   const buttonStyle: React.CSSProperties = {
@@ -297,8 +297,8 @@ const ImagePlayground: React.FC = () => {
       }}>
         <div style={{
           height: '100%',
-          backgroundColor: 'rgba(17, 24, 39, 0.5)',
-          borderRight: '1px solid #374151',
+          backgroundColor: 'rgba(0, 0, 0, 0.05)',
+          borderRight: '1px solid #e5e7eb',
           padding: '16px'
         }}>
           <div style={{
@@ -310,7 +310,7 @@ const ImagePlayground: React.FC = () => {
             <h3 style={{
               fontSize: '18px',
               fontWeight: '500',
-              color: '#f3f4f6',
+              color: '#374151',
               margin: 0
             }}>Algorithms</h3>
             <button
@@ -358,19 +358,19 @@ const ImagePlayground: React.FC = () => {
                         padding: '12px',
                         borderRadius: '8px',
                         transition: 'all 0.3s ease',
-                        backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.2)' : '#1f2937',
-                        border: isSelected ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid #374151',
-                        color: isSelected ? '#93c5fd' : '#d1d5db',
+                        backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.2)' : '#ffffff',
+                        border: isSelected ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid #e5e7eb',
+                        color: isSelected ? '#2563eb' : '#374151',
                         cursor: 'pointer'
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
-                          (e.target as HTMLElement).style.backgroundColor = '#374151';
+                          (e.target as HTMLElement).style.backgroundColor = '#f3f4f6';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (!isSelected) {
-                          (e.target as HTMLElement).style.backgroundColor = '#1f2937';
+                          (e.target as HTMLElement).style.backgroundColor = '#ffffff';
                         }
                       }}
                     >
@@ -425,7 +425,7 @@ const ImagePlayground: React.FC = () => {
                   <h1 style={{
                     fontSize: '32px',
                     fontWeight: '300',
-                    color: '#f3f4f6',
+                    color: '#374151',
                     letterSpacing: '0.5px',
                     margin: 0
                   }}>
@@ -465,7 +465,7 @@ const ImagePlayground: React.FC = () => {
             <ChevronRight size={16} style={{ color: '#6b7280' }} />
             <span style={{ color: '#9ca3af' }}>{currentAlgorithm.category}</span>
             <ChevronRight size={16} style={{ color: '#6b7280' }} />
-            <span style={{ color: '#d1d5db' }}>{currentAlgorithm.name}</span>
+            <span style={{ color: '#374151' }}>{currentAlgorithm.name}</span>
           </nav>
 
           <div style={{
@@ -488,13 +488,13 @@ const ImagePlayground: React.FC = () => {
                     <h2 style={{
                       fontSize: '20px',
                       fontWeight: '500',
-                      color: '#f3f4f6',
+                      color: '#374151',
                       margin: 0
                     }}>{currentAlgorithm.name}</h2>
                   </div>
                   <span style={{
-                    backgroundColor: '#374151',
-                    color: '#d1d5db',
+                    backgroundColor: '#f3f4f6',
+                    color: '#374151',
                     padding: '6px 12px',
                     borderRadius: '20px',
                     fontSize: '14px'
@@ -522,17 +522,17 @@ const ImagePlayground: React.FC = () => {
                   <h2 style={{
                     fontSize: '20px',
                     fontWeight: '500',
-                    color: '#f3f4f6',
+                    color: '#374151',
                     margin: 0
                   }}>Input Image</h2>
                 </div>
                 
                 <div style={{
-                  border: '2px dashed #4b5563',
+                  border: '2px dashed #d1d5db',
                   borderRadius: '8px',
                   padding: '32px',
                   textAlign: 'center',
-                  backgroundColor: 'rgba(31, 41, 55, 0.5)'
+                  backgroundColor: '#f9fafb'
                 }}>
                   <input 
                     type="file" 
@@ -541,9 +541,9 @@ const ImagePlayground: React.FC = () => {
                     style={{
                       display: 'block',
                       width: '100%',
-                      color: '#d1d5db',
-                      backgroundColor: '#374151',
-                      border: '1px solid #4b5563',
+                      color: '#374151',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #d1d5db',
                       borderRadius: '8px',
                       padding: '12px'
                     }}
@@ -572,7 +572,7 @@ const ImagePlayground: React.FC = () => {
                   <h2 style={{
                     fontSize: '20px',
                     fontWeight: '500',
-                    color: '#f3f4f6',
+                    color: '#374151',
                     margin: 0
                   }}>Parameters</h2>
                 </div>
@@ -587,7 +587,7 @@ const ImagePlayground: React.FC = () => {
                         marginBottom: '8px'
                       }}>
                         <label style={{
-                          color: '#d1d5db',
+                          color: '#374151',
                           fontWeight: '500',
                           fontSize: '14px'
                         }}>{param.label}</label>
@@ -626,10 +626,10 @@ const ImagePlayground: React.FC = () => {
                 disabled={isLoading || !file}
                 style={{
                   ...buttonStyle,
-                  backgroundColor: isLoading || !file ? '#374151' : '#3b82f6',
+                  backgroundColor: isLoading || !file ? '#d1d5db' : '#3b82f6',
                   color: isLoading || !file ? '#9ca3af' : '#ffffff',
                   cursor: isLoading || !file ? 'not-allowed' : 'pointer',
-                  background: isLoading || !file ? '#374151' : 'linear-gradient(45deg, #3b82f6 30%, #2563eb 90%)'
+                  background: isLoading || !file ? '#d1d5db' : 'linear-gradient(45deg, #3b82f6 30%, #2563eb 90%)'
                 }}
                 onMouseEnter={(e) => {
                   if (!isLoading && file) {
@@ -703,7 +703,7 @@ const ImagePlayground: React.FC = () => {
                       <span style={{
                         fontSize: '14px',
                         fontWeight: '500',
-                        color: '#d1d5db'
+                        color: '#374151'
                       }}>
                         {ALGORITHMS[result.algorithm].name}
                       </span>
@@ -726,7 +726,7 @@ const ImagePlayground: React.FC = () => {
                     <div style={{
                       borderRadius: '8px',
                       overflow: 'hidden',
-                      border: '1px solid #4b5563',
+                      border: '1px solid #d1d5db',
                       marginBottom: '12px'
                     }}>
                       <img 
@@ -781,7 +781,7 @@ const ImagePlayground: React.FC = () => {
           <div style={{
             marginTop: '48px',
             paddingTop: '24px',
-            borderTop: '1px solid #374151'
+            borderTop: '1px solid #e5e7eb'
           }}>
             <p style={{
               textAlign: 'center',
