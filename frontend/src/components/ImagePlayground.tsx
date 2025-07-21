@@ -85,6 +85,16 @@ const ALGORITHMS: Record<string, Algorithm> = {
       { name: 'bins', label: 'Number of Bins', type: 'number', min: 8, max: 256, default: 256, description: 'Number of histogram bins' },
       { name: 'normalize', label: 'Normalize', type: 'boolean', default: false, description: 'Normalize histogram values' },
     ]
+  },
+  cell_contour: {
+    id: 'cell_contour',
+    name: 'Cell Contour Detection',
+    category: 'Cell Analysis',
+    description: 'Detect cell contours using thresholding similar to the Cell extraction pipeline.',
+    parameters: [
+      { name: 'threshold', label: 'Binary Threshold', type: 'number', min: 0, max: 255, default: 130, description: 'Threshold for binarization' },
+      { name: 'min_area', label: 'Min Area', type: 'number', min: 10, max: 10000, default: 300, description: 'Minimum contour area' },
+    ]
   }
 };
 
@@ -93,6 +103,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   'Edge Detection': Zap,
   'Noise Reduction': Eye,
   'Image Analysis': BarChart3,
+  'Cell Analysis': Cpu,
 };
 
 const url_prefix = settings.url_prefix;

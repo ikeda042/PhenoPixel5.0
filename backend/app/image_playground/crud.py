@@ -94,3 +94,34 @@ class ImagePlaygroundCrud:
             return await loop.run_in_executor(
                 executor, cls._apply_histogram, data, bins, normalize
             )
+
+    @staticmethod
+    def _apply_cell_contour(
+        data: bytes, threshold: int, min_area: int
+    ) -> bytes:
+        img_array = np.frombuffer(data, np.uint8)
+        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        if img is None:
+            raise ValueError("Invalid image data")
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+        edges = cv2.Canny(thresh, 0, 150)
+        contours, _ = cv2.findContours(
+            edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+        )
+        contours = [c for c in contours if cv2.contourArea(c) >= min_area]
+        cv2.drawContours(img, contours, -1, (0, 255, 0), 2)
+        success, buffer = cv2.imencode(".png", img)
+        if not success:
+            raise ValueError("Failed to encode image")
+        return buffer.tobytes()
+
+    @classmethod
+    async def cell_contour(
+        cls, data: bytes, threshold: int, min_area: int
+    ) -> bytes:
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            return await loop.run_in_executor(
+                executor, cls._apply_cell_contour, data, threshold, min_area
+            )
