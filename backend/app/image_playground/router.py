@@ -2,6 +2,7 @@ import io
 from fastapi import APIRouter, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
 from .crud import ImagePlaygroundCrud
+import io
 
 router_image_playground = APIRouter(prefix="/image_playground", tags=["image_playground"])
 
@@ -55,6 +56,18 @@ async def histogram_image(
     try:
         data = await file.read()
         processed = await ImagePlaygroundCrud.histogram(data, bins, normalize)
+        return StreamingResponse(io.BytesIO(processed), media_type="image/png")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router_image_playground.post("/cell_contour")
+async def cell_contour_image(
+    file: UploadFile, threshold: int = 130, min_area: int = 300
+):
+    try:
+        data = await file.read()
+        processed = await ImagePlaygroundCrud.cell_contour(data, threshold, min_area)
         return StreamingResponse(io.BytesIO(processed), media_type="image/png")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
