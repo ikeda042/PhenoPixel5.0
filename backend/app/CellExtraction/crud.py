@@ -82,12 +82,12 @@ class SyncChores:
         return array.astype(np.uint8)
 
     @staticmethod
-    def save_images(images, file_name, num_channels, ulid):
+    def save_images(num_frames, file_name, num_channels, ulid):
         """
         画像を保存し、MultipageTIFFとして出力する。
         """
         all_images = []
-        for i, img in enumerate(images):
+        for i in range(num_frames):
             if num_channels > 1:
                 for j in range(num_channels):
                     all_images.append(
@@ -132,7 +132,13 @@ class SyncChores:
             print(f"Channels: {num_channels}")
             print("##############################################")
 
-            for n, img in enumerate(images):
+            frames_processed = 0
+            for n in range(len(images)):
+                try:
+                    img = images[n]
+                except KeyError as e:
+                    print(f"KeyError while reading frame {n}: {e}. Stopping extraction.")
+                    break
                 if num_channels > 1:
                     for channel in range(num_channels):
                         array = np.array(img[channel])
@@ -146,7 +152,8 @@ class SyncChores:
                     array = SyncChores.process_image(array)
                     image = Image.fromarray(array)
                     image.save(f"{temp_dir}/image_{n}.tif")
-            SyncChores.save_images(images, file_name, num_channels, ulid=ulid)
+                frames_processed += 1
+            SyncChores.save_images(frames_processed, file_name, num_channels, ulid=ulid)
         SyncChores.cleanup(temp_dir)
         num_tiff = SyncChores.extract_tiff(
             tiff_path=f"./{file_name.split('/')[-1].split('.')[0]}.tif",
