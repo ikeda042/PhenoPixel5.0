@@ -310,6 +310,11 @@ async def get_contour_areas_by_cell_number(db_name: str, field: str, cell_number
     areas = await crud.get_contour_areas_by_cell_number(field, cell_number)
     return JSONResponse(content={"areas": areas})
 
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/contour_areas/csv")
+async def get_contour_areas_csv_by_cell_number(db_name: str, field: str, cell_number: int):
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    return await crud.get_contour_areas_csv_by_cell_number(field, cell_number)
+
 
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/pixel_sd")
 async def get_pixel_sd_by_cell_number(
@@ -323,6 +328,16 @@ async def get_pixel_sd_by_cell_number(
     sds = await crud.get_pixel_sd_by_cell_number(field, cell_number, channel)
     return JSONResponse(content={"sds": sds})
 
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/pixel_sd/csv")
+async def get_pixel_sd_csv_by_cell_number(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+):
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    return await crud.get_pixel_sd_csv_by_cell_number(field, cell_number, channel)
+
 
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/pixel_cv")
 async def get_pixel_cv_by_cell_number(
@@ -335,6 +350,16 @@ async def get_pixel_cv_by_cell_number(
     crud = TimelapseDatabaseCrud(dbname=db_name)
     cvs = await crud.get_pixel_cv_by_cell_number(field, cell_number, channel)
     return JSONResponse(content={"cvs": cvs})
+
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/pixel_cv/csv")
+async def get_pixel_cv_csv_by_cell_number(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+):
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    return await crud.get_pixel_cv_csv_by_cell_number(field, cell_number, channel)
 
 
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/replot")

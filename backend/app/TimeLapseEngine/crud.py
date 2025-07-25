@@ -14,8 +14,9 @@ import cv2
 import nd2reader
 import numpy as np
 from PIL import Image
+import pandas as pd
 from fastapi import HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, update, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -1744,6 +1745,42 @@ class TimelapseDatabaseCrud:
             cvs.append(cv)
 
         return cvs
+
+    async def get_contour_areas_csv_by_cell_number(
+        self, field: str, cell_number: int
+    ) -> StreamingResponse:
+        areas = await self.get_contour_areas_by_cell_number(field, cell_number)
+        df = pd.DataFrame({"frame": list(range(len(areas))), "area": areas})
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
+
+    async def get_pixel_sd_csv_by_cell_number(
+        self,
+        field: str,
+        cell_number: int,
+        channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+    ) -> StreamingResponse:
+        sds = await self.get_pixel_sd_by_cell_number(field, cell_number, channel)
+        df = pd.DataFrame({"frame": list(range(len(sds))), "sd": sds})
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
+
+    async def get_pixel_cv_csv_by_cell_number(
+        self,
+        field: str,
+        cell_number: int,
+        channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+    ) -> StreamingResponse:
+        cvs = await self.get_pixel_cv_by_cell_number(field, cell_number, channel)
+        df = pd.DataFrame({"frame": list(range(len(cvs))), "cv": cvs})
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
 
     async def replot_cell(
         self,
