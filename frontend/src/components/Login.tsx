@@ -117,7 +117,7 @@ const Login: React.FC = () => {
           borderRadius: 2,
         }}
       >
-        <Typography variant="h4" sx={{ mb: 3, textAlign: "center", color: "#000" }}>
+        <Typography variant="h4" sx={{ mb: 3, textAlign: "center", color: 'text.primary' }}>
           {isRegister ? "Register" : "Login"}
         </Typography>
         <form onSubmit={handleSubmit}>
@@ -129,13 +129,13 @@ const Login: React.FC = () => {
             onChange={(e) => setUsername(e.target.value)}
             margin="normal"
             sx={{
-              backgroundColor: "#fff",
-              input: { color: "#000" },
-              "& .MuiInputLabel-root": { color: "#000" },
-              "& .MuiOutlinedInput-root": {
-                "& fieldset": { borderColor: "#000" },
-                "&:hover fieldset": { borderColor: "#000" },
-                "&.Mui-focused fieldset": { borderColor: "#000" },
+              backgroundColor: 'background.paper',
+              input: { color: 'text.primary' },
+              '& .MuiInputLabel-root': { color: 'text.primary' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: 'text.primary' },
+                '&:hover fieldset': { borderColor: 'text.primary' },
+                '&.Mui-focused fieldset': { borderColor: 'text.primary' },
               },
             }}
           />
@@ -148,13 +148,13 @@ const Login: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             margin="normal"
             sx={{
-              backgroundColor: "#fff",
-              input: { color: "#000" },
-              "& .MuiInputLabel-root": { color: "#000" },
-              "& .MuiOutlinedInput-root": {
-                "& fieldset": { borderColor: "#000" },
-                "&:hover fieldset": { borderColor: "#000" },
-                "&.Mui-focused fieldset": { borderColor: "#000" },
+              backgroundColor: 'background.paper',
+              input: { color: 'text.primary' },
+              '& .MuiInputLabel-root': { color: 'text.primary' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: 'text.primary' },
+                '&:hover fieldset': { borderColor: 'text.primary' },
+                '&.Mui-focused fieldset': { borderColor: 'text.primary' },
               },
             }}
           />
@@ -169,10 +169,11 @@ const Login: React.FC = () => {
             fullWidth
             sx={{
               mt: 3,
-              backgroundColor: "#fff",
-              color: "#000",
-              border: "1px solid #000",
-              "&:hover": { backgroundColor: "#f0f0f0" },
+              backgroundColor: 'background.paper',
+              color: 'text.primary',
+              border: '1px solid',
+              borderColor: 'text.primary',
+              '&:hover': { backgroundColor: 'action.hover' },
             }}
           >
             {isRegister ? "Register" : "Login"}

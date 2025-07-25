@@ -849,7 +849,7 @@ const TimelapseViewer: React.FC = () => {
           <Button
             variant="contained"
             startIcon={<ArrowBack />}
-            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+            sx={{ backgroundColor: theme.palette.primary.main, color: theme.palette.primary.contrastText, "&:hover": { backgroundColor: theme.palette.primary.dark } }}
             onClick={handlePrevCell}
           >
             Prev
@@ -857,7 +857,7 @@ const TimelapseViewer: React.FC = () => {
           <Button
             variant="contained"
             endIcon={<ArrowForward />}
-            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+            sx={{ backgroundColor: theme.palette.primary.main, color: theme.palette.primary.contrastText, "&:hover": { backgroundColor: theme.palette.primary.dark } }}
             onClick={handleNextCell}
           >
             Next
@@ -865,7 +865,7 @@ const TimelapseViewer: React.FC = () => {
 
           <Button
             variant="contained"
-            sx={{ backgroundColor: "#444", color: "#fff", "&:hover": { backgroundColor: "#666" } }}
+            sx={{ backgroundColor: theme.palette.grey[700], color: theme.palette.getContrastText(theme.palette.grey[700]), "&:hover": { backgroundColor: theme.palette.grey[600] } }}
             onClick={handlePreviewAllCells}
           >
             Preview All Cells
@@ -1027,7 +1027,7 @@ const TimelapseViewer: React.FC = () => {
                             size="small"
                             onClick={handleDownloadCsv}
                             startIcon={<DownloadIcon />}
-                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+                            sx={{ backgroundColor: theme.palette.primary.main, color: theme.palette.primary.contrastText, "&:hover": { backgroundColor: theme.palette.primary.dark } }}
                           >
                             Download CSV
                           </Button>
@@ -1063,7 +1063,7 @@ const TimelapseViewer: React.FC = () => {
                             size="small"
                             onClick={handleDownloadCsv}
                             startIcon={<DownloadIcon />}
-                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+                            sx={{ backgroundColor: theme.palette.primary.main, color: theme.palette.primary.contrastText, "&:hover": { backgroundColor: theme.palette.primary.dark } }}
                           >
                             Download CSV
                           </Button>
@@ -1099,7 +1099,7 @@ const TimelapseViewer: React.FC = () => {
                             size="small"
                             onClick={handleDownloadCsv}
                             startIcon={<DownloadIcon />}
-                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+                            sx={{ backgroundColor: theme.palette.primary.main, color: theme.palette.primary.contrastText, "&:hover": { backgroundColor: theme.palette.primary.dark } }}
                           >
                             Download CSV
                           </Button>
@@ -1135,7 +1135,7 @@ const TimelapseViewer: React.FC = () => {
                             size="small"
                             onClick={handleDownloadCsv}
                             startIcon={<DownloadIcon />}
-                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+                            sx={{ backgroundColor: theme.palette.primary.main, color: theme.palette.primary.contrastText, "&:hover": { backgroundColor: theme.palette.primary.dark } }}
                           >
                             Download CSV
                           </Button>
@@ -1171,7 +1171,7 @@ const TimelapseViewer: React.FC = () => {
                             size="small"
                             onClick={handleDownloadCsv}
                             startIcon={<DownloadIcon />}
-                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+                            sx={{ backgroundColor: theme.palette.primary.main, color: theme.palette.primary.contrastText, "&:hover": { backgroundColor: theme.palette.primary.dark } }}
                           >
                             Download CSV
                           </Button>

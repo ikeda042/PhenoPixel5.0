@@ -178,13 +178,13 @@ const TimelapseNd2List: React.FC = () => {
                                 component="span"
                                 startIcon={<InsertDriveFileIcon />}
                                 sx={{
-                                    backgroundColor: 'white',
-                                    color: 'black',
+                                    backgroundColor: 'background.paper',
+                                    color: 'text.primary',
                                     width: '100%',
                                     height: '56px',
                                     textTransform: 'none',
                                     '&:hover': {
-                                        backgroundColor: 'lightgrey'
+                                        backgroundColor: 'action.hover'
                                     }
                                 }}
                             >
@@ -198,12 +198,12 @@ const TimelapseNd2List: React.FC = () => {
                             onClick={handleUpload}
                             variant="contained"
                             sx={{
-                                backgroundColor: 'black',
-                                color: 'white',
+                                backgroundColor: 'primary.main',
+                                color: 'primary.contrastText',
                                 width: '100%',
                                 height: '56px',
                                 '&:hover': {
-                                    backgroundColor: 'grey'
+                                    backgroundColor: 'primary.dark'
                                 }
                             }}
                             startIcon={<FileUploadIcon />}

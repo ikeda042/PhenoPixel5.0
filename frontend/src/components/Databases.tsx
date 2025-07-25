@@ -476,13 +476,13 @@ const Databases: React.FC = () => {
                 component="span"
                 startIcon={<DatabaseIcon />}
                 sx={{
-                  backgroundColor: "white",
-                  color: "black",
-                  width: "100%",
-                  height: "56px",
-                  textTransform: "none",
-                  "&:hover": {
-                    backgroundColor: "lightgrey",
+                  backgroundColor: 'background.paper',
+                  color: 'text.primary',
+                  width: '100%',
+                  height: '56px',
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
                   },
                 }}
               >
@@ -497,12 +497,12 @@ const Databases: React.FC = () => {
                 onClick={handleUpload}
                 variant="contained"
                 sx={{
-                  backgroundColor: "black",
-                  color: "white",
-                  width: "100%",
-                  height: "56px",
-                  "&:hover": {
-                    backgroundColor: "grey",
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
+                  width: '100%',
+                  height: '56px',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
                   },
                 }}
                 startIcon={<FileUploadIcon />}
@@ -667,10 +667,10 @@ const Databases: React.FC = () => {
                           <Button
                             variant="contained"
                             sx={{
-                              backgroundColor: "black",
-                              color: "white",
-                              "&:hover": {
-                                backgroundColor: "gray",
+                              backgroundColor: 'primary.main',
+                              color: 'primary.contrastText',
+                              '&:hover': {
+                                backgroundColor: 'primary.dark',
                               },
                             }}
                             onClick={() => handleDownload(database)}
@@ -687,11 +687,11 @@ const Databases: React.FC = () => {
                           <Button
                             variant="contained"
                             sx={{
-                              backgroundColor: "black",
-                              color: "white",
-                              textTransform: "none",
-                              "&:hover": {
-                                backgroundColor: "gray",
+                              backgroundColor: 'primary.main',
+                              color: 'primary.contrastText',
+                              textTransform: 'none',
+                              '&:hover': {
+                                backgroundColor: 'primary.dark',
                               },
                             }}
                           onClick={() => handlePreview(database)}

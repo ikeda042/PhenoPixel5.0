@@ -27,7 +27,7 @@ const url_prefix = settings.url_prefix;
  * UI helpers
  * ------------------------------------------------- */
 
-const BlackButton = styled("button")(({ theme }) => ({
+const StyledButton = styled("button")(({ theme }) => ({
   appearance: "none",
   border: "none",
   outline: "none",
@@ -41,13 +41,13 @@ const BlackButton = styled("button")(({ theme }) => ({
   justifyContent: "center",
   gap: theme.spacing(1),
   borderRadius: theme.shape.borderRadius,
-  backgroundColor: "#000",
-  color: "#fff",
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
   fontWeight: 500,
   letterSpacing: 0.5,
   cursor: "pointer",
   transition: "background-color 0.2s ease",
-  "&:hover": { backgroundColor: "#222" },
+  "&:hover": { backgroundColor: theme.palette.primary.dark },
   "&:disabled": {
     backgroundColor: theme.palette.action.disabledBackground,
     color: theme.palette.action.disabled,
@@ -222,14 +222,14 @@ const GraphEngine: React.FC = () => {
                   onChange={handleFileChange}
                   style={{ display: "none" }}
                 />
-                <BlackButton as="span" disabled={isLoading}>
+                <StyledButton as="span" disabled={isLoading}>
                   {file ? file.name : "Select CSV"}
-                </BlackButton>
+                </StyledButton>
               </label>
             </Box>
 
             <Box sx={{ flex: 1 }}>
-              <BlackButton
+              <StyledButton
                 type="button"
                 disabled={isLoading}
                 onClick={handleGenerateGraph}
@@ -237,12 +237,12 @@ const GraphEngine: React.FC = () => {
                 {isLoading && (
                   <CircularProgress
                     size={20}
-                    sx={{ color: "#fff" }}
+                    sx={{ color: theme.palette.primary.contrastText }}
                     thickness={4}
                   />
                 )}
                 {isLoading ? "Generating..." : "Generate Graph"}
-              </BlackButton>
+              </StyledButton>
             </Box>
           </Stack>
 

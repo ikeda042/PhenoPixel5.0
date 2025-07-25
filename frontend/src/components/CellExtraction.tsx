@@ -32,16 +32,16 @@ const url_prefix = settings.url_prefix;
  * テキストフィールドのスタイルをカスタマイズ
  * - スピンボタン非表示など
  */
-const CustomTextField = styled(TextField)({
+const CustomTextField = styled(TextField)(({ theme }) => ({
   "& .MuiOutlinedInput-root": {
     "& fieldset": {
-      borderColor: "black",
+      borderColor: theme.palette.text.primary,
     },
     "&:hover fieldset": {
-      borderColor: "black",
+      borderColor: theme.palette.text.primary,
     },
     "&.Mui-focused fieldset": {
-      borderColor: "black",
+      borderColor: theme.palette.text.primary,
     },
   },
   "& input[type=number]": {
@@ -55,7 +55,7 @@ const CustomTextField = styled(TextField)({
     "-webkit-appearance": "none",
     margin: 0,
   },
-});
+}));
 
 interface CellExtractionResponse {
   num_tiff: number;
@@ -266,12 +266,12 @@ const Extraction: React.FC = () => {
                 onClick={handleExtractCells}
                 disabled={isLoading}
                 sx={{
-                  backgroundColor: "black",
-                  color: "white",
-                  height: "56px",
-                  textTransform: "none",
-                  "&:hover": {
-                    backgroundColor: "grey",
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
+                  height: '56px',
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
                   },
                 }}
               >
@@ -285,12 +285,12 @@ const Extraction: React.FC = () => {
                   fullWidth
                   onClick={handleGoToDatabases}
                   sx={{
-                    backgroundColor: "black",
-                    color: "white",
-                    height: "56px",
-                    textTransform: "none",
-                    "&:hover": {
-                      backgroundColor: "grey",
+                    backgroundColor: 'primary.main',
+                    color: 'primary.contrastText',
+                    height: '56px',
+                    textTransform: 'none',
+                    '&:hover': {
+                      backgroundColor: 'primary.dark',
                     },
                   }}
                 >
@@ -330,11 +330,11 @@ const Extraction: React.FC = () => {
                   disabled={currentImage === 0}
                   startIcon={<ArrowBackIosIcon />}
                   sx={{
-                    backgroundColor: "black",
-                    color: "white",
-                    textTransform: "none",
-                    "&:hover": {
-                      backgroundColor: "grey",
+                    backgroundColor: 'primary.main',
+                    color: 'primary.contrastText',
+                    textTransform: 'none',
+                    '&:hover': {
+                      backgroundColor: 'primary.dark',
                     },
                   }}
                 >
@@ -349,11 +349,11 @@ const Extraction: React.FC = () => {
                   disabled={currentImage === numImages - 1}
                   endIcon={<ArrowForwardIosIcon />}
                   sx={{
-                    backgroundColor: "black",
-                    color: "white",
-                    textTransform: "none",
-                    "&:hover": {
-                      backgroundColor: "grey",
+                    backgroundColor: 'primary.main',
+                    color: 'primary.contrastText',
+                    textTransform: 'none',
+                    '&:hover': {
+                      backgroundColor: 'primary.dark',
                     },
                   }}
                 >

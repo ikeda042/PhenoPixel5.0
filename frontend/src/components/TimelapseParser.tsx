@@ -238,9 +238,9 @@ const TimelapseParser: React.FC = () => {
                     height: 56,
                     mb: 2,
                     textTransform: "none",
-                    backgroundColor: "#333",
-                    "&:hover": {
-                      backgroundColor: "#555"
+                    backgroundColor: 'primary.main',
+                    '&:hover': {
+                      backgroundColor: 'primary.dark'
                     }
                   }}
                 >
@@ -283,9 +283,9 @@ const TimelapseParser: React.FC = () => {
                         height: 56,
                         mb: 2,
                         textTransform: "none",
-                        backgroundColor: "#333",
-                        "&:hover": {
-                          backgroundColor: "#555"
+                        backgroundColor: 'primary.main',
+                        '&:hover': {
+                          backgroundColor: 'primary.dark'
                         }
                       }}
                     >
