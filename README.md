@@ -33,6 +33,15 @@ Available at : [Docs](Software_Docs.md)
 
 # Algorithms for morphological analyses 
 
+## overview (in Japanese)
+
+![alg1](docs_images/algorithm1.png)  
+
+![alg2](docs_images/algorithm2.png)  
+
+![alg3](docs_images/algorithm3.png)  
+
+
 ## Cell Elongation Direction Determination Algorithm
 
 ### Objective:
