@@ -26,4 +26,3 @@ backend/app/ph_contour*/
 backend/app/TempData*/
 backend/app/nd2totiff*/
 webhook/
-*.png
