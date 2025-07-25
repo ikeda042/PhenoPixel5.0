@@ -68,7 +68,13 @@ export default function Nav(props: Props) {
     return (
         <Box sx={{ display: 'flex' }}>
             <CssBaseline />
-            <AppBar component="nav">
+            <AppBar
+                component="nav"
+                sx={{
+                    bgcolor: mode === 'light' ? '#fff' : 'background.paper',
+                    color: mode === 'light' ? '#000' : 'text.primary',
+                }}
+            >
                 <Toolbar>
                     <IconButton
                         color="inherit"
