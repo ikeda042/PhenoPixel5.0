@@ -176,6 +176,7 @@ const CellImageGrid: React.FC = () => {
   const [drawMode, setDrawMode] = useState<DrawModeType>(init_draw_mode);
   const [fitDegree, setFitDegree] = useState<number>(4);
   const [map256Source, setMap256Source] = useState<'ph' | 'fluo1' | 'fluo2'>('fluo1');
+  const [statSource, setStatSource] = useState<'ph' | 'fluo1' | 'fluo2'>('fluo1');
   const [engineMode, setEngineMode] = useState<EngineName>("None");
 
   // DetectMode 用の state
@@ -1476,6 +1477,26 @@ const CellImageGrid: React.FC = () => {
             </FormControl>
           </Box>
 
+          {(engineMode === "SDEngine" || engineMode === "CVEngine") && (
+            <Box sx={{ mb: 2 }}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="stat-source-label">Channel</InputLabel>
+                <Select
+                  labelId="stat-source-label"
+                  label="Channel"
+                  value={statSource}
+                  onChange={(e) =>
+                    setStatSource(e.target.value as "ph" | "fluo1" | "fluo2")
+                  }
+                >
+                  <MenuItem value="ph">ph</MenuItem>
+                  <MenuItem value="fluo1">fluo1</MenuItem>
+                  {hasFluo2 && <MenuItem value="fluo2">fluo2</MenuItem>}
+                </Select>
+              </FormControl>
+            </Box>
+          )}
+
           {engineMode === "None" && (
             <Box
               sx={{
@@ -1541,6 +1562,7 @@ const CellImageGrid: React.FC = () => {
                 dbName={db_name}
                 label={selectedLabel}
                 cellId={cellIds[currentIndex]}
+                imgType={statSource}
               />
             </Box>
           )}
@@ -1551,6 +1573,7 @@ const CellImageGrid: React.FC = () => {
                 dbName={db_name}
                 label={selectedLabel}
                 cellId={cellIds[currentIndex]}
+                imgType={statSource}
               />
             </Box>
           )}

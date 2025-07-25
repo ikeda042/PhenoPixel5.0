@@ -8,10 +8,11 @@ interface ImageFetcherProps {
     dbName: string;
     label: string;
     cellId: string;
+    imgType: 'ph' | 'fluo1' | 'fluo2';
 }
 const url_prefix = settings.url_prefix;
 
-const SDEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId }) => {
+const SDEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, imgType }) => {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
@@ -19,7 +20,10 @@ const SDEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId }) => {
         const fetchImageData = async () => {
             setLoading(true);
             try {
-                const response = await axios.get(`${url_prefix}/cells/${dbName}/${label}/${cellId}/sd_fluo_intensities`, { responseType: 'blob' });
+                const response = await axios.get(
+                    `${url_prefix}/cells/${dbName}/${label}/${cellId}/sd_fluo_intensities?img_type=${imgType}`,
+                    { responseType: 'blob' }
+                );
                 const imageBlobUrl = URL.createObjectURL(response.data);
                 setImageUrl(imageBlobUrl);
             } catch (error) {
@@ -35,7 +39,10 @@ const SDEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId }) => {
 
     const handleDownloadCsv = async () => {
         try {
-            const response = await axios.get(`${url_prefix}/cells/${dbName}/${label}/sd_fluo_intensities/csv`, { responseType: 'blob' });
+            const response = await axios.get(
+                `${url_prefix}/cells/${dbName}/${label}/sd_fluo_intensities/csv?img_type=${imgType}`,
+                { responseType: 'blob' }
+            );
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
