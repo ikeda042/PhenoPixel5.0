@@ -16,7 +16,7 @@ import {
   TableRow,
   Paper,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import axios from "axios";
 import { settings } from "../settings";
 
@@ -57,6 +57,7 @@ const StyledButton = styled("button")(({ theme }) => ({
 }));
 
 const CDT: React.FC = () => {
+  const theme = useTheme();
   const [ctrlFile, setCtrlFile] = useState<File | null>(null);
   const [files, setFiles] = useState<FileList | null>(null);
   const [results, setResults] = useState<ResultItem[]>([]);
