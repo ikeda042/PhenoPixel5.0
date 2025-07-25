@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 import aiofiles
 from fastapi import APIRouter, UploadFile, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
@@ -8,12 +10,27 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 router_file_manager = APIRouter(tags=["file_manager"])
 
+
 @router_file_manager.get("/files")
 async def list_files():
     try:
-        return [f for f in os.listdir(UPLOAD_DIR) if os.path.isfile(os.path.join(UPLOAD_DIR, f)) and not f.startswith('.')]
+        files = []
+        for f in os.listdir(UPLOAD_DIR):
+            file_path = os.path.join(UPLOAD_DIR, f)
+            if os.path.isfile(file_path) and not f.startswith("."):
+                files.append(
+                    {
+                        "name": f,
+                        "size": os.path.getsize(file_path),
+                        "modified": datetime.fromtimestamp(
+                            os.path.getmtime(file_path)
+                        ).isoformat(),
+                    }
+                )
+        return files
     except FileNotFoundError:
         return []
+
 
 @router_file_manager.post("/upload")
 async def upload_file(file: UploadFile):
@@ -24,7 +41,14 @@ async def upload_file(file: UploadFile):
                 await out_file.write(chunk)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    return JSONResponse(content={"filename": file.filename})
+    return JSONResponse(
+        content={
+            "filename": file.filename,
+            "size": os.path.getsize(file_path),
+            "modified": datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat(),
+        }
+    )
+
 
 @router_file_manager.get("/download/{file_name}")
 async def download_file(file_name: str):
@@ -32,6 +56,7 @@ async def download_file(file_name: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path, filename=file_name)
+
 
 @router_file_manager.delete("/delete/{file_name}")
 async def delete_file(file_name: str):
