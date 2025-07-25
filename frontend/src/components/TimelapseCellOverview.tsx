@@ -27,6 +27,7 @@ import {
   Grid,
 } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
+import DownloadIcon from "@mui/icons-material/Download";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 import { settings } from "../settings";
@@ -491,6 +492,35 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
+  const handleDownloadCsv = async () => {
+    if (!dbName) return;
+    let endpoint = "";
+    if (drawMode === "PixelSD") {
+      endpoint = `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/pixel_sd/csv?channel=${pixelSDChannel}`;
+    } else if (drawMode === "PixelCV") {
+      endpoint = `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/pixel_cv/csv?channel=${pixelSDChannel}`;
+    } else if (drawMode === "ContourAreas") {
+      endpoint = `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/contour_areas/csv`;
+    } else {
+      return;
+    }
+    try {
+      const response = await axios.get(endpoint, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `${dbName}_${selectedField}_${selectedCellNumber}_${drawMode}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link?.parentNode?.removeChild(link);
+    } catch (error) {
+      console.error("Failed to download CSV:", error);
+    }
+  };
+
   // ContourAreas グラフ
   const fetchContourAreas = async (controller: AbortController) => {
     if (!dbName || !selectedField || !selectedCellNumber) {
@@ -916,6 +946,17 @@ const TimelapseViewer: React.FC = () => {
                             </Typography>
                           )}
                         </Box>
+                        <Box mt={1} textAlign="center">
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={handleDownloadCsv}
+                            startIcon={<DownloadIcon />}
+                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+                          >
+                            Download CSV
+                          </Button>
+                        </Box>
                       </Grid>
                     )}
 
@@ -941,6 +982,17 @@ const TimelapseViewer: React.FC = () => {
                             </Typography>
                           )}
                         </Box>
+                        <Box mt={1} textAlign="center">
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={handleDownloadCsv}
+                            startIcon={<DownloadIcon />}
+                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+                          >
+                            Download CSV
+                          </Button>
+                        </Box>
                       </Grid>
                     )}
 
@@ -965,6 +1017,17 @@ const TimelapseViewer: React.FC = () => {
                               CVデータなし
                             </Typography>
                           )}
+                        </Box>
+                        <Box mt={1} textAlign="center">
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={handleDownloadCsv}
+                            startIcon={<DownloadIcon />}
+                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+                          >
+                            Download CSV
+                          </Button>
                         </Box>
                       </Grid>
                     )}
