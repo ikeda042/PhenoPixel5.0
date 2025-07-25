@@ -24,6 +24,52 @@ import random
 from scipy.optimize import linear_sum_assignment
 from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
 
+
+def _render_gif_frame(
+    img_binary: bytes,
+    contour: bytes | None,
+    frame_idx: int,
+    draw_contour: bool,
+    draw_frame_number: bool,
+) -> bytes | None:
+    """Helper function to create a single GIF frame.
+
+    This function is executed in a separate process and therefore must be
+    defined at module level.
+    """
+    np_img = cv2.imdecode(
+        np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
+    )
+    if np_img is None:
+        return None
+
+    if draw_contour and contour is not None:
+        try:
+            contour_data = pickle.loads(contour)
+            bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
+            cv2.drawContours(
+                bgr_img,
+                [np.array(contour_data, dtype=np.int32)],
+                -1,
+                (0, 255, 0),
+                1,
+            )
+            rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(rgb_img)
+        except Exception:
+            pil_img = Image.fromarray(np_img)
+    else:
+        pil_img = Image.fromarray(np_img)
+
+    if draw_frame_number:
+        draw = ImageDraw.Draw(pil_img)
+        font = ImageFont.load_default()
+        draw.text((5, 5), f"Frame: {frame_idx}", font=font, fill=(255, 255, 255))
+
+    buf = io.BytesIO()
+    pil_img.save(buf, format="PNG")
+    return buf.getvalue()
+
 def get_ulid() -> str:
     """Return a fake ULID using random digits."""
     # NOTE: This is a placeholder implementation
@@ -1446,6 +1492,8 @@ class TimelapseEngineCrudBase:
 class TimelapseDatabaseCrud:
     def __init__(self, dbname: str):
         self.dbname = dbname
+        # Use a process pool for CPU intensive image operations
+        self.executor = ProcessPoolExecutor(max_workers=os.cpu_count())
 
     async def get_cells_by_field(self, field: str) -> list[Cell]:
         async with get_session(self.dbname) as session:
@@ -1488,7 +1536,8 @@ class TimelapseDatabaseCrud:
                 detail=f"No data found for field={field}, cell={cell_number}",
             )
 
-        frames = []
+        loop = asyncio.get_running_loop()
+        tasks = []
         for i, row in enumerate(cells):
             if channel == "ph":
                 img_binary = row.img_ph
@@ -1500,36 +1549,24 @@ class TimelapseDatabaseCrud:
             if img_binary is None:
                 continue
 
-            np_img = cv2.imdecode(
-                np.frombuffer(img_binary, dtype=np.uint8), cv2.IMREAD_GRAYSCALE
+            tasks.append(
+                loop.run_in_executor(
+                    self.executor,
+                    partial(
+                        _render_gif_frame,
+                        img_binary,
+                        row.contour,
+                        i + 1,
+                        draw_contour,
+                        draw_frame_number,
+                    ),
+                )
             )
-            if np_img is None:
-                continue
 
-            if draw_contour and row.contour is not None:
-                try:
-                    contour_data = pickle.loads(row.contour)
-                    bgr_img = cv2.cvtColor(np_img, cv2.COLOR_GRAY2BGR)
-                    cv2.drawContours(
-                        bgr_img,
-                        [np.array(contour_data, dtype=np.int32)],
-                        -1,
-                        (0, 255, 0),
-                        1,
-                    )
-                    rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
-                    pil_img = Image.fromarray(rgb_img)
-                except Exception:
-                    pil_img = Image.fromarray(np_img)
-            else:
-                pil_img = Image.fromarray(np_img)
-
-            if draw_frame_number:
-                draw = ImageDraw.Draw(pil_img)
-                font = ImageFont.load_default()
-                draw.text((5, 5), f"Frame: {i+1}", font=font, fill=(255, 255, 255))
-
-            frames.append(pil_img)
+        frames_bytes = await asyncio.gather(*tasks)
+        frames = [
+            Image.open(io.BytesIO(data)) for data in frames_bytes if data is not None
+        ]
 
         if not frames:
             raise HTTPException(
