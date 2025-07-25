@@ -1818,6 +1818,7 @@ class TimelapseDatabaseCrud:
         cell_number: int,
         channel: str,
         degree: int,
+        dark_mode: bool = False,
     ) -> io.BytesIO:
         async with get_session(self.dbname) as session:
             result = await session.execute(
@@ -1858,7 +1859,7 @@ class TimelapseDatabaseCrud:
             if hasattr(CellDBAsyncChores.replot, "cache_clear"):
                 CellDBAsyncChores.replot.cache_clear()
 
-            buf = await CellDBAsyncChores.replot(image_fluo_raw, cell.contour, degree)
+            buf = await CellDBAsyncChores.replot(image_fluo_raw, cell.contour, degree, dark_mode)
             buf.seek(0)
             frames.append(Image.open(buf))
 
@@ -2052,7 +2053,7 @@ class TimelapseDatabaseCrud:
                     return None
                 if hasattr(CellDBAsyncChores.replot, "cache_clear"):
                     CellDBAsyncChores.replot.cache_clear()
-                buf = await CellDBAsyncChores.replot(raw_blob, row.contour, degree)
+                buf = await CellDBAsyncChores.replot(raw_blob, row.contour, degree, dark_mode)
                 return buf.getvalue()
             else:
                 return raw_blob
