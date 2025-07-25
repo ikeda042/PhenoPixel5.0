@@ -102,6 +102,15 @@ interface GetPixelSDResponse {
   sds: number[];
 }
 
+// Pixel CV
+interface PixelCV {
+  frame: number;
+  cv: number;
+}
+interface GetPixelCVResponse {
+  cvs: number[];
+}
+
 const url_prefix = settings.url_prefix;
 
 const TimelapseViewer: React.FC = () => {
@@ -140,9 +149,11 @@ const TimelapseViewer: React.FC = () => {
 
   // Pixel SD data
   const [pixelSDs, setPixelSDs] = useState<PixelSD[]>([]);
+  // Pixel CV data
+  const [pixelCVs, setPixelCVs] = useState<PixelCV[]>([]);
 
-  // ★ 描画モード: ContourAreas / PixelSD / Replot / TimecoursePNG
-  type DrawMode = "ContourAreas" | "PixelSD" | "Replot" | "TimecoursePNG";
+  // ★ 描画モード: ContourAreas / PixelSD / PixelCV / Replot / TimecoursePNG
+  type DrawMode = "ContourAreas" | "PixelSD" | "PixelCV" | "Replot" | "TimecoursePNG";
   const [drawMode, setDrawMode] = useState<DrawMode>("ContourAreas");
 
   // Replot 用: ph / fluo1 / fluo2
@@ -317,9 +328,40 @@ const TimelapseViewer: React.FC = () => {
     }
   };
 
+  // PixelCV graph
+  const fetchPixelCVs = async (controller: AbortController) => {
+    if (!dbName || !selectedField || !selectedCellNumber) {
+      setPixelCVs([]);
+      return;
+    }
+    try {
+      const response = await axios.get<GetPixelCVResponse>(
+        `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/pixel_cv?channel=${pixelSDChannel}`,
+        { signal: controller.signal }
+      );
+      if (controller.signal.aborted) return;
+      const converted = response.data.cvs.map((value, index) => ({
+        frame: index,
+        cv: value,
+      }));
+      setPixelCVs(converted);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        console.error("Failed to fetch pixel cv:", error);
+        setPixelCVs([]);
+      }
+    }
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     fetchPixelSDs(controller);
+    return () => controller.abort();
+  }, [dbName, selectedField, selectedCellNumber, pixelSDChannel]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchPixelCVs(controller);
     return () => controller.abort();
   }, [dbName, selectedField, selectedCellNumber, pixelSDChannel]);
 
@@ -532,6 +574,19 @@ const TimelapseViewer: React.FC = () => {
     ],
   };
 
+  const pixelCVChartData: ChartData<"line"> = {
+    labels: pixelCVs.map((p) => p.frame),
+    datasets: [
+      {
+        label: "Pixel CV",
+        data: pixelCVs.map((p) => p.cv),
+        fill: false,
+        borderColor: "rgba(54,162,235,1)",
+        tension: 0.1,
+      },
+    ],
+  };
+
   const pixelSDChartOptions: ChartOptions<"line"> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -552,6 +607,32 @@ const TimelapseViewer: React.FC = () => {
         title: {
           display: true,
           text: "SD",
+        },
+        min: 0,
+      },
+    },
+  };
+
+  const pixelCVChartOptions: ChartOptions<"line"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      title: {
+        display: true,
+        text: "CV of cell pixels (frame vs. CV)",
+      },
+    },
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: "Frame (Index)",
+        },
+      },
+      y: {
+        title: {
+          display: true,
+          text: "CV",
         },
         min: 0,
       },
@@ -703,6 +784,7 @@ const TimelapseViewer: React.FC = () => {
             >
               <MenuItem value="ContourAreas">ContourAreas</MenuItem>
               <MenuItem value="PixelSD">PixelSD</MenuItem>
+              <MenuItem value="PixelCV">PixelCV</MenuItem>
               <MenuItem value="Replot">Replot</MenuItem>
               <MenuItem value="TimecoursePNG">TimecoursePNG</MenuItem>
             </Select>
@@ -725,8 +807,8 @@ const TimelapseViewer: React.FC = () => {
             </FormControl>
           )}
 
-          {/* PixelSD 用 Channel */}
-          {drawMode === "PixelSD" && (
+          {/* PixelSD / PixelCV 用 Channel */}
+          {(drawMode === "PixelSD" || drawMode === "PixelCV") && (
             <FormControl sx={{ minWidth: 120 }}>
               <InputLabel id="pixelsd-channel-label">Channel</InputLabel>
               <Select
@@ -856,6 +938,31 @@ const TimelapseViewer: React.FC = () => {
                           ) : (
                             <Typography variant="body1" mt={2}>
                               SDデータなし
+                            </Typography>
+                          )}
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* PixelCV: グラフ表示 */}
+                    {drawMode === "PixelCV" && (
+                      <Grid item xs={12} md={3}>
+                        <Box
+                          sx={{
+                            position: "relative",
+                            width: "100%",
+                            paddingBottom: "100%",
+                            borderRadius: 2,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {pixelCVs.length > 0 ? (
+                            <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+                              <Line data={pixelCVChartData} options={pixelCVChartOptions} />
+                            </Box>
+                          ) : (
+                            <Typography variant="body1" mt={2}>
+                              CVデータなし
                             </Typography>
                           )}
                         </Box>

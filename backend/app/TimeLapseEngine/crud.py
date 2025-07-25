@@ -1684,6 +1684,67 @@ class TimelapseDatabaseCrud:
 
         return sds
 
+    async def get_pixel_cv_by_cell_number(
+        self,
+        field: str,
+        cell_number: int,
+        channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+    ) -> list[float]:
+        """Return coefficient of variation of pixel values inside the contour for each frame."""
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells: list[Cell] = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        cvs: list[float] = []
+        for row in cells:
+            if channel == "ph":
+                img_blob = row.img_ph
+            elif channel == "fluo1":
+                img_blob = row.img_fluo1
+            else:
+                img_blob = row.img_fluo2
+
+            if img_blob is None:
+                cvs.append(0.0)
+                continue
+
+            np_img = cv2.imdecode(np.frombuffer(img_blob, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
+            if np_img is None:
+                cvs.append(0.0)
+                continue
+
+            if row.contour:
+                try:
+                    contours_data = pickle.loads(row.contour)
+                    if not isinstance(contours_data, list):
+                        contours_data = [contours_data]
+                    mask = np.zeros(np_img.shape, dtype=np.uint8)
+                    for c in contours_data:
+                        cnt = np.array(c, dtype=np.int32)
+                        cv2.drawContours(mask, [cnt], -1, 255, -1)
+                    pixel_vals = np_img[mask == 255]
+                except Exception:
+                    pixel_vals = np_img.flatten()
+            else:
+                pixel_vals = np_img.flatten()
+
+            mean_val = float(pixel_vals.mean()) if pixel_vals.size else 0.0
+            sd_val = float(pixel_vals.std()) if pixel_vals.size else 0.0
+            cv = sd_val / mean_val if mean_val > 0 else 0.0
+            cvs.append(cv)
+
+        return cvs
+
     async def replot_cell(
         self,
         field: str,
