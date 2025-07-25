@@ -88,7 +88,21 @@ function App() {
     return 'dark';
   });
 
-  const theme = useMemo(() => createTheme({ palette: { mode } }), [mode]);
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode,
+          ...(mode === "dark" && {
+            primary: {
+              main: "#ffffff",
+              dark: "#cccccc",
+            },
+          }),
+        },
+      }),
+    [mode]
+  );
 
   useEffect(() => {
     localStorage.setItem('themeMode', mode);
