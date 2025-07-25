@@ -1,6 +1,8 @@
 import "./App.css";
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Box } from "@mui/system";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Nav from "./components/Nav";
 
@@ -78,12 +80,28 @@ function App() {
    true
   );
 
+  const [mode, setMode] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('themeMode');
+    if (saved === 'light' || saved === 'dark') {
+      return saved as 'light' | 'dark';
+    }
+    return 'dark';
+  });
+
+  const theme = useMemo(() => createTheme({ palette: { mode } }), [mode]);
+
+  useEffect(() => {
+    localStorage.setItem('themeMode', mode);
+  }, [mode]);
+
   return (
-    <Box sx={{ bgcolor: "#fff", color: "black", minHeight: "100vh" }}>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ bgcolor: 'background.default', color: 'text.primary', minHeight: '100vh' }}>
       {isAuthenticated ? (
         <Router>
           {/* ルーティングの外側に Nav を配置し、常時表示しておく */}
-          <Nav title="PhenoPixel5.0" />
+          <Nav title="PhenoPixel5.0" mode={mode} toggleMode={() => setMode(prev => prev === 'light' ? 'dark' : 'light')} />
 
           {/* ここからルーティング */}
           <Routes>
@@ -230,7 +248,8 @@ function App() {
         // パスワード保護
         <PasswordProtect setIsAuthenticated={setIsAuthenticated} />
       )}
-    </Box>
+      </Box>
+    </ThemeProvider>
   );
 }
 
