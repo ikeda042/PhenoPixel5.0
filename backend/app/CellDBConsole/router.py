@@ -365,6 +365,32 @@ async def get_var_fluo_intensities(db_name: str, label: str, cell_id: str):
     return ret
 
 
+@router_cell.get("/{db_name}/{label}/{cell_id}/sd_fluo_intensities")
+async def get_sd_fluo_intensities(db_name: str, label: str, cell_id: str):
+    await AsyncChores().validate_database_name(db_name)
+    ret: StreamingResponse = await CellCrudBase(
+        db_name=db_name
+    ).get_all_sd_normalized_fluo_intensities(
+        label=label,
+        cell_id=cell_id,
+        y_label="SD Normalized Fluorescence Intensity",
+    )
+    return ret
+
+
+@router_cell.get("/{db_name}/{label}/{cell_id}/cv_fluo_intensities")
+async def get_cv_fluo_intensities(db_name: str, label: str, cell_id: str):
+    await AsyncChores().validate_database_name(db_name)
+    ret: StreamingResponse = await CellCrudBase(
+        db_name=db_name
+    ).get_all_cv_normalized_fluo_intensities(
+        label=label,
+        cell_id=cell_id,
+        y_label="CV Normalized Fluorescence Intensity",
+    )
+    return ret
+
+
 @router_cell.get("/{db_name}/{label}/{cell_id}/area_fraction")
 async def get_area_fraction(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
@@ -406,6 +432,26 @@ async def get_var_fluo_intensities_csv(db_name: str, label: str):
     return await CellCrudBase(
         db_name=db_name
     ).get_all_variance_normalized_fluo_intensities_csv(label=label)
+
+
+@router_cell.get(
+    "/{db_name}/{label}/sd_fluo_intensities/csv", response_class=StreamingResponse
+)
+async def get_sd_fluo_intensities_csv(db_name: str, label: str):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(
+        db_name=db_name
+    ).get_all_sd_normalized_fluo_intensities_csv(label=label)
+
+
+@router_cell.get(
+    "/{db_name}/{label}/cv_fluo_intensities/csv", response_class=StreamingResponse
+)
+async def get_cv_fluo_intensities_csv(db_name: str, label: str):
+    await AsyncChores().validate_database_name(db_name)
+    return await CellCrudBase(
+        db_name=db_name
+    ).get_all_cv_normalized_fluo_intensities_csv(label=label)
 
 
 @router_cell.get(

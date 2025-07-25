@@ -598,6 +598,31 @@ class AsyncChores:
         return round(np.var([p / max_val for p in points]), 2)
 
     @staticmethod
+    async def calc_sd_normalized_fluo_intensity_inside_cell(
+        image_fluo_raw: bytes, contour_raw: bytes
+    ) -> float:
+        """細胞領域の画素値を最大値で正規化したときの標準偏差を計算。"""
+        points = await AsyncChores.get_points_inside_cell(
+            image_fluo_raw, contour_raw, normalize=False
+        )
+        max_val = np.max(points) if len(points) else 1
+        return round(np.std([p / max_val for p in points]), 2)
+
+    @staticmethod
+    async def calc_cv_normalized_fluo_intensity_inside_cell(
+        image_fluo_raw: bytes, contour_raw: bytes
+    ) -> float:
+        """細胞領域の画素値を最大値で正規化したときの変動係数を計算。"""
+        points = await AsyncChores.get_points_inside_cell(
+            image_fluo_raw, contour_raw, normalize=False
+        )
+        max_val = np.max(points) if len(points) else 1
+        normalized = [p / max_val for p in points]
+        mean_val = np.mean(normalized) if len(normalized) else 0
+        sd_val = np.std(normalized) if len(normalized) else 0
+        return round(sd_val / mean_val if mean_val != 0 else 0, 2)
+
+    @staticmethod
     async def calc_area_fraction(
         image_fluo_raw: bytes, contour_raw: bytes
     ) -> float:
@@ -1290,6 +1315,24 @@ class AsyncChores:
             verticalalignment="center",
             transform=plt.gca().transAxes,
         )
+        sd_val = np.std(points_inside_cell_1)
+        cv_val = sd_val / np.mean(points_inside_cell_1) if np.mean(points_inside_cell_1) != 0 else 0
+        plt.text(
+            0.5,
+            0.30,
+            f"SD: {sd_val:.2f}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
+        plt.text(
+            0.5,
+            0.25,
+            f"CV: {cv_val:.2f}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=plt.gca().transAxes,
+        )
 
         # 多項式近似のための x 軸生成: シフト後の範囲で
         x_for_fit = np.linspace(min_u1_shifted, max_u1_shifted, 1000)
@@ -1715,6 +1758,66 @@ class CellCrudBase:
         )
         return StreamingResponse(ret, media_type="image/png")
 
+    async def get_all_sd_normalized_fluo_intensities(
+        self, cell_id: str, y_label: str, label: str | None = None
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        target_cell = await self.read_cell(cell_id=cell_id)
+        target_val = (
+            await AsyncChores.calc_sd_normalized_fluo_intensity_inside_cell(
+                target_cell.img_fluo1, target_cell.contour
+            )
+        )
+        sd_intensities = await asyncio.gather(
+            *(
+                AsyncChores.calc_sd_normalized_fluo_intensity_inside_cell(
+                    cell.img_fluo1, cell.contour
+                )
+                for cell in cells
+            )
+        )
+        ret = await AsyncChores.box_plot(
+            sd_intensities,
+            target_val=target_val,
+            y_label=y_label,
+            cell_id=cell_id,
+            label=None,
+        )
+        return StreamingResponse(ret, media_type="image/png")
+
+    async def get_all_cv_normalized_fluo_intensities(
+        self, cell_id: str, y_label: str, label: str | None = None
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        target_cell = await self.read_cell(cell_id=cell_id)
+        target_val = (
+            await AsyncChores.calc_cv_normalized_fluo_intensity_inside_cell(
+                target_cell.img_fluo1, target_cell.contour
+            )
+        )
+        cv_intensities = await asyncio.gather(
+            *(
+                AsyncChores.calc_cv_normalized_fluo_intensity_inside_cell(
+                    cell.img_fluo1, cell.contour
+                )
+                for cell in cells
+            )
+        )
+        ret = await AsyncChores.box_plot(
+            cv_intensities,
+            target_val=target_val,
+            y_label=y_label,
+            cell_id=cell_id,
+            label=None,
+        )
+        return StreamingResponse(ret, media_type="image/png")
+
     async def extract_intensity_and_create_histogram(
         self,
         cell_id: str,
@@ -1839,6 +1942,58 @@ class CellCrudBase:
             variance_intensities,
             columns=[
                 f"Variance normalized fluorescence intensity {self.db_name} cells with label {label}"
+            ],
+        )
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
+
+    async def get_all_sd_normalized_fluo_intensities_csv(
+        self, label: str | None = None
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        sd_intensities = await asyncio.gather(
+            *(
+                AsyncChores.calc_sd_normalized_fluo_intensity_inside_cell(
+                    cell.img_fluo1, cell.contour
+                )
+                for cell in cells
+            )
+        )
+        df = pd.DataFrame(
+            sd_intensities,
+            columns=[
+                f"SD normalized fluorescence intensity {self.db_name} cells with label {label}"
+            ],
+        )
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
+
+    async def get_all_cv_normalized_fluo_intensities_csv(
+        self, label: str | None = None
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        cv_intensities = await asyncio.gather(
+            *(
+                AsyncChores.calc_cv_normalized_fluo_intensity_inside_cell(
+                    cell.img_fluo1, cell.contour
+                )
+                for cell in cells
+            )
+        )
+        df = pd.DataFrame(
+            cv_intensities,
+            columns=[
+                f"CV normalized fluorescence intensity {self.db_name} cells with label {label}"
             ],
         )
         buf = io.BytesIO()
