@@ -1625,6 +1625,65 @@ class TimelapseDatabaseCrud:
 
         return areas
 
+    async def get_pixel_sd_by_cell_number(
+        self,
+        field: str,
+        cell_number: int,
+        channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+    ) -> list[float]:
+        """Return standard deviation of pixel values inside the contour for each frame."""
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell)
+                .filter_by(field=field, cell=cell_number)
+                .order_by(Cell.time)
+            )
+            cells: list[Cell] = result.scalars().all()
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for field={field}, cell={cell_number}",
+            )
+
+        sds: list[float] = []
+        for row in cells:
+            if channel == "ph":
+                img_blob = row.img_ph
+            elif channel == "fluo1":
+                img_blob = row.img_fluo1
+            else:
+                img_blob = row.img_fluo2
+
+            if img_blob is None:
+                sds.append(0.0)
+                continue
+
+            np_img = cv2.imdecode(np.frombuffer(img_blob, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
+            if np_img is None:
+                sds.append(0.0)
+                continue
+
+            if row.contour:
+                try:
+                    contours_data = pickle.loads(row.contour)
+                    if not isinstance(contours_data, list):
+                        contours_data = [contours_data]
+                    mask = np.zeros(np_img.shape, dtype=np.uint8)
+                    for c in contours_data:
+                        cnt = np.array(c, dtype=np.int32)
+                        cv2.drawContours(mask, [cnt], -1, 255, -1)
+                    pixel_vals = np_img[mask == 255]
+                except Exception:
+                    pixel_vals = np_img.flatten()
+            else:
+                pixel_vals = np_img.flatten()
+
+            sd = float(pixel_vals.std()) if pixel_vals.size else 0.0
+            sds.append(sd)
+
+        return sds
+
     async def replot_cell(
         self,
         field: str,
