@@ -45,7 +45,7 @@ import {
   ChartOptions,
   ChartData,
 } from "chart.js";
-import { Line } from "react-chartjs-2";
+import { Line, Scatter } from "react-chartjs-2";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -1118,7 +1118,7 @@ const TimelapseViewer: React.FC = () => {
                         >
                           {contourAreaVsSD.length > 0 ? (
                             <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
-                              <Line data={areaVsSDChartData} options={areaVsSDChartOptions} />
+                              <Scatter data={areaVsSDChartData} options={areaVsSDChartOptions} />
                             </Box>
                           ) : (
                             <Typography variant="body1" mt={2}>
@@ -1154,7 +1154,7 @@ const TimelapseViewer: React.FC = () => {
                         >
                           {contourAreaVsCV.length > 0 ? (
                             <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
-                              <Line data={areaVsCVChartData} options={areaVsCVChartOptions} />
+                              <Scatter data={areaVsCVChartData} options={areaVsCVChartOptions} />
                             </Box>
                           ) : (
                             <Typography variant="body1" mt={2}>
