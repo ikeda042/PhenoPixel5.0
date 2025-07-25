@@ -28,7 +28,7 @@ interface ResultItem {
   nagg_rate: number;
 }
 
-const BlackButton = styled("button")(({ theme }) => ({
+const StyledButton = styled("button")(({ theme }) => ({
   appearance: "none",
   border: "none",
   outline: "none",
@@ -42,13 +42,13 @@ const BlackButton = styled("button")(({ theme }) => ({
   justifyContent: "center",
   gap: theme.spacing(1),
   borderRadius: theme.shape.borderRadius,
-  backgroundColor: "#000",
-  color: "#fff",
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
   fontWeight: 500,
   letterSpacing: 0.5,
   cursor: "pointer",
   transition: "background-color 0.2s ease",
-  "&:hover": { backgroundColor: "#222" },
+  "&:hover": { backgroundColor: theme.palette.primary.dark },
   "&:disabled": {
     backgroundColor: theme.palette.action.disabledBackground,
     color: theme.palette.action.disabled,
@@ -190,9 +190,9 @@ const CDT: React.FC = () => {
                   onChange={handleCtrlChange}
                   style={{ display: "none" }}
                 />
-                <BlackButton as="span" disabled={isLoading}>
+                <StyledButton as="span" disabled={isLoading}>
                   {ctrlFile ? ctrlFile.name : "Select control CSV"}
-                </BlackButton>
+                </StyledButton>
               </label>
             </Box>
             <Box sx={{ flex: 1 }}>
@@ -204,20 +204,20 @@ const CDT: React.FC = () => {
                   onChange={handleFilesChange}
                   style={{ display: "none" }}
                 />
-                <BlackButton as="span" disabled={isLoading}>
+                <StyledButton as="span" disabled={isLoading}>
                   {files ? `${files.length} file(s) selected` : "Select CSV files"}
-                </BlackButton>
+                </StyledButton>
               </label>
             </Box>
           </Stack>
 
           <Box>
-            <BlackButton onClick={handleAnalyze} disabled={isLoading}>
+            <StyledButton onClick={handleAnalyze} disabled={isLoading}>
               {isLoading && (
-                <CircularProgress size={20} sx={{ color: "#fff" }} thickness={4} />
+                <CircularProgress size={20} sx={{ color: theme.palette.primary.contrastText }} thickness={4} />
               )}
               {isLoading ? "Analyzing..." : "Analyze"}
-            </BlackButton>
+            </StyledButton>
           </Box>
 
           {results.length > 0 && (

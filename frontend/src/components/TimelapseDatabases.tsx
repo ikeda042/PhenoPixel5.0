@@ -244,7 +244,7 @@ const TimelapseDatabases: React.FC = () => {
                     <Tooltip title="Copy to clipboard">
                       <IconButton
                         onClick={() => handleCopyToClipboard(database)}
-                        sx={{ color: "#000" }}
+                        sx={{ color: 'text.primary' }}
                       >
                         <ContentCopyIcon />
                       </IconButton>
@@ -308,12 +308,12 @@ const TimelapseDatabases: React.FC = () => {
                       size="small"
                       sx={{
                         ml: 2,
-                        backgroundColor: "#000",
-                        color: "#fff",
+                        backgroundColor: 'primary.main',
+                        color: 'primary.contrastText',
                         minHeight: "36px",
                         fontSize: "0.8rem",
-                        "&:hover": {
-                          backgroundColor: "#333",
+                        '&:hover': {
+                          backgroundColor: 'primary.dark',
                         },
                       }}
                       onClick={() => handlePreview(database)}
@@ -326,11 +326,11 @@ const TimelapseDatabases: React.FC = () => {
                   <TableCell align="center">
                     <IconButton
                       onClick={() => handleNavigate(database)}
-                      sx={{ color: "#000" }}
+                      sx={{ color: 'text.primary' }}
                     >
                       <Typography
                         sx={{
-                          color: "#000",
+                          color: 'text.primary',
                           fontSize: "0.8rem",
                         }}
                       >
@@ -368,10 +368,10 @@ const TimelapseDatabases: React.FC = () => {
             onClick={handleClosePreview}
             variant="contained"
             sx={{
-              backgroundColor: "#000",
-              color: "#fff",
-              "&:hover": {
-                backgroundColor: "#333",
+              backgroundColor: 'primary.main',
+              color: 'primary.contrastText',
+              '&:hover': {
+                backgroundColor: 'primary.dark',
               },
             }}
           >

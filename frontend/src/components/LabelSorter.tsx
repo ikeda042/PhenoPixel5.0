@@ -299,7 +299,7 @@ const LabelSorter: React.FC = () => {
         <Button
           variant="outlined"
           onClick={handleUseAI}
-          sx={{ color: "#000", borderColor: "#000" }}
+          sx={{ color: 'text.primary', borderColor: 'text.primary' }}
         >
           Use AI
         </Button>

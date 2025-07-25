@@ -945,11 +945,11 @@ const CellImageGrid: React.FC = () => {
                     <Checkbox
                       checked={drawContour}
                       onChange={handleContourChange}
-                      style={{ color: "black" }}
+                      sx={{ color: 'text.primary' }}
                     />
                   }
                   label="Contour"
-                  style={{ color: "black" }}
+                  sx={{ color: 'text.primary' }}
                 />
               </Grid>
               <Grid item xs={2}>
@@ -958,11 +958,11 @@ const CellImageGrid: React.FC = () => {
                     <Checkbox
                       checked={drawScaleBar}
                       onChange={handleScaleBarChange}
-                      style={{ color: "black" }}
+                      sx={{ color: 'text.primary' }}
                     />
                   }
                   label="Scale"
-                  style={{ color: "black" }}
+                  sx={{ color: 'text.primary' }}
                 />
               </Grid>
               <Grid item xs={2}>
@@ -971,11 +971,11 @@ const CellImageGrid: React.FC = () => {
                     <Checkbox
                       checked={autoPlay}
                       onChange={handleAutoPlayChange}
-                      style={{ color: "black" }}
+                      sx={{ color: 'text.primary' }}
                     />
                   }
                   label="Auto"
-                  style={{ color: "black" }}
+                  sx={{ color: 'text.primary' }}
                 />
               </Grid>
               <Grid item xs={12} />
@@ -1043,7 +1043,7 @@ const CellImageGrid: React.FC = () => {
               color="primary"
               onClick={handlePrev}
               disabled={cellIds.length === 0}
-              style={{ backgroundColor: "black", minWidth: "100px" }}
+              sx={{ backgroundColor: 'primary.main', minWidth: '100px', '&:hover': { backgroundColor: 'primary.dark' } }}
             >
               Prev
             </Button>
@@ -1080,7 +1080,7 @@ const CellImageGrid: React.FC = () => {
               color="primary"
               onClick={handleNext}
               disabled={cellIds.length === 0}
-              style={{ backgroundColor: "black", minWidth: "100px" }}
+              sx={{ backgroundColor: 'primary.main', minWidth: '100px', '&:hover': { backgroundColor: 'primary.dark' } }}
             >
               Next
             </Button>

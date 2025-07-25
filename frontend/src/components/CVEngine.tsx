@@ -70,10 +70,10 @@ const CVEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, imgType 
                 variant="contained"
                 onClick={handleDownloadCsv}
                 sx={{
-                    color: 'black',
-                    backgroundColor: '#ffffff',
+                    color: 'text.primary',
+                    backgroundColor: 'background.paper',
                     '&:hover': {
-                        backgroundColor: '#e0e0e0',
+                        backgroundColor: 'action.hover',
                     },
                     marginTop: 1,
                 }}

@@ -77,10 +77,10 @@ const AreaFractionEngine: React.FC<AreaFractionProps> = ({ dbName, label, cellId
                 variant="contained"
                 onClick={handleDownloadCsv}
                 sx={{
-                    color: 'black',
-                    backgroundColor: '#ffffff',
+                    color: 'text.primary',
+                    backgroundColor: 'background.paper',
                     '&:hover': {
-                        backgroundColor: '#e0e0e0',
+                        backgroundColor: 'action.hover',
                     },
                     marginTop: 1,
                 }}
