@@ -70,8 +70,10 @@ export default function Nav(props: Props) {
             <CssBaseline />
             <AppBar
                 component="nav"
+                color="default"
+                enableColorOnDark
                 sx={{
-                    bgcolor: mode === 'light' ? '#fff' : 'background.paper',
+                    backgroundColor: mode === 'light' ? '#fff' : 'background.paper',
                     color: mode === 'light' ? '#000' : 'text.primary',
                 }}
             >

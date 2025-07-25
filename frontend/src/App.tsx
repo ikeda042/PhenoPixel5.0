@@ -82,7 +82,10 @@ function App() {
 
   const [mode, setMode] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('themeMode');
-    return saved === 'dark' ? 'dark' : 'light';
+    if (saved === 'light' || saved === 'dark') {
+      return saved as 'light' | 'dark';
+    }
+    return 'dark';
   });
 
   const theme = useMemo(() => createTheme({ palette: { mode } }), [mode]);
