@@ -1759,22 +1759,40 @@ class CellCrudBase:
         return StreamingResponse(ret, media_type="image/png")
 
     async def get_all_sd_normalized_fluo_intensities(
-        self, cell_id: str, y_label: str, label: str | None = None
+        self,
+        cell_id: str,
+        y_label: str,
+        label: str | None = None,
+        img_type: Literal["ph", "fluo1", "fluo2"] = "fluo1",
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
         )
         target_cell = await self.read_cell(cell_id=cell_id)
+        if img_type == "ph":
+            target_img = target_cell.img_ph
+        elif img_type == "fluo2":
+            target_img = target_cell.img_fluo2
+        else:
+            target_img = target_cell.img_fluo1
+
         target_val = (
             await AsyncChores.calc_sd_normalized_fluo_intensity_inside_cell(
-                target_cell.img_fluo1, target_cell.contour
+                target_img, target_cell.contour
             )
         )
         sd_intensities = await asyncio.gather(
             *(
                 AsyncChores.calc_sd_normalized_fluo_intensity_inside_cell(
-                    cell.img_fluo1, cell.contour
+                    (
+                        cell.img_ph
+                        if img_type == "ph"
+                        else cell.img_fluo2
+                        if img_type == "fluo2"
+                        else cell.img_fluo1
+                    ),
+                    cell.contour,
                 )
                 for cell in cells
             )
@@ -1789,22 +1807,40 @@ class CellCrudBase:
         return StreamingResponse(ret, media_type="image/png")
 
     async def get_all_cv_normalized_fluo_intensities(
-        self, cell_id: str, y_label: str, label: str | None = None
+        self,
+        cell_id: str,
+        y_label: str,
+        label: str | None = None,
+        img_type: Literal["ph", "fluo1", "fluo2"] = "fluo1",
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
         )
         target_cell = await self.read_cell(cell_id=cell_id)
+        if img_type == "ph":
+            target_img = target_cell.img_ph
+        elif img_type == "fluo2":
+            target_img = target_cell.img_fluo2
+        else:
+            target_img = target_cell.img_fluo1
+
         target_val = (
             await AsyncChores.calc_cv_normalized_fluo_intensity_inside_cell(
-                target_cell.img_fluo1, target_cell.contour
+                target_img, target_cell.contour
             )
         )
         cv_intensities = await asyncio.gather(
             *(
                 AsyncChores.calc_cv_normalized_fluo_intensity_inside_cell(
-                    cell.img_fluo1, cell.contour
+                    (
+                        cell.img_ph
+                        if img_type == "ph"
+                        else cell.img_fluo2
+                        if img_type == "fluo2"
+                        else cell.img_fluo1
+                    ),
+                    cell.contour,
                 )
                 for cell in cells
             )
@@ -1950,7 +1986,9 @@ class CellCrudBase:
         return StreamingResponse(buf, media_type="text/csv")
 
     async def get_all_sd_normalized_fluo_intensities_csv(
-        self, label: str | None = None
+        self,
+        label: str | None = None,
+        img_type: Literal["ph", "fluo1", "fluo2"] = "fluo1",
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
@@ -1959,7 +1997,14 @@ class CellCrudBase:
         sd_intensities = await asyncio.gather(
             *(
                 AsyncChores.calc_sd_normalized_fluo_intensity_inside_cell(
-                    cell.img_fluo1, cell.contour
+                    (
+                        cell.img_ph
+                        if img_type == "ph"
+                        else cell.img_fluo2
+                        if img_type == "fluo2"
+                        else cell.img_fluo1
+                    ),
+                    cell.contour,
                 )
                 for cell in cells
             )
@@ -1976,7 +2021,9 @@ class CellCrudBase:
         return StreamingResponse(buf, media_type="text/csv")
 
     async def get_all_cv_normalized_fluo_intensities_csv(
-        self, label: str | None = None
+        self,
+        label: str | None = None,
+        img_type: Literal["ph", "fluo1", "fluo2"] = "fluo1",
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
@@ -1985,7 +2032,14 @@ class CellCrudBase:
         cv_intensities = await asyncio.gather(
             *(
                 AsyncChores.calc_cv_normalized_fluo_intensity_inside_cell(
-                    cell.img_fluo1, cell.contour
+                    (
+                        cell.img_ph
+                        if img_type == "ph"
+                        else cell.img_fluo2
+                        if img_type == "fluo2"
+                        else cell.img_fluo1
+                    ),
+                    cell.contour,
                 )
                 for cell in cells
             )

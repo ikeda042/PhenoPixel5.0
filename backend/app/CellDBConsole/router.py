@@ -366,7 +366,12 @@ async def get_var_fluo_intensities(db_name: str, label: str, cell_id: str):
 
 
 @router_cell.get("/{db_name}/{label}/{cell_id}/sd_fluo_intensities")
-async def get_sd_fluo_intensities(db_name: str, label: str, cell_id: str):
+async def get_sd_fluo_intensities(
+    db_name: str,
+    label: str,
+    cell_id: str,
+    img_type: Literal["ph", "fluo1", "fluo2"] = "fluo1",
+):
     await AsyncChores().validate_database_name(db_name)
     ret: StreamingResponse = await CellCrudBase(
         db_name=db_name
@@ -374,12 +379,18 @@ async def get_sd_fluo_intensities(db_name: str, label: str, cell_id: str):
         label=label,
         cell_id=cell_id,
         y_label="SD Normalized Fluorescence Intensity",
+        img_type=img_type,
     )
     return ret
 
 
 @router_cell.get("/{db_name}/{label}/{cell_id}/cv_fluo_intensities")
-async def get_cv_fluo_intensities(db_name: str, label: str, cell_id: str):
+async def get_cv_fluo_intensities(
+    db_name: str,
+    label: str,
+    cell_id: str,
+    img_type: Literal["ph", "fluo1", "fluo2"] = "fluo1",
+):
     await AsyncChores().validate_database_name(db_name)
     ret: StreamingResponse = await CellCrudBase(
         db_name=db_name
@@ -387,6 +398,7 @@ async def get_cv_fluo_intensities(db_name: str, label: str, cell_id: str):
         label=label,
         cell_id=cell_id,
         y_label="CV Normalized Fluorescence Intensity",
+        img_type=img_type,
     )
     return ret
 
@@ -437,21 +449,29 @@ async def get_var_fluo_intensities_csv(db_name: str, label: str):
 @router_cell.get(
     "/{db_name}/{label}/sd_fluo_intensities/csv", response_class=StreamingResponse
 )
-async def get_sd_fluo_intensities_csv(db_name: str, label: str):
+async def get_sd_fluo_intensities_csv(
+    db_name: str,
+    label: str,
+    img_type: Literal["ph", "fluo1", "fluo2"] = "fluo1",
+):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(
         db_name=db_name
-    ).get_all_sd_normalized_fluo_intensities_csv(label=label)
+    ).get_all_sd_normalized_fluo_intensities_csv(label=label, img_type=img_type)
 
 
 @router_cell.get(
     "/{db_name}/{label}/cv_fluo_intensities/csv", response_class=StreamingResponse
 )
-async def get_cv_fluo_intensities_csv(db_name: str, label: str):
+async def get_cv_fluo_intensities_csv(
+    db_name: str,
+    label: str,
+    img_type: Literal["ph", "fluo1", "fluo2"] = "fluo1",
+):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(
         db_name=db_name
-    ).get_all_cv_normalized_fluo_intensities_csv(label=label)
+    ).get_all_cv_normalized_fluo_intensities_csv(label=label, img_type=img_type)
 
 
 @router_cell.get(
