@@ -1782,6 +1782,36 @@ class TimelapseDatabaseCrud:
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
 
+    async def get_area_vs_sd_csv_by_cell_number(
+        self,
+        field: str,
+        cell_number: int,
+        channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+    ) -> StreamingResponse:
+        """Return CSV of contour area vs. pixel SD for each frame."""
+        areas = await self.get_contour_areas_by_cell_number(field, cell_number)
+        sds = await self.get_pixel_sd_by_cell_number(field, cell_number, channel)
+        df = pd.DataFrame({"area": areas, "sd": sds})
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
+
+    async def get_area_vs_cv_csv_by_cell_number(
+        self,
+        field: str,
+        cell_number: int,
+        channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+    ) -> StreamingResponse:
+        """Return CSV of contour area vs. pixel CV for each frame."""
+        areas = await self.get_contour_areas_by_cell_number(field, cell_number)
+        cvs = await self.get_pixel_cv_by_cell_number(field, cell_number, channel)
+        df = pd.DataFrame({"area": areas, "cv": cvs})
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
+
     async def replot_cell(
         self,
         field: str,
