@@ -311,6 +311,19 @@ async def get_contour_areas_by_cell_number(db_name: str, field: str, cell_number
     return JSONResponse(content={"areas": areas})
 
 
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/pixel_sd")
+async def get_pixel_sd_by_cell_number(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+):
+    """Get standard deviation of pixel intensities for each frame."""
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    sds = await crud.get_pixel_sd_by_cell_number(field, cell_number, channel)
+    return JSONResponse(content={"sds": sds})
+
+
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/replot")
 async def replot_cell(
     db_name: str,

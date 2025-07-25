@@ -93,6 +93,15 @@ interface GetContourAreasResponse {
   areas: number[];
 }
 
+// Pixel SD
+interface PixelSD {
+  frame: number;
+  sd: number;
+}
+interface GetPixelSDResponse {
+  sds: number[];
+}
+
 const url_prefix = settings.url_prefix;
 
 const TimelapseViewer: React.FC = () => {
@@ -129,12 +138,18 @@ const TimelapseViewer: React.FC = () => {
   // 輪郭面積グラフ用データ
   const [contourAreas, setContourAreas] = useState<ContourArea[]>([]);
 
-  // ★ 描画モード: ContourAreas / Replot / TimecoursePNG
-  type DrawMode = "ContourAreas" | "Replot" | "TimecoursePNG";
+  // Pixel SD data
+  const [pixelSDs, setPixelSDs] = useState<PixelSD[]>([]);
+
+  // ★ 描画モード: ContourAreas / PixelSD / Replot / TimecoursePNG
+  type DrawMode = "ContourAreas" | "PixelSD" | "Replot" | "TimecoursePNG";
   const [drawMode, setDrawMode] = useState<DrawMode>("ContourAreas");
 
   // Replot 用: ph / fluo1 / fluo2
   const [replotChannel, setReplotChannel] = useState<"ph" | "fluo1" | "fluo2">("ph");
+
+  // PixelSD 用 channel
+  const [pixelSDChannel, setPixelSDChannel] = useState<"ph" | "fluo1" | "fluo2">("ph");
 
   // ★ TimecoursePNG 用チャネルモード
   type ChannelMode =
@@ -276,6 +291,37 @@ const TimelapseViewer: React.FC = () => {
   useEffect(() => {
     fetchCurrentCellData();
   }, [dbName, selectedField, selectedCellNumber]);
+
+  // PixelSD graph
+  const fetchPixelSDs = async (controller: AbortController) => {
+    if (!dbName || !selectedField || !selectedCellNumber) {
+      setPixelSDs([]);
+      return;
+    }
+    try {
+      const response = await axios.get<GetPixelSDResponse>(
+        `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/pixel_sd?channel=${pixelSDChannel}`,
+        { signal: controller.signal }
+      );
+      if (controller.signal.aborted) return;
+      const converted = response.data.sds.map((value, index) => ({
+        frame: index,
+        sd: value,
+      }));
+      setPixelSDs(converted);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        console.error("Failed to fetch pixel sd:", error);
+        setPixelSDs([]);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchPixelSDs(controller);
+    return () => controller.abort();
+  }, [dbName, selectedField, selectedCellNumber, pixelSDChannel]);
 
   // Prev / Next
   const handlePrevCell = () => {
@@ -473,6 +519,45 @@ const TimelapseViewer: React.FC = () => {
     },
   };
 
+  const pixelSDChartData: ChartData<"line"> = {
+    labels: pixelSDs.map((p) => p.frame),
+    datasets: [
+      {
+        label: "Pixel SD",
+        data: pixelSDs.map((p) => p.sd),
+        fill: false,
+        borderColor: "rgba(255,99,132,1)",
+        tension: 0.1,
+      },
+    ],
+  };
+
+  const pixelSDChartOptions: ChartOptions<"line"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      title: {
+        display: true,
+        text: "SD of cell pixels (frame vs. SD)",
+      },
+    },
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: "Frame (Index)",
+        },
+      },
+      y: {
+        title: {
+          display: true,
+          text: "SD",
+        },
+        min: 0,
+      },
+    },
+  };
+
   return (
     <>
       <Container sx={{ py: 4, backgroundColor: "#fff", minHeight: "100vh" }} maxWidth="xl">
@@ -617,6 +702,7 @@ const TimelapseViewer: React.FC = () => {
               onChange={(e) => setDrawMode(e.target.value as DrawMode)}
             >
               <MenuItem value="ContourAreas">ContourAreas</MenuItem>
+              <MenuItem value="PixelSD">PixelSD</MenuItem>
               <MenuItem value="Replot">Replot</MenuItem>
               <MenuItem value="TimecoursePNG">TimecoursePNG</MenuItem>
             </Select>
@@ -631,6 +717,23 @@ const TimelapseViewer: React.FC = () => {
                 value={replotChannel}
                 label="Channel"
                 onChange={(e) => setReplotChannel(e.target.value as "ph" | "fluo1" | "fluo2")}
+              >
+                <MenuItem value="ph">ph</MenuItem>
+                <MenuItem value="fluo1">fluo1</MenuItem>
+                <MenuItem value="fluo2">fluo2</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+
+          {/* PixelSD 用 Channel */}
+          {drawMode === "PixelSD" && (
+            <FormControl sx={{ minWidth: 120 }}>
+              <InputLabel id="pixelsd-channel-label">Channel</InputLabel>
+              <Select
+                labelId="pixelsd-channel-label"
+                value={pixelSDChannel}
+                label="Channel"
+                onChange={(e) => setPixelSDChannel(e.target.value as "ph" | "fluo1" | "fluo2")}
               >
                 <MenuItem value="ph">ph</MenuItem>
                 <MenuItem value="fluo1">fluo1</MenuItem>
@@ -728,6 +831,31 @@ const TimelapseViewer: React.FC = () => {
                           ) : (
                             <Typography variant="body1" mt={2}>
                               輪郭面積データなし
+                            </Typography>
+                          )}
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* PixelSD: グラフ表示 */}
+                    {drawMode === "PixelSD" && (
+                      <Grid item xs={12} md={3}>
+                        <Box
+                          sx={{
+                            position: "relative",
+                            width: "100%",
+                            paddingBottom: "100%",
+                            borderRadius: 2,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {pixelSDs.length > 0 ? (
+                            <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+                              <Line data={pixelSDChartData} options={pixelSDChartOptions} />
+                            </Box>
+                          ) : (
+                            <Typography variant="body1" mt={2}>
+                              SDデータなし
                             </Typography>
                           )}
                         </Box>
