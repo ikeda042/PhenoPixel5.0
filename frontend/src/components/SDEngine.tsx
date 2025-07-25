@@ -69,14 +69,7 @@ const SDEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, imgType 
             <Button
                 variant="contained"
                 onClick={handleDownloadCsv}
-                sx={{
-                    color: 'black',
-                    backgroundColor: '#ffffff',
-                    '&:hover': {
-                        backgroundColor: '#e0e0e0',
-                    },
-                    marginTop: 1,
-                }}
+                sx={{ mt: 1 }}
                 startIcon={<DownloadIcon />}
             >
                 Download CSV

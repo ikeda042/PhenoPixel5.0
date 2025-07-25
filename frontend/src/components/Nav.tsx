@@ -17,18 +17,22 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import ScienceIcon from '@mui/icons-material/Science';
 import DatabaseIcon from '@mui/icons-material/Storage';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { settings } from '../settings';
 
 interface Props {
     window?: () => Window;
     title: string;
+    mode: 'light' | 'dark';
+    toggleMode: () => void;
 }
 
 const drawerWidth = 240;
 const navItems = [""];
 
 export default function Nav(props: Props) {
-    const { window } = props;
+    const { window, mode, toggleMode } = props;
     const [mobileOpen, setMobileOpen] = React.useState(false);
     const navigate = useNavigate();
 
@@ -64,22 +68,22 @@ export default function Nav(props: Props) {
     return (
         <Box sx={{ display: 'flex' }}>
             <CssBaseline />
-            <AppBar component="nav" sx={{ backgroundColor: '#fff' }}>
+            <AppBar component="nav">
                 <Toolbar>
                     <IconButton
                         color="inherit"
                         aria-label="open drawer"
                         edge="start"
                         onClick={handleDrawerToggle}
-                        sx={{ mr: 2, display: { sm: 'none' }, color: '#000' }}
+                        sx={{ mr: 2, display: { sm: 'none' } }}
                     >
                         <MenuIcon />
                     </IconButton>
-                    <Link to="/" style={{ textDecoration: 'none', color: '#000' }}>
+                    <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
                         <Typography
                             variant="h5"
                             component="div"
-                            sx={{ display: 'flex', alignItems: 'center', color: '#000' }}
+                            sx={{ display: 'flex', alignItems: 'center' }}
                         >
                             <Box
                                 component="img"
@@ -99,21 +103,18 @@ export default function Nav(props: Props) {
                     <IconButton
                         color="inherit"
                         onClick={() => navigate('/nd2files')}
-                        sx={{ color: '#000' }}
                     >
                         <ScienceIcon />
                     </IconButton>
                     <IconButton
                         color="inherit"
                         onClick={() => navigate('/dbconsole')}
-                        sx={{ color: '#000' }}
                     >
                         <DatabaseIcon />
                     </IconButton>
                     <IconButton
                         color="inherit"
                         component="a"
-                        sx={{ color: '#000' }}
                         href={`${settings.url_prefix}/docs`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -131,20 +132,21 @@ export default function Nav(props: Props) {
                         href="https://github.com/ikeda042/PhenoPixel5.0"
                         target="_blank"
                         rel="noopener noreferrer"
-                        sx={{ color: '#000' }}
                     >
                         <GitHubIcon />
+                    </IconButton>
+                    <IconButton color="inherit" onClick={toggleMode}>
+                        {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
                     </IconButton>
                     {isLoggedIn ? (
                         <IconButton
                             color="inherit"
                             onClick={() => navigate("/user_info")}
-                            sx={{ color: '#000' }}
                         >
                             <AccountCircle fontSize="large" />
                         </IconButton>
                     ) : (
-                        <Link to="/login" style={{ textDecoration: 'none', color: '#000' }}>
+                        <Link to="/login" style={{ textDecoration: 'none', color: 'inherit' }}>
                             <Typography variant="body1" sx={{ mr: 2 }}>Login</Typography>
                         </Link>
                     )}

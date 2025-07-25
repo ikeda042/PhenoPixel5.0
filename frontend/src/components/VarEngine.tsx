@@ -76,14 +76,7 @@ const VarEngine: React.FC<VarEngineProps> = ({ dbName, label, cellId }) => {
             <Button
                 variant="contained"
                 onClick={handleDownloadCsv}
-                sx={{
-                    color: 'black',
-                    backgroundColor: '#ffffff',
-                    '&:hover': {
-                        backgroundColor: '#e0e0e0',
-                    },
-                    marginTop: 1,
-                }}
+                sx={{ mt: 1 }}
                 startIcon={<DownloadIcon />}
             >
                 Download CSV
