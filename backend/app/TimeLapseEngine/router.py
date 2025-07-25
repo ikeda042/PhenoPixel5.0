@@ -324,6 +324,19 @@ async def get_pixel_sd_by_cell_number(
     return JSONResponse(content={"sds": sds})
 
 
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/pixel_cv")
+async def get_pixel_cv_by_cell_number(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+):
+    """Get coefficient of variation of pixel intensities for each frame."""
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    cvs = await crud.get_pixel_cv_by_cell_number(field, cell_number, channel)
+    return JSONResponse(content={"cvs": cvs})
+
+
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/replot")
 async def replot_cell(
     db_name: str,
