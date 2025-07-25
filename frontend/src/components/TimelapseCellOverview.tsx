@@ -153,8 +153,15 @@ const TimelapseViewer: React.FC = () => {
   // Pixel CV data
   const [pixelCVs, setPixelCVs] = useState<PixelCV[]>([]);
 
-  // ★ 描画モード: ContourAreas / PixelSD / PixelCV / Replot / TimecoursePNG
-  type DrawMode = "ContourAreas" | "PixelSD" | "PixelCV" | "Replot" | "TimecoursePNG";
+  // ★ 描画モード: ContourAreas / PixelSD / PixelCV / AreaVsSD / AreaVsCV / Replot / TimecoursePNG
+  type DrawMode =
+    | "ContourAreas"
+    | "PixelSD"
+    | "PixelCV"
+    | "AreaVsSD"
+    | "AreaVsCV"
+    | "Replot"
+    | "TimecoursePNG";
   const [drawMode, setDrawMode] = useState<DrawMode>("ContourAreas");
 
   // Replot 用: ph / fluo1 / fluo2
@@ -501,6 +508,10 @@ const TimelapseViewer: React.FC = () => {
       endpoint = `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/pixel_cv/csv?channel=${pixelSDChannel}`;
     } else if (drawMode === "ContourAreas") {
       endpoint = `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/contour_areas/csv`;
+    } else if (drawMode === "AreaVsSD") {
+      endpoint = `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/area_vs_sd/csv?channel=${pixelSDChannel}`;
+    } else if (drawMode === "AreaVsCV") {
+      endpoint = `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/area_vs_cv/csv?channel=${pixelSDChannel}`;
     } else {
       return;
     }
@@ -615,6 +626,65 @@ const TimelapseViewer: React.FC = () => {
         tension: 0.1,
       },
     ],
+  };
+
+  // -------- ContourArea vs SD / CV Scatter Data --------
+  const contourAreaVsSD = contourAreas.map((ca, idx) => ({
+    area: ca.area,
+    sd: pixelSDs[idx] ? pixelSDs[idx].sd : 0,
+  }));
+
+  const contourAreaVsCV = contourAreas.map((ca, idx) => ({
+    area: ca.area,
+    cv: pixelCVs[idx] ? pixelCVs[idx].cv : 0,
+  }));
+
+  const areaVsSDChartData: ChartData<"scatter"> = {
+    datasets: [
+      {
+        label: "Area vs SD",
+        data: contourAreaVsSD.map((d) => ({ x: d.area, y: d.sd })),
+        backgroundColor: "rgba(255,99,132,1)",
+        showLine: false,
+        type: "scatter",
+      },
+    ],
+  };
+
+  const areaVsCVChartData: ChartData<"scatter"> = {
+    datasets: [
+      {
+        label: "Area vs CV",
+        data: contourAreaVsCV.map((d) => ({ x: d.area, y: d.cv })),
+        backgroundColor: "rgba(54,162,235,1)",
+        showLine: false,
+        type: "scatter",
+      },
+    ],
+  };
+
+  const areaVsSDChartOptions: ChartOptions<"scatter"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      title: { display: true, text: "Contour Area vs. SD" },
+    },
+    scales: {
+      x: { title: { display: true, text: "Area" } },
+      y: { title: { display: true, text: "SD" } },
+    },
+  };
+
+  const areaVsCVChartOptions: ChartOptions<"scatter"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      title: { display: true, text: "Contour Area vs. CV" },
+    },
+    scales: {
+      x: { title: { display: true, text: "Area" } },
+      y: { title: { display: true, text: "CV" } },
+    },
   };
 
   const pixelSDChartOptions: ChartOptions<"line"> = {
@@ -815,6 +885,8 @@ const TimelapseViewer: React.FC = () => {
               <MenuItem value="ContourAreas">ContourAreas</MenuItem>
               <MenuItem value="PixelSD">PixelSD</MenuItem>
               <MenuItem value="PixelCV">PixelCV</MenuItem>
+              <MenuItem value="AreaVsSD">AreaVsSD</MenuItem>
+              <MenuItem value="AreaVsCV">AreaVsCV</MenuItem>
               <MenuItem value="Replot">Replot</MenuItem>
               <MenuItem value="TimecoursePNG">TimecoursePNG</MenuItem>
             </Select>
@@ -1015,6 +1087,78 @@ const TimelapseViewer: React.FC = () => {
                           ) : (
                             <Typography variant="body1" mt={2}>
                               CVデータなし
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box mt={1} textAlign="center">
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={handleDownloadCsv}
+                            startIcon={<DownloadIcon />}
+                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+                          >
+                            Download CSV
+                          </Button>
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* AreaVsSD: Scatter */}
+                    {drawMode === "AreaVsSD" && (
+                      <Grid item xs={12} md={3}>
+                        <Box
+                          sx={{
+                            position: "relative",
+                            width: "100%",
+                            paddingBottom: "100%",
+                            borderRadius: 2,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {contourAreaVsSD.length > 0 ? (
+                            <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+                              <Line data={areaVsSDChartData} options={areaVsSDChartOptions} />
+                            </Box>
+                          ) : (
+                            <Typography variant="body1" mt={2}>
+                              データなし
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box mt={1} textAlign="center">
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={handleDownloadCsv}
+                            startIcon={<DownloadIcon />}
+                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "#333" } }}
+                          >
+                            Download CSV
+                          </Button>
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* AreaVsCV: Scatter */}
+                    {drawMode === "AreaVsCV" && (
+                      <Grid item xs={12} md={3}>
+                        <Box
+                          sx={{
+                            position: "relative",
+                            width: "100%",
+                            paddingBottom: "100%",
+                            borderRadius: 2,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {contourAreaVsCV.length > 0 ? (
+                            <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+                              <Line data={areaVsCVChartData} options={areaVsCVChartOptions} />
+                            </Box>
+                          ) : (
+                            <Typography variant="body1" mt={2}>
+                              データなし
                             </Typography>
                           )}
                         </Box>

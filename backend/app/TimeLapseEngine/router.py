@@ -362,6 +362,28 @@ async def get_pixel_cv_csv_by_cell_number(
     return await crud.get_pixel_cv_csv_by_cell_number(field, cell_number, channel)
 
 
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/area_vs_sd/csv")
+async def get_area_vs_sd_csv_by_cell_number(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+):
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    return await crud.get_area_vs_sd_csv_by_cell_number(field, cell_number, channel)
+
+
+@router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/area_vs_cv/csv")
+async def get_area_vs_cv_csv_by_cell_number(
+    db_name: str,
+    field: str,
+    cell_number: int,
+    channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+):
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    return await crud.get_area_vs_cv_csv_by_cell_number(field, cell_number, channel)
+
+
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/replot")
 async def replot_cell(
     db_name: str,
