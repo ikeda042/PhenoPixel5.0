@@ -167,7 +167,7 @@ const TimelapseViewer: React.FC = () => {
   // Replot 用: ph / fluo1 / fluo2
   const [replotChannel, setReplotChannel] = useState<"ph" | "fluo1" | "fluo2">("ph");
 
-  // PixelSD 用 channel
+  // PixelSD / PixelCV / AreaVsSD / AreaVsCV 用 channel
   const [pixelSDChannel, setPixelSDChannel] = useState<"ph" | "fluo1" | "fluo2">("ph");
 
   // ★ TimecoursePNG 用チャネルモード
@@ -909,8 +909,11 @@ const TimelapseViewer: React.FC = () => {
             </FormControl>
           )}
 
-          {/* PixelSD / PixelCV 用 Channel */}
-          {(drawMode === "PixelSD" || drawMode === "PixelCV") && (
+          {/* PixelSD / PixelCV / AreaVsSD / AreaVsCV 用 Channel */}
+          {(drawMode === "PixelSD" ||
+            drawMode === "PixelCV" ||
+            drawMode === "AreaVsSD" ||
+            drawMode === "AreaVsCV") && (
             <FormControl sx={{ minWidth: 120 }}>
               <InputLabel id="pixelsd-channel-label">Channel</InputLabel>
               <Select
