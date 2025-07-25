@@ -147,10 +147,30 @@ const icons = {
   ),
 };
 
+// Utility
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
 // API 関数
-async function listFiles(): Promise<string[]> {
-  const response = await axios.get<string[]>(`${API_URL}/files`);
-  return response.data;
+interface RawFileInfo {
+  name: string;
+  size: number;
+  modified: string;
+}
+
+async function listFiles(): Promise<FileInfo[]> {
+  const response = await axios.get<RawFileInfo[]>(`${API_URL}/files`);
+  return response.data.map((f) => ({
+    name: f.name,
+    type: f.name.split('.').pop(),
+    size: formatBytes(f.size),
+    modified: new Date(f.modified).toLocaleDateString('ja-JP'),
+  }));
 }
 
 async function uploadFile(file: File): Promise<void> {
@@ -180,8 +200,8 @@ async function deleteFile(filename: string): Promise<void> {
 
 interface FileInfo {
   name: string;
-  size?: string;
-  modified?: string;
+  size: string;
+  modified: string;
   type?: string;
 }
 
@@ -216,14 +236,8 @@ function MiniFileManager() {
 
   const refresh = async () => {
     try {
-      const names = await listFiles();
-      const fileInfos = names.map((name) => ({
-        name,
-        type: name.split('.').pop(),
-        size: `${Math.floor(Math.random() * 500 + 50)} KB`,
-        modified: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('ja-JP'),
-      }));
-      setFiles(fileInfos);
+      const infos = await listFiles();
+      setFiles(infos);
     } catch (error) {
       console.error('Failed to fetch files:', error);
     }
