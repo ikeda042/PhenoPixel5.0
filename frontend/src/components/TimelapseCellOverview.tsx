@@ -741,7 +741,7 @@ const TimelapseViewer: React.FC = () => {
 
   return (
     <>
-      <Container sx={{ py: 4, backgroundColor: "#fff", minHeight: "100vh" }} maxWidth="xl">
+      <Container sx={{ py: 4, backgroundColor: theme.palette.background.paper, minHeight: "100vh" }} maxWidth="xl">
         {/* パンくず */}
         <Box mb={2}>
           <Breadcrumbs aria-label="breadcrumb">
@@ -954,7 +954,7 @@ const TimelapseViewer: React.FC = () => {
 
         {/* メイン表示: カード */}
         {dbName ? (
-          <Card sx={{ borderRadius: 2, boxShadow: 2, backgroundColor: "#fff", mb: 4 }}>
+          <Card sx={{ borderRadius: 2, boxShadow: 2, backgroundColor: theme.palette.background.paper, mb: 4 }}>
             <CardContent>
               <Grid container spacing={2} justifyContent="center" alignItems="flex-start">
                 {/* ロード中 */}

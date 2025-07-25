@@ -93,12 +93,20 @@ function App() {
       createTheme({
         palette: {
           mode,
-          ...(mode === "dark" && {
-            primary: {
-              main: "#ffffff",
-              dark: "#cccccc",
-            },
-          }),
+          ...(mode === "dark"
+            ? {
+                primary: {
+                  main: "#ffffff",
+                  dark: "#cccccc",
+                },
+              }
+            : {
+                primary: {
+                  main: "#000000",
+                  dark: "#333333",
+                  contrastText: "#ffffff",
+                },
+              }),
         },
       }),
     [mode]
