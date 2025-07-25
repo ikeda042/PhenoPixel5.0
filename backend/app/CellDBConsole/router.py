@@ -244,11 +244,11 @@ async def get_cell_morphology(cell_id: str, db_name: str, polyfit_degree: int = 
 
 @router_cell.get("/{cell_id}/{db_name}/replot", response_class=StreamingResponse)
 async def replot_cell(
-    cell_id: str, db_name: str, degree: int = 3, channel: int = 1
+    cell_id: str, db_name: str, degree: int = 3, channel: int = 1, dark_mode: bool = False
 ):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).replot(
-        cell_id=cell_id, degree=degree, channel=channel
+        cell_id=cell_id, degree=degree, channel=channel, dark_mode=dark_mode
     )
 
 

@@ -1189,6 +1189,7 @@ class AsyncChores:
         image_fluo_raw: bytes,
         contour_raw: bytes,
         degree: int,
+        dark_mode: bool = False,
     ) -> io.BytesIO:
         """
         (u1,u2) 平面に生データを散布し、多項式近似した曲線と輪郭を表示。
@@ -1257,106 +1258,116 @@ class AsyncChores:
         min_u2_shifted = np.min(u2_shifted)
         max_u2_shifted = np.max(u2_shifted)
 
-        fig = plt.figure(figsize=(6, 6))
+        style = "dark_background" if dark_mode else "default"
+        text_kwargs = {"color": "white"} if dark_mode else {}
 
-        plt.scatter(u1_shifted, u2_shifted, s=5, label="Points in cell")
+        with plt.style.context(style):
+            fig = plt.figure(figsize=(6, 6))
 
-        plt.scatter([0], [0], color="red", s=100, label="Centroid (0,0)")
+            plt.scatter(u1_shifted, u2_shifted, s=5, label="Points in cell")
 
-        plt.axis("equal")
-        margin_width = 20
-        margin_height = 20
-        plt.scatter(
-            [i[1] for i in U_shifted],  # x
-            [i[0] for i in U_shifted],  # y
-            c=points_inside_cell_1,
-            cmap="jet",
-            marker="o",
-            s=20,
-            label="Intensity",
-        )
+            plt.scatter([0], [0], color="red", s=100, label="Centroid (0,0)")
 
-        plt.xlim([min_u1_shifted - margin_width, max_u1_shifted + margin_width])
-        plt.ylim([min_u2_shifted - margin_height, max_u2_shifted + margin_height])
+            plt.axis("equal")
+            margin_width = 20
+            margin_height = 20
+            plt.scatter(
+                [i[1] for i in U_shifted],  # x
+                [i[0] for i in U_shifted],  # y
+                c=points_inside_cell_1,
+                cmap="jet",
+                marker="o",
+                s=20,
+                label="Intensity",
+            )
 
-        max_val = np.max(points_inside_cell_1) if len(points_inside_cell_1) else 1
-        normalized_points = [i / max_val for i in points_inside_cell_1]
+            plt.xlim([min_u1_shifted - margin_width, max_u1_shifted + margin_width])
+            plt.ylim([min_u2_shifted - margin_height, max_u2_shifted + margin_height])
 
-        # テキストで統計量を表示
-        plt.text(
-            0.5,
-            0.20,
-            f"Median: {np.median(points_inside_cell_1):.2f}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
-        plt.text(
-            0.5,
-            0.15,
-            f"Mean: {np.mean(points_inside_cell_1):.2f}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
-        plt.text(
-            0.5,
-            0.10,
-            f"Normalized median: {np.median(normalized_points):.2f}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
-        plt.text(
-            0.5,
-            0.05,
-            f"Normalized mean: {np.mean(normalized_points):.2f}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
-        sd_val = np.std(points_inside_cell_1)
-        cv_val = sd_val / np.mean(points_inside_cell_1) if np.mean(points_inside_cell_1) != 0 else 0
-        plt.text(
-            0.5,
-            0.30,
-            f"SD: {sd_val:.2f}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
-        plt.text(
-            0.5,
-            0.25,
-            f"CV: {cv_val:.2f}",
-            horizontalalignment="center",
-            verticalalignment="center",
-            transform=plt.gca().transAxes,
-        )
+            max_val = np.max(points_inside_cell_1) if len(points_inside_cell_1) else 1
+            normalized_points = [i / max_val for i in points_inside_cell_1]
 
-        # 多項式近似のための x 軸生成: シフト後の範囲で
-        x_for_fit = np.linspace(min_u1_shifted, max_u1_shifted, 1000)
-        # シフト後の U を渡してフィッティング
-        theta = await AsyncChores.poly_fit(U_shifted, degree=degree)
-        y_for_fit = np.polyval(theta, x_for_fit)
+            # テキストで統計量を表示
+            plt.text(
+                0.5,
+                0.20,
+                f"Median: {np.median(points_inside_cell_1):.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
+            plt.text(
+                0.5,
+                0.15,
+                f"Mean: {np.mean(points_inside_cell_1):.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
+            plt.text(
+                0.5,
+                0.10,
+                f"Normalized median: {np.median(normalized_points):.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
+            plt.text(
+                0.5,
+                0.05,
+                f"Normalized mean: {np.mean(normalized_points):.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
+            sd_val = np.std(points_inside_cell_1)
+            cv_val = sd_val / np.mean(points_inside_cell_1) if np.mean(points_inside_cell_1) != 0 else 0
+            plt.text(
+                0.5,
+                0.30,
+                f"SD: {sd_val:.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
+            plt.text(
+                0.5,
+                0.25,
+                f"CV: {cv_val:.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
 
-        # 多項式近似曲線をプロット
-        plt.plot(x_for_fit, y_for_fit, color="red", label="Poly fit")
+            # 多項式近似のための x 軸生成: シフト後の範囲で
+            x_for_fit = np.linspace(min_u1_shifted, max_u1_shifted, 1000)
+            # シフト後の U を渡してフィッティング
+            theta = await AsyncChores.poly_fit(U_shifted, degree=degree)
+            y_for_fit = np.polyval(theta, x_for_fit)
 
-        # 輪郭を lime 色で描画 (シフト済み)
-        plt.scatter(
-            u1_contour_shifted, u2_contour_shifted, color="lime", s=20, label="Contour"
-        )
+            # 多項式近似曲線をプロット
+            plt.plot(x_for_fit, y_for_fit, color="red", label="Poly fit")
 
-        plt.tick_params(direction="in")
-        plt.grid(True)
-        plt.legend()
+            # 輪郭を lime 色で描画 (シフト済み)
+            plt.scatter(
+                u1_contour_shifted, u2_contour_shifted, color="lime", s=20, label="Contour"
+            )
 
-        # 出力用バッファ
-        buf = io.BytesIO()
-        fig.savefig(buf, format="png")
-        buf.seek(0)
-        plt.close(fig)
+            plt.tick_params(direction="in")
+            plt.grid(True)
+            plt.legend()
+
+            # 出力用バッファ
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png")
+            buf.seek(0)
+            plt.close(fig)
 
         return buf
 
@@ -1645,12 +1656,12 @@ class CellCrudBase:
         )
 
     async def replot(
-        self, cell_id: str, degree: int, channel: int = 1
+        self, cell_id: str, degree: int, channel: int = 1, dark_mode: bool = False
     ) -> StreamingResponse:
         cell = await self.read_cell(cell_id)
         img = cell.img_fluo2 if channel == 2 else cell.img_fluo1
         return StreamingResponse(
-            await AsyncChores.replot(img, cell.contour, degree),
+            await AsyncChores.replot(img, cell.contour, degree, dark_mode),
             media_type="image/png",
         )
 

@@ -18,6 +18,7 @@ import {
 import { SelectChangeEvent } from "@mui/material/Select";
 import { Scatter } from "react-chartjs-2";
 import { ChartOptions } from "chart.js";
+import { useTheme } from "@mui/material/styles";
 import Spinner from "./Spinner";
 import CellMorphologyTable from "./CellMorphoTable";
 import { settings } from "../settings";
@@ -153,6 +154,7 @@ const CellImageGrid: React.FC = () => {
   const db_name = searchParams.get("db_name") ?? "test_database.db";
   const cell_number = searchParams.get("cell") ?? "1";
   const init_draw_mode = (searchParams.get("init_draw_mode") ?? "light") as DrawModeType;
+  const theme = useTheme();
 
   // セルIDや画像などの状態管理
   const [cellIds, setCellIds] = useState<string[]>([]);
@@ -326,8 +328,9 @@ const CellImageGrid: React.FC = () => {
       switch (mode) {
         case "replot": {
           const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const dark = theme.palette.mode === "dark" ? "&dark_mode=true" : "";
           const response = await axios.get(
-            `${url_prefix}/cells/${cellId}/${db_name}/replot?degree=${fitDegree}&channel=${channelParam}`,
+            `${url_prefix}/cells/${cellId}/${db_name}/replot?degree=${fitDegree}&channel=${channelParam}${dark}`,
             { responseType: "blob" }
           );
           const url = URL.createObjectURL(response.data);

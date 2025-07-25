@@ -416,7 +416,9 @@ const TimelapseViewer: React.FC = () => {
 
   // Replot 用 GIF
   const replotGifUrl = dbName
-    ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/replot?channel=${replotChannel}&degree=4&duration=200&_syncKey=${reloadKey}`
+    ? `${url_prefix}/tlengine/databases/${dbName}/cells/${selectedField}/${selectedCellNumber}/replot?channel=${replotChannel}&degree=4${
+        theme.palette.mode === "dark" ? "&dark_mode=true" : ""
+      }&duration=200&_syncKey=${reloadKey}`
     : "";
 
   // ★ TimecoursePNG 用 URL (channel_mode="all_channels" でエンドポイントを切り替え)

@@ -391,13 +391,14 @@ async def replot_cell(
     cell_number: int,
     channel: Literal["ph", "fluo1", "fluo2"] = "ph",
     degree: int = 4,
+    dark_mode: bool = False,
 ):
     """
     指定した field, cell_number, channel の全フレームを取得し、
     replot で生成した画像を GIF 化して返すエンドポイント。
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
-    gif_buffer = await crud.replot_cell(field, cell_number, channel, degree=4)
+    gif_buffer = await crud.replot_cell(field, cell_number, channel, degree=4, dark_mode=dark_mode)
     return StreamingResponse(
         gif_buffer,
         media_type="image/gif",
