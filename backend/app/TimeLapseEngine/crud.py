@@ -58,6 +58,9 @@ class Cell(Base):
     # 死細胞判定用カラム
     is_dead = Column(Integer, nullable=True)
 
+    # 各セルが有効な最終フレーム番号
+    valid_until = Column(Integer, nullable=True)
+
     # GIFを保存するためのカラム
     gif_ph = Column(BLOB, nullable=True)
     gif_fluo1 = Column(BLOB, nullable=True)
@@ -762,6 +765,7 @@ class TimelapseEngineCrudBase:
                         cell=assigned_cell_idx,
                         base_cell_id=base_ids[assigned_cell_idx],
                         is_dead=0,
+                        valid_until=None,
                         gif_ph=None,
                         gif_fluo1=None,
                         gif_fluo2=None,
@@ -827,6 +831,7 @@ class TimelapseEngineCrudBase:
                         cell=m_idx,
                         base_cell_id=base_ids[m_idx],
                         is_dead=0,
+                        valid_until=None,
                         gif_ph=None,
                         gif_fluo1=None,
                         gif_fluo2=None,
@@ -1144,6 +1149,7 @@ class TimelapseEngineCrudBase:
                         cell=cell_idx,
                         base_cell_id=base_ids[cell_idx],
                         is_dead=0,
+                        valid_until=None,
                         gif_ph=None,
                         gif_fluo1=None,
                         gif_fluo2=None,
@@ -1581,6 +1587,16 @@ class TimelapseDatabaseCrud:
                 update(Cell)
                 .where(Cell.base_cell_id == base_cell_id)
                 .values(is_dead=is_dead)
+            )
+            await session.commit()
+            return result.rowcount
+
+    async def update_valid_until(self, base_cell_id: str, frame: int):
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                update(Cell)
+                .where(Cell.base_cell_id == base_cell_id)
+                .values(valid_until=frame)
             )
             await session.commit()
             return result.rowcount

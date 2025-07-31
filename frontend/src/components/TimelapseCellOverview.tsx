@@ -24,6 +24,7 @@ import {
   FormControlLabel,
   Radio,
   RadioGroup,
+  TextField,
   Grid,
 } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
@@ -83,6 +84,7 @@ interface CellDataById {
   perimeter: number;
   manual_label?: string | number;
   is_dead?: number;
+  valid_until?: number;
 }
 
 // 輪郭面積
@@ -291,6 +293,20 @@ const TimelapseViewer: React.FC = () => {
       await fetchCurrentCellData();
     } catch (error) {
       console.error("Failed to update is_dead:", error);
+    }
+  };
+
+  // valid_until 更新
+  const handleChangeValidUntil = async (value: number) => {
+    if (!dbName || !currentCellData) return;
+    try {
+      const baseCellId = currentCellData.base_cell_id;
+      await axios.patch(
+        `${url_prefix}/tlengine/databases/${dbName}/cells/${baseCellId}/valid_until/${value}`
+      );
+      await fetchCurrentCellData();
+    } catch (error) {
+      console.error("Failed to update valid_until:", error);
     }
   };
 
@@ -840,6 +856,21 @@ const TimelapseViewer: React.FC = () => {
                   />
                 </RadioGroup>
               </FormControl>
+
+              <TextField
+                label="Frame - valid until"
+                type="number"
+                size="small"
+                value={
+                  currentCellData.valid_until !== undefined
+                    ? currentCellData.valid_until
+                    : ""
+                }
+                onChange={(e) =>
+                  handleChangeValidUntil(Number(e.target.value))
+                }
+                sx={{ ml: 2, maxWidth: 150 }}
+              />
 
               <Typography variant="body2" sx={{ ml: 2 }}>
                 BaseID: {currentCellData.base_cell_id}

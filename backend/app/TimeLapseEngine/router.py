@@ -189,6 +189,7 @@ async def read_cell_by_cell_id(db_name: str, cell_id: str):
                 "perimeter": cell.perimeter,
                 "manual_label": cell.manual_label,
                 "is_dead": cell.is_dead,
+                "valid_until": cell.valid_until,
             }
         )
     except:
@@ -298,6 +299,14 @@ async def update_dead_status(db_name: str, base_cell_id: str, is_dead: int):
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
     result = await crud.update_dead_status(base_cell_id, is_dead)
+    return JSONResponse(content={"updated": result})
+
+
+@router_tl_engine.patch("/databases/{db_name}/cells/{base_cell_id}/valid_until/{frame}")
+async def update_valid_until(db_name: str, base_cell_id: str, frame: int):
+    """指定したセルの valid_until を更新するエンドポイント"""
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    result = await crud.update_valid_until(base_cell_id, frame)
     return JSONResponse(content={"updated": result})
 
 
