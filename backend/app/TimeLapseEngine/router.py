@@ -310,6 +310,14 @@ async def update_valid_until(db_name: str, base_cell_id: str, frame: int):
     return JSONResponse(content={"updated": result})
 
 
+@router_tl_engine.get("/databases/{db_name}/cells/{base_cell_id}/valid_until")
+async def get_valid_until(db_name: str, base_cell_id: str):
+    """指定したセルの valid_until を取得するエンドポイント"""
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    value = await crud.get_valid_until(base_cell_id)
+    return JSONResponse(content={"valid_until": value})
+
+
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/contour_areas")
 async def get_contour_areas_by_cell_number(db_name: str, field: str, cell_number: int):
     """

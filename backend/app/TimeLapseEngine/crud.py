@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import BLOB, Column, FLOAT, Integer, String, delete, update, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.sql import select
+from sqlalchemy.sql import select, func
 import random
 from scipy.optimize import linear_sum_assignment
 from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
@@ -1628,6 +1628,28 @@ class TimelapseDatabaseCrud:
             )
             await session.commit()
             return result.rowcount
+
+    async def get_valid_until(self, base_cell_id: str) -> int | None:
+        """Return valid_until for the given base_cell_id.
+
+        If valid_until is not explicitly stored, fallback to the maximum
+        recorded frame number (time).
+        """
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(func.max(Cell.valid_until)).where(
+                    Cell.base_cell_id == base_cell_id
+                )
+            )
+            value = result.scalar()
+            if value is None:
+                result = await session.execute(
+                    select(func.max(Cell.time)).where(
+                        Cell.base_cell_id == base_cell_id
+                    )
+                )
+                value = result.scalar()
+        return value
 
     async def get_contour_areas_by_cell_number(
         self, field: str, cell_number: int

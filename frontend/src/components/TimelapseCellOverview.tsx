@@ -87,6 +87,10 @@ interface CellDataById {
   valid_until?: number;
 }
 
+interface GetValidUntilResponse {
+  valid_until: number | null;
+}
+
 // 輪郭面積
 interface ContourArea {
   frame: number;
@@ -256,6 +260,14 @@ const TimelapseViewer: React.FC = () => {
       const cellId = cells[0].cell_id;
       const detail = await fetchCellDataById(cellId);
       if (detail) {
+        try {
+          const validUntilResp = await axios.get<GetValidUntilResponse>(
+            `${url_prefix}/tlengine/databases/${dbName}/cells/${detail.base_cell_id}/valid_until`
+          );
+          detail.valid_until = validUntilResp.data.valid_until ?? undefined;
+        } catch (error) {
+          console.error("Failed to fetch valid_until:", error);
+        }
         setCurrentCellData(detail);
       } else {
         setCurrentCellData(null);
