@@ -1453,6 +1453,34 @@ class TimelapseEngineCrudBase:
 class TimelapseDatabaseCrud:
     def __init__(self, dbname: str):
         self.dbname = dbname
+        if dbname:
+            self._migrate_if_needed()
+
+    def _migrate_if_needed(self):
+        """Check existing DB schema and add missing columns."""
+        db_path = os.path.join("timelapse_databases", self.dbname)
+        if not os.path.exists(db_path):
+            return
+
+        required_columns = {
+            "valid_until": "INTEGER",
+            "gif_ph": "BLOB",
+            "gif_fluo1": "BLOB",
+            "gif_fluo2": "BLOB",
+        }
+
+        import sqlite3
+
+        conn = sqlite3.connect(db_path)
+        try:
+            cur = conn.execute("PRAGMA table_info(cells)")
+            existing = [row[1] for row in cur.fetchall()]
+            for name, col_type in required_columns.items():
+                if name not in existing:
+                    conn.execute(f"ALTER TABLE cells ADD COLUMN {name} {col_type}")
+            conn.commit()
+        finally:
+            conn.close()
 
     async def get_cells_by_field(self, field: str) -> list[Cell]:
         async with get_session(self.dbname) as session:
