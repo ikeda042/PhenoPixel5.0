@@ -1667,6 +1667,12 @@ class TimelapseDatabaseCrud:
                 status_code=404,
                 detail=f"No data found for field={field}, cell={cell_number}",
             )
+        # Respect valid_until so that exports stop at the specified frame
+        base_id = cells[0].base_cell_id
+        if base_id:
+            valid_until = await self.get_valid_until(base_id)
+            if valid_until is not None:
+                cells = [c for c in cells if c.time is None or c.time <= valid_until]
         areas = []
         for row in cells:
             contour_area = 0.0
@@ -1712,7 +1718,11 @@ class TimelapseDatabaseCrud:
                 status_code=404,
                 detail=f"No data found for field={field}, cell={cell_number}",
             )
-
+        base_id = cells[0].base_cell_id
+        if base_id:
+            valid_until = await self.get_valid_until(base_id)
+            if valid_until is not None:
+                cells = [c for c in cells if c.time is None or c.time <= valid_until]
         sds: list[float] = []
         for row in cells:
             if channel == "ph":
@@ -1771,7 +1781,11 @@ class TimelapseDatabaseCrud:
                 status_code=404,
                 detail=f"No data found for field={field}, cell={cell_number}",
             )
-
+        base_id = cells[0].base_cell_id
+        if base_id:
+            valid_until = await self.get_valid_until(base_id)
+            if valid_until is not None:
+                cells = [c for c in cells if c.time is None or c.time <= valid_until]
         cvs: list[float] = []
         for row in cells:
             if channel == "ph":
