@@ -25,6 +25,8 @@ import random
 from scipy.optimize import linear_sum_assignment
 from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
 
+MAX_DRIFT_PX = 50  # Ignore shifts larger than this many pixels per frame
+
 def get_ulid() -> str:
     """Return a fake ULID using random digits."""
     # NOTE: This is a placeholder implementation
@@ -290,12 +292,23 @@ class SyncChores:
         h, w = image.shape[:2]
         if method == "phase":
             vertical_shift, horizontal_shift = transform
+            if (
+                abs(vertical_shift) > MAX_DRIFT_PX
+                or abs(horizontal_shift) > MAX_DRIFT_PX
+            ):
+                return image
             M = np.float32([[1, 0, horizontal_shift], [0, 1, vertical_shift]])
             return cv2.warpAffine(image, M, (w, h))
         elif method == "orb":
+            tx, ty = transform[0, 2], transform[1, 2]
+            if abs(tx) > MAX_DRIFT_PX or abs(ty) > MAX_DRIFT_PX:
+                return image
             return cv2.warpAffine(image, transform, (w, h))
         elif method == "ecc":
             if transform.shape == (2, 3):
+                tx, ty = transform[0, 2], transform[1, 2]
+                if abs(tx) > MAX_DRIFT_PX or abs(ty) > MAX_DRIFT_PX:
+                    return image
                 return cv2.warpAffine(
                     image,
                     transform,
@@ -303,6 +316,9 @@ class SyncChores:
                     flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP,
                 )
             else:
+                tx, ty = transform[0, 2], transform[1, 2]
+                if abs(tx) > MAX_DRIFT_PX or abs(ty) > MAX_DRIFT_PX:
+                    return image
                 return cv2.warpPerspective(
                     image,
                     transform,
@@ -372,13 +388,28 @@ class SyncChores:
                     else:
                         if drift_method == "ecc":
                             transform = cls.estimate_transform_ecc(reference_ph, channel_image)
+                            if transform is not None:
+                                tx, ty = transform[0, 2], transform[1, 2]
+                                if abs(tx) > MAX_DRIFT_PX or abs(ty) > MAX_DRIFT_PX:
+                                    transform = None
                         elif drift_method == "orb":
                             transform = cls.estimate_transform_orb(reference_ph, channel_image)
+                            if transform is not None:
+                                tx, ty = transform[0, 2], transform[1, 2]
+                                if abs(tx) > MAX_DRIFT_PX or abs(ty) > MAX_DRIFT_PX:
+                                    transform = None
                         else:
                             transform = cls.calc_shift_by_phase_correlation(
                                 reference_ph if len(reference_ph.shape)==2 else cv2.cvtColor(reference_ph, cv2.COLOR_BGR2GRAY),
                                 channel_image if len(channel_image.shape)==2 else cv2.cvtColor(channel_image, cv2.COLOR_BGR2GRAY),
                             )
+                            if transform is not None:
+                                v_shift, h_shift = transform
+                                if (
+                                    abs(v_shift) > MAX_DRIFT_PX
+                                    or abs(h_shift) > MAX_DRIFT_PX
+                                ):
+                                    transform = None
 
                         drift_transforms[time_idx] = transform
                         corrected = cls.apply_transform(channel_image, transform, drift_method)
