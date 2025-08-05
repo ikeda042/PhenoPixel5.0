@@ -192,6 +192,36 @@ const TimelapseDatabases: React.FC = () => {
   };
 
   /**
+   * 指定したDBのdead/aliveセルのCSVを一括ダウンロード
+   */
+  const handleBulkDownload = async (
+    dbName: string,
+    type: "dead" | "alive"
+  ) => {
+    try {
+      setLoading(true);
+      const isDead = type === "dead" ? 1 : 0;
+      const response = await axios.get(
+        `${url_prefix}/tlengine/databases/${dbName}/cells/csv?is_dead=${isDead}`,
+        { responseType: "blob" }
+      );
+      const blob = new Blob([response.data], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${dbName}_${type}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error("Failed to download CSV:", err);
+      alert("Failed to download CSV");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
    * モーダルを閉じる
    */
   const handleClosePreview = () => {
@@ -230,6 +260,7 @@ const TimelapseDatabases: React.FC = () => {
                 <TableCell align="center"><b>Database Name</b></TableCell>
                 <TableCell align="center"><b>Copy</b></TableCell>
                 <TableCell align="center"><b>Preview</b></TableCell>
+                <TableCell align="center"><b>CAV CSV</b></TableCell>
                 <TableCell align="center"><b>Access Database</b></TableCell>
               </TableRow>
             </TableHead>
@@ -319,6 +350,37 @@ const TimelapseDatabases: React.FC = () => {
                       onClick={() => handlePreview(database)}
                     >
                       Preview
+                    </Button>
+                  </TableCell>
+
+                  {/* CAV CSV */}
+                  <TableCell align="center">
+                    <Button
+                      variant="contained"
+                      size="small"
+                      sx={{
+                        backgroundColor: 'error.main',
+                        color: 'error.contrastText',
+                        fontSize: '0.8rem',
+                        '&:hover': { backgroundColor: 'error.dark' },
+                      }}
+                      onClick={() => handleBulkDownload(database, 'dead')}
+                    >
+                      Dead CSV
+                    </Button>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      sx={{
+                        ml: 1,
+                        backgroundColor: 'success.main',
+                        color: 'success.contrastText',
+                        fontSize: '0.8rem',
+                        '&:hover': { backgroundColor: 'success.dark' },
+                      }}
+                      onClick={() => handleBulkDownload(database, 'alive')}
+                    >
+                      Alive CSV
                     </Button>
                   </TableCell>
 

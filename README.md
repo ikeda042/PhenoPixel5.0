@@ -826,6 +826,7 @@ All endpoints are prefixed with `/api`.
 | `GET` | `/tlengine/databases/{db}/fields/{field}/cell_numbers` | List cell numbers in a field. |
 | `PATCH` | `/tlengine/databases/{db}/cells/{base_cell_id}/label?label={label}` | Update `manual_label` for a base cell. |
 | `PATCH` | `/tlengine/databases/{db}/cells/{base_cell_id}/dead/{is_dead}` | Set dead status for a base cell. |
+| `GET` | `/tlengine/databases/{db}/cells/csv?is_dead={0\|1}` | Download cells as CSV filtered by `is_dead`. |
 | `GET` | `/tlengine/databases/{db}/cells/{field}/{cell_number}/replot` | Replot the entire time course as a GIF. |
 
 

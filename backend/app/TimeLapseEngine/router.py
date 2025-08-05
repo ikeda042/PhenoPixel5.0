@@ -318,6 +318,16 @@ async def get_valid_until(db_name: str, base_cell_id: str):
     return JSONResponse(content={"valid_until": value})
 
 
+@router_tl_engine.get("/databases/{db_name}/cells/csv")
+async def get_cells_csv_by_dead_status(db_name: str, is_dead: int):
+    """
+    指定したデータベース(db_name)から is_dead フラグでフィルタしたセルをCSVで取得するエンドポイント。
+    is_dead=1 で dead, is_dead=0 で alive のセルを返します。
+    """
+    crud = TimelapseDatabaseCrud(dbname=db_name)
+    return await crud.get_cells_csv_by_dead_status(is_dead)
+
+
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/contour_areas")
 async def get_contour_areas_by_cell_number(db_name: str, field: str, cell_number: int):
     """
