@@ -12,6 +12,12 @@ from PIL import Image, ImageDraw, ImageFont
 from typing import Literal, Any
 import cv2
 import nd2reader
+from nd2reader.raw_metadata import (
+    RawMetadata,
+    read_chunk,
+    read_metadata,
+    six,
+)
 import numpy as np
 from PIL import Image
 import pandas as pd
@@ -26,6 +32,75 @@ from scipy.optimize import linear_sum_assignment
 from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
 
 MAX_DRIFT_PX = 50  # Ignore shifts larger than this many pixels per frame
+
+
+def _safe_parse_events(self):
+    """Robust version of nd2reader's event parser.
+
+    Some ND2 files contain event metadata that is not a list of dictionaries as
+    expected by :mod:`nd2reader`.  The original implementation assumes every
+    entry is a mapping and crashes with ``TypeError`` when that is not the
+    case.  This function mirrors the original logic but skips any malformed
+    entries so that opening such files does not raise an exception.
+    """
+
+    event_names = {
+        1: "Autofocus",
+        7: "Command Executed",
+        9: "Experiment Paused",
+        10: "Experiment Resumed",
+        11: "Experiment Stopped by User",
+        13: "Next Phase Moved by User",
+        14: "Experiment Paused for Refocusing",
+        16: "External Stimulation",
+        33: "User 1",
+        34: "User 2",
+        35: "User 3",
+        36: "User 4",
+        37: "User 5",
+        38: "User 6",
+        39: "User 7",
+        40: "User 8",
+        44: "No Acquisition Phase Start",
+        45: "No Acquisition Phase End",
+        46: "Hardware Error",
+        47: "N-STORM",
+        48: "Incubation Info",
+        49: "Incubation Error",
+    }
+
+    self._metadata_parsed["events"] = []
+
+    try:
+        events = read_metadata(read_chunk(self._fh, self._label_map.image_events), 1)
+    except Exception:
+        return
+
+    if not isinstance(events, dict) or six.b("RLxExperimentRecord") not in events:
+        return
+
+    events = events[six.b("RLxExperimentRecord")].get(six.b("pEvents"))
+    if not isinstance(events, dict):
+        return
+
+    event_list = events.get(six.b(""))
+    if not isinstance(event_list, list):
+        return
+
+    for event in event_list:
+        if not isinstance(event, dict):
+            continue
+        event_info = {
+            "index": event.get(six.b("I")),
+            "time": event.get(six.b("T")),
+            "type": event.get(six.b("M")),
+        }
+        if event_info["type"] in event_names:
+            event_info["name"] = event_names[event_info["type"]]
+        self._metadata_parsed["events"].append(event_info)
+
+
+RawMetadata._parse_events = _safe_parse_events
 
 def get_ulid() -> str:
     """Return a fake ULID using random digits."""
