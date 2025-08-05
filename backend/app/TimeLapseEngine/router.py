@@ -319,13 +319,19 @@ async def get_valid_until(db_name: str, base_cell_id: str):
 
 
 @router_tl_engine.get("/databases/{db_name}/cells/csv")
-async def get_cells_csv_by_dead_status(db_name: str, is_dead: int):
+async def get_cells_csv_by_dead_status(
+    db_name: str,
+    is_dead: int,
+    draw_mode: str = "basic",
+    channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+):
     """
     指定したデータベース(db_name)から is_dead フラグでフィルタしたセルをCSVで取得するエンドポイント。
     is_dead=1 で dead, is_dead=0 で alive のセルを返します。
+    draw_mode で追加出力する値を選択できます。
     """
     crud = TimelapseDatabaseCrud(dbname=db_name)
-    return await crud.get_cells_csv_by_dead_status(is_dead)
+    return await crud.get_cells_csv_by_dead_status(is_dead, draw_mode, channel)
 
 
 @router_tl_engine.get("/databases/{db_name}/cells/{field}/{cell_number}/contour_areas")

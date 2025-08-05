@@ -40,6 +40,23 @@ interface FieldsResponse {
   fields: string[];
 }
 
+type CavDrawMode =
+  | "basic"
+  | "pixel_sd"
+  | "pixel_cv"
+  | "contour_areas"
+  | "area_vs_sd"
+  | "area_vs_cv";
+
+const cavDrawModeItems = [
+  { value: "basic", label: "Basic" },
+  { value: "pixel_sd", label: "Pixel SD" },
+  { value: "pixel_cv", label: "Pixel CV" },
+  { value: "contour_areas", label: "Contour Area" },
+  { value: "area_vs_sd", label: "Area vs SD" },
+  { value: "area_vs_cv", label: "Area vs CV" },
+];
+
 const url_prefix = settings.url_prefix;
 
 const TimelapseDatabases: React.FC = () => {
@@ -63,6 +80,13 @@ const TimelapseDatabases: React.FC = () => {
    */
   const [selectedChannels, setSelectedChannels] = useState<
     Record<string, string>
+  >({});
+
+  /**
+   * key: データベース名, value: CAV CSV 用に選択された draw mode
+   */
+  const [selectedDrawModes, setSelectedDrawModes] = useState<
+    Record<string, CavDrawMode>
   >({});
 
   /**
@@ -192,6 +216,13 @@ const TimelapseDatabases: React.FC = () => {
   };
 
   /**
+   * CAV CSV の draw mode がユーザにより切り替えられたとき
+   */
+  const handleDrawModeChange = (dbName: string, newMode: CavDrawMode) => {
+    setSelectedDrawModes((prev) => ({ ...prev, [dbName]: newMode }));
+  };
+
+  /**
    * 指定したDBのdead/aliveセルのCSVを一括ダウンロード
    */
   const handleBulkDownload = async (
@@ -201,15 +232,17 @@ const TimelapseDatabases: React.FC = () => {
     try {
       setLoading(true);
       const isDead = type === "dead" ? 1 : 0;
+      const drawMode = selectedDrawModes[dbName] || "basic";
+      const channel = selectedChannels[dbName] || "ph";
       const response = await axios.get(
-        `${url_prefix}/tlengine/databases/${dbName}/cells/csv?is_dead=${isDead}`,
+        `${url_prefix}/tlengine/databases/${dbName}/cells/csv?is_dead=${isDead}&draw_mode=${drawMode}&channel=${channel}`,
         { responseType: "blob" }
       );
       const blob = new Blob([response.data], { type: "text/csv" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${dbName}_${type}.csv`;
+      link.download = `${dbName}_${type}_${drawMode}.csv`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -355,6 +388,28 @@ const TimelapseDatabases: React.FC = () => {
 
                   {/* CAV CSV */}
                   <TableCell align="center">
+                    <FormControl size="small" sx={{ minWidth: 120, mr: 1 }}>
+                      <InputLabel id={`select-drawmode-label-${database}`}>
+                        Mode
+                      </InputLabel>
+                      <Select
+                        labelId={`select-drawmode-label-${database}`}
+                        label="Mode"
+                        value={selectedDrawModes[database] || "basic"}
+                        onChange={(e) =>
+                          handleDrawModeChange(
+                            database,
+                            e.target.value as CavDrawMode
+                          )
+                        }
+                      >
+                        {cavDrawModeItems.map((item) => (
+                          <MenuItem key={item.value} value={item.value}>
+                            {item.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
                     <Button
                       variant="contained"
                       size="small"
