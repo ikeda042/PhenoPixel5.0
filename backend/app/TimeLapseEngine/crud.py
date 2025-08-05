@@ -1757,7 +1757,12 @@ class TimelapseDatabaseCrud:
                 value = result.scalar()
         return value
 
-    async def get_cells_csv_by_dead_status(self, is_dead: int) -> StreamingResponse:
+    async def get_cells_csv_by_dead_status(
+        self,
+        is_dead: int,
+        draw_mode: str = "basic",
+        channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+    ) -> StreamingResponse:
         """Return CSV of cells filtered by is_dead flag."""
         async with get_session(self.dbname) as session:
             result = await session.execute(
@@ -1765,18 +1770,105 @@ class TimelapseDatabaseCrud:
             )
             cells = result.scalars().all()
 
-        data = [
-            {
-                "base_cell_id": cell.base_cell_id,
-                "field": cell.field,
-                "time": cell.time,
-                "cell": cell.cell,
-                "manual_label": cell.manual_label,
-                "is_dead": cell.is_dead,
-                "valid_until": cell.valid_until,
+        if draw_mode == "basic":
+            data = [
+                {
+                    "base_cell_id": cell.base_cell_id,
+                    "field": cell.field,
+                    "time": cell.time,
+                    "cell": cell.cell,
+                    "manual_label": cell.manual_label,
+                    "is_dead": cell.is_dead,
+                    "valid_until": cell.valid_until,
+                }
+                for cell in cells
+            ]
+        else:
+            unique_cells = {
+                (cell.field, cell.cell, cell.base_cell_id) for cell in cells
             }
-            for cell in cells
-        ]
+            data: list[dict[str, Any]] = []
+            for field, cell_number, base_id in unique_cells:
+                if draw_mode == "pixel_sd":
+                    values = await self.get_pixel_sd_by_cell_number(
+                        field, cell_number, channel
+                    )
+                    for idx, v in enumerate(values):
+                        data.append(
+                            {
+                                "base_cell_id": base_id,
+                                "field": field,
+                                "cell": cell_number,
+                                "frame": idx,
+                                "sd": v,
+                            }
+                        )
+                elif draw_mode == "pixel_cv":
+                    values = await self.get_pixel_cv_by_cell_number(
+                        field, cell_number, channel
+                    )
+                    for idx, v in enumerate(values):
+                        data.append(
+                            {
+                                "base_cell_id": base_id,
+                                "field": field,
+                                "cell": cell_number,
+                                "frame": idx,
+                                "cv": v,
+                            }
+                        )
+                elif draw_mode == "contour_areas":
+                    areas = await self.get_contour_areas_by_cell_number(
+                        field, cell_number
+                    )
+                    for idx, area in enumerate(areas):
+                        data.append(
+                            {
+                                "base_cell_id": base_id,
+                                "field": field,
+                                "cell": cell_number,
+                                "frame": idx,
+                                "area": area,
+                            }
+                        )
+                elif draw_mode == "area_vs_sd":
+                    areas = await self.get_contour_areas_by_cell_number(
+                        field, cell_number
+                    )
+                    sds = await self.get_pixel_sd_by_cell_number(
+                        field, cell_number, channel
+                    )
+                    for idx, (area, sd) in enumerate(zip(areas, sds)):
+                        data.append(
+                            {
+                                "base_cell_id": base_id,
+                                "field": field,
+                                "cell": cell_number,
+                                "frame": idx,
+                                "area": area,
+                                "sd": sd,
+                            }
+                        )
+                elif draw_mode == "area_vs_cv":
+                    areas = await self.get_contour_areas_by_cell_number(
+                        field, cell_number
+                    )
+                    cvs = await self.get_pixel_cv_by_cell_number(
+                        field, cell_number, channel
+                    )
+                    for idx, (area, cv) in enumerate(zip(areas, cvs)):
+                        data.append(
+                            {
+                                "base_cell_id": base_id,
+                                "field": field,
+                                "cell": cell_number,
+                                "frame": idx,
+                                "area": area,
+                                "cv": cv,
+                            }
+                        )
+                else:
+                    continue
 
         df = pd.DataFrame(data)
         buf = io.BytesIO()
