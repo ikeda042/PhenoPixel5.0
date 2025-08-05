@@ -293,7 +293,7 @@ const TimelapseDatabases: React.FC = () => {
                 <TableCell align="center"><b>Database Name</b></TableCell>
                 <TableCell align="center"><b>Copy</b></TableCell>
                 <TableCell align="center"><b>Preview</b></TableCell>
-                <TableCell align="center"><b>CAV CSV</b></TableCell>
+                <TableCell align="center"><b>Bulk CSV</b></TableCell>
                 <TableCell align="center"><b>Access Database</b></TableCell>
               </TableRow>
             </TableHead>
