@@ -1757,6 +1757,33 @@ class TimelapseDatabaseCrud:
                 value = result.scalar()
         return value
 
+    async def get_cells_csv_by_dead_status(self, is_dead: int) -> StreamingResponse:
+        """Return CSV of cells filtered by is_dead flag."""
+        async with get_session(self.dbname) as session:
+            result = await session.execute(
+                select(Cell).where(Cell.is_dead == is_dead)
+            )
+            cells = result.scalars().all()
+
+        data = [
+            {
+                "base_cell_id": cell.base_cell_id,
+                "field": cell.field,
+                "time": cell.time,
+                "cell": cell.cell,
+                "manual_label": cell.manual_label,
+                "is_dead": cell.is_dead,
+                "valid_until": cell.valid_until,
+            }
+            for cell in cells
+        ]
+
+        df = pd.DataFrame(data)
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv")
+
     async def get_contour_areas_by_cell_number(
         self, field: str, cell_number: int
     ) -> list[float]:
