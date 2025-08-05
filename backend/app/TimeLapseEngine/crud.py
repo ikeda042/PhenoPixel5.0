@@ -1759,15 +1759,19 @@ class TimelapseDatabaseCrud:
 
     async def get_cells_csv_by_dead_status(
         self,
-        is_dead: int,
+        is_dead: int | None = None,
         draw_mode: str = "basic",
         channel: Literal["ph", "fluo1", "fluo2"] = "ph",
+        manual_label: str | None = None,
     ) -> StreamingResponse:
-        """Return CSV of cells filtered by is_dead flag."""
+        """Return CSV of cells filtered by is_dead flag or manual label."""
         async with get_session(self.dbname) as session:
-            result = await session.execute(
-                select(Cell).where(Cell.is_dead == is_dead)
-            )
+            stmt = select(Cell)
+            if is_dead is not None:
+                stmt = stmt.where(Cell.is_dead == is_dead)
+            if manual_label is not None:
+                stmt = stmt.where(Cell.manual_label == manual_label)
+            result = await session.execute(stmt)
             cells = result.scalars().all()
 
         if draw_mode == "basic":
