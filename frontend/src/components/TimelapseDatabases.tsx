@@ -410,6 +410,26 @@ const TimelapseDatabases: React.FC = () => {
                         ))}
                       </Select>
                     </FormControl>
+                    <FormControl
+                      size="small"
+                      sx={{ minWidth: 80, mr: 1 }}
+                    >
+                      <InputLabel id={`select-csv-channel-label-${database}`}>
+                        Ch
+                      </InputLabel>
+                      <Select
+                        labelId={`select-csv-channel-label-${database}`}
+                        label="Ch"
+                        value={selectedChannels[database] || "ph"}
+                        onChange={(e) =>
+                          handleChannelChange(database, e.target.value)
+                        }
+                      >
+                        <MenuItem value="ph">ph</MenuItem>
+                        <MenuItem value="fluo1">fluo1</MenuItem>
+                        <MenuItem value="fluo2">fluo2</MenuItem>
+                      </Select>
+                    </FormControl>
                     <Button
                       variant="contained"
                       size="small"
