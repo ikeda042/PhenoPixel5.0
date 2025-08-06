@@ -235,7 +235,7 @@ const TimelapseDatabases: React.FC = () => {
       const drawMode = selectedDrawModes[dbName] || "basic";
       const channel = selectedChannels[dbName] || "ph";
       const response = await axios.get(
-        `${url_prefix}/tlengine/databases/${dbName}/cells/csv?is_dead=${isDead}&draw_mode=${drawMode}&channel=${channel}`,
+        `${url_prefix}/tlengine/databases/${dbName}/cells/csv?is_dead=${isDead}&draw_mode=${drawMode}&channel=${channel}&manual_label=1`,
         { responseType: "blob" }
       );
       const blob = new Blob([response.data], { type: "text/csv" });
