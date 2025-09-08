@@ -2040,6 +2040,7 @@ class CellCrudBase:
         cells = await asyncio.gather(
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
         )
+
         cv_intensities = await asyncio.gather(
             *(
                 AsyncChores.calc_cv_normalized_fluo_intensity_inside_cell(
@@ -2055,10 +2056,22 @@ class CellCrudBase:
                 for cell in cells
             )
         )
+
+        morphologies = await asyncio.gather(
+            *(
+                AsyncChores.morpho_analysis(
+                    cell.img_ph, cell.img_fluo1, cell.contour, 1
+                )
+                for cell in cells
+            )
+        )
+        lengths = [m.length for m in morphologies]
+
         df = pd.DataFrame(
-            cv_intensities,
+            list(zip(cv_intensities, lengths)),
             columns=[
-                f"CV normalized fluorescence intensity {self.db_name} cells with label {label}"
+                f"CV normalized fluorescence intensity {self.db_name} cells with label {label}",
+                "length",
             ],
         )
         buf = io.BytesIO()
