@@ -29,7 +29,7 @@ import HeatmapEngine from "./HeatmapEngine";
 import VarEngine from "./VarEngine";
 import AreaFractionEngine from "./AreaFractionEngine";
 import SDEngine from "./SDEngine";
-import CVEngine from "./CVEngine";
+import PixelCVEngine from "./PixelCVEngine";
 
 import {
   Chart as ChartJS,
@@ -99,7 +99,7 @@ type EngineName =
   | "VarEngine"
   | "AreaFractionEngine"
   | "SDEngine"
-  | "CVEngine";
+  | "PixelCVEngine";
 
 // MorphoEngineロゴマッピング
 const engineLogos: Record<EngineName, string> = {
@@ -111,7 +111,7 @@ const engineLogos: Record<EngineName, string> = {
   AreaFractionEngine: "/logo_cross.png",
   HeatmapEngine: "/logo_heatmap.png",
   SDEngine: "/var_logo.png",
-  CVEngine: "/var_logo.png",
+  PixelCVEngine: "/var_logo.png",
 };
 
 //-----------------------------------
@@ -1480,7 +1480,7 @@ const CellImageGrid: React.FC = () => {
             </FormControl>
           </Box>
 
-          {(engineMode === "SDEngine" || engineMode === "CVEngine") && (
+          {(engineMode === "SDEngine" || engineMode === "PixelCVEngine") && (
             <Box sx={{ mb: 2 }}>
               <FormControl fullWidth variant="outlined">
                 <InputLabel id="stat-source-label">Channel</InputLabel>
@@ -1570,9 +1570,9 @@ const CellImageGrid: React.FC = () => {
             </Box>
           )}
 
-          {engineMode === "CVEngine" && (
+          {engineMode === "PixelCVEngine" && (
             <Box mt={6}>
-              <CVEngine
+              <PixelCVEngine
                 dbName={db_name}
                 label={selectedLabel}
                 cellId={cellIds[currentIndex]}
