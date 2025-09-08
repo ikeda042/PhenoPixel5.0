@@ -2164,31 +2164,37 @@ class CellCrudBase:
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
         )
 
-        valid_pairs = []
+        # fluo データが存在するセルのみを対象とする
+        valid_cells = []
         for cell in cells:
             img_blob = cell.img_fluo2 if channel == 2 else cell.img_fluo1
             if img_blob is not None:
-                valid_pairs.append((img_blob, cell.contour))
+                valid_cells.append(cell)
 
-        if not valid_pairs:
+        if not valid_cells:
             return StreamingResponse(io.BytesIO(), media_type="text/csv")
 
         # 3. find_path_return_list も並列で実行
-        #    （各セルの img_fluo1, contour をもとにピークパスを計算）
+        #    （各セルの img_fluo, contour をもとにピークパスを計算）
         paths_list = await asyncio.gather(
             *(
-                AsyncChores.find_path_return_list(img, contour, degree)
-                for img, contour in valid_pairs
+                AsyncChores.find_path_return_list(
+                    cell.img_fluo2 if channel == 2 else cell.img_fluo1,
+                    cell.contour,
+                    degree,
+                )
+                for cell in valid_cells
             )
         )
 
-        # 4. 複数セル分の (u1, G) を一つのリストへ
+        # 4. 複数セル分の (u1, G, length) を一つのリストへ
         combined_paths = []
-        for path in paths_list:
+        for cell, path in zip(valid_cells, paths_list):
             u1_values = [p[0] for p in path]
             G_values = [p[1] for p in path]
-            combined_paths.append(u1_values)
-            combined_paths.append(G_values)
+            cell_length = max(u1_values) - min(u1_values)
+            combined_paths.append([cell.cell_id, cell_length, *u1_values])
+            combined_paths.append([cell.cell_id, cell_length, *G_values])
 
         # 5. CSV に書き出し
         df = pd.DataFrame(combined_paths)
