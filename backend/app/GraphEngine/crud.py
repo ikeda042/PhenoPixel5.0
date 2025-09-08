@@ -21,9 +21,9 @@ class SyncChores:
             [
                 HeatMapVectorAbs(
                     index=i,
-                    length=data[2 * i][1],
-                    u1=[d - min(data[2 * i][2:]) for d in data[2 * i][2:]],
-                    G=data[2 * i + 1][2:],
+                    length=max(data[2 * i]) - min(data[2 * i]),
+                    u1=[d - min(data[2 * i]) for d in data[2 * i]],
+                    G=data[2 * i + 1],
                 )
                 for i in range(len(data) // 2)
             ]
@@ -73,7 +73,7 @@ class SyncChores:
 
     def process_distribution(data, dpi: int = 500):
         """Create histogram of total intensities for each cell."""
-        totals = [sum(data[2 * i + 1][2:]) for i in range(len(data) // 2)]
+        totals = [sum(data[2 * i + 1]) for i in range(len(data) // 2)]
 
         fig = plt.figure(figsize=(6, 4))
         plt.hist(totals, bins=20, edgecolor="black", color="skyblue")
@@ -87,7 +87,7 @@ class SyncChores:
 
     def process_distribution_box(data, dpi: int = 500):
         """Create box plot of total intensities for each cell."""
-        totals = [sum(data[2 * i + 1][2:]) for i in range(len(data) // 2)]
+        totals = [sum(data[2 * i + 1]) for i in range(len(data) // 2)]
 
         fig = plt.figure(figsize=(8, 6))
         x = np.random.normal(1, 0.04, size=len(totals))
@@ -108,9 +108,9 @@ class SyncChores:
             [
                 HeatMapVectorRel(
                     index=i,
-                    length=data[2 * i][1],
-                    u1=[j for j in range(len(data[2 * i][2:]))],
-                    G=data[2 * i + 1][2:],
+                    length=len(data[2 * i]),
+                    u1=[i for i in range(len(data[2 * i]))],
+                    G=data[2 * i + 1],
                 )
                 for i in range(len(data) // 2)
             ]
