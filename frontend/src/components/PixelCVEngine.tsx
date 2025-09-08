@@ -12,7 +12,7 @@ interface ImageFetcherProps {
 }
 const url_prefix = settings.url_prefix;
 
-const CVEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, imgType }) => {
+const PixelCVEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, imgType }) => {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
@@ -46,7 +46,7 @@ const CVEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, imgType 
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `${dbName}_cv_fluo_intensities.csv`);
+            link.setAttribute('download', `${dbName}_pixel_cv_fluo_intensities.csv`);
             document.body.appendChild(link);
             link.click();
             link?.parentNode?.removeChild(link);
@@ -79,10 +79,10 @@ const CVEngine: React.FC<ImageFetcherProps> = ({ dbName, label, cellId, imgType 
                 }}
                 startIcon={<DownloadIcon />}
             >
-                Download CSV
+                Bulk Download CSV
             </Button>
         </Box>
     );
 };
 
-export default CVEngine;
+export default PixelCVEngine;
