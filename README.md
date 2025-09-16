@@ -787,7 +787,7 @@ $$\bar{s}_i=\frac{1}{m}\sum_{j=1}^m \tilde{s}_{ij}$$
 
    For $N$ cells we obtain
 
-$$R=\frac{\#\{i\mid\bar{s}_i<C\}}{N},\qquad \bar{L}=\frac{1}{N}\sum_{i=1}^N L_i.$$
+$$R=\frac{\left|\{i\mid\bar{s}_i<C\}\right|}{N},\qquad \bar{L}=\frac{1}{N}\sum_{i=1}^N L_i.$$
 
 ### Result:
 The API returns $(\bar{L},R)$ for each analyzed file.
