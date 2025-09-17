@@ -1,4 +1,5 @@
 import os
+import asyncio
 import aiohttp
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -114,13 +115,13 @@ async def get_env():
 
 
 async def check_internet_connection():
-    url = "https://www.google.com"
+    url = settings.internet_healthcheck_url
     timeout = aiohttp.ClientTimeout(total=5)
     async with aiohttp.ClientSession(timeout=timeout) as session:
         try:
             async with session.get(url):
                 return True
-        except aiohttp.ClientError:
+        except (aiohttp.ClientError, asyncio.TimeoutError):
             return False
 
 

@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     EMAIL: str | None = None
     PASSWORD: str | None = None
     HINET_URL: str | None = None
+    internet_healthcheck_url: str = "https://www.google.com"
 
     login_fail_count_max: int = 5
     login_lock_hour: int = 1
