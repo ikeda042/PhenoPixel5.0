@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     PASSWORD: str | None = None
     HINET_URL: str | None = None
     internet_healthcheck_url: str = "https://1.1.1.1/"
+    internet_healthcheck_timeout: float = 5.0
+    internet_healthcheck_verify_ssl: bool = True
 
     login_fail_count_max: int = 5
     login_lock_hour: int = 1

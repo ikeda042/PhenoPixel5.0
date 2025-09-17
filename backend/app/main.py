@@ -114,13 +114,15 @@ async def get_env():
     }
 
 
-async def check_internet_connection():
+async def check_internet_connection() -> bool:
     url = settings.internet_healthcheck_url
-    timeout = aiohttp.ClientTimeout(total=5)
-    async with aiohttp.ClientSession(timeout=timeout) as session:
+    timeout = aiohttp.ClientTimeout(total=settings.internet_healthcheck_timeout)
+    connector = aiohttp.TCPConnector(ssl=settings.internet_healthcheck_verify_ssl)
+
+    async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
         try:
-            async with session.get(url):
-                return True
+            async with session.get(url) as response:
+                return 200 <= response.status < 400
         except (aiohttp.ClientError, asyncio.TimeoutError):
             return False
 
