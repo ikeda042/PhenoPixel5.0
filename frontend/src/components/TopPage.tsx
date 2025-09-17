@@ -18,7 +18,6 @@ import BarChartIcon from "@mui/icons-material/BarChart";
 import DisplaySettingsIcon from "@mui/icons-material/DisplaySettings";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
-import ImageSearchIcon from "@mui/icons-material/ImageSearch";
 import { useNavigate } from "react-router-dom";
 import { settings } from "../settings";
 
@@ -285,13 +284,6 @@ const MenuGrid: React.FC<MenuGridProps> = ({ handleNavigate }) => {
         path: "/files",
         description: "Manage files on the local server.",
         external: true,
-      },
-      {
-        title: "Image Playground",
-        icon: <ImageSearchIcon sx={{ fontSize: 50 }} />,
-        path: "/image-playground",
-        description: "Try Canny edge detection on your images.",
-        external: false,
       },
     ],
     []
