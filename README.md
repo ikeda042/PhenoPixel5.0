@@ -20,6 +20,7 @@ easy setup.
 
 Author: Yunosuke IKEDA (m242128@hiroshima-u.ac.jp) 
 
+PR link: [](https://www.labsocket.info/products/phenopixel5/index.html)
 [日本語ドキュメント](README_JA.md)
 
 # Old version 
