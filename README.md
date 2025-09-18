@@ -28,6 +28,29 @@ Author: Yunosuke IKEDA (m242128@hiroshima-u.ac.jp)
 
 This version 5.0 inherits the deprecated version [PhenoPixel 4.0](https://github.com/ikeda042/PhenoPixel4.0)
 
+## Local Development
+
+### Backend
+
+Run the following commands from the repository root to start the API locally:
+
+```
+python -m venv venv
+source venv/bin/activate
+cd backend/app
+python main.py
+```
+
+### Frontend
+
+Initialize and start the React development server:
+
+```
+cd frontend
+npm install
+npm start
+```
+
 # Software Document
 
 Available at : [Docs](Software_Docs.md)
