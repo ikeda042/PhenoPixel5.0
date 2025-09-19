@@ -475,6 +475,28 @@ async def get_cv_fluo_intensities_csv(
 
 
 @router_cell.get(
+    "/{db_name}/{label}/pixel_engine/csv", response_class=StreamingResponse
+)
+async def export_pixel_engine_csv(
+    db_name: str,
+    label: str,
+    img_type: Literal["ph", "fluo1", "fluo2"] = "fluo1",
+):
+    await AsyncChores().validate_database_name(db_name)
+    normalized_label: str | None
+    if label == "74":
+        normalized_label = None
+    elif label == "1000":
+        normalized_label = "N/A"
+    else:
+        normalized_label = label
+
+    return await CellCrudBase(db_name=db_name).get_pixel_intensities_csv(
+        label=normalized_label, img_type=img_type
+    )
+
+
+@router_cell.get(
     "/{db_name}/{label}/area_fraction/csv", response_class=StreamingResponse
 )
 async def get_area_fraction_csv(db_name: str, label: str):

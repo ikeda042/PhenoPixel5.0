@@ -30,6 +30,7 @@ import VarEngine from "./VarEngine";
 import AreaFractionEngine from "./AreaFractionEngine";
 import SDEngine from "./SDEngine";
 import PixelCVEngine from "./PixelCVEngine";
+import PixelEngine from "./PixelEngine";
 
 import {
   Chart as ChartJS,
@@ -99,7 +100,8 @@ type EngineName =
   | "VarEngine"
   | "AreaFractionEngine"
   | "SDEngine"
-  | "PixelCVEngine";
+  | "PixelCVEngine"
+  | "PixelEngine";
 
 // MorphoEngineロゴマッピング
 const engineLogos: Record<EngineName, string> = {
@@ -112,6 +114,7 @@ const engineLogos: Record<EngineName, string> = {
   HeatmapEngine: "/logo_heatmap.png",
   SDEngine: "/var_logo.png",
   PixelCVEngine: "/var_logo.png",
+  PixelEngine: "/var_logo.png",
 };
 
 //-----------------------------------
@@ -143,6 +146,14 @@ const DRAW_MODES: {
   { value: "prediction", label: "Model T1(Torch GPU)" },
   { value: "cloud_points", label: "3D Fluo" },
   { value: "cloud_points_ph", label: "3D PH" },
+];
+
+const LABEL_OPTIONS: { value: string; label: string }[] = [
+  { value: "74", label: "All" },
+  { value: "1000", label: "N/A" },
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
 ];
 
 //-----------------------------------
@@ -813,11 +824,11 @@ const CellImageGrid: React.FC = () => {
                     value={selectedLabel}
                     onChange={handleLabelChange}
                   >
-                    <MenuItem value="74">All</MenuItem>
-                    <MenuItem value="1000">N/A</MenuItem>
-                    <MenuItem value="1">1</MenuItem>
-                    <MenuItem value="2">2</MenuItem>
-                    <MenuItem value="3">3</MenuItem>
+                    {LABEL_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Grid>
@@ -1480,7 +1491,9 @@ const CellImageGrid: React.FC = () => {
             </FormControl>
           </Box>
 
-          {(engineMode === "SDEngine" || engineMode === "PixelCVEngine") && (
+          {(engineMode === "SDEngine" ||
+            engineMode === "PixelCVEngine" ||
+            engineMode === "PixelEngine") && (
             <Box sx={{ mb: 2 }}>
               <FormControl fullWidth variant="outlined">
                 <InputLabel id="stat-source-label">Channel</InputLabel>
@@ -1577,6 +1590,18 @@ const CellImageGrid: React.FC = () => {
                 label={selectedLabel}
                 cellId={cellIds[currentIndex]}
                 imgType={statSource}
+              />
+            </Box>
+          )}
+
+          {engineMode === "PixelEngine" && (
+            <Box mt={6}>
+              <PixelEngine
+                dbName={db_name}
+                label={selectedLabel}
+                imgType={statSource}
+                labelOptions={LABEL_OPTIONS}
+                onLabelChange={(value) => setSelectedLabel(value)}
               />
             </Box>
           )}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import aiofiles
 import aiofiles.os
 import asyncio
+import csv
 import cv2
 import io
 import matplotlib
@@ -2078,6 +2079,60 @@ class CellCrudBase:
         df.to_csv(buf, index=False)
         buf.seek(0)
         return StreamingResponse(buf, media_type="text/csv")
+
+    async def get_pixel_intensities_csv(
+        self,
+        label: str | None = None,
+        img_type: Literal["ph", "fluo1", "fluo2"] = "fluo1",
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+        if not cell_ids:
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(["cell_id"])
+            byte_buf = io.BytesIO(buffer.getvalue().encode("utf-8"))
+            byte_buf.seek(0)
+            headers = {
+                "Content-Disposition": f'attachment; filename="{self.db_name}_label_{label or "all"}_{img_type}_pixels.csv"'
+            }
+            return StreamingResponse(byte_buf, media_type="text/csv", headers=headers)
+
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+
+        async def collect_pixels(cell: Cell) -> list[int | str]:
+            if img_type == "ph":
+                image_raw = cell.img_ph
+            elif img_type == "fluo2":
+                image_raw = cell.img_fluo2
+            else:
+                image_raw = cell.img_fluo1
+
+            if image_raw is None:
+                return [cell.cell_id]
+
+            pixels = await AsyncChores.get_points_inside_cell(
+                image_raw, cell.contour, normalize=False
+            )
+            return [cell.cell_id, *(int(p) for p in pixels)]
+
+        rows = await asyncio.gather(*(collect_pixels(cell) for cell in cells))
+        max_pixels = max((len(row) - 1 for row in rows), default=0)
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        header = ["cell_id"] + [f"pixel_{i+1}" for i in range(max_pixels)]
+        writer.writerow(header)
+        for row in rows:
+            writer.writerow(row)
+
+        byte_buf = io.BytesIO(buffer.getvalue().encode("utf-8"))
+        byte_buf.seek(0)
+        safe_label = "all" if label is None else str(label).replace("/", "-")
+        filename = f"{self.db_name}_label_{safe_label}_{img_type}_pixels.csv"
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        return StreamingResponse(byte_buf, media_type="text/csv", headers=headers)
 
     async def get_all_area_fractions(
         self, cell_id: str, y_label: str, label: str | None = None
