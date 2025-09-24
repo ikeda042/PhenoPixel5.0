@@ -1565,7 +1565,10 @@ class CellCrudBase:
             result = await session.execute(stmt)
             cell: Cell = result.scalars().first()
         await session.close()
-        return cell.label_experiment
+        if cell is None:
+            # Single layer databases might contain no rows yet; return an empty string
+            return ""
+        return cell.label_experiment or ""
 
     async def get_cell_ph(
         self,
