@@ -1565,7 +1565,9 @@ class CellCrudBase:
             result = await session.execute(stmt)
             cell: Cell = result.scalars().first()
         await session.close()
-        return cell.label_experiment
+        if cell is None:
+            return ""
+        return cell.label_experiment or ""
 
     async def get_cell_ph(
         self,
