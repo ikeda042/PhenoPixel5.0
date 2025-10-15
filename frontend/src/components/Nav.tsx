@@ -76,7 +76,7 @@ export default function Nav(props: Props) {
         }
         setRefreshing(true);
         try {
-            const response = await fetch(`${settings.url_prefix}/api/dev/git-pull`);
+            const response = await fetch(`${settings.url_prefix}/dev/git-pull`);
             if (!response.ok) {
                 throw new Error(`Request failed with status ${response.status}`);
             }
