@@ -227,7 +227,7 @@ export default function Nav(props: Props) {
                     <Alert onClose={handleRefreshStatusClose} severity={refreshStatus.severity} sx={{ width: '100%' }}>
                         {refreshStatus.message}
                     </Alert>
-                ) : null}
+                ) : undefined}
             </Snackbar>
         </Box>
     );
