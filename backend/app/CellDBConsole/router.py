@@ -342,12 +342,20 @@ async def get_mean_fluo_intensities(db_name: str, label: str, cell_id: str):
 
 
 @router_cell.get("/{db_name}/{label}/{cell_id}/median_fluo_intensities")
-async def get_median_fluo_intensities(db_name: str, label: str, cell_id: str):
+async def get_median_fluo_intensities(
+    db_name: str,
+    label: str,
+    cell_id: str,
+    img_type: Literal["fluo1", "fluo2"] = "fluo1",
+):
     await AsyncChores().validate_database_name(db_name)
     ret: StreamingResponse = await CellCrudBase(
         db_name=db_name
     ).get_all_median_normalized_fluo_intensities(
-        label=label, cell_id=cell_id, y_label="Median Normalized Fluorescence Intensity"
+        label=label,
+        cell_id=cell_id,
+        y_label="Median Normalized Fluorescence Intensity",
+        img_type=img_type,
     )
     return ret
 
@@ -419,11 +427,13 @@ async def get_area_fraction(db_name: str, label: str, cell_id: str):
 @router_cell.get(
     "/{db_name}/{label}/median_fluo_intensities/csv", response_class=StreamingResponse
 )
-async def get_median_fluo_intensities_csv(db_name: str, label: str):
+async def get_median_fluo_intensities_csv(
+    db_name: str, label: str, img_type: Literal["fluo1", "fluo2"] = "fluo1"
+):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(
         db_name=db_name
-    ).get_all_median_normalized_fluo_intensities_csv(label=label)
+    ).get_all_median_normalized_fluo_intensities_csv(label=label, img_type=img_type)
 
 
 @router_cell.get(

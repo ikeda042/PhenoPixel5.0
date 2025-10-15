@@ -17,7 +17,7 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
 from matplotlib.figure import Figure
 from numpy.linalg import eig, inv
@@ -1707,22 +1707,44 @@ class CellCrudBase:
         return StreamingResponse(ret, media_type="image/png")
 
     async def get_all_median_normalized_fluo_intensities(
-        self, cell_id: str, y_label: str, label: str | None = None
+        self,
+        cell_id: str,
+        y_label: str,
+        label: str | None = None,
+        img_type: Literal["fluo1", "fluo2"] = "fluo1",
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
         )
         target_cell = await self.read_cell(cell_id=cell_id)
+
+        if img_type == "fluo2":
+            target_img = target_cell.img_fluo2
+            if target_img is None:
+                raise HTTPException(
+                    status_code=404, detail="Fluo2 image not available for this cell"
+                )
+            cells = [cell for cell in cells if cell.img_fluo2 is not None]
+        else:
+            target_img = target_cell.img_fluo1
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail="No cells with the requested fluorescence channel were found",
+            )
+
         target_val = (
             await AsyncChores.calc_median_normalized_fluo_intensity_inside_cell(
-                target_cell.img_fluo1, target_cell.contour
+                target_img, target_cell.contour
             )
         )
         median_intensities = await asyncio.gather(
             *(
                 AsyncChores.calc_median_normalized_fluo_intensity_inside_cell(
-                    cell.img_fluo1, cell.contour
+                    cell.img_fluo2 if img_type == "fluo2" else cell.img_fluo1,
+                    cell.contour,
                 )
                 for cell in cells
             )
@@ -1948,16 +1970,29 @@ class CellCrudBase:
         return StreamingResponse(buf, media_type="text/csv")
 
     async def get_all_median_normalized_fluo_intensities_csv(
-        self, label: str | None = None
+        self,
+        label: str | None = None,
+        img_type: Literal["fluo1", "fluo2"] = "fluo1",
     ) -> StreamingResponse:
         cell_ids = await self.read_cell_ids(label)
         cells = await asyncio.gather(
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
         )
+
+        if img_type == "fluo2":
+            cells = [cell for cell in cells if cell.img_fluo2 is not None]
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail="No cells with the requested fluorescence channel were found",
+            )
+
         median_intensities = await asyncio.gather(
             *(
                 AsyncChores.calc_median_normalized_fluo_intensity_inside_cell(
-                    cell.img_fluo1, cell.contour
+                    cell.img_fluo2 if img_type == "fluo2" else cell.img_fluo1,
+                    cell.contour,
                 )
                 for cell in cells
             )
