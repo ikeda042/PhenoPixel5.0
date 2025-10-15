@@ -14,6 +14,9 @@ import {
   Checkbox,
   Breadcrumbs,
   Link,
+  IconButton,
+  Tooltip,
+  Snackbar,
 } from "@mui/material";
 import { SelectChangeEvent } from "@mui/material/Select";
 import { Scatter } from "react-chartjs-2";
@@ -31,6 +34,7 @@ import AreaFractionEngine from "./AreaFractionEngine";
 import SDEngine from "./SDEngine";
 import PixelCVEngine from "./PixelCVEngine";
 import PixelEngine from "./PixelEngine";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 import {
   Chart as ChartJS,
@@ -161,9 +165,18 @@ const LABEL_OPTIONS: { value: string; label: string }[] = [
 //-----------------------------------
 const CellImageGrid: React.FC = () => {
   // URLクエリから取得
-  const [searchParams] = useSearchParams();
-  const db_name = searchParams.get("db_name") ?? "test_database.db";
-  const cell_number = searchParams.get("cell") ?? "1";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const dbQueryParam = searchParams.get("db") ?? searchParams.get("db_name");
+  const db_name = dbQueryParam ?? "test_database.db";
+  const initialCellIdRef = useRef<string | null>(searchParams.get("cell_id"));
+  const cell_number_param = searchParams.get("cell") ?? "1";
+  const initialIndex = (() => {
+    const parsed = parseInt(cell_number_param, 10);
+    if (isNaN(parsed)) {
+      return 0;
+    }
+    return Math.max(parsed - 1, 0);
+  })();
   const init_draw_mode = (searchParams.get("init_draw_mode") ?? "light") as DrawModeType;
   const theme = useTheme();
 
@@ -172,10 +185,10 @@ const CellImageGrid: React.FC = () => {
   const [images, setImages] = useState<{ [key: string]: ImageState }>({});
   const [selectedLabel, setSelectedLabel] = useState<string>("74");
   const [manualLabel, setManualLabel] = useState<string>("");
-  const [currentIndex, setCurrentIndex] = useState<number>(parseInt(cell_number) - 1);
+  const [currentIndex, setCurrentIndex] = useState<number>(initialIndex);
 
   // 追加: 「今テキストボックスに入力しているインデックス」
-  const [inputIndex, setInputIndex] = useState<string>(parseInt(cell_number).toString());
+  const [inputIndex, setInputIndex] = useState<string>((initialIndex + 1).toString());
 
   // 各種スイッチ・入力
   const [drawContour, setDrawContour] = useState<boolean>(true);
@@ -191,6 +204,7 @@ const CellImageGrid: React.FC = () => {
   const [map256Source, setMap256Source] = useState<'ph' | 'fluo1' | 'fluo2'>('fluo1');
   const [statSource, setStatSource] = useState<'ph' | 'fluo1' | 'fluo2'>('fluo1');
   const [engineMode, setEngineMode] = useState<EngineName>("None");
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   // DetectMode 用の state
   const [detectMode, setDetectMode] = useState<DetectModeType>("None");
@@ -228,6 +242,54 @@ const CellImageGrid: React.FC = () => {
     };
     fetchCellIds();
   }, [db_name, selectedLabel]);
+
+  useEffect(() => {
+    if (!initialCellIdRef.current || cellIds.length === 0) {
+      return;
+    }
+    const targetIndex = cellIds.findIndex((id) => id === initialCellIdRef.current);
+    if (targetIndex !== -1) {
+      setCurrentIndex(targetIndex);
+    }
+    initialCellIdRef.current = null;
+  }, [cellIds]);
+
+  useEffect(() => {
+    if (cellIds.length === 0) {
+      return;
+    }
+    if (currentIndex >= cellIds.length) {
+      setCurrentIndex(cellIds.length - 1);
+    }
+  }, [cellIds, currentIndex]);
+
+  useEffect(() => {
+    if (cellIds.length === 0) {
+      return;
+    }
+    const currentCellId = cellIds[currentIndex];
+    if (!currentCellId) {
+      return;
+    }
+    const params = new URLSearchParams(searchParams);
+    let shouldUpdate = false;
+
+    const ensureValue = (key: string, value: string) => {
+      if (params.get(key) !== value) {
+        params.set(key, value);
+        shouldUpdate = true;
+      }
+    };
+
+    ensureValue("db", db_name);
+    ensureValue("db_name", db_name);
+    ensureValue("cell", (currentIndex + 1).toString());
+    ensureValue("cell_id", currentCellId);
+
+    if (shouldUpdate) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [cellIds, currentIndex, db_name, searchParams, setSearchParams]);
 
   useEffect(() => {
     const checkFluo2 = async () => {
@@ -781,6 +843,42 @@ const CellImageGrid: React.FC = () => {
     }
   };
 
+  const handleCopyLink = async () => {
+    const currentCellId = cellIds[currentIndex];
+    if (!currentCellId) {
+      setCopyMessage("Cell data is still loading.");
+      return;
+    }
+
+    try {
+      const shareUrl = new URL(window.location.href);
+      shareUrl.searchParams.set("db", db_name);
+      shareUrl.searchParams.set("db_name", db_name);
+      shareUrl.searchParams.set("cell_id", currentCellId);
+      shareUrl.searchParams.set("cell", (currentIndex + 1).toString());
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl.toString());
+        setCopyMessage("Link copied to clipboard!");
+      } else {
+        throw new Error("Clipboard API is not available");
+      }
+    } catch (error) {
+      console.error("Failed to copy share link:", error);
+      setCopyMessage("Failed to copy link.");
+    }
+  };
+
+  const handleCopySnackbarClose = (
+    _event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setCopyMessage(null);
+  };
+
   // currentIndex が変わったら、テキスト入力も追随しておく
   useEffect(() => {
     setInputIndex((currentIndex + 1).toString());
@@ -789,10 +887,12 @@ const CellImageGrid: React.FC = () => {
   //------------------------------------
   // 実際の描画部分
   //------------------------------------
+  const isShareDisabled = cellIds.length === 0 || !cellIds[currentIndex];
+
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, width: "100%" }}>
       {/* パンくずリスト */}
-      <Box mb={2}>
+      <Box mb={2} display="flex" alignItems="center" gap={1}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link underline="hover" color="inherit" href="/">
             Top
@@ -802,6 +902,18 @@ const CellImageGrid: React.FC = () => {
           </Link>
           <Typography color="text.primary">{db_name}</Typography>
         </Breadcrumbs>
+        <Tooltip title={isShareDisabled ? "Cell data is still loading" : "Copy share link"}>
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleCopyLink}
+              aria-label="Copy share link"
+              disabled={isShareDisabled}
+            >
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
       </Box>
 
       {/* 全体レイアウトをGridに変えてレスポンシブ対応 */}
@@ -1628,6 +1740,12 @@ const CellImageGrid: React.FC = () => {
           )}
         </Grid>
       </Grid>
+      <Snackbar
+        open={Boolean(copyMessage)}
+        autoHideDuration={3000}
+        onClose={handleCopySnackbarClose}
+        message={copyMessage ?? ""}
+      />
     </Box>
   );
 };
