@@ -11,6 +11,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import MenuIcon from '@mui/icons-material/Menu';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import GitHubIcon from '@mui/icons-material/GitHub';
@@ -19,6 +20,8 @@ import ScienceIcon from '@mui/icons-material/Science';
 import DatabaseIcon from '@mui/icons-material/Storage';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 import { settings } from '../settings';
 
 interface Props {
@@ -34,6 +37,8 @@ const navItems = [""];
 export default function Nav(props: Props) {
     const { window, mode, toggleMode } = props;
     const [mobileOpen, setMobileOpen] = React.useState(false);
+    const [refreshing, setRefreshing] = React.useState(false);
+    const [refreshStatus, setRefreshStatus] = React.useState<{ message: string; severity: 'success' | 'error' } | null>(null);
     const navigate = useNavigate();
 
     const handleDrawerToggle = () => {
@@ -64,6 +69,32 @@ export default function Nav(props: Props) {
     );
 
     const container = window !== undefined ? () => window().document.body : undefined;
+
+    const handleRefresh = async () => {
+        if (refreshing) {
+            return;
+        }
+        setRefreshing(true);
+        try {
+            const response = await fetch(`${settings.url_prefix}/api/dev/git-pull`);
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+            setRefreshStatus({ message: 'Git pull successful.', severity: 'success' });
+        } catch (error) {
+            console.error('Failed to run git pull:', error);
+            setRefreshStatus({ message: 'Failed to run git pull.', severity: 'error' });
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
+    const handleRefreshStatusClose = (_event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setRefreshStatus(null);
+    };
 
     return (
         <Box sx={{ display: 'flex' }}>
@@ -108,6 +139,14 @@ export default function Nav(props: Props) {
                     </Link>
                     {/* ロゴと右側アイコン群の間にスペーサーを配置 */}
                     <Box sx={{ flexGrow: 1 }} />
+                    <IconButton
+                        color="inherit"
+                        onClick={handleRefresh}
+                        disabled={refreshing}
+                        aria-label="Refresh repository"
+                    >
+                        <RefreshIcon />
+                    </IconButton>
                     <IconButton
                         color="inherit"
                         onClick={() => navigate('/nd2files')}
@@ -178,6 +217,18 @@ export default function Nav(props: Props) {
             <Box component="main" sx={{ p: 1 }}>
                 <Toolbar />
             </Box>
+            <Snackbar
+                open={Boolean(refreshStatus)}
+                autoHideDuration={4000}
+                onClose={handleRefreshStatusClose}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                {refreshStatus ? (
+                    <Alert onClose={handleRefreshStatusClose} severity={refreshStatus.severity} sx={{ width: '100%' }}>
+                        {refreshStatus.message}
+                    </Alert>
+                ) : null}
+            </Snackbar>
         </Box>
     );
 }
