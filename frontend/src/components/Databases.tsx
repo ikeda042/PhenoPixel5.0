@@ -198,14 +198,37 @@ const Databases: React.FC = () => {
    * クリップボードにコピー
    */
   const handleCopyToClipboard = (dbName: string) => {
-    navigator.clipboard
-      .writeText(dbName)
-      .then(() => {
+    if (window.isSecureContext && navigator.clipboard?.writeText) {
+      navigator.clipboard
+        .writeText(dbName)
+        .then(() => {
+          alert(`${dbName} copied to clipboard!`);
+        })
+        .catch((err) => {
+          console.error("Failed to copy text: ", err);
+        });
+      return;
+    }
+
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = dbName;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const succeeded = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      if (succeeded) {
         alert(`${dbName} copied to clipboard!`);
-      })
-      .catch((err) => {
-        console.error("Failed to copy text: ", err);
-      });
+      } else {
+        throw new Error("execCommand copy failed");
+      }
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+      alert("Failed to copy. Please copy manually.");
+    }
   };
 
   /**
