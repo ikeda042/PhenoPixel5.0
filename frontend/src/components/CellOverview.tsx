@@ -843,6 +843,32 @@ const CellImageGrid: React.FC = () => {
     }
   };
 
+  const fallbackCopyToClipboard = (text: string) =>
+    new Promise<void>((resolve, reject) => {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.top = "0";
+      textarea.style.left = "0";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+
+      try {
+        const successful = document.execCommand("copy");
+        if (!successful) {
+          reject(new Error("Fallback copy command was unsuccessful"));
+        } else {
+          resolve();
+        }
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error("Fallback copy failed"));
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    });
+
   const handleCopyLink = async () => {
     const currentCellId = cellIds[currentIndex];
     if (!currentCellId) {
@@ -857,12 +883,14 @@ const CellImageGrid: React.FC = () => {
       shareUrl.searchParams.set("cell_id", currentCellId);
       shareUrl.searchParams.set("cell", (currentIndex + 1).toString());
 
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(shareUrl.toString());
-        setCopyMessage("Link copied to clipboard!");
+      const shareUrlString = shareUrl.toString();
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrlString);
       } else {
-        throw new Error("Clipboard API is not available");
+        await fallbackCopyToClipboard(shareUrlString);
       }
+      setCopyMessage("Link copied to clipboard!");
     } catch (error) {
       console.error("Failed to copy share link:", error);
       setCopyMessage("Failed to copy link.");
