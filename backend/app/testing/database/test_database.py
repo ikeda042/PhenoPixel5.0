@@ -323,6 +323,12 @@ async def test_get_median_fluo_intensities(client: AsyncClient):
     )
     assert response.status_code == 200
 
+    response_fluo2 = await client.get(
+        "/api/cells/test_database.db/1/F0C5/median_fluo_intensities",
+        params={"img_type": "fluo2"},
+    )
+    assert response_fluo2.status_code == 200
+
 
 @pytest.mark.anyio
 async def test_get_var_fluo_intensities(client: AsyncClient):
@@ -355,6 +361,12 @@ async def test_get_median_fluo_intensities_csv(client: AsyncClient):
         "/api/cells/test_database.db/1/median_fluo_intensities/csv"
     )
     assert response.status_code == 200
+
+    response_fluo2 = await client.get(
+        "/api/cells/test_database.db/1/median_fluo_intensities/csv",
+        params={"img_type": "fluo2"},
+    )
+    assert response_fluo2.status_code == 200
 
 
 @pytest.mark.anyio
