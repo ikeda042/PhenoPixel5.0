@@ -114,7 +114,9 @@ const Databases: React.FC = () => {
       const markableStatus = await Promise.all(
         uploadedDatabases.map(async (db) => {
           try {
-            const checkResponse = await axios.get(`${url_prefix}/databases/${db}`);
+            const checkResponse = await axios.get(
+              `${url_prefix}/databases/${encodeURIComponent(db)}`
+            );
             return { db, markable: checkResponse.data };
           } catch (error) {
             console.error(`Failed to check markable status for ${db}`, error);
@@ -137,7 +139,7 @@ const Databases: React.FC = () => {
         response.data.databases.map(async (db) => {
           try {
             const metadataResponse = await axios.get(
-              `${url_prefix}/databases/${db}/metadata`
+              `${url_prefix}/databases/${encodeURIComponent(db)}/metadata`
             );
             return { db, metadata: metadataResponse.data };
           } catch (error) {
@@ -268,7 +270,7 @@ const Databases: React.FC = () => {
 
     try {
       await axios.patch(
-        `${url_prefix}/databases/${dbName}/update-metadata`,
+        `${url_prefix}/databases/${encodeURIComponent(dbName)}/update-metadata`,
         { metadata: updatedMetadata },
         {
           headers: {
@@ -312,7 +314,7 @@ const Databases: React.FC = () => {
     if (databaseToComplete) {
       try {
         const response = await axios.patch(
-          `${url_prefix}/databases/${databaseToComplete}`
+          `${url_prefix}/databases/${encodeURIComponent(databaseToComplete)}`
         );
         setDialogMessage(response.data.message);
         setIsDialogOpen(true);
@@ -333,7 +335,9 @@ const Databases: React.FC = () => {
   const handleDownload = async (database: string) => {
     try {
       const response = await axios.get(
-        `${url_prefix}/databases/download-completed/${database}`,
+        `${url_prefix}/databases/download-completed/${encodeURIComponent(
+          database
+        )}`,
         {
           responseType: "blob",
         }
@@ -365,7 +369,7 @@ const Databases: React.FC = () => {
     setLoadingPreview(true);
     try {
       const response = await axios.get(
-        `${url_prefix}/databases/${database}/combined_images`,
+        `${url_prefix}/databases/${encodeURIComponent(database)}/combined_images`,
         {
           params: {
             label: selectedLabel,
@@ -391,14 +395,14 @@ const Databases: React.FC = () => {
    * 指定のDBに画面遷移
    */
   const handleNavigate = (dbName: string) => {
-    navigate(`/databases/?db_name=${dbName}`);
+    navigate(`/databases/?db_name=${encodeURIComponent(dbName)}`);
   };
 
   /**
    * ラベルソーターページへ遷移
    */
   const handleNavigateLabelSorter = (dbName: string) => {
-    navigate(`/labelsorter?db_name=${dbName}`);
+    navigate(`/labelsorter?db_name=${encodeURIComponent(dbName)}`);
   };
 
   /**
