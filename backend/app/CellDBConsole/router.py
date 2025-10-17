@@ -360,6 +360,25 @@ async def get_median_fluo_intensities(
     return ret
 
 
+@router_cell.get("/{db_name}/{label}/{cell_id}/ibpa_ratio")
+async def get_ibpa_ratio(
+    db_name: str,
+    label: str,
+    cell_id: str,
+    img_type: Literal["fluo1", "fluo2"] = "fluo1",
+):
+    await AsyncChores().validate_database_name(db_name)
+    ret: StreamingResponse = await CellCrudBase(
+        db_name=db_name
+    ).get_ibpa_ratio(
+        label=label,
+        cell_id=cell_id,
+        y_label="IbpA High-intensity Ratio",
+        img_type=img_type,
+    )
+    return ret
+
+
 @router_cell.get("/{db_name}/{label}/{cell_id}/var_fluo_intensities")
 async def get_var_fluo_intensities(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)

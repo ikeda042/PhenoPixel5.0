@@ -331,6 +331,22 @@ async def test_get_median_fluo_intensities(client: AsyncClient):
 
 
 @pytest.mark.anyio
+async def test_get_ibpa_ratio(client: AsyncClient):
+    """GET /cells/{db_name}/{label}/{cell_id}/ibpa_ratio"""
+
+    response = await client.get(
+        "/api/cells/test_database.db/1/F0C5/ibpa_ratio"
+    )
+    assert response.status_code == 200
+
+    response_fluo2 = await client.get(
+        "/api/cells/test_database.db/1/F0C5/ibpa_ratio",
+        params={"img_type": "fluo2"},
+    )
+    assert response_fluo2.status_code == 200
+
+
+@pytest.mark.anyio
 async def test_get_var_fluo_intensities(client: AsyncClient):
     """
     GET /cells/{db_name}/{label}/{cell_id}/var_fluo_intensities

@@ -624,6 +624,36 @@ class AsyncChores:
         return round(sd_val / mean_val if mean_val != 0 else 0, 2)
 
     @staticmethod
+    async def calc_ibpa_mode_ratio(
+        image_fluo_raw: bytes, contour_raw: bytes, bins: int = 30
+    ) -> tuple[float, float]:
+        """Calculate IbpA mode value and high-intensity ratio inside a cell."""
+        points = await AsyncChores.get_points_inside_cell(
+            image_fluo_raw, contour_raw, normalize=False
+        )
+        if len(points) == 0:
+            return float("nan"), float("nan")
+
+        values = np.asarray(points, dtype=np.float32)
+        counts, bin_edges = np.histogram(values, bins=bins)
+        if counts.size == 0 or np.sum(counts) == 0:
+            return float("nan"), float("nan")
+
+        max_bin_index = int(np.argmax(counts))
+        if max_bin_index >= len(bin_edges) - 1:
+            mode_value = float(bin_edges[-1])
+        else:
+            mode_value = float(
+                (bin_edges[max_bin_index] + bin_edges[max_bin_index + 1]) / 2
+            )
+
+        threshold = mode_value + 30.0
+        high_sum = float(np.sum(values[values >= threshold]))
+        total_sum = float(np.sum(values))
+        ratio = round(high_sum / total_sum, 2) if total_sum > 0 else float("nan")
+        return round(mode_value, 2), ratio
+
+    @staticmethod
     async def calc_area_fraction(
         image_fluo_raw: bytes, contour_raw: bytes
     ) -> float:
@@ -1761,6 +1791,73 @@ class CellCrudBase:
                     4,
                 )
             ),
+        )
+        return StreamingResponse(buf, media_type="image/png")
+
+    async def get_ibpa_ratio(
+        self,
+        cell_id: str,
+        y_label: str,
+        label: str | None = None,
+        img_type: Literal["fluo1", "fluo2"] = "fluo1",
+    ) -> StreamingResponse:
+        cell_ids = await self.read_cell_ids(label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+        target_cell = await self.read_cell(cell_id=cell_id)
+
+        if img_type == "fluo2":
+            target_img = target_cell.img_fluo2
+            if target_img is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Fluo2 image not available for this cell",
+                )
+            cells = [cell for cell in cells if cell.img_fluo2 is not None]
+        else:
+            target_img = target_cell.img_fluo1
+
+        if not cells:
+            raise HTTPException(
+                status_code=404,
+                detail="No cells with the requested fluorescence channel were found",
+            )
+
+        target_mode, target_ratio = await AsyncChores.calc_ibpa_mode_ratio(
+            target_img, target_cell.contour
+        )
+
+        if np.isnan(target_ratio):
+            raise HTTPException(
+                status_code=404,
+                detail="Unable to calculate IbpA ratio for the selected cell",
+            )
+
+        async def calculate_ratio(cell):
+            image = cell.img_fluo2 if img_type == "fluo2" else cell.img_fluo1
+            if image is None:
+                return float("nan")
+            _, ratio = await AsyncChores.calc_ibpa_mode_ratio(image, cell.contour)
+            return ratio
+
+        ratios = await asyncio.gather(*(calculate_ratio(cell) for cell in cells))
+        filtered_ratios = [ratio for ratio in ratios if not np.isnan(ratio)]
+
+        if not filtered_ratios:
+            raise HTTPException(
+                status_code=404,
+                detail="No IbpA ratios available for the selected cells",
+            )
+
+        label_text = f"Mode: {target_mode:.2f}\nRatio: {target_ratio:.2f}"
+
+        buf = await AsyncChores.box_plot(
+            filtered_ratios,
+            target_val=target_ratio,
+            y_label=y_label,
+            cell_id=cell_id,
+            label=label_text,
         )
         return StreamingResponse(buf, media_type="image/png")
 
