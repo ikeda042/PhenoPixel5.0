@@ -607,6 +607,7 @@ const Databases: React.FC = () => {
                   </Box>
                 </TableCell>
 
+                <TableCell align="center">Preview</TableCell>
                 <TableCell align="center">Access</TableCell>
                 <TableCell align="center">Sort labels</TableCell>
               </TableRow>
@@ -726,13 +727,13 @@ const Databases: React.FC = () => {
                           Preview
                           </Button>
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell align="center">
                           <IconButton onClick={() => handleNavigate(database)}>
                             <Typography>Access database </Typography>
                             <NavigateNextIcon />
                           </IconButton>
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell align="center">
                           <IconButton onClick={() => handleNavigateLabelSorter(database)}>
                             <Typography>Sort labels </Typography>
                             <NavigateNextIcon />
