@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import select
 import random
+from ..settings import settings
 
 
 load_dotenv()
@@ -53,7 +54,7 @@ class Cell(Base):
 
 async def notify_slack_database_created(db_path: str) -> None:
     """Send a Slack notification when a database has been generated."""
-    webhook_url = os.getenv("slack_webhook_url")
+    webhook_url = settings.slack_webhook_url
     if not webhook_url:
         return
 
