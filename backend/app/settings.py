@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     server_origin: str = "http://localhost:8000"
     admin_handle_id: str = "ikeda042"
     admin_password: str = "default"
+    slack_webhook_url: str | None = None
 
     class Config:
         env_file = ".env"
