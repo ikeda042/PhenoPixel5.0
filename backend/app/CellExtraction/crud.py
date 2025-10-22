@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import pickle
+import random
 from typing import Literal
 
 import aiofiles
@@ -14,12 +15,12 @@ from PIL import Image
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import BLOB, Column, FLOAT, Integer, String, text
-from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import select
-import random
-from ..settings import settings
+
+from settings import settings
 
 
 load_dotenv()
@@ -54,7 +55,11 @@ class Cell(Base):
 
 async def notify_slack_database_created(db_path: str) -> None:
     """Send a Slack notification when a database has been generated."""
-    webhook_url = settings.slack_webhook_url
+    webhook_url = (
+        settings.slack_webhook_url
+        or os.getenv("SLACK_WEBHOOK_URL")
+        or os.getenv("slack_webhook_url")
+    )
     if not webhook_url:
         return
 
@@ -66,6 +71,11 @@ async def notify_slack_database_created(db_path: str) -> None:
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
             response = await client.post(webhook_url, json=payload)
             response.raise_for_status()
+            logger.info("Slack notified for database creation: %s", db_name)
+    except httpx.HTTPStatusError as exc:
+        logger.warning(
+            "Slack notification failed %s: %s", exc.response.status_code, exc.response.text
+        )
     except Exception as exc:
         logger.warning("Slack notification failed: %s", exc)
 
