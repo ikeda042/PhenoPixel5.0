@@ -34,6 +34,7 @@ import AreaFractionEngine from "./AreaFractionEngine";
 import SDEngine from "./SDEngine";
 import PixelCVEngine from "./PixelCVEngine";
 import PixelEngine from "./PixelEngine";
+import IbpAEngine from "./IbpAEngine";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 import {
@@ -105,7 +106,8 @@ type EngineName =
   | "AreaFractionEngine"
   | "SDEngine"
   | "PixelCVEngine"
-  | "PixelEngine";
+  | "PixelEngine"
+  | "IbpAEngine";
 
 // MorphoEngineロゴマッピング
 const engineLogos: Record<EngineName, string> = {
@@ -119,6 +121,7 @@ const engineLogos: Record<EngineName, string> = {
   SDEngine: "/var_logo.png",
   PixelCVEngine: "/var_logo.png",
   PixelEngine: "/var_logo.png",
+  IbpAEngine: "/var_logo.png",
 };
 
 //-----------------------------------
@@ -1685,6 +1688,16 @@ const CellImageGrid: React.FC = () => {
           {engineMode === "MedianEngine" && (
             <Box mt={6}>
               <MedianEngine
+                dbName={db_name}
+                label={selectedLabel}
+                cellId={cellIds[currentIndex]}
+              />
+            </Box>
+          )}
+
+          {engineMode === "IbpAEngine" && (
+            <Box mt={6}>
+              <IbpAEngine
                 dbName={db_name}
                 label={selectedLabel}
                 cellId={cellIds[currentIndex]}
