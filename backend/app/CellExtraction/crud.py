@@ -1,21 +1,28 @@
 import asyncio
+import logging
 import os
 import pickle
 from typing import Literal
 
 import aiofiles
 import cv2
+import httpx
 import nd2reader
 import numpy as np
+from dotenv import load_dotenv
 from PIL import Image
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import BLOB, Column, FLOAT, Integer, String, text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import select
 import random
+
+
+load_dotenv()
+logger = logging.getLogger(__name__)
 
 
 def get_ulid() -> str:
@@ -42,6 +49,24 @@ class Cell(Base):
     center_x = Column(FLOAT)
     center_y = Column(FLOAT)
     user_id = Column(String, nullable=True)
+
+
+async def notify_slack_database_created(db_path: str) -> None:
+    """Send a Slack notification when a database has been generated."""
+    webhook_url = os.getenv("slack_webhook_url")
+    if not webhook_url:
+        return
+
+    db_name = os.path.basename(db_path)
+    payload = {
+        "text": f"nd2extractが完了しました。database `{db_name}` を作成しました。"
+    }
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
+            response = await client.post(webhook_url, json=payload)
+            response.raise_for_status()
+    except Exception as exc:
+        logger.warning("Slack notification failed: %s", exc)
 
 
 async def get_session(dbname: str):
@@ -602,6 +627,7 @@ class ExtractionCrudBase:
 
         await asyncio.gather(*tasks)
         await asyncio.to_thread(SyncChores.cleanup, f"TempData{self.ulid}")
+        await notify_slack_database_created(dbname)
         return num_tiff, self.ulid
 
     async def get_nd2_filenames(self) -> list[str]:
