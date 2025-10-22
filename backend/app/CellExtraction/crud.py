@@ -4,6 +4,7 @@ import os
 import pickle
 import random
 from typing import Literal
+from urllib.parse import urlencode
 
 import aiofiles
 import cv2
@@ -64,9 +65,20 @@ async def notify_slack_database_created(db_path: str) -> None:
         return
 
     db_name = os.path.basename(db_path)
-    payload = {
-        "text": f"nd2extractが完了しました。database `{db_name}` を作成しました。"
-    }
+    server_origin = (
+        settings.server_origin
+        or os.getenv("SERVER_ORIGIN")
+        or os.getenv("server_origin")
+    )
+    db_url = None
+    if server_origin:
+        db_url = f"{server_origin.rstrip('/')}/databases/?{urlencode({'db_name': db_name})}"
+
+    message = f"nd2extractが完了しました。database `{db_name}` を作成しました。"
+    if db_url:
+        message = f"{message}\n{db_url}"
+
+    payload = {"text": message}
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
             response = await client.post(webhook_url, json=payload)
