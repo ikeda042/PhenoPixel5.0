@@ -111,6 +111,7 @@ async def get_env():
         "API_TITLE": api_title,
         "API_PREFIX": api_prefix,
         "TEST_ENV": test_env,
+        "Slack_Webhook_URL": settings.slack_webhook_url,
     }
 
 
