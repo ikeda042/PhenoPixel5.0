@@ -183,6 +183,9 @@ const CellImageGrid: React.FC = () => {
   const drawModeParam = (searchParams.get("draw_mode")
     ?? searchParams.get("init_draw_mode")
     ?? "light") as DrawModeType;
+  const fluoChannelParamRaw = searchParams.get("fluo_channel");
+  const initialFluoChannel: "fluo1" | "fluo2" =
+    fluoChannelParamRaw === "fluo2" ? "fluo2" : "fluo1";
   const theme = useTheme();
 
   // セルIDや画像などの状態管理
@@ -203,7 +206,8 @@ const CellImageGrid: React.FC = () => {
   const [laplacianBrightness, setLaplacianBrightness] = useState<number>(1.0);
   const [sobelBrightness, setSobelBrightness] = useState<number>(1.0);
   const [hasFluo2, setHasFluo2] = useState<boolean>(false);
-  const [fluoChannel, setFluoChannel] = useState<'fluo1' | 'fluo2'>('fluo1');
+  const [hasFluo2Checked, setHasFluo2Checked] = useState<boolean>(false);
+  const [fluoChannel, setFluoChannel] = useState<"fluo1" | "fluo2">(initialFluoChannel);
   const [drawMode, setDrawMode] = useState<DrawModeType>(drawModeParam);
   const [fitDegree, setFitDegree] = useState<number>(4);
   const [map256Source, setMap256Source] = useState<'ph' | 'fluo1' | 'fluo2'>('fluo1');
@@ -302,6 +306,7 @@ const CellImageGrid: React.FC = () => {
     ensureValue("cell", (currentIndex + 1).toString());
     ensureValue("cell_id", currentCellId);
     ensureValue("draw_mode", drawMode);
+    ensureValue("fluo_channel", fluoChannel);
 
     const requiresPolyfit = DRAW_MODES.find((mode) => mode.value === drawMode)?.needsPolyfit ?? false;
     ensureOrRemove(
@@ -317,6 +322,7 @@ const CellImageGrid: React.FC = () => {
     currentIndex,
     db_name,
     drawMode,
+    fluoChannel,
     fitDegree,
     searchParams,
     setSearchParams,
@@ -337,18 +343,45 @@ const CellImageGrid: React.FC = () => {
         setFitDegree((prev) => (prev === parsedDegree ? prev : parsedDegree));
       }
     }
+
+    const fluoParam = searchParams.get("fluo_channel") === "fluo2" ? "fluo2" : "fluo1";
+    setFluoChannel((prev) => (prev === fluoParam ? prev : fluoParam));
   }, [searchParams]);
 
   useEffect(() => {
+    if (!hasFluo2Checked) {
+      return;
+    }
+    if (!hasFluo2 && fluoChannel === "fluo2") {
+      setFluoChannel("fluo1");
+    }
+  }, [hasFluo2Checked, hasFluo2, fluoChannel]);
+
+  useEffect(() => {
+    let isMounted = true;
     const checkFluo2 = async () => {
+      setHasFluo2Checked(false);
+      setHasFluo2(false);
       try {
         const res = await axios.get(`${url_prefix}/databases/${db_name}/has-fluo2`);
-        setHasFluo2(res.data.has_fluo2);
+        if (isMounted) {
+          setHasFluo2(res.data.has_fluo2);
+        }
       } catch (e) {
         console.error('Failed to check fluo2 existence', e);
+        if (isMounted) {
+          setHasFluo2(false);
+        }
+      } finally {
+        if (isMounted) {
+          setHasFluo2Checked(true);
+        }
       }
     };
     checkFluo2();
+    return () => {
+      isMounted = false;
+    };
   }, [db_name]);
 
   //------------------------------------
@@ -448,7 +481,7 @@ const CellImageGrid: React.FC = () => {
     try {
       switch (mode) {
         case "replot": {
-          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const channelParam = fluoChannel === "fluo2" && hasFluo2 ? 2 : 1;
           const dark = theme.palette.mode === "dark" ? "&dark_mode=true" : "";
           const response = await axios.get(
             `${url_prefix}/cells/${cellId}/${db_name}/replot?degree=${fitDegree}&channel=${channelParam}${dark}`,
@@ -462,7 +495,7 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "distribution": {
-          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const channelParam = fluoChannel === "fluo2" && hasFluo2 ? 2 : 1;
           const response = await axios.get(
             `${url_prefix}/cells/${db_name}/${cellId}/distribution?channel=${channelParam}`,
             { responseType: "blob" }
@@ -475,7 +508,7 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "distribution_normalized": {
-          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const channelParam = fluoChannel === "fluo2" && hasFluo2 ? 2 : 1;
           const response = await axios.get(
             `${url_prefix}/cells/${db_name}/${selectedLabel}/${cellId}/distribution_normalized?channel=${channelParam}`,
             { responseType: "blob" }
@@ -488,7 +521,7 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "path": {
-          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const channelParam = fluoChannel === "fluo2" && hasFluo2 ? 2 : 1;
           setIsLoading(true);
           const response = await axios.get(
             `${url_prefix}/cells/${cellId}/${db_name}/path?degree=${fitDegree}&channel=${channelParam}`,
@@ -503,7 +536,7 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "laplacian": {
-          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const channelParam = fluoChannel === "fluo2" && hasFluo2 ? 2 : 1;
           const response = await axios.get(
             `${url_prefix}/cells/${cellId}/${db_name}/laplacian?channel=${channelParam}&brightness_factor=${laplacianBrightness}`,
             { responseType: "blob" }
@@ -516,7 +549,7 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "sobel": {
-          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const channelParam = fluoChannel === "fluo2" && hasFluo2 ? 2 : 1;
           const response = await axios.get(
             `${url_prefix}/cells/${cellId}/${db_name}/sobel?channel=${channelParam}&brightness_factor=${sobelBrightness}`,
             { responseType: "blob" }
@@ -529,7 +562,7 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "hu_mask": {
-          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const channelParam = fluoChannel === "fluo2" && hasFluo2 ? 2 : 1;
           const response = await axios.get(
             `${url_prefix}/cells/${cellId}/${db_name}/hu_mask?channel=${channelParam}`,
             { responseType: "blob" }
@@ -542,7 +575,7 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "map256": {
-          const channelParam = map256Source === 'fluo2' ? 2 : 1;
+          const channelParam = map256Source === 'fluo2' && hasFluo2 ? 2 : 1;
           const imgTypeParam = map256Source === 'ph' ? 'ph' : 'fluo';
           setIsLoading(true);
           const [rawRes, jetRes, clipRes] = await Promise.all([
@@ -583,7 +616,7 @@ const CellImageGrid: React.FC = () => {
           break;
         }
         case "cloud_points": {
-          const channelParam = fluoChannel === 'fluo2' ? 2 : 1;
+          const channelParam = fluoChannel === "fluo2" && hasFluo2 ? 2 : 1;
           const response = await axios.get(
             `${url_prefix}/cells/${db_name}/${cellId}/3d?channel=${channelParam}`,
             { responseType: "blob" }
@@ -639,7 +672,7 @@ const CellImageGrid: React.FC = () => {
     const cellId = cellIds[currentIndex];
     fetchAdditionalImage(drawMode, cellId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel, laplacianBrightness, sobelBrightness, map256Source]);
+  }, [drawMode, cellIds, currentIndex, fitDegree, fluoChannel, laplacianBrightness, sobelBrightness, map256Source, hasFluo2]);
 
   //------------------------------------
   // 現在のセルIDに対応した初期ラベルを取得
