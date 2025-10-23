@@ -28,6 +28,7 @@ from sqlalchemy.future import select
 from typing import Literal
 from skimage.filters import threshold_otsu
 from CellDBConsole.schemas import CellId, CellMorhology, ListDBresponse
+from CellExtraction.crud import notify_slack_database_created
 from database import get_session, Cell
 from exceptions import CellNotFoundError
 
@@ -2432,9 +2433,13 @@ class CellCrudBase:
             return False
         dbname_cleaned = self.db_name.split("/")[-1]
         dbname_cleaned = "".join(dbname_cleaned.split(".")[:-1]) + ".db"
-        os.rename(
-            f"databases/{dbname_cleaned}",
-            f"databases/{dbname_cleaned.replace('-uploaded.db','')}-completed.db",
+        source_path = f"databases/{dbname_cleaned}"
+        completed_name = f"{dbname_cleaned.replace('-uploaded.db','')}-completed.db"
+        completed_path = f"databases/{completed_name}"
+        os.rename(source_path, completed_path)
+        await notify_slack_database_created(
+            completed_path,
+            message=f"database `{completed_name}` のラベリングが完了しました。",
         )
         return True
 

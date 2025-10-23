@@ -54,8 +54,10 @@ class Cell(Base):
     user_id = Column(String, nullable=True)
 
 
-async def notify_slack_database_created(db_path: str) -> None:
-    """Send a Slack notification when a database has been generated."""
+async def notify_slack_database_created(
+    db_path: str, *, message: str | None = None
+) -> None:
+    """Send a Slack notification when a database event has completed."""
     webhook_url = (
         settings.slack_webhook_url
         or os.getenv("SLACK_WEBHOOK_URL")
@@ -74,11 +76,11 @@ async def notify_slack_database_created(db_path: str) -> None:
     if server_origin:
         db_url = f"{server_origin.rstrip('/')}/databases/?{urlencode({'db_name': db_name})}"
 
-    message = f"nd2extractが完了しました。database `{db_name}` を作成しました。"
+    slack_message = message or f"nd2extractが完了しました。database `{db_name}` を作成しました。"
     if db_url:
-        message = f"{message}\n{db_url}"
+        slack_message = f"{slack_message}\n{db_url}"
 
-    payload = {"text": message}
+    payload = {"text": slack_message}
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
             response = await client.post(webhook_url, json=payload)
