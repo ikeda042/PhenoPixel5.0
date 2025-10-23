@@ -5,7 +5,7 @@ import aiofiles
 from fastapi import APIRouter, HTTPException, UploadFile, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from CellExtraction.crud import ExtractionCrudBase
+from CellExtraction.crud import ExtractionCrudBase, notify_slack_database_created
 from CellExtraction.schemas import CellExtractionResponse
 from OAuth2.login_manager import get_account_optional
 
@@ -88,7 +88,9 @@ async def extract_cells(
             user_id=account.handle_id if account else None,
         )
         ret = await extractor.main()
-        return CellExtractionResponse(num_tiff=int(ret[0]), ulid=str(ret[1]))
+        return CellExtractionResponse(
+            num_tiff=int(ret[0]), ulid=str(ret[1]), db_name=str(ret[2])
+        )
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -101,3 +103,12 @@ async def delete_extracted_files(ulid: str):
     except:
         raise HTTPException(status_code=404, detail="Files not found")
     return JSONResponse(content={"message": "Files deleted"})
+
+
+@router_cell_extraction.post("/databases/{db_name}/notify_created")
+async def notify_database_created(db_name: str):
+    db_path = os.path.join("databases", db_name)
+    if not os.path.exists(db_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    await notify_slack_database_created(db_path)
+    return JSONResponse(content={"message": "Slack notified"})

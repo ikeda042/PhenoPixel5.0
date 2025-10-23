@@ -60,6 +60,7 @@ const CustomTextField = styled(TextField)(({ theme }) => ({
 interface CellExtractionResponse {
   num_tiff: number;
   ulid: string;
+  db_name: string;
 }
 
 const Extraction: React.FC = () => {
@@ -75,6 +76,7 @@ const Extraction: React.FC = () => {
   const [currentImage, setCurrentImage] = useState(0);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [sessionUlid, setSessionUlid] = useState<string | null>(null);
+  const [createdDbName, setCreatedDbName] = useState<string | null>(null);
 
   /**
    * param1, imageSize の入力中の先頭0を除去するためのハンドラ
@@ -105,6 +107,7 @@ const Extraction: React.FC = () => {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     try {
+      setCreatedDbName(null);
       const extractRes = await axios.get<CellExtractionResponse>(
         `${url_prefix}/cell_extraction/${fileName}/${actualMode}`,
         {
@@ -117,6 +120,7 @@ const Extraction: React.FC = () => {
         }
       );
       const ulid = extractRes.data.ulid;
+      setCreatedDbName(extractRes.data.db_name);
       setSessionUlid(ulid);
 
       const countRes = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${ulid}/count`);
@@ -161,6 +165,19 @@ const Extraction: React.FC = () => {
   };
 
   const handleGoToDatabases = async () => {
+    if (createdDbName) {
+      try {
+        const token = localStorage.getItem("access_token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        await axios.post(
+          `${url_prefix}/cell_extraction/databases/${createdDbName}/notify_created`,
+          null,
+          { headers }
+        );
+      } catch (error) {
+        console.error("Failed to notify Slack", error);
+      }
+    }
     if (sessionUlid) {
       try {
         await axios.delete(`${url_prefix}/cell_extraction/ph_contours_delete/${sessionUlid}`);

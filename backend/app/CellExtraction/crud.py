@@ -652,8 +652,7 @@ class ExtractionCrudBase:
 
         await asyncio.gather(*tasks)
         await asyncio.to_thread(SyncChores.cleanup, f"TempData{self.ulid}")
-        await notify_slack_database_created(dbname)
-        return num_tiff, self.ulid
+        return num_tiff, self.ulid, os.path.basename(dbname)
 
     async def get_nd2_filenames(self) -> list[str]:
         return [
