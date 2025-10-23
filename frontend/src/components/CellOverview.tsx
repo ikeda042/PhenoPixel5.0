@@ -180,7 +180,9 @@ const CellImageGrid: React.FC = () => {
     }
     return Math.max(parsed - 1, 0);
   })();
-  const init_draw_mode = (searchParams.get("init_draw_mode") ?? "light") as DrawModeType;
+  const drawModeParam = (searchParams.get("draw_mode")
+    ?? searchParams.get("init_draw_mode")
+    ?? "light") as DrawModeType;
   const theme = useTheme();
 
   // セルIDや画像などの状態管理
@@ -202,7 +204,7 @@ const CellImageGrid: React.FC = () => {
   const [sobelBrightness, setSobelBrightness] = useState<number>(1.0);
   const [hasFluo2, setHasFluo2] = useState<boolean>(false);
   const [fluoChannel, setFluoChannel] = useState<'fluo1' | 'fluo2'>('fluo1');
-  const [drawMode, setDrawMode] = useState<DrawModeType>(init_draw_mode);
+  const [drawMode, setDrawMode] = useState<DrawModeType>(drawModeParam);
   const [fitDegree, setFitDegree] = useState<number>(4);
   const [map256Source, setMap256Source] = useState<'ph' | 'fluo1' | 'fluo2'>('fluo1');
   const [statSource, setStatSource] = useState<'ph' | 'fluo1' | 'fluo2'>('fluo1');
@@ -284,15 +286,58 @@ const CellImageGrid: React.FC = () => {
       }
     };
 
+    const ensureOrRemove = (key: string, value: string | null) => {
+      if (value === null) {
+        if (params.has(key)) {
+          params.delete(key);
+          shouldUpdate = true;
+        }
+        return;
+      }
+      ensureValue(key, value);
+    };
+
     ensureValue("db", db_name);
     ensureValue("db_name", db_name);
     ensureValue("cell", (currentIndex + 1).toString());
     ensureValue("cell_id", currentCellId);
+    ensureValue("draw_mode", drawMode);
+
+    const requiresPolyfit = DRAW_MODES.find((mode) => mode.value === drawMode)?.needsPolyfit ?? false;
+    ensureOrRemove(
+      "fit_degree",
+      requiresPolyfit ? fitDegree.toString() : null,
+    );
 
     if (shouldUpdate) {
       setSearchParams(params, { replace: true });
     }
-  }, [cellIds, currentIndex, db_name, searchParams, setSearchParams]);
+  }, [
+    cellIds,
+    currentIndex,
+    db_name,
+    drawMode,
+    fitDegree,
+    searchParams,
+    setSearchParams,
+  ]);
+
+  useEffect(() => {
+    const modeFromParams = (searchParams.get("draw_mode")
+      ?? searchParams.get("init_draw_mode")
+      ?? "light") as DrawModeType;
+    if (DRAW_MODES.some((mode) => mode.value === modeFromParams)) {
+      setDrawMode((prev) => (prev === modeFromParams ? prev : modeFromParams));
+    }
+
+    const fitDegreeParam = searchParams.get("fit_degree");
+    if (fitDegreeParam) {
+      const parsedDegree = parseInt(fitDegreeParam, 10);
+      if (!Number.isNaN(parsedDegree)) {
+        setFitDegree((prev) => (prev === parsedDegree ? prev : parsedDegree));
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const checkFluo2 = async () => {
