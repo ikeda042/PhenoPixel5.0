@@ -30,6 +30,7 @@ const LabelSorterDemo: React.FC = () => {
   const dbName = searchParams.get("db_name") ?? "";
 
   const [naCells, setNaCells] = useState<string[]>([]);
+  const [labelOneCells, setLabelOneCells] = useState<string[]>([]);
   const [confirmedCells, setConfirmedCells] = useState<string[]>([]);
   const [phase, setPhase] = useState<CyclePhase>("idle");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -40,9 +41,10 @@ const LabelSorterDemo: React.FC = () => {
 
   const objectUrlsRef = useRef<string[]>([]);
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
-  const canMutate = useMemo(
-    () => dbName.includes("-uploaded"),
-    [dbName]
+  const canMutate = useMemo(() => dbName.includes("-uploaded"), [dbName]);
+  const sourceCells = useMemo(
+    () => (canMutate ? naCells : labelOneCells),
+    [canMutate, naCells, labelOneCells]
   );
 
   useEffect(() => {
@@ -57,6 +59,7 @@ const LabelSorterDemo: React.FC = () => {
     objectUrlsRef.current = [];
     setImages({});
     setNaCells([]);
+    setLabelOneCells([]);
     setConfirmedCells([]);
     setCurrentIndex(0);
     setPhase("idle");
@@ -65,6 +68,7 @@ const LabelSorterDemo: React.FC = () => {
   const fetchNaCells = useCallback(async () => {
     if (!dbName) {
       setNaCells([]);
+      setLabelOneCells([]);
       setConfirmedCells([]);
       setCurrentIndex(0);
       setPhase("idle");
@@ -75,27 +79,30 @@ const LabelSorterDemo: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get<CellResponse[]>(
-        `${urlPrefix}/cells/${encodeURIComponent(dbName)}/1000`
-      );
-      const ids = response.data.map((cell) => cell.cell_id);
-      setNaCells(ids);
+      const [naResponse, labelOneResponse] = await Promise.all([
+        axios.get<CellResponse[]>(
+          `${urlPrefix}/cells/${encodeURIComponent(dbName)}/1000`
+        ),
+        axios.get<CellResponse[]>(
+          `${urlPrefix}/cells/${encodeURIComponent(dbName)}/1`
+        ),
+      ]);
+      const naIds = naResponse.data.map((cell) => cell.cell_id);
+      const labelOneIds = labelOneResponse.data.map((cell) => cell.cell_id);
+      setNaCells(naIds);
+      setLabelOneCells(labelOneIds);
       setConfirmedCells([]);
       setCurrentIndex(0);
-      if (ids.length && canMutate) {
-        setPhase("cycling");
-      } else {
-        setPhase("idle");
-        if (ids.length && !canMutate) {
-          setError(
-            "デモの自動ラベル変更は '-uploaded.db' のデータベースでのみ利用できます。"
-          );
-        }
+      const hasTargets = (canMutate ? naIds.length : labelOneIds.length) > 0;
+      setPhase(hasTargets ? "cycling" : "idle");
+      if (!hasTargets) {
+        setError("表示できる細胞が見つかりませんでした。");
       }
     } catch (err) {
       console.error("Failed to fetch N/A cell ids", err);
       setError("細胞の取得に失敗しました。");
       setNaCells([]);
+      setLabelOneCells([]);
       setConfirmedCells([]);
       setCurrentIndex(0);
       setPhase("idle");
@@ -155,29 +162,32 @@ const LabelSorterDemo: React.FC = () => {
   );
 
   useEffect(() => {
-    const visibleIds = Array.from(new Set([...leftCells, ...rightCells]));
+    const idSet = new Set<string>([...leftCells, ...rightCells]);
+    sourceCells.forEach((id) => idSet.add(id));
+    const visibleIds = Array.from(idSet);
     if (visibleIds.length) {
       void fetchImagesForVisibleCells(visibleIds);
     }
-  }, [leftCells, rightCells, fetchImagesForVisibleCells]);
+  }, [leftCells, rightCells, sourceCells, fetchImagesForVisibleCells]);
 
   const promoteCurrentCell = useCallback(async () => {
-    if (!dbName || currentIndex >= naCells.length) {
+    if (!dbName || currentIndex >= sourceCells.length) {
       return;
     }
-    if (!canMutate) {
-      setError("デモでラベルを変更するには '-uploaded.db' で終わるデータベースを指定してください。");
-      setPhase("idle");
+    const cellId = sourceCells[currentIndex];
+    if (!cellId) {
       return;
     }
-    const cellId = naCells[currentIndex];
+    setError(null);
     setIsProcessing(true);
     try {
-      await axios.patch(
-        `${urlPrefix}/cells/${encodeURIComponent(dbName)}/${encodeURIComponent(
-          cellId
-        )}/1`
-      );
+      if (canMutate) {
+        await axios.patch(
+          `${urlPrefix}/cells/${encodeURIComponent(dbName)}/${encodeURIComponent(
+            cellId
+          )}/1`
+        );
+      }
       const labelResponse = await axios.get(
         `${urlPrefix}/cells/${encodeURIComponent(dbName)}/${encodeURIComponent(
           cellId
@@ -200,27 +210,30 @@ const LabelSorterDemo: React.FC = () => {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
       setIsProcessing(false);
-      if (nextIndex >= naCells.length) {
+      if (nextIndex >= sourceCells.length) {
         setPhase("resetting");
       }
     }
-  }, [dbName, currentIndex, naCells, canMutate]);
+  }, [dbName, currentIndex, sourceCells, canMutate]);
 
   const resetToNa = useCallback(async () => {
     if (!dbName) {
       setPhase("idle");
       return;
     }
-    if (!canMutate) {
-      setConfirmedCells([]);
-      setCurrentIndex(0);
-      setPhase("idle");
-      return;
-    }
     const cellsToReset = [...confirmedCells];
     if (!cellsToReset.length) {
       setCurrentIndex(0);
-      setPhase(naCells.length ? "cycling" : "idle");
+      setPhase(sourceCells.length ? "cycling" : "idle");
+      return;
+    }
+
+    if (!canMutate) {
+      setConfirmedCells([]);
+      setCurrentIndex(0);
+      setIsProcessing(false);
+      setError(null);
+      setPhase(sourceCells.length ? "cycling" : "idle");
       return;
     }
 
@@ -243,22 +256,22 @@ const LabelSorterDemo: React.FC = () => {
       setConfirmedCells([]);
       setCurrentIndex(0);
       setIsProcessing(false);
-      setPhase(naCells.length ? "cycling" : "idle");
+      setPhase(sourceCells.length ? "cycling" : "idle");
     }
-  }, [dbName, confirmedCells, naCells.length, canMutate]);
+  }, [dbName, confirmedCells, sourceCells.length, canMutate]);
 
   useEffect(() => {
     if (phase !== "cycling") {
       return;
     }
-    if (!dbName || !naCells.length || !canMutate) {
+    if (!dbName || !sourceCells.length) {
       setPhase("idle");
       return;
     }
     if (isProcessing) {
       return;
     }
-    if (currentIndex >= naCells.length) {
+    if (currentIndex >= sourceCells.length) {
       setPhase("resetting");
       return;
     }
@@ -270,11 +283,10 @@ const LabelSorterDemo: React.FC = () => {
   }, [
     phase,
     dbName,
-    naCells.length,
+    sourceCells.length,
     isProcessing,
     currentIndex,
     promoteCurrentCell,
-    canMutate,
   ]);
 
   useEffect(() => {
