@@ -33,6 +33,7 @@ interface Props {
 
 const drawerWidth = 240;
 const navItems = [""];
+const fastApiLogoSrc = `${(process.env.PUBLIC_URL || "").replace(/\/$/, "")}/logo-fastapi.png`;
 
 export default function Nav(props: Props) {
     const { window, mode, toggleMode } = props;
@@ -168,7 +169,7 @@ export default function Nav(props: Props) {
                     >
                         <Box
                             component="img"
-                            src="logo-fastapi.png"
+                            src={fastApiLogoSrc}
                             alt="FastAPI Logo"
                             sx={{ height: 40 }}
                         />
