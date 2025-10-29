@@ -241,14 +241,20 @@ const Extraction: React.FC = () => {
                 value={mode}
                 onChange={(e) => setMode(e.target.value)}
                 label="Mode"
-              >
-                <MenuItem value="single_layer">Single Layer</MenuItem>
-                <MenuItem value="dual_layer">Dual Layer</MenuItem>
-                <MenuItem value="dual_layer_reversed">Dual Layer (Reversed)</MenuItem>
-                <MenuItem value="triple_layer">Triple Layer</MenuItem>
-                <MenuItem value="quad_layer">Quad Layer</MenuItem>
-              </Select>
-            </FormControl>
+            >
+              <MenuItem value="single_layer">Single Layer</MenuItem>
+              <MenuItem value="dual_layer">Dual Layer</MenuItem>
+              <MenuItem value="dual_layer_reversed">Dual Layer (Reversed)</MenuItem>
+              <MenuItem value="triple_layer">Triple Layer</MenuItem>
+              <MenuItem value="quad_layer">Quad Layer</MenuItem>
+            </Select>
+          </FormControl>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              画面暗め: 60-75を試す。
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              画面明るめ: 115-140を試す。
+            </Typography>
 
             <CustomTextField
               label="Param1"
