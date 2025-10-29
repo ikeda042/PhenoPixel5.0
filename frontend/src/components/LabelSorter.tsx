@@ -39,7 +39,7 @@ const LabelSorter: React.FC = () => {
   const [dragging, setDragging] = useState(false);
   const [dragMode, setDragMode] = useState<"select" | "deselect">("select");
 
-  const labelOptions = ["1", "2", "3", "4"];
+  const labelOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
   const fetchNaCells = async () => {
     try {

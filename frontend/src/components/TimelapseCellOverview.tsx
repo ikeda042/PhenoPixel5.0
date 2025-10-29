@@ -138,7 +138,18 @@ const TimelapseViewer: React.FC = () => {
   const [currentCellData, setCurrentCellData] = useState<CellDataById | null>(null);
 
   // manual_label のセレクトボックス用
-  const manualLabelOptions = ["N/A", "1", "2", "3"];
+  const manualLabelOptions = [
+    "N/A",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+  ];
 
   // 「全 GIF を同じタイミングで再生開始する」ためのキー
   const [reloadKey, setReloadKey] = useState<number>(0);
@@ -486,6 +497,12 @@ const TimelapseViewer: React.FC = () => {
         case "1":
         case "2":
         case "3":
+        case "4":
+        case "5":
+        case "6":
+        case "7":
+        case "8":
+        case "9":
           e.preventDefault();
           handleChangeManualLabel(e.key);
           break;

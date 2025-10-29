@@ -874,13 +874,14 @@ const CellImageGrid: React.FC = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Enter") {
         handleNext();
-      } else if (["1", "2", "3", "n"].includes(event.key)) {
-        let newLabel = event.key;
-        if (newLabel === "n") {
-          newLabel = "1000"; // 'n' は "1000" に対応
-        }
+      } else if (
+        ["1", "2", "3", "4", "5", "6", "7", "8", "9", "n"].includes(event.key)
+      ) {
+        const newLabel = event.key === "n" ? "1000" : event.key;
         setManualLabel(newLabel);
-        handleCellLabelChange({ target: { value: newLabel } } as SelectChangeEvent<string>);
+        handleCellLabelChange({
+          target: { value: newLabel },
+        } as SelectChangeEvent<string>);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -1269,6 +1270,12 @@ const CellImageGrid: React.FC = () => {
                     <MenuItem value="1">1</MenuItem>
                     <MenuItem value="2">2</MenuItem>
                     <MenuItem value="3">3</MenuItem>
+                    <MenuItem value="4">4</MenuItem>
+                    <MenuItem value="5">5</MenuItem>
+                    <MenuItem value="6">6</MenuItem>
+                    <MenuItem value="7">7</MenuItem>
+                    <MenuItem value="8">8</MenuItem>
+                    <MenuItem value="9">9</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
