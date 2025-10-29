@@ -450,16 +450,43 @@ const CellImageGrid: React.FC = () => {
     dbName: string,
     brightness: number = 1.0
   ): Promise<string> => {
-    let url = `${url_prefix}/cells/${cellId}/${dbName}/${drawContour}/${drawScaleBar}/`;
-    if (type === "fluo_image" || type === "fluo2_image") {
-      // 蛍光画像は明るさ係数をクエリで追加
-      url += `${type}?brightness_factor=${brightness}`;
-    } else {
-      url += `${type}`;
+    const encodedCellId = encodeURIComponent(cellId);
+    const encodedDbName = encodeURIComponent(dbName);
+
+    const buildUrl = (overrideDrawContour?: boolean) => {
+      const contourSegment = String(
+        overrideDrawContour !== undefined ? overrideDrawContour : drawContour
+      );
+      let url = `${url_prefix}/cells/${encodedCellId}/${encodedDbName}/${contourSegment}/${drawScaleBar}/`;
+      if (type === "fluo_image" || type === "fluo2_image") {
+        // 蛍光画像は明るさ係数をクエリで追加
+        url += `${type}?brightness_factor=${brightness}`;
+      } else {
+        url += `${type}`;
+      }
+      return url;
+    };
+
+    const tryFetch = async (overrideDrawContour?: boolean) => {
+      const url = buildUrl(overrideDrawContour);
+      console.log(`Fetching image from URL: ${url}`);
+      const response = await axios.get(url, { responseType: "blob" });
+      return URL.createObjectURL(response.data);
+    };
+
+    try {
+      return await tryFetch();
+    } catch (error) {
+      if (type === "ph_image" && drawContour) {
+        try {
+          console.warn("PH image fetch failed with contour, retrying without contour.");
+          return await tryFetch(false);
+        } catch (retryError) {
+          console.error("Retry without contour also failed.", retryError);
+        }
+      }
+      throw error;
     }
-    console.log(`Fetching image from URL: ${url}`);
-    const response = await axios.get(url, { responseType: "blob" });
-    return URL.createObjectURL(response.data);
   };
 
   //------------------------------------
