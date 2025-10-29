@@ -115,10 +115,12 @@ const LabelSorterDemo: React.FC = () => {
     void fetchNaCells();
   }, [fetchNaCells]);
 
-  const leftCells = useMemo(
-    () => naCells.filter((id) => !confirmedCells.includes(id)),
-    [naCells, confirmedCells]
-  );
+  const leftCells = useMemo(() => {
+    if (canMutate) {
+      return naCells.filter((id) => !confirmedCells.includes(id));
+    }
+    return sourceCells.filter((id) => !confirmedCells.includes(id));
+  }, [canMutate, naCells, sourceCells, confirmedCells]);
   const rightCells = confirmedCells;
 
   useEffect(() => {
