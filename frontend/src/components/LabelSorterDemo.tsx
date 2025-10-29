@@ -40,6 +40,10 @@ const LabelSorterDemo: React.FC = () => {
 
   const objectUrlsRef = useRef<string[]>([]);
   const rightPanelRef = useRef<HTMLDivElement | null>(null);
+  const canMutate = useMemo(
+    () => dbName.includes("-uploaded"),
+    [dbName]
+  );
 
   useEffect(() => {
     return () => {
@@ -64,6 +68,7 @@ const LabelSorterDemo: React.FC = () => {
       setConfirmedCells([]);
       setCurrentIndex(0);
       setPhase("idle");
+      setError(null);
       return;
     }
 
@@ -77,7 +82,16 @@ const LabelSorterDemo: React.FC = () => {
       setNaCells(ids);
       setConfirmedCells([]);
       setCurrentIndex(0);
-      setPhase(ids.length ? "cycling" : "idle");
+      if (ids.length && canMutate) {
+        setPhase("cycling");
+      } else {
+        setPhase("idle");
+        if (ids.length && !canMutate) {
+          setError(
+            "デモの自動ラベル変更は '-uploaded.db' のデータベースでのみ利用できます。"
+          );
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch N/A cell ids", err);
       setError("細胞の取得に失敗しました。");
@@ -88,7 +102,7 @@ const LabelSorterDemo: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [dbName]);
+  }, [dbName, canMutate]);
 
   useEffect(() => {
     void fetchNaCells();
@@ -151,6 +165,11 @@ const LabelSorterDemo: React.FC = () => {
     if (!dbName || currentIndex >= naCells.length) {
       return;
     }
+    if (!canMutate) {
+      setError("デモでラベルを変更するには '-uploaded.db' で終わるデータベースを指定してください。");
+      setPhase("idle");
+      return;
+    }
     const cellId = naCells[currentIndex];
     setIsProcessing(true);
     try {
@@ -185,10 +204,16 @@ const LabelSorterDemo: React.FC = () => {
         setPhase("resetting");
       }
     }
-  }, [dbName, currentIndex, naCells]);
+  }, [dbName, currentIndex, naCells, canMutate]);
 
   const resetToNa = useCallback(async () => {
     if (!dbName) {
+      setPhase("idle");
+      return;
+    }
+    if (!canMutate) {
+      setConfirmedCells([]);
+      setCurrentIndex(0);
       setPhase("idle");
       return;
     }
@@ -220,13 +245,13 @@ const LabelSorterDemo: React.FC = () => {
       setIsProcessing(false);
       setPhase(naCells.length ? "cycling" : "idle");
     }
-  }, [dbName, confirmedCells, naCells.length]);
+  }, [dbName, confirmedCells, naCells.length, canMutate]);
 
   useEffect(() => {
     if (phase !== "cycling") {
       return;
     }
-    if (!dbName || !naCells.length) {
+    if (!dbName || !naCells.length || !canMutate) {
       setPhase("idle");
       return;
     }
@@ -249,6 +274,7 @@ const LabelSorterDemo: React.FC = () => {
     isProcessing,
     currentIndex,
     promoteCurrentCell,
+    canMutate,
   ]);
 
   useEffect(() => {
@@ -411,4 +437,3 @@ const LabelSorterDemo: React.FC = () => {
 };
 
 export default LabelSorterDemo;
-
