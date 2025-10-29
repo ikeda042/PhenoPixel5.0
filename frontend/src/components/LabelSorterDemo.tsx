@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Breadcrumbs,
@@ -19,6 +19,8 @@ const resizeFactor = 0.5;
 const cycleIntervalMs = 500;
 const resetDelayMs = 1000;
 
+type CyclePhase = "idle" | "cycling" | "resetting";
+
 interface CellResponse {
   cell_id: string;
 }
@@ -28,16 +30,21 @@ const LabelSorterDemo: React.FC = () => {
   const dbName = searchParams.get("db_name") ?? "";
 
   const [naCells, setNaCells] = useState<string[]>([]);
+  const [confirmedCells, setConfirmedCells] = useState<string[]>([]);
+  const [phase, setPhase] = useState<CyclePhase>("idle");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<Record<string, string>>({});
-  const [index, setIndex] = useState(0);
 
   const objectUrlsRef = useRef<string[]>([]);
+  const rightPanelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return () => {
       objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      objectUrlsRef.current = [];
     };
   }, []);
 
@@ -45,135 +52,221 @@ const LabelSorterDemo: React.FC = () => {
     objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     objectUrlsRef.current = [];
     setImages({});
-    setIndex(0);
+    setNaCells([]);
+    setConfirmedCells([]);
+    setCurrentIndex(0);
+    setPhase("idle");
   }, [dbName]);
 
-  useEffect(() => {
-    let cancelled = false;
-
+  const fetchNaCells = useCallback(async () => {
     if (!dbName) {
       setNaCells([]);
-      setError(null);
+      setConfirmedCells([]);
+      setCurrentIndex(0);
+      setPhase("idle");
       return;
     }
 
-    const fetchCells = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get<CellResponse[]>(
-          `${urlPrefix}/cells/${encodeURIComponent(dbName)}/1000`
-        );
-        if (!cancelled) {
-          setNaCells(response.data.map((cell) => cell.cell_id));
-        }
-      } catch (err) {
-        console.error("Failed to fetch N/A cells", err);
-        if (!cancelled) {
-          setError("細胞の取得に失敗しました。");
-          setNaCells([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchCells();
-
-    return () => {
-      cancelled = true;
-    };
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get<CellResponse[]>(
+        `${urlPrefix}/cells/${encodeURIComponent(dbName)}/1000`
+      );
+      const ids = response.data.map((cell) => cell.cell_id);
+      setNaCells(ids);
+      setConfirmedCells([]);
+      setCurrentIndex(0);
+      setPhase(ids.length ? "cycling" : "idle");
+    } catch (err) {
+      console.error("Failed to fetch N/A cell ids", err);
+      setError("細胞の取得に失敗しました。");
+      setNaCells([]);
+      setConfirmedCells([]);
+      setCurrentIndex(0);
+      setPhase("idle");
+    } finally {
+      setIsLoading(false);
+    }
   }, [dbName]);
 
-  const cycleCells = useMemo(() => naCells, [naCells]);
+  useEffect(() => {
+    void fetchNaCells();
+  }, [fetchNaCells]);
+
+  const leftCells = useMemo(
+    () => naCells.filter((id) => !confirmedCells.includes(id)),
+    [naCells, confirmedCells]
+  );
+  const rightCells = confirmedCells;
 
   useEffect(() => {
-    setIndex(0);
-  }, [cycleCells.length]);
-
-  useEffect(() => {
-    const length = cycleCells.length;
-    if (!length) {
-      return;
+    if (rightPanelRef.current) {
+      rightPanelRef.current.scrollTop = rightPanelRef.current.scrollHeight;
     }
+  }, [rightCells.length]);
 
-    const delay = index < length ? cycleIntervalMs : resetDelayMs;
-
-    const timer = setTimeout(() => {
-      setIndex((prev) => (prev < length ? prev + 1 : 0));
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [index, cycleCells.length]);
-
-  const leftCells = useMemo(() => {
-    if (!cycleCells.length) {
-      return [];
-    }
-    const cut = Math.min(index, cycleCells.length);
-    return cycleCells.slice(cut);
-  }, [cycleCells, index]);
-
-  const rightCells = useMemo(() => {
-    if (!cycleCells.length) {
-      return [];
-    }
-    const cut = Math.min(index, cycleCells.length);
-    return cycleCells.slice(0, cut);
-  }, [cycleCells, index]);
-
-  useEffect(() => {
-    if (!dbName) {
-      return;
-    }
-    const requiredIds = new Set<string>([...leftCells, ...rightCells]);
-    const missingIds = Array.from(requiredIds).filter(
-      (cellId) => !images[`${cellId}_ph`]
-    );
-    if (!missingIds.length) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchImages = async () => {
+  const fetchImagesForVisibleCells = useCallback(
+    async (cellIds: string[]) => {
+      if (!dbName) {
+        return;
+      }
       const newEntries: Record<string, string> = {};
       await Promise.all(
-        missingIds.map(async (cellId) => {
+        cellIds.map(async (cellId) => {
+          const key = `${cellId}_ph`;
+          if (images[key]) {
+            return;
+          }
           try {
-            const res = await axios.get(
+            const response = await axios.get(
               `${urlPrefix}/cells/${encodeURIComponent(cellId)}/${encodeURIComponent(
                 dbName
               )}/true/false/ph_image?resize_factor=${resizeFactor}&contour_thickness=3`,
               { responseType: "blob" }
             );
-            if (cancelled) {
-              return;
-            }
-            const url = URL.createObjectURL(res.data);
+            const url = URL.createObjectURL(response.data);
             objectUrlsRef.current.push(url);
-            newEntries[`${cellId}_ph`] = url;
+            newEntries[key] = url;
           } catch (err) {
             console.error(`Failed to fetch image for ${cellId}`, err);
           }
         })
       );
-      if (!cancelled && Object.keys(newEntries).length) {
+      if (Object.keys(newEntries).length) {
         setImages((prev) => ({ ...prev, ...newEntries }));
       }
-    };
+    },
+    [dbName, images]
+  );
 
-    fetchImages();
+  useEffect(() => {
+    const visibleIds = Array.from(new Set([...leftCells, ...rightCells]));
+    if (visibleIds.length) {
+      void fetchImagesForVisibleCells(visibleIds);
+    }
+  }, [leftCells, rightCells, fetchImagesForVisibleCells]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [dbName, leftCells, rightCells, images]);
+  const promoteCurrentCell = useCallback(async () => {
+    if (!dbName || currentIndex >= naCells.length) {
+      return;
+    }
+    const cellId = naCells[currentIndex];
+    setIsProcessing(true);
+    try {
+      await axios.patch(
+        `${urlPrefix}/cells/${encodeURIComponent(dbName)}/${encodeURIComponent(
+          cellId
+        )}/1`
+      );
+      const labelResponse = await axios.get(
+        `${urlPrefix}/cells/${encodeURIComponent(dbName)}/${encodeURIComponent(
+          cellId
+        )}/label`
+      );
+      const normalizedLabel = String(labelResponse.data);
+      if (normalizedLabel === "1") {
+        setConfirmedCells((prev) =>
+          prev.includes(cellId) ? prev : [...prev, cellId]
+        );
+      } else {
+        console.warn(
+          `Cell ${cellId} label is ${normalizedLabel}, skipping display.`
+        );
+      }
+    } catch (err) {
+      console.error(`Failed to update or verify label for ${cellId}`, err);
+      setError("ラベルの更新または確認に失敗しました。");
+    } finally {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      setIsProcessing(false);
+      if (nextIndex >= naCells.length) {
+        setPhase("resetting");
+      }
+    }
+  }, [dbName, currentIndex, naCells]);
 
-  const renderCells = (cellIds: string[]) => (
+  const resetToNa = useCallback(async () => {
+    if (!dbName) {
+      setPhase("idle");
+      return;
+    }
+    const cellsToReset = [...confirmedCells];
+    if (!cellsToReset.length) {
+      setCurrentIndex(0);
+      setPhase(naCells.length ? "cycling" : "idle");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await Promise.all(
+        cellsToReset.map((cellId) =>
+          axios.patch(
+            `${urlPrefix}/cells/${encodeURIComponent(dbName)}/${encodeURIComponent(
+              cellId
+            )}/1000`
+          )
+        )
+      );
+      setError(null);
+    } catch (err) {
+      console.error("Failed to reset labels to N/A", err);
+      setError("ラベルのリセットに失敗しました。");
+    } finally {
+      setConfirmedCells([]);
+      setCurrentIndex(0);
+      setIsProcessing(false);
+      setPhase(naCells.length ? "cycling" : "idle");
+    }
+  }, [dbName, confirmedCells, naCells.length]);
+
+  useEffect(() => {
+    if (phase !== "cycling") {
+      return;
+    }
+    if (!dbName || !naCells.length) {
+      setPhase("idle");
+      return;
+    }
+    if (isProcessing) {
+      return;
+    }
+    if (currentIndex >= naCells.length) {
+      setPhase("resetting");
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void promoteCurrentCell();
+    }, cycleIntervalMs);
+    return () => clearTimeout(timer);
+  }, [
+    phase,
+    dbName,
+    naCells.length,
+    isProcessing,
+    currentIndex,
+    promoteCurrentCell,
+  ]);
+
+  useEffect(() => {
+    if (phase !== "resetting" || isProcessing) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      void resetToNa();
+    }, resetDelayMs);
+    return () => clearTimeout(timer);
+  }, [phase, isProcessing, resetToNa]);
+
+  const renderCells = (
+    cellIds: string[],
+    panelRef?: React.RefObject<HTMLDivElement>
+  ) => (
     <Box
+      ref={panelRef}
       sx={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
@@ -306,7 +399,7 @@ const LabelSorterDemo: React.FC = () => {
                   <Typography variant="h6" gutterBottom>
                     Label "1" (Right)
                   </Typography>
-                  {renderCells(rightCells)}
+                  {renderCells(rightCells, rightPanelRef)}
                 </Paper>
               </Grid>
             </Grid>
@@ -318,3 +411,4 @@ const LabelSorterDemo: React.FC = () => {
 };
 
 export default LabelSorterDemo;
+
