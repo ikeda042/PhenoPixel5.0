@@ -16,7 +16,7 @@ import { settings } from "../settings";
 
 const urlPrefix = settings.url_prefix;
 const resizeFactor = 0.5;
-const cycleIntervalMs = 100;
+const cycleIntervalMs = 20;
 const resetDelayMs = 1000;
 
 type CyclePhase = "idle" | "cycling" | "resetting";
