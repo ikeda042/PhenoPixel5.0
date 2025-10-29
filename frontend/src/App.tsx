@@ -20,6 +20,7 @@ import TimelapseViewer from "./components/TimelapseCellOverview";
 import Login from "./components/Login";
 import UserInfo from "./components/Userinfo";
 import LabelSorter from "./components/LabelSorter";
+import LabelSorterDemo from "./components/LabelSorterDemo";
 import CDT from "./components/CDT";
 import MiniFileManager from "./components/MiniFileManager";
 import ImagePlayground from "./components/ImagePlayground";
@@ -156,6 +157,14 @@ function App() {
               element={
                 <Box component="main" sx={{ p: 1 }}>
                   <LabelSorter />
+                </Box>
+              }
+            />
+            <Route
+              path="/labelsorter-demo"
+              element={
+                <Box component="main" sx={{ p: 1 }}>
+                  <LabelSorterDemo />
                 </Box>
               }
             />
