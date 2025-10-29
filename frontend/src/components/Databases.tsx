@@ -45,6 +45,18 @@ interface ListDBResponse {
 
 const url_prefix = settings.url_prefix;
 
+/**
+ * モード選択で single layer DB では利用できない描画モード一覧
+ */
+const singleLayerUnsupportedModes = new Set([
+  "fluo",
+  "fluo_contour",
+  "fluo2",
+  "fluo2_contour",
+  "replot_fluo1",
+  "replot_fluo2",
+]);
+
 const Databases: React.FC = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -368,12 +380,22 @@ const Databases: React.FC = () => {
   const handlePreview = async (database: string) => {
     setLoadingPreview(true);
     try {
+      const isSingleLayerDb = database.includes("single_layer");
+      const effectiveMode =
+        isSingleLayerDb && singleLayerUnsupportedModes.has(selectedMode)
+          ? "ph"
+          : selectedMode;
+
+      if (effectiveMode !== selectedMode) {
+        setSelectedMode(effectiveMode);
+      }
+
       const response = await axios.get(
         `${url_prefix}/databases/${encodeURIComponent(database)}/combined_images`,
         {
           params: {
             label: selectedLabel,
-            mode: selectedMode,
+            mode: effectiveMode,
           },
           responseType: "blob",
         }
