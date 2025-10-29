@@ -469,7 +469,7 @@ class SyncChores:
                         n += 1
 
             elif mode == "single_layer":
-                for ph in zip(cropped_images_ph):
+                for ph in cropped_images_ph:
                     if len(ph) == output_size[0] and len(ph[0]) == output_size[1]:
                         cv2.imwrite(f"{temp_dir}/frames/tiff_{k}/Cells/ph/{n}.png", ph)
                         n += 1
