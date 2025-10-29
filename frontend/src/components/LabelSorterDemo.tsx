@@ -376,20 +376,13 @@ const LabelSorterDemo: React.FC = () => {
         </Breadcrumbs>
       </Box>
 
-      <Typography variant="h4" gutterBottom>
-        Label Sorter Demo
-      </Typography>
-      <Typography variant="body1" sx={{ mb: 3 }}>
-        N/A ラベルの細胞を左パネルに表示し、0.5 秒ごとに自動でラベル "1"
-        に移動して右パネルへ写します。すべて移動し終わると自動で元の状態に戻り、デモを繰り返します。
-      </Typography>
 
       {!dbName ? (
         <Paper sx={{ p: 3 }}>
           <Typography variant="body1">
             クエリパラメータ
             <code>?db_name=...</code>
-            を指定してデモ対象のデータベースを選択してください。
+            を指定して対象のデータベースを選択してください。
           </Typography>
         </Paper>
       ) : (
