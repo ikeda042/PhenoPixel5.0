@@ -420,7 +420,7 @@ const Extraction: React.FC = () => {
                 key={`split-${index}`}
                 sx={{ mb: 1 }}
               >
-                <Grid item xs={12} sm={2}>
+                <Grid item xs={12} sm={1}>
                   <CustomTextField
                     label="Start"
                     type="number"
@@ -430,7 +430,7 @@ const Extraction: React.FC = () => {
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={2}>
+                <Grid item xs={12} sm={1}>
                   <CustomTextField
                     label="End"
                     type="number"
@@ -440,7 +440,7 @@ const Extraction: React.FC = () => {
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={7}>
+                <Grid item xs={12} sm={9}>
                   <TextField
                     label="Database name"
                     value={split.dbName}
