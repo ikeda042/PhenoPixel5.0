@@ -456,7 +456,7 @@ const Extraction: React.FC = () => {
                 <Grid item xs={12} sm={1} sx={{ textAlign: { xs: "right", sm: "center" } }}>
                   <IconButton
                     aria-label="Remove split row"
-                    color="inherit"
+                    color="error"
                     onClick={() => handleRemoveSplitFrame(index)}
                     size="small"
                   >
