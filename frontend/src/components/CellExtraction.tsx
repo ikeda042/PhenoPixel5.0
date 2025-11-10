@@ -399,7 +399,7 @@ const Extraction: React.FC = () => {
               >
                 <Grid item xs={12} sm={2}>
                   <CustomTextField
-                    label="Frame start"
+                    label="Start"
                     type="number"
                     value={split.frameStart}
                     onChange={(e) => handleSplitFrameChange(index, "frameStart", e.target.value)}
@@ -409,7 +409,7 @@ const Extraction: React.FC = () => {
                 </Grid>
                 <Grid item xs={12} sm={2}>
                   <CustomTextField
-                    label="Frame end"
+                    label="End"
                     type="number"
                     value={split.frameEnd}
                     onChange={(e) => handleSplitFrameChange(index, "frameEnd", e.target.value)}
