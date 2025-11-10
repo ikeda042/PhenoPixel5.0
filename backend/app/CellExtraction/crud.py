@@ -510,6 +510,7 @@ class ExtractionCrudBase:
         self.nd2_path = self.nd2_path.replace("\\", "/")
         basename = os.path.basename(self.nd2_path)
         base, _ = os.path.splitext(basename)
+        self.nd2_stem = base
         self.file_prefix = base.replace(".", "p")
         self.mode = mode
         self.param1 = param1
@@ -617,12 +618,18 @@ class ExtractionCrudBase:
                         await session.commit()
 
     def _sanitize_db_basename(self, name: str) -> str:
-        cleaned = re.sub(r"[^A-Za-z0-9_\-]", "_", name.strip())
+        cleaned = name.strip()
+        cleaned = re.sub(r"\.db$", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"[^A-Za-z0-9_\-]", "_", cleaned)
         if not cleaned:
-            cleaned = f"{self.file_prefix}_split"
-        if not cleaned.lower().endswith(".db"):
-            cleaned = f"{cleaned}.db"
-        return cleaned
+            cleaned = "split"
+        stem = re.sub(r"[^A-Za-z0-9_\-]", "_", self.nd2_stem) if self.nd2_stem else ""
+        prefix = stem if stem else "nd2file"
+        combined = f"{prefix}-{cleaned}"
+        combined = re.sub(r"[^A-Za-z0-9_\-]", "_", combined)
+        if not combined.lower().endswith(".db"):
+            combined = f"{combined}.db"
+        return combined
 
     def _make_unique_basename(
         self, base_name: str, existing: set[str]

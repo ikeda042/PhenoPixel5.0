@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -20,6 +20,7 @@ import {
   CardActions,
   Divider,
   IconButton,
+  InputAdornment,
 } from "@mui/material";
 import { styled } from "@mui/system";
 import axios from "axios";
@@ -83,6 +84,17 @@ const Extraction: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const fileName = searchParams.get("file_name") || "";
+  const nd2Stem = useMemo(() => {
+    if (!fileName) {
+      return "";
+    }
+    const lastDot = fileName.lastIndexOf(".");
+    if (lastDot > 0) {
+      return fileName.slice(0, lastDot);
+    }
+    return fileName;
+  }, [fileName]);
+  const dbNamePrefix = nd2Stem ? `${nd2Stem}-` : "";
 
   const [mode, setMode] = useState("dual_layer");
   const [param1, setParam1] = useState("100");
@@ -163,11 +175,17 @@ const Extraction: React.FC = () => {
         setIsLoading(false);
         return;
       }
-      const formatted = populatedSplits.map((split) => ({
-        frame_start: parseInt(split.frameStart, 10),
-        frame_end: parseInt(split.frameEnd, 10),
-        db_name: split.dbName.trim(),
-      }));
+      const formatted = populatedSplits.map((split) => {
+        const frame_start = parseInt(split.frameStart, 10);
+        const frame_end = parseInt(split.frameEnd, 10);
+        const suffix = split.dbName.trim();
+        const prefixedName = dbNamePrefix ? `${dbNamePrefix}${suffix}` : suffix;
+        return {
+          frame_start,
+          frame_end,
+          db_name: prefixedName,
+        };
+      });
       const hasInvalidNumber = formatted.some(
         (split) => Number.isNaN(split.frame_start) || Number.isNaN(split.frame_end)
       );
@@ -389,6 +407,11 @@ const Extraction: React.FC = () => {
             <Typography variant="body2" color="text.secondary" mb={1}>
               Create additional databases by specifying frame ranges.
             </Typography>
+            {dbNamePrefix && (
+              <Typography variant="body2" color="text.secondary" mb={1}>
+                Saved database names will be prefixed with "{dbNamePrefix}".
+              </Typography>
+            )}
             {splitFrames.map((split, index) => (
               <Grid
                 container
@@ -423,6 +446,11 @@ const Extraction: React.FC = () => {
                     value={split.dbName}
                     onChange={(e) => handleSplitFrameChange(index, "dbName", e.target.value)}
                     fullWidth
+                    InputProps={{
+                      startAdornment: dbNamePrefix ? (
+                        <InputAdornment position="start">{dbNamePrefix}</InputAdornment>
+                      ) : undefined,
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={1} sx={{ textAlign: { xs: "right", sm: "center" } }}>
