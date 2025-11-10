@@ -3,6 +3,8 @@ import logging
 import os
 import pickle
 import random
+import re
+from dataclasses import dataclass
 from typing import Literal
 from urllib.parse import urlencode
 
@@ -21,6 +23,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import select
 
+from CellExtraction.schemas import FrameSplitConfig
 from settings import settings
 
 
@@ -35,6 +38,14 @@ def get_ulid() -> str:
 
 
 Base = declarative_base()
+
+
+@dataclass
+class FrameSplitRange:
+    frame_start: int
+    frame_end: int
+    db_name: str
+    db_path: str
 
 
 class Cell(Base):
@@ -493,6 +504,7 @@ class ExtractionCrudBase:
         image_size: int = 200,
         reverse_layers: bool = False,
         user_id: str | None = None,
+        frame_splits: list[FrameSplitConfig] | None = None,
     ):
         self.nd2_path = nd2_path
         self.nd2_path = self.nd2_path.replace("\\", "/")
@@ -505,6 +517,7 @@ class ExtractionCrudBase:
         self.reverse_layers = reverse_layers
         self.ulid = get_ulid()
         self.user_id = user_id
+        self.frame_splits = list(frame_splits or [])
 
     async def load_image(self, path):
         async with aiofiles.open(path, mode="rb") as f:
@@ -603,18 +616,113 @@ class ExtractionCrudBase:
                         session.add(cell)
                         await session.commit()
 
+    def _sanitize_db_basename(self, name: str) -> str:
+        cleaned = re.sub(r"[^A-Za-z0-9_\-]", "_", name.strip())
+        if not cleaned:
+            cleaned = f"{self.file_prefix}_split"
+        if not cleaned.lower().endswith(".db"):
+            cleaned = f"{cleaned}.db"
+        return cleaned
+
+    def _make_unique_basename(
+        self, base_name: str, existing: set[str]
+    ) -> str:
+        candidate = base_name
+        counter = 1
+        stem, ext = os.path.splitext(base_name)
+        while candidate in existing:
+            candidate = f"{stem}_{counter}{ext or ''}"
+            counter += 1
+        existing.add(candidate)
+        return candidate
+
+    def _normalize_frame_splits(
+        self, frame_count: int, default_db_path: str
+    ) -> list[FrameSplitRange]:
+        max_frame_index = frame_count - 1 if frame_count > 0 else -1
+        normalized: list[FrameSplitRange] = []
+        if not self.frame_splits:
+            normalized.append(
+                FrameSplitRange(
+                    frame_start=0,
+                    frame_end=max_frame_index,
+                    db_name=os.path.basename(default_db_path),
+                    db_path=default_db_path,
+                )
+            )
+            return normalized
+
+        existing_names: set[str] = set()
+        for cfg in self.frame_splits:
+            start = max(0, cfg.frame_start)
+            if frame_count > 0 and start > max_frame_index:
+                logger.warning(
+                    "Split %s-%s outside available frame range. Skipping.",
+                    cfg.frame_start,
+                    cfg.frame_end,
+                )
+                continue
+            end = cfg.frame_end
+            if frame_count > 0:
+                end = min(end, max_frame_index)
+            if end < start:
+                continue
+            sanitized = self._sanitize_db_basename(cfg.db_name)
+            unique_name = self._make_unique_basename(sanitized, existing_names)
+            normalized.append(
+                FrameSplitRange(
+                    frame_start=start,
+                    frame_end=end,
+                    db_name=unique_name,
+                    db_path=os.path.join("databases", unique_name),
+                )
+            )
+
+        if not normalized:
+            normalized.append(
+                FrameSplitRange(
+                    frame_start=0,
+                    frame_end=max_frame_index,
+                    db_name=os.path.basename(default_db_path),
+                    db_path=default_db_path,
+                )
+            )
+
+        normalized.sort(key=lambda split: (split.frame_start, split.frame_end))
+        return normalized
+
+    async def _reset_database(self, db_path: str) -> None:
+        try:
+            await asyncio.to_thread(os.remove, db_path)
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            logger.warning("Failed to remove existing database %s: %s", db_path, exc)
+        await create_database(db_path)
+
+    async def _populate_database_range(
+        self, db_path: str, frame_start: int, frame_end: int
+    ) -> None:
+        tasks = []
+        if frame_end < frame_start:
+            return
+        for frame_idx in range(frame_start, frame_end + 1):
+            cell_path = f"TempData{self.ulid}/frames/tiff_{frame_idx}/Cells/ph/"
+            if not os.path.exists(cell_path):
+                continue
+            cell_files = await asyncio.to_thread(os.listdir, cell_path)
+            for j in range(len(cell_files)):
+                tasks.append(self.process_cell(db_path, frame_idx, j, self.user_id))
+        if tasks:
+            await asyncio.gather(*tasks)
+
     async def main(self):
         chores = SyncChores()
-        dbname = (
+        default_db_path = (
             f"databases/{self.file_prefix}-uploaded.db"
             if self.mode != "single_layer"
             else f"databases/{self.file_prefix}-single_layer-uploaded.db"
         )
-
-        try:
-            await asyncio.to_thread(os.remove, dbname)
-        except FileNotFoundError:
-            pass
 
         num_tiff = await asyncio.to_thread(
             chores.extract_nd2, self.nd2_path, self.mode, self.ulid, self.reverse_layers
@@ -637,22 +745,25 @@ class ExtractionCrudBase:
             "dual_layer": num_tiff // 2,
         }
 
-        await create_database(dbname)
-        engine = create_async_engine(f"sqlite+aiosqlite:///{dbname}?timeout=30")
+        frame_count = iter_n[self.mode]
+        splits = self._normalize_frame_splits(frame_count, default_db_path)
+        created_databases: list[dict[str, int | str]] = []
 
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+        for split in splits:
+            await self._reset_database(split.db_path)
+            await self._populate_database_range(
+                split.db_path, split.frame_start, split.frame_end
+            )
+            created_databases.append(
+                {
+                    "frame_start": split.frame_start,
+                    "frame_end": split.frame_end,
+                    "db_name": split.db_name,
+                }
+            )
 
-        tasks = []
-        for i in range(iter_n[self.mode]):
-            cell_path = f"TempData{self.ulid}/frames/tiff_{i}/Cells/ph/"
-            cell_files = await asyncio.to_thread(os.listdir, cell_path)
-            for j in range(len(cell_files)):
-                tasks.append(self.process_cell(dbname, i, j, self.user_id))
-
-        await asyncio.gather(*tasks)
         await asyncio.to_thread(SyncChores.cleanup, f"TempData{self.ulid}")
-        return num_tiff, self.ulid, os.path.basename(dbname)
+        return num_tiff, self.ulid, created_databases
 
     async def get_nd2_filenames(self) -> list[str]:
         return [

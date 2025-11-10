@@ -19,12 +19,15 @@ import {
   CardContent,
   CardActions,
   Divider,
+  IconButton,
 } from "@mui/material";
 import { styled } from "@mui/system";
 import axios from "axios";
 import { settings } from "../settings";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 const url_prefix = settings.url_prefix;
 
@@ -57,10 +60,23 @@ const CustomTextField = styled(TextField)(({ theme }) => ({
   },
 }));
 
+interface CreatedDatabase {
+  frame_start: number;
+  frame_end: number;
+  db_name: string;
+}
+
 interface CellExtractionResponse {
   num_tiff: number;
   ulid: string;
   db_name: string;
+  created_databases?: CreatedDatabase[];
+}
+
+interface SplitFrameRow {
+  frameStart: string;
+  frameEnd: string;
+  dbName: string;
 }
 
 const Extraction: React.FC = () => {
@@ -77,6 +93,9 @@ const Extraction: React.FC = () => {
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [sessionUlid, setSessionUlid] = useState<string | null>(null);
   const [createdDbName, setCreatedDbName] = useState<string | null>(null);
+  const [createdDatabases, setCreatedDatabases] = useState<CreatedDatabase[]>([]);
+  const [splitFrames, setSplitFrames] = useState<SplitFrameRow[]>([]);
+  const [splitFramesError, setSplitFramesError] = useState<string | null>(null);
 
   /**
    * param1, imageSize の入力中の先頭0を除去するためのハンドラ
@@ -93,6 +112,26 @@ const Extraction: React.FC = () => {
     }
   };
 
+  const handleAddSplitFrame = () => {
+    setSplitFrames((prev) => [...prev, { frameStart: "", frameEnd: "", dbName: "" }]);
+  };
+
+  const handleSplitFrameChange = (
+    index: number,
+    field: keyof SplitFrameRow,
+    value: string
+  ) => {
+    setSplitFrames((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  const handleRemoveSplitFrame = (index: number) => {
+    setSplitFrames((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleExtractCells = async () => {
     setIsLoading(true);
     const reverseLayers = mode === "dual_layer_reversed";
@@ -106,21 +145,72 @@ const Extraction: React.FC = () => {
     const token = localStorage.getItem("access_token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
+    const populatedSplits = splitFrames.filter(
+      (split) =>
+        split.frameStart !== "" ||
+        split.frameEnd !== "" ||
+        split.dbName.trim() !== ""
+    );
+    let splitFramesPayload: { frame_start: number; frame_end: number; db_name: string }[] | null =
+      null;
+
+    if (populatedSplits.length > 0) {
+      const hasIncomplete = populatedSplits.some(
+        (split) => split.frameStart === "" || split.frameEnd === "" || split.dbName.trim() === ""
+      );
+      if (hasIncomplete) {
+        setSplitFramesError("Split frames: fill every field or remove the row.");
+        setIsLoading(false);
+        return;
+      }
+      const formatted = populatedSplits.map((split) => ({
+        frame_start: parseInt(split.frameStart, 10),
+        frame_end: parseInt(split.frameEnd, 10),
+        db_name: split.dbName.trim(),
+      }));
+      const hasInvalidNumber = formatted.some(
+        (split) => Number.isNaN(split.frame_start) || Number.isNaN(split.frame_end)
+      );
+      if (hasInvalidNumber) {
+        setSplitFramesError("Frame start/end must be valid numbers.");
+        setIsLoading(false);
+        return;
+      }
+      const hasNegative = formatted.some(
+        (split) => split.frame_start < 0 || split.frame_end < 0
+      );
+      if (hasNegative) {
+        setSplitFramesError("Frame start/end must be 0 or greater.");
+        setIsLoading(false);
+        return;
+      }
+      splitFramesPayload = formatted;
+      setSplitFramesError(null);
+    } else {
+      setSplitFramesError(null);
+    }
+
     try {
       setCreatedDbName(null);
+      setCreatedDatabases([]);
+      const queryParams: Record<string, string | number | boolean> = {
+        param1: numericParam1,
+        image_size: numericImageSize,
+        reverse_layers: reverseLayers,
+      };
+      if (splitFramesPayload) {
+        queryParams.split_frames = JSON.stringify(splitFramesPayload);
+      }
       const extractRes = await axios.get<CellExtractionResponse>(
         `${url_prefix}/cell_extraction/${fileName}/${actualMode}`,
         {
-          params: {
-            param1: numericParam1,
-            image_size: numericImageSize,
-            reverse_layers: reverseLayers,
-          },
+          params: queryParams,
           headers,
         }
       );
       const ulid = extractRes.data.ulid;
       setCreatedDbName(extractRes.data.db_name);
+      setCreatedDatabases(extractRes.data.created_databases ?? []);
       setSessionUlid(ulid);
 
       const countRes = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${ulid}/count`);
@@ -165,14 +255,24 @@ const Extraction: React.FC = () => {
   };
 
   const handleGoToDatabases = async () => {
-    if (createdDbName) {
+    const dbsToNotify =
+      createdDatabases.length > 0
+        ? createdDatabases.map((db) => db.db_name)
+        : createdDbName
+        ? [createdDbName]
+        : [];
+    if (dbsToNotify.length > 0) {
       try {
         const token = localStorage.getItem("access_token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        await axios.post(
-          `${url_prefix}/cell_extraction/databases/${createdDbName}/notify_created`,
-          null,
-          { headers }
+        await Promise.all(
+          dbsToNotify.map((db) =>
+            axios.post(
+              `${url_prefix}/cell_extraction/databases/${db}/notify_created`,
+              null,
+              { headers }
+            )
+          )
         );
       } catch (error) {
         console.error("Failed to notify Slack", error);
@@ -282,6 +382,75 @@ const Extraction: React.FC = () => {
               margin="normal"
             />
 
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle1" fontWeight="bold">
+              Split frames (optional)
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mb={1}>
+              Create additional databases by specifying frame ranges.
+            </Typography>
+            {splitFrames.map((split, index) => (
+              <Grid
+                container
+                spacing={1}
+                alignItems="center"
+                key={`split-${index}`}
+                sx={{ mb: 1 }}
+              >
+                <Grid item xs={12} sm={4}>
+                  <CustomTextField
+                    label="Frame start"
+                    type="number"
+                    value={split.frameStart}
+                    onChange={(e) => handleSplitFrameChange(index, "frameStart", e.target.value)}
+                    onWheel={handleWheel}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <CustomTextField
+                    label="Frame end"
+                    type="number"
+                    value={split.frameEnd}
+                    onChange={(e) => handleSplitFrameChange(index, "frameEnd", e.target.value)}
+                    onWheel={handleWheel}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    label="Database name"
+                    value={split.dbName}
+                    onChange={(e) => handleSplitFrameChange(index, "dbName", e.target.value)}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={1} sx={{ textAlign: { xs: "right", sm: "center" } }}>
+                  <IconButton
+                    aria-label="Remove split row"
+                    color="inherit"
+                    onClick={() => handleRemoveSplitFrame(index)}
+                    size="small"
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Grid>
+              </Grid>
+            ))}
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AddCircleOutlineIcon />}
+              onClick={handleAddSplitFrame}
+            >
+              Add split range
+            </Button>
+            {splitFramesError && (
+              <Typography variant="caption" color="error" display="block" mt={1}>
+                {splitFramesError}
+              </Typography>
+            )}
+
             <Box mt={3}>
               <Button
                 variant="contained"
@@ -319,6 +488,18 @@ const Extraction: React.FC = () => {
                 >
                   Go to Databases
                 </Button>
+              </Box>
+            )}
+            {createdDatabases.length > 0 && (
+              <Box mt={2}>
+                <Typography variant="subtitle2" fontWeight="bold">
+                  Created databases
+                </Typography>
+                {createdDatabases.map((db, index) => (
+                  <Typography variant="body2" key={`${db.db_name}-${index}`}>
+                    {db.db_name} (frames {db.frame_start} - {db.frame_end})
+                  </Typography>
+                ))}
               </Box>
             )}
           </Paper>
