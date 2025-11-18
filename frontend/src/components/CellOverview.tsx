@@ -273,6 +273,10 @@ const CellImageGrid: React.FC = () => {
   }, [cellIds, currentIndex]);
 
   useEffect(() => {
+    setInputIndex((currentIndex + 1).toString());
+  }, [currentIndex]);
+
+  useEffect(() => {
     if (cellIds.length === 0) {
       return;
     }
