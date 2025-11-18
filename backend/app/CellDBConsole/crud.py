@@ -14,6 +14,7 @@ import pandas as pd
 import pickle
 import re
 import shutil
+import math
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
@@ -1217,11 +1218,82 @@ class AsyncChores:
         return buf
 
     @staticmethod
+    async def calculate_replot_limits(
+        image_fluo_raw: bytes,
+        contour_raw: bytes,
+        margin_width: float = 20,
+        margin_height: float = 20,
+    ) -> tuple[float, float, float, float] | None:
+        """
+        replot 用の軸範囲を計算する。
+        各セルごとの u1/u2 を重心でシフトした後の最小・最大値にマージンを加えたものを返却。
+        """
+        image_fluo = cv2.imdecode(
+            np.frombuffer(image_fluo_raw, np.uint8), cv2.IMREAD_COLOR
+        )
+        if image_fluo is None:
+            return None
+        image_fluo_gray = cv2.cvtColor(image_fluo, cv2.COLOR_BGR2GRAY)
+
+        mask = np.zeros_like(image_fluo_gray)
+        try:
+            unpickled_contour = pickle.loads(contour_raw)
+        except Exception:
+            return None
+        cv2.fillPoly(mask, [unpickled_contour], 255)
+
+        coords_inside_cell_1 = np.column_stack(np.where(mask))
+        if coords_inside_cell_1.size == 0:
+            return None
+
+        X = np.array(
+            [
+                [i[1] for i in coords_inside_cell_1],  # x 座標
+                [i[0] for i in coords_inside_cell_1],  # y 座標
+            ]
+        )
+
+        (
+            u1,
+            u2,
+            u1_contour,
+            u2_contour,
+            min_u1,
+            max_u1,
+            u1_c,
+            u2_c,
+            U,
+            contour_U,
+        ) = SyncChores.basis_conversion(
+            [list(i[0]) for i in unpickled_contour],
+            X,
+            image_fluo.shape[0] / 2,
+            image_fluo.shape[1] / 2,
+            coords_inside_cell_1,
+        )
+
+        u1_shifted = u1 - u1_c
+        u2_shifted = u2 - u2_c
+
+        min_u1_shifted = np.min(u1_shifted)
+        max_u1_shifted = np.max(u1_shifted)
+        min_u2_shifted = np.min(u2_shifted)
+        max_u2_shifted = np.max(u2_shifted)
+
+        return (
+            min_u1_shifted - margin_width,
+            max_u1_shifted + margin_width,
+            min_u2_shifted - margin_height,
+            max_u2_shifted + margin_height,
+        )
+
+    @staticmethod
     async def replot(
         image_fluo_raw: bytes,
         contour_raw: bytes,
         degree: int,
         dark_mode: bool = False,
+        axis_limits: tuple[float, float, float, float] | None = None,
     ) -> io.BytesIO:
         """
         (u1,u2) 平面に生データを散布し、多項式近似した曲線と輪郭を表示。
@@ -1313,8 +1385,18 @@ class AsyncChores:
                 label="Intensity",
             )
 
-            plt.xlim([min_u1_shifted - margin_width, max_u1_shifted + margin_width])
-            plt.ylim([min_u2_shifted - margin_height, max_u2_shifted + margin_height])
+            x_min, x_max, y_min, y_max = (
+                axis_limits
+                if axis_limits is not None
+                else (
+                    min_u1_shifted - margin_width,
+                    max_u1_shifted + margin_width,
+                    min_u2_shifted - margin_height,
+                    max_u2_shifted + margin_height,
+                )
+            )
+            plt.xlim([x_min, x_max])
+            plt.ylim([y_min, y_max])
 
             max_val = np.max(points_inside_cell_1) if len(points_inside_cell_1) else 1
             normalized_points = [i / max_val for i in points_inside_cell_1]
@@ -2510,6 +2592,27 @@ class CellCrudBase:
             cell_ids = await self.read_cell_ids(label)
             cells = [await self.read_cell(cell.cell_id) for cell in cell_ids]
 
+            replot_axis_limits: tuple[float, float, float, float] | None = None
+            if mode in ("replot_fluo1", "replot_fluo2"):
+                min_x, max_x = math.inf, -math.inf
+                min_y, max_y = math.inf, -math.inf
+                for cell in cells:
+                    image_blob = cell.img_fluo2 if mode == "replot_fluo2" else cell.img_fluo1
+                    if image_blob is None:
+                        continue
+                    limits = await AsyncChores.calculate_replot_limits(
+                        image_blob, cell.contour
+                    )
+                    if limits is None:
+                        continue
+                    x_min, x_max_cell, y_min, y_max_cell = limits
+                    min_x = min(min_x, x_min)
+                    max_x = max(max_x, x_max_cell)
+                    min_y = min(min_y, y_min)
+                    max_y = max(max_y, y_max_cell)
+                if min_x != math.inf and max_x != -math.inf and min_y != math.inf and max_y != -math.inf:
+                    replot_axis_limits = (min_x, max_x, min_y, max_y)
+
             for cell in cells:
                 async with aiofiles.open(f"{tmp_folder}/{cell.cell_id}.png", "wb") as f:
                     if mode == "fluo":
@@ -2553,6 +2656,7 @@ class CellCrudBase:
                             cell.img_fluo1,
                             cell.contour,
                             3,
+                            axis_limits=replot_axis_limits,
                         )
                         await f.write(buf.getvalue())
                     elif mode == "replot_fluo2":
@@ -2561,6 +2665,7 @@ class CellCrudBase:
                                 cell.img_fluo2,
                                 cell.contour,
                                 3,
+                                axis_limits=replot_axis_limits,
                             )
                             await f.write(buf.getvalue())
                         else:
