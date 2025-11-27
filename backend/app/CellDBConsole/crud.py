@@ -2013,7 +2013,7 @@ class CellCrudBase:
             else str(normalized_label).replace("/", "-")
         )
         filename = f"{self.db_name}_label_{safe_label}_{img_type}_ibpa_ratio.csv"
-        headers = {"Content-Disposition": f'attachment; filename=\"{filename}\""}
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
         return StreamingResponse(buf, media_type="text/csv", headers=headers)
 
     async def get_all_variance_normalized_fluo_intensities(
