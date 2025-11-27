@@ -629,31 +629,37 @@ class AsyncChores:
     async def calc_ibpa_mode_ratio(
         image_fluo_raw: bytes, contour_raw: bytes, bins: int = 30
     ) -> tuple[float, float]:
-        """Calculate IbpA mode value and high-intensity ratio inside a cell."""
+        """
+        Calculate IbpA mode value and high-intensity ratio inside a cell.
+
+        The 8-bit intensities are scaled to 0–1, the mode is obtained from the
+        histogram bin center, and the high-intensity ratio is computed using
+        a threshold of (mode + 30/255) on the scaled values.
+        """
         points = await AsyncChores.get_points_inside_cell(
             image_fluo_raw, contour_raw, normalize=False
         )
         if len(points) == 0:
             return float("nan"), float("nan")
 
-        values = np.asarray(points, dtype=np.float32)
-        counts, bin_edges = np.histogram(values, bins=bins)
-        if counts.size == 0 or np.sum(counts) == 0:
+        values = np.asarray(points, dtype=np.float32) / 255.0
+        counts, bin_edges = np.histogram(values, bins=bins, range=(0.0, 1.0))
+        if counts.size == 0 or counts.sum() == 0:
             return float("nan"), float("nan")
 
         max_bin_index = int(np.argmax(counts))
         if max_bin_index >= len(bin_edges) - 1:
-            mode_value = float(bin_edges[-1])
+            mode_value_scaled = float(bin_edges[-1])
         else:
-            mode_value = float(
+            mode_value_scaled = float(
                 (bin_edges[max_bin_index] + bin_edges[max_bin_index + 1]) / 2
             )
 
-        threshold = mode_value + 30.0
+        threshold = mode_value_scaled + 30.0 / 255.0
         high_sum = float(np.sum(values[values >= threshold]))
         total_sum = float(np.sum(values))
         ratio = round(high_sum / total_sum, 2) if total_sum > 0 else float("nan")
-        return round(mode_value, 2), ratio
+        return round(mode_value_scaled, 4), ratio
 
     @staticmethod
     async def calc_area_fraction(
@@ -1841,6 +1847,12 @@ class CellCrudBase:
             cells = [cell for cell in cells if cell.img_fluo2 is not None]
         else:
             target_img = target_cell.img_fluo1
+            if target_img is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Fluo1 image not available for this cell",
+                )
+            cells = [cell for cell in cells if cell.img_fluo1 is not None]
 
         if not cells:
             raise HTTPException(
@@ -1877,6 +1889,28 @@ class CellCrudBase:
         )
         return StreamingResponse(buf, media_type="image/png")
 
+    @staticmethod
+    def _normalize_label_value(label: str | None) -> str | None:
+        if label == "74":
+            return None
+        if label == "1000":
+            return "N/A"
+        return label
+
+    @staticmethod
+    async def _calc_ibpa_ratios_for_cells(
+        cells: list[Cell], img_type: Literal["fluo1", "fluo2"]
+    ) -> list[tuple[str, float]]:
+        async def calculate(cell: Cell) -> tuple[str, float]:
+            image = cell.img_fluo2 if img_type == "fluo2" else cell.img_fluo1
+            if image is None:
+                return cell.cell_id, float("nan")
+            _, ratio = await AsyncChores.calc_ibpa_mode_ratio(image, cell.contour)
+            return cell.cell_id, ratio
+
+        ratios = await asyncio.gather(*(calculate(cell) for cell in cells))
+        return [(cell_id, ratio) for cell_id, ratio in ratios if not np.isnan(ratio)]
+
     async def get_ibpa_ratio(
         self,
         cell_id: str,
@@ -1884,7 +1918,8 @@ class CellCrudBase:
         label: str | None = None,
         img_type: Literal["fluo1", "fluo2"] = "fluo1",
     ) -> StreamingResponse:
-        cell_ids = await self.read_cell_ids(label)
+        normalized_label = self._normalize_label_value(label)
+        cell_ids = await self.read_cell_ids(normalized_label)
         cells = await asyncio.gather(
             *(self.read_cell(cell.cell_id) for cell in cell_ids)
         )
@@ -1917,15 +1952,8 @@ class CellCrudBase:
                 detail="Unable to calculate IbpA ratio for the selected cell",
             )
 
-        async def calculate_ratio(cell):
-            image = cell.img_fluo2 if img_type == "fluo2" else cell.img_fluo1
-            if image is None:
-                return float("nan")
-            _, ratio = await AsyncChores.calc_ibpa_mode_ratio(image, cell.contour)
-            return ratio
-
-        ratios = await asyncio.gather(*(calculate_ratio(cell) for cell in cells))
-        filtered_ratios = [ratio for ratio in ratios if not np.isnan(ratio)]
+        ratios_with_ids = await self._calc_ibpa_ratios_for_cells(cells, img_type)
+        filtered_ratios = [ratio for _, ratio in ratios_with_ids]
 
         if not filtered_ratios:
             raise HTTPException(
@@ -1943,6 +1971,50 @@ class CellCrudBase:
             label=label_text,
         )
         return StreamingResponse(buf, media_type="image/png")
+
+    async def get_ibpa_ratio_csv(
+        self,
+        label: str | None = None,
+        img_type: Literal["fluo1", "fluo2"] = "fluo1",
+    ) -> StreamingResponse:
+        normalized_label = self._normalize_label_value(label)
+        cell_ids = await self.read_cell_ids(normalized_label)
+        cells = await asyncio.gather(
+            *(self.read_cell(cell.cell_id) for cell in cell_ids)
+        )
+
+        available_cells = (
+            [cell for cell in cells if cell.img_fluo2 is not None]
+            if img_type == "fluo2"
+            else [cell for cell in cells if cell.img_fluo1 is not None]
+        )
+        if not available_cells:
+            raise HTTPException(
+                status_code=404,
+                detail="No cells with the requested fluorescence channel were found",
+            )
+
+        ratios_with_ids = await self._calc_ibpa_ratios_for_cells(
+            available_cells, img_type
+        )
+        if not ratios_with_ids:
+            raise HTTPException(
+                status_code=404,
+                detail="No IbpA ratios available for the selected cells",
+            )
+
+        df = pd.DataFrame(ratios_with_ids, columns=["cell_id", "ibpa_ratio"])
+        buf = io.BytesIO()
+        df.to_csv(buf, index=False)
+        buf.seek(0)
+        safe_label = (
+            "all"
+            if normalized_label is None
+            else str(normalized_label).replace("/", "-")
+        )
+        filename = f"{self.db_name}_label_{safe_label}_{img_type}_ibpa_ratio.csv"
+        headers = {"Content-Disposition": f'attachment; filename=\"{filename}\""}
+        return StreamingResponse(buf, media_type="text/csv", headers=headers)
 
     async def get_all_variance_normalized_fluo_intensities(
         self, cell_id: str, y_label: str, label: str | None = None

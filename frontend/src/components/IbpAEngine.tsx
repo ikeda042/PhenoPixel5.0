@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Box,
+  Button,
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import { settings } from "../settings";
+import DownloadIcon from "@mui/icons-material/Download";
 
 interface IbpAEngineProps {
   dbName: string;
@@ -24,6 +26,7 @@ const IbpAEngine: React.FC<IbpAEngineProps> = ({ dbName, label, cellId }) => {
     "fluo1"
   );
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -78,9 +81,46 @@ const IbpAEngine: React.FC<IbpAEngineProps> = ({ dbName, label, cellId }) => {
     }
   };
 
+  const handleDownloadCsv = async () => {
+    setDownloading(true);
+    try {
+      const response = await axios.get(
+        `${url_prefix}/cells/${dbName}/${label}/ibpa_ratio/csv`,
+        {
+          responseType: "blob",
+          params: { img_type: selectedChannel },
+        }
+      );
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const anchor = document.createElement("a");
+      const labelSuffix =
+        label === "74" ? "all" : label === "1000" ? "NA" : label;
+      anchor.href = blobUrl;
+      anchor.setAttribute(
+        "download",
+        `${dbName}_label_${labelSuffix}_${selectedChannel}_ibpa_ratio.csv`
+      );
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Failed to download IbpA ratio CSV:", err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <Box display="flex" flexDirection="column" alignItems="flex-end">
-      <Box display="flex" flexDirection="column" alignItems="flex-end" mb={2}>
+      <Box
+        display="flex"
+        flexDirection="row"
+        alignItems="center"
+        justifyContent="flex-end"
+        mb={2}
+        gap={2}
+      >
         <Typography variant="subtitle2" sx={{ mb: 1 }}>
           Fluorescence channel
         </Typography>
@@ -93,6 +133,15 @@ const IbpAEngine: React.FC<IbpAEngineProps> = ({ dbName, label, cellId }) => {
           <ToggleButton value="fluo1">Fluo 1</ToggleButton>
           <ToggleButton value="fluo2">Fluo 2</ToggleButton>
         </ToggleButtonGroup>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleDownloadCsv}
+          startIcon={<DownloadIcon />}
+          disabled={downloading}
+        >
+          Export CSV
+        </Button>
       </Box>
       {loading ? (
         <Box display="flex" justifyContent="center" width="100%">

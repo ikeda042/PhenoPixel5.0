@@ -347,6 +347,16 @@ async def test_get_ibpa_ratio(client: AsyncClient):
 
 
 @pytest.mark.anyio
+async def test_get_ibpa_ratio_csv(client: AsyncClient):
+    """GET /cells/{db_name}/{label}/ibpa_ratio/csv"""
+
+    response = await client.get(
+        "/api/cells/test_database.db/1/ibpa_ratio/csv"
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio
 async def test_get_var_fluo_intensities(client: AsyncClient):
     """
     GET /cells/{db_name}/{label}/{cell_id}/var_fluo_intensities

@@ -379,6 +379,21 @@ async def get_ibpa_ratio(
     return ret
 
 
+@router_cell.get(
+    "/{db_name}/{label}/ibpa_ratio/csv", response_class=StreamingResponse
+)
+async def get_ibpa_ratio_csv(
+    db_name: str,
+    label: str,
+    img_type: Literal["fluo1", "fluo2"] = "fluo1",
+):
+    await AsyncChores().validate_database_name(db_name)
+    ret: StreamingResponse = await CellCrudBase(
+        db_name=db_name
+    ).get_ibpa_ratio_csv(label=label, img_type=img_type)
+    return ret
+
+
 @router_cell.get("/{db_name}/{label}/{cell_id}/var_fluo_intensities")
 async def get_var_fluo_intensities(db_name: str, label: str, cell_id: str):
     await AsyncChores().validate_database_name(db_name)
