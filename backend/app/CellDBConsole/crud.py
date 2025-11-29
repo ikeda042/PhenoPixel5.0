@@ -1742,14 +1742,19 @@ class CellCrudBase:
             cells: list[Cell] = result.scalars().all()
         await session.close()
 
-        length_results = await asyncio.gather(
-            *(
-                AsyncChores.calc_cell_length_um(cell.img_ph, cell.contour)
-                for cell in cells
-                if cell.img_ph is not None and cell.contour is not None
-            )
-        )
-        return [length for length in length_results if length and length > 0]
+        lengths: list[float] = []
+        for cell in cells:
+            if cell.img_ph is None or cell.contour is None:
+                continue
+            try:
+                length_val = await AsyncChores.calc_cell_length_um(
+                    cell.img_ph, cell.contour
+                )
+            except Exception:
+                continue
+            if length_val and length_val > 0:
+                lengths.append(length_val)
+        return lengths
 
     async def update_all_cells_metadata(self, metadata: str) -> None:
         stmt = update(Cell).values(label_experiment=metadata)

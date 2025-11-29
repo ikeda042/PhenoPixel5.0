@@ -148,6 +148,10 @@ const GraphEngine: React.FC = () => {
         window.alert("Please select a database first.");
         return;
       }
+      if (!selectedLabel) {
+        window.alert("Please select a label.");
+        return;
+      }
       setIsLoading(true);
       setImageSrc(null);
       try {

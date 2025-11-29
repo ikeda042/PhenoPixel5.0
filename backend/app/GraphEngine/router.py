@@ -60,7 +60,11 @@ async def create_cell_length_boxplot(
     db_name: str = Query(..., description="Target database name"),
     label: str = Query(..., description="Manual label to filter"),
 ):
-    await CellAsyncChores().validate_database_name(db_name)
+    try:
+        await CellAsyncChores().validate_database_name(db_name)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Database not found")
+
     try:
         lengths = await CellCrudBase(db_name).get_cell_lengths_by_label(label)
         if not lengths:
