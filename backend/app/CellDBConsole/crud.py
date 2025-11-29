@@ -868,8 +868,8 @@ class AsyncChores:
             _,
             _,
             _,
+            max_u1,
             _,
-            u1_c,
             _,
             _,
             _,
@@ -880,10 +880,9 @@ class AsyncChores:
             image_ph_gray.shape[1] / 2,
             coords_inside,
         )
-        u1_adj = np.array(u1) - u1_c
-        if u1_adj.size == 0:
+        if len(u1) == 0:
             return 0.0
-        length_px = float(np.max(u1_adj) - np.min(u1_adj))
+        length_px = float(max_u1 - min(u1))
         return round(length_px * 0.0625, 4)
 
     @staticmethod
