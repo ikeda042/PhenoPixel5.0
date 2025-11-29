@@ -289,31 +289,39 @@ const GraphEngine: React.FC = () => {
               spacing={2}
               alignItems="stretch"
             >
-              <Autocomplete
-                freeSolo
-                options={dbNames}
-                value={selectedDb}
-                inputValue={dbInputValue}
-                onChange={(_, newValue) => {
-                  setSelectedDb(newValue || "");
-                  setDbInputValue(newValue || "");
-                }}
-                onInputChange={(_, newInput) => {
-                  setSelectedDb(newInput);
-                  setDbInputValue(newInput);
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Database"
-                    size="small"
-                    disabled={dbLoading || isLoading}
-                    placeholder="Enter database name"
-                  />
-                )}
-              />
+              <Box sx={{ flex: 2, minWidth: 320 }}>
+                <Autocomplete
+                  fullWidth
+                  freeSolo
+                  options={dbNames}
+                  value={selectedDb}
+                  inputValue={dbInputValue}
+                  onChange={(_, newValue) => {
+                    setSelectedDb(newValue || "");
+                    setDbInputValue(newValue || "");
+                  }}
+                  onInputChange={(_, newInput) => {
+                    setSelectedDb(newInput);
+                    setDbInputValue(newInput);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Database"
+                      size="small"
+                      fullWidth
+                      disabled={dbLoading || isLoading}
+                      placeholder="Type or pick a database name"
+                    />
+                  )}
+                />
+              </Box>
 
-              <FormControl size="small" sx={{ minWidth: 180 }} disabled={isLoading}>
+              <FormControl
+                size="small"
+                sx={{ minWidth: 140, flex: 1 }}
+                disabled={isLoading}
+              >
                 <InputLabel id="label-select-label">Label</InputLabel>
                 <Select
                   labelId="label-select-label"
