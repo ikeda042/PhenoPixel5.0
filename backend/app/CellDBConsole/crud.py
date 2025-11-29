@@ -24,7 +24,7 @@ from matplotlib.figure import Figure
 from numpy.linalg import eig, inv
 from scipy.integrate import quad
 from scipy.optimize import minimize
-from sqlalchemy import update
+from sqlalchemy import update, cast, String
 from sqlalchemy.future import select
 from typing import Literal
 from skimage.filters import threshold_otsu
@@ -1733,8 +1733,9 @@ class CellCrudBase:
     async def get_cell_lengths_by_label(self, label: str | None = None) -> list[float]:
         stmt = select(Cell)
         if label is not None:
-            if str(label).lower() != "all":
-                stmt = stmt.where(Cell.manual_label == label)
+            label_str = str(label)
+            if label_str.lower() != "all":
+                stmt = stmt.where(cast(Cell.manual_label, String) == label_str)
 
         async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
