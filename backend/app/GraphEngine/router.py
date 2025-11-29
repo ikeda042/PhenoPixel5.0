@@ -61,19 +61,24 @@ async def create_cell_length_boxplot(
     label: str = Query(..., description="Manual label to filter"),
 ):
     await CellAsyncChores().validate_database_name(db_name)
-    lengths = await CellCrudBase(db_name).get_cell_lengths_by_label(label)
-    if not lengths:
-        raise HTTPException(
-            status_code=404, detail="No cells found for the specified label."
-        )
+    try:
+        lengths = await CellCrudBase(db_name).get_cell_lengths_by_label(label)
+        if not lengths:
+            raise HTTPException(
+                status_code=404, detail="No cells found for the specified label."
+            )
 
-    buf = await GraphEngineCrudBase.boxplot_from_values(
-        lengths,
-        title=f"{db_name} | label {label}",
-        xlabel="Cell length (μm)",
-        dpi=180,
-    )
-    return StreamingResponse(buf, media_type="image/png")
+        buf = await GraphEngineCrudBase.boxplot_from_values(
+            lengths,
+            title=f"{db_name} | label {label}",
+            xlabel="Cell length (μm)",
+            dpi=180,
+        )
+        return StreamingResponse(buf, media_type="image/png")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to create plot: {exc}") from exc
 
 
 @router_graphengine.post("/mcpr")

@@ -1746,6 +1746,7 @@ class CellCrudBase:
             *(
                 AsyncChores.calc_cell_length_um(cell.img_ph, cell.contour)
                 for cell in cells
+                if cell.img_ph is not None and cell.contour is not None
             )
         )
         return [length for length in length_results if length and length > 0]
