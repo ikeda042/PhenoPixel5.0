@@ -836,54 +836,50 @@ class AsyncChores:
         return result
 
     @staticmethod
-    def calc_cell_length_um(image_ph: bytes, contour_raw: bytes) -> float:
+    def calc_cell_length_um(image_ph: bytes | None, contour_raw: bytes) -> float:
         """
         主軸方向の長さ(μm)を計算するヘルパー。
+        可能なら細胞内部画素の PCA から算出し、失敗時は輪郭点のみで近似。
         """
-        image_ph_gray = cv2.imdecode(
-            np.frombuffer(image_ph, np.uint8), cv2.IMREAD_GRAYSCALE
-        )
-        if image_ph_gray is None:
-            return 0.0
-
         try:
             contour = pickle.loads(contour_raw)
         except Exception:
             return 0.0
 
-        mask = np.zeros_like(image_ph_gray)
-        cv2.fillPoly(mask, [np.array(contour, dtype=np.int32)], 255)
-        coords_inside = np.column_stack(np.where(mask))
-        if coords_inside.size == 0:
+        # OpenCV の輪郭形式 ([[x, y]]) をフラットな Nx2 配列に変換
+        contour_pts = np.array([p[0] if len(p) == 1 else p for p in contour], dtype=float)
+        if contour_pts.ndim != 2 or contour_pts.shape[0] == 0:
             return 0.0
 
-        contour_points = [list(i[0]) for i in contour]
-        X = np.array(
-            [[i[1] for i in coords_inside], [i[0] for i in coords_inside]],
-            dtype=float,
-        )
-        (
-            u1,
-            _,
-            _,
-            _,
-            _,
-            max_u1,
-            _,
-            _,
-            _,
-            _,
-        ) = SyncChores.basis_conversion(
-            contour_points,
-            X,
-            image_ph_gray.shape[0] / 2,
-            image_ph_gray.shape[1] / 2,
-            coords_inside,
-        )
-        if len(u1) == 0:
-            return 0.0
-        length_px = float(max_u1 - min(u1))
-        return round(length_px * 0.0625, 4)
+        def pca_length(points: np.ndarray) -> float:
+            pts = points.astype(float)
+            mean = pts.mean(axis=0)
+            centered = pts - mean
+            if centered.shape[0] < 2:
+                return 0.0
+            cov = np.cov(centered.T)
+            eigvals, eigvecs = np.linalg.eig(cov)
+            axis = eigvecs[:, np.argmax(eigvals)]
+            proj = centered @ axis
+            return float(proj.max() - proj.min())
+
+        # 1. 可能なら細胞内部画素を使う
+        if image_ph is not None:
+            image_ph_gray = cv2.imdecode(
+                np.frombuffer(image_ph, np.uint8), cv2.IMREAD_GRAYSCALE
+            )
+            if image_ph_gray is not None:
+                mask = np.zeros_like(image_ph_gray)
+                cv2.fillPoly(mask, [np.array(contour_pts, dtype=np.int32)], 255)
+                coords_inside = np.column_stack(np.where(mask))
+                if coords_inside.size > 0:
+                    length_px = pca_length(coords_inside[:, ::-1])  # (x,y) order
+                    if length_px > 0:
+                        return round(length_px * 0.0625, 4)
+
+        # 2. フォールバック: 輪郭点のみ
+        length_px = pca_length(contour_pts)
+        return round(length_px * 0.0625, 4) if length_px > 0 else 0.0
 
     @staticmethod
     async def calculate_volume_and_widths(
@@ -1754,11 +1750,12 @@ class CellCrudBase:
 
         lengths: list[float] = []
         for cell in cells:
-            if cell.img_ph is None or cell.contour is None:
+            if cell.contour is None:
                 continue
             try:
                 length_val = await AsyncChores.calc_cell_length_um(
-                    cell.img_ph, cell.contour
+                    cell.img_ph if hasattr(cell, "img_ph") else None,
+                    cell.contour,
                 )
             except Exception:
                 continue
