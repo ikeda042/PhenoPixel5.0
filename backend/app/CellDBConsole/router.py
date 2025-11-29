@@ -1,13 +1,18 @@
+import math
 import os
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, UploadFile, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 import asyncio
 from databases.migration import migrate
 
 from CellDBConsole.crud import AsyncChores, CellCrudBase
-from CellDBConsole.schemas import CellMorhology, MetadataUpdateRequest
+from CellDBConsole.schemas import (
+    CellMorhology,
+    MetadataUpdateRequest,
+    PaginatedDBResponse,
+)
 from CellAI.crud import CellAiCrudBase
 from OAuth2.login_manager import get_account_optional
 from OAuth2.crud import UserCrud
@@ -667,19 +672,58 @@ async def upload_database(file: UploadFile = UploadFile(...)):
     return file.filename
 
 
-@router_database.get("/")
-async def get_databases(account=Depends(get_account_optional)):
+@router_database.get("/", response_model=PaginatedDBResponse)
+async def get_databases(
+    account=Depends(get_account_optional),
+    search: str | None = Query(default=None, description="Search by database name"),
+    display_mode: Literal["User uploaded", "Completed", "Validated", "All"] = "All",
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+):
     if account is None:
-        return await AsyncChores().get_database_names()
+        db_response = await AsyncChores().get_database_names()
+    else:
+        user_id = account.id
+        handle_id = account.handle_id
 
-    user_id = account.id
-    handle_id = account.handle_id
+        account_obj = await UserCrud.get_by_id(user_id)
+        if account_obj.is_admin:
+            db_response = await AsyncChores().get_database_names()
+        else:
+            db_response = await AsyncChores().get_database_names(handle_id=handle_id)
 
-    account_obj = await UserCrud.get_by_id(user_id)
-    if account_obj.is_admin:
-        return await AsyncChores().get_database_names()
+    databases = db_response.databases
+    search_lower = search.lower().strip() if search else ""
 
-    return await AsyncChores().get_database_names(handle_id=handle_id)
+    filtered_databases: list[str] = []
+    for db in databases:
+        if search_lower and search_lower not in db.lower():
+            continue
+
+        if display_mode == "User uploaded" and not db.endswith("-uploaded.db"):
+            continue
+        if display_mode == "Completed" and not db.endswith("-completed.db"):
+            continue
+        if display_mode == "Validated" and (
+            db.endswith("-uploaded.db") or db.endswith("-completed.db")
+        ):
+            continue
+
+        filtered_databases.append(db)
+
+    total = len(filtered_databases)
+    max_page = math.ceil(total / page_size) if total else 1
+    current_page = min(page, max_page) if total else 1
+    start = (current_page - 1) * page_size
+    end = start + page_size
+    paginated_databases = filtered_databases[start:end]
+
+    return PaginatedDBResponse(
+        databases=paginated_databases,
+        total=total,
+        page=current_page,
+        page_size=page_size,
+    )
 
 
 @router_database.patch("/{db_name}")

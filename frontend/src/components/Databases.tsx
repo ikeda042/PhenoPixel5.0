@@ -26,6 +26,8 @@ import {
   CircularProgress,
   TextField,
   Tooltip,
+  LinearProgress,
+  TablePagination,
 } from "@mui/material";
 import axios from "axios";
 import { settings } from "../settings";
@@ -36,11 +38,13 @@ import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import TaskIcon from "@mui/icons-material/Task";
 import DownloadIcon from "@mui/icons-material/Download";
-import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
-interface ListDBResponse {
+interface PaginatedDBResponse {
   databases: string[];
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 const url_prefix = settings.url_prefix;
@@ -64,6 +68,12 @@ const Databases: React.FC = () => {
 
   const [databases, setDatabases] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState(defaultSearchWord);
+  const [debouncedSearch, setDebouncedSearch] = useState(defaultSearchWord);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalDatabases, setTotalDatabases] = useState(0);
+  const [isLoadingList, setIsLoadingList] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // 表示モード
   const [displayMode, setDisplayMode] = useState(
@@ -105,83 +115,127 @@ const Databases: React.FC = () => {
    * ユーザーアップロード or Completed or Validated用のデータを取得
    */
   const fetchDatabases = useCallback(async () => {
+    setIsLoadingList(true);
+    setFetchError(null);
     try {
       const token = localStorage.getItem("access_token");
       const headers =
         token && displayMode !== "Validated"
           ? { Authorization: `Bearer ${token}` }
           : {};
-      const response = await axios.get<ListDBResponse>(
+      const response = await axios.get<PaginatedDBResponse>(
         `${url_prefix}/databases`,
-        { headers }
+        {
+          headers,
+          params: {
+            page,
+            page_size: pageSize,
+            search: debouncedSearch || undefined,
+            display_mode: displayMode,
+          },
+        }
       );
-      setDatabases(response.data.databases);
+      const dbList = response.data.databases;
+      setDatabases(dbList);
+      setTotalDatabases(response.data.total);
 
-      // アップロード済みDBを抽出
-      const uploadedDatabases = response.data.databases.filter((db) =>
-        db.endsWith("-uploaded.db")
-      );
+      if (response.data.page !== page) {
+        setPage(response.data.page);
+      }
+      if (response.data.page_size !== pageSize) {
+        setPageSize(response.data.page_size);
+      }
 
-      // アップロード済みDBが "Mark as complete" 可能かをチェック
-      const markableStatus = await Promise.all(
-        uploadedDatabases.map(async (db) => {
-          try {
-            const checkResponse = await axios.get(
-              `${url_prefix}/databases/${encodeURIComponent(db)}`
-            );
-            return { db, markable: checkResponse.data };
-          } catch (error) {
-            console.error(`Failed to check markable status for ${db}`, error);
-            return { db, markable: false };
-          }
-        })
-      );
+      if (displayMode === "User uploaded" && dbList.length > 0) {
+        // アップロード済みDBを抽出
+        const uploadedDatabases = dbList.filter((db) =>
+          db.endsWith("-uploaded.db")
+        );
 
-      const markableStatusMap = markableStatus.reduce(
-        (acc, { db, markable }) => {
-          acc[db] = markable;
-          return acc;
-        },
-        {} as { [key: string]: boolean }
-      );
-      setMarkableDatabases(markableStatusMap);
+        // アップロード済みDBが "Mark as complete" 可能かをチェック
+        const markableStatus = await Promise.all(
+          uploadedDatabases.map(async (db) => {
+            try {
+              const checkResponse = await axios.get(
+                `${url_prefix}/databases/${encodeURIComponent(db)}`
+              );
+              return { db, markable: checkResponse.data };
+            } catch (error) {
+              console.error(`Failed to check markable status for ${db}`, error);
+              return { db, markable: false };
+            }
+          })
+        );
 
-      // 全データベース分のメタデータを取得
-      const metadataResponses = await Promise.all(
-        response.data.databases.map(async (db) => {
-          try {
-            const metadataResponse = await axios.get(
-              `${url_prefix}/databases/${encodeURIComponent(db)}/metadata`
-            );
-            return { db, metadata: metadataResponse.data };
-          } catch (error) {
-            console.error(`Failed to fetch metadata for ${db}`, error);
-            return { db, metadata: "" };
-          }
-        })
-      );
+        const markableStatusMap = markableStatus.reduce(
+          (acc, { db, markable }) => {
+            acc[db] = markable;
+            return acc;
+          },
+          {} as { [key: string]: boolean }
+        );
+        setMarkableDatabases(markableStatusMap);
+      } else {
+        setMarkableDatabases({});
+      }
 
-      const metadataMap = metadataResponses.reduce(
-        (acc, { db, metadata }) => {
-          acc[db] = metadata;
-          return acc;
-        },
-        {} as { [key: string]: string }
-      );
+      if (dbList.length > 0) {
+        // 全データベース分のメタデータを取得
+        const metadataResponses = await Promise.all(
+          dbList.map(async (db) => {
+            try {
+              const metadataResponse = await axios.get(
+                `${url_prefix}/databases/${encodeURIComponent(db)}/metadata`
+              );
+              return { db, metadata: metadataResponse.data };
+            } catch (error) {
+              console.error(`Failed to fetch metadata for ${db}`, error);
+              return { db, metadata: "" };
+            }
+          })
+        );
 
-      setMetadata(metadataMap);
-      setNewMetadata(metadataMap);
+        const metadataMap = metadataResponses.reduce(
+          (acc, { db, metadata }) => {
+            acc[db] = metadata;
+            return acc;
+          },
+          {} as { [key: string]: string }
+        );
+
+        setMetadata((prev) => ({ ...prev, ...metadataMap }));
+        setNewMetadata((prev) => ({ ...prev, ...metadataMap }));
+      } else {
+        setMetadata({});
+        setNewMetadata({});
+      }
     } catch (error) {
+      setFetchError("Failed to fetch databases.");
       console.error("Failed to fetch databases", error);
+    } finally {
+      setIsLoadingList(false);
     }
-  }, [displayMode]);
+  }, [debouncedSearch, displayMode, page, pageSize]);
 
   /**
-   * displayMode の変更に応じてデータを取得
+   * displayMode や検索条件に応じてデータを取得
    */
   useEffect(() => {
     fetchDatabases();
-  }, [displayMode, fetchDatabases]);
+  }, [fetchDatabases]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const refreshFirstPage = useCallback(() => {
+    if (page === 1) {
+      fetchDatabases();
+    } else {
+      setPage(1);
+    }
+  }, [fetchDatabases, page]);
 
   /**
    * 表示モードを切り替え
@@ -189,6 +243,7 @@ const Databases: React.FC = () => {
   const handleDisplayModeChange = (event: SelectChangeEvent<string>) => {
     const newDisplayMode = event.target.value;
     setDisplayMode(newDisplayMode);
+    setPage(1);
     localStorage.setItem("displayMode", newDisplayMode);
   };
 
@@ -206,6 +261,21 @@ const Databases: React.FC = () => {
    */
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
+    setPage(1);
+  };
+
+  const handlePageChange = (
+    _: React.MouseEvent<HTMLButtonElement> | null,
+    newPage: number
+  ) => {
+    setPage(newPage + 1);
+  };
+
+  const handleRowsPerPageChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPage(1);
   };
 
   /**
@@ -261,7 +331,7 @@ const Databases: React.FC = () => {
         setDialogMessage("Database uploaded successfully!");
         setIsDialogOpen(true);
         // アップロード後のリスト再取得
-        fetchDatabases();
+        refreshFirstPage();
       } catch (error) {
         setDialogMessage("Failed to upload database.");
         setIsDialogOpen(true);
@@ -332,7 +402,7 @@ const Databases: React.FC = () => {
         setIsDialogOpen(true);
         handleCloseConfirmDialog();
         // リストを再取得
-        fetchDatabases();
+        refreshFirstPage();
       } catch (error) {
         setDialogMessage("Failed to mark database as complete.");
         setIsDialogOpen(true);
@@ -442,25 +512,8 @@ const Databases: React.FC = () => {
     setPreviewImage(null);
   };
 
-  // displayMode と検索ワードに合わせてフィルタリング
-  const filteredDatabases = databases.filter((database) => {
-    const searchMatch = database.toLowerCase().includes(searchQuery.toLowerCase());
-
-    if (displayMode === "User uploaded") {
-      return searchMatch && database.endsWith("-uploaded.db");
-    }
-    if (displayMode === "Completed") {
-      return searchMatch && database.endsWith("-completed.db");
-    }
-    if (displayMode === "Validated") {
-      return (
-        searchMatch &&
-        !database.endsWith("-uploaded.db") &&
-        !database.endsWith("-completed.db")
-      );
-    }
-    return searchMatch;
-  });
+  const columnCount =
+    7 + (displayMode === "User uploaded" || displayMode === "Completed" ? 1 : 0);
 
 
   return (
@@ -567,6 +620,11 @@ const Databases: React.FC = () => {
 
       {/* テーブル表示部分 */}
       <Box mt={3}>
+        {isLoadingList && (
+          <Box mb={1}>
+            <LinearProgress />
+          </Box>
+        )}
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -642,137 +700,162 @@ const Databases: React.FC = () => {
             </TableHead>
 
             <TableBody>
-              {filteredDatabases.map((database, index) => (
-                  <TableRow key={index}>
-                      <TableCell component="th" scope="row">
-                        <Tooltip title={database} placement="top">
-                          <Typography noWrap>
-                            {database.length > 30
-                              ? `${database.substring(0, 30)}...`
-                              : database}
-                          </Typography>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell>
-                        <Tooltip title="Copy to clipboard">
-                          <IconButton onClick={() => handleCopyToClipboard(database)}>
-                            <ContentCopyIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
+              {fetchError && (
+                <TableRow>
+                  <TableCell colSpan={columnCount} align="center">
+                    <Typography color="error">{fetchError}</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
 
-                      {/* メタデータ編集欄 */}
-                      <TableCell>
-                        <Box display="flex" alignItems="center" justifyContent="center">
-                          <TextField
-                            value={newMetadata[database] || ""}
-                            onChange={(e) =>
-                              setNewMetadata((prev) => ({
-                                ...prev,
-                                [database]: e.target.value,
-                              }))
-                            }
-                            onBlur={() =>
-                              handleMetadataChange(
-                                database,
-                                newMetadata[database] || ""
-                              )
-                            }
-                            fullWidth
-                            placeholder="e.g., yyyy/mm/dd"
-                            InputProps={{
-                              sx: {
-                                height: "40px",
-                                padding: "0",
-                              },
-                              autoComplete: "off",
-                            }}
-                          />
-                        </Box>
-                      </TableCell>
+              {databases.length === 0 && !isLoadingList && !fetchError && (
+                <TableRow>
+                  <TableCell colSpan={columnCount} align="center">
+                    <Typography>No databases found.</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
 
-                      {/* User uploaded: Mark as Complete */}
-                      {displayMode === "User uploaded" && (
-                        <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
-                          <Button
-                            variant="contained"
-                            sx={{
-                              backgroundColor: markableDatabases[database]
-                                ? "green"
-                                : "grey",
-                              color: "white",
-                              whiteSpace: "nowrap",
-                              "&:hover": {
-                                backgroundColor: markableDatabases[database]
-                                  ? "darkgreen"
-                                  : "grey",
-                              },
-                            }}
-                            onClick={() => handleOpenConfirmDialog(database)}
-                            startIcon={<TaskIcon />}
-                            disabled={!markableDatabases[database]}
-                          >
-                            Mark as Complete
-                          </Button>
-                        </TableCell>
-                      )}
+              {databases.map((database) => (
+                <TableRow key={database}>
+                  <TableCell component="th" scope="row">
+                    <Tooltip title={database} placement="top">
+                      <Typography noWrap>
+                        {database.length > 30
+                          ? `${database.substring(0, 30)}...`
+                          : database}
+                      </Typography>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip title="Copy to clipboard">
+                      <IconButton onClick={() => handleCopyToClipboard(database)}>
+                        <ContentCopyIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
 
-                      {/* Completed: ダウンロード */}
-                      {displayMode === "Completed" && (
-                        <TableCell align="center">
-                          <Button
-                            variant="contained"
-                            sx={{
-                              backgroundColor: 'primary.main',
-                              color: 'primary.contrastText',
-                              '&:hover': {
-                                backgroundColor: 'primary.dark',
-                              },
-                            }}
-                            onClick={() => handleDownload(database)}
-                            startIcon={<DownloadIcon />}
-                          >
-                            Export
-                          </Button>
-                        </TableCell>
-                      )}
+                  {/* メタデータ編集欄 */}
+                  <TableCell>
+                    <Box display="flex" alignItems="center" justifyContent="center">
+                      <TextField
+                        value={newMetadata[database] || ""}
+                        onChange={(e) =>
+                          setNewMetadata((prev) => ({
+                            ...prev,
+                            [database]: e.target.value,
+                          }))
+                        }
+                        onBlur={() =>
+                          handleMetadataChange(
+                            database,
+                            newMetadata[database] || ""
+                          )
+                        }
+                        fullWidth
+                        placeholder="e.g., yyyy/mm/dd"
+                        InputProps={{
+                          sx: {
+                            height: "40px",
+                            padding: "0",
+                          },
+                          autoComplete: "off",
+                        }}
+                      />
+                    </Box>
+                  </TableCell>
 
-                      {/* プレビューとDBアクセスボタン */}
-                      <>
-                        <TableCell align="center">
-                          <Button
-                            variant="contained"
-                            sx={{
-                              backgroundColor: 'primary.main',
-                              color: 'primary.contrastText',
-                              textTransform: 'none',
-                              '&:hover': {
-                                backgroundColor: 'primary.dark',
-                              },
-                            }}
-                          onClick={() => handlePreview(database)}
-                        >
-                          Preview
-                          </Button>
-                        </TableCell>
-                        <TableCell align="center">
-                          <IconButton onClick={() => handleNavigate(database)}>
-                            <Typography>Access database </Typography>
-                            <NavigateNextIcon />
-                          </IconButton>
-                        </TableCell>
-                        <TableCell align="center">
-                          <IconButton onClick={() => handleNavigateLabelSorter(database)}>
-                            <Typography>Sort labels </Typography>
-                            <NavigateNextIcon />
-                          </IconButton>
-                        </TableCell>
-                      </>
-                    </TableRow>
-                  ))}
+                  {/* User uploaded: Mark as Complete */}
+                  {displayMode === "User uploaded" && (
+                    <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
+                      <Button
+                        variant="contained"
+                        sx={{
+                          backgroundColor: markableDatabases[database]
+                            ? "green"
+                            : "grey",
+                          color: "white",
+                          whiteSpace: "nowrap",
+                          "&:hover": {
+                            backgroundColor: markableDatabases[database]
+                              ? "darkgreen"
+                              : "grey",
+                          },
+                        }}
+                        onClick={() => handleOpenConfirmDialog(database)}
+                        startIcon={<TaskIcon />}
+                        disabled={!markableDatabases[database]}
+                      >
+                        Mark as Complete
+                      </Button>
+                    </TableCell>
+                  )}
+
+                  {/* Completed: ダウンロード */}
+                  {displayMode === "Completed" && (
+                    <TableCell align="center">
+                      <Button
+                        variant="contained"
+                        sx={{
+                          backgroundColor: 'primary.main',
+                          color: 'primary.contrastText',
+                          '&:hover': {
+                            backgroundColor: 'primary.dark',
+                          },
+                        }}
+                        onClick={() => handleDownload(database)}
+                        startIcon={<DownloadIcon />}
+                      >
+                        Export
+                      </Button>
+                    </TableCell>
+                  )}
+
+                  {/* プレビューとDBアクセスボタン */}
+                  <>
+                    <TableCell align="center">
+                      <Button
+                        variant="contained"
+                        sx={{
+                          backgroundColor: 'primary.main',
+                          color: 'primary.contrastText',
+                          textTransform: 'none',
+                          '&:hover': {
+                            backgroundColor: 'primary.dark',
+                          },
+                        }}
+                        onClick={() => handlePreview(database)}
+                      >
+                        Preview
+                      </Button>
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton onClick={() => handleNavigate(database)}>
+                        <Typography>Access database </Typography>
+                        <NavigateNextIcon />
+                      </IconButton>
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton onClick={() => handleNavigateLabelSorter(database)}>
+                        <Typography>Sort labels </Typography>
+                        <NavigateNextIcon />
+                      </IconButton>
+                    </TableCell>
+                  </>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          component="div"
+          count={totalDatabases}
+          page={Math.max(0, page - 1)}
+          onPageChange={handlePageChange}
+          rowsPerPage={pageSize}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          rowsPerPageOptions={[10, 20, 50, 100]}
+        />
       </Box>
 
       {/* 通常メッセージダイアログ */}

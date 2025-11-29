@@ -94,5 +94,11 @@ class ListDBresponse(BaseModel):
     databases: list[str]
 
 
+class PaginatedDBResponse(ListDBresponse):
+    total: int
+    page: int
+    page_size: int
+
+
 class MetadataUpdateRequest(BaseModel):
     metadata: str
