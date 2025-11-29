@@ -149,6 +149,15 @@ class SyncChores:
         return u1, u2, u1_contour, u2_contour, min_u1, max_u1, u1_c, u2_c, U, contour_U
 
     @staticmethod
+    async def calc_cell_length_um(image_ph: bytes, contour_raw: bytes) -> float:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            result = await loop.run_in_executor(
+                executor, SyncChores.calc_cell_length_um, image_ph, contour_raw
+            )
+        return result
+
+    @staticmethod
     def calculate_volume_and_widths(
         u1_adj: list[float], u2_adj: list[float], split_num: int, deltaL: float
     ) -> tuple[float, list[float]]:
@@ -825,6 +834,57 @@ class AsyncChores:
         with ThreadPoolExecutor(max_workers=10) as executor:
             result = await loop.run_in_executor(executor, pickle.loads, data)
         return result
+
+    @staticmethod
+    def calc_cell_length_um(image_ph: bytes, contour_raw: bytes) -> float:
+        """
+        主軸方向の長さ(μm)を計算するヘルパー。
+        """
+        image_ph_gray = cv2.imdecode(
+            np.frombuffer(image_ph, np.uint8), cv2.IMREAD_GRAYSCALE
+        )
+        if image_ph_gray is None:
+            return 0.0
+
+        try:
+            contour = pickle.loads(contour_raw)
+        except Exception:
+            return 0.0
+
+        mask = np.zeros_like(image_ph_gray)
+        cv2.fillPoly(mask, [np.array(contour, dtype=np.int32)], 255)
+        coords_inside = np.column_stack(np.where(mask))
+        if coords_inside.size == 0:
+            return 0.0
+
+        contour_points = [list(i[0]) for i in contour]
+        X = np.array(
+            [[i[1] for i in coords_inside], [i[0] for i in coords_inside]],
+            dtype=float,
+        )
+        (
+            u1,
+            _,
+            _,
+            _,
+            _,
+            _,
+            u1_c,
+            _,
+            _,
+            _,
+        ) = SyncChores.basis_conversion(
+            contour_points,
+            X,
+            image_ph_gray.shape[0] / 2,
+            image_ph_gray.shape[1] / 2,
+            coords_inside,
+        )
+        u1_adj = np.array(u1) - u1_c
+        if u1_adj.size == 0:
+            return 0.0
+        length_px = float(np.max(u1_adj) - np.min(u1_adj))
+        return round(length_px * 0.0625, 4)
 
     @staticmethod
     async def calculate_volume_and_widths(
@@ -1670,6 +1730,25 @@ class CellCrudBase:
         if cell is None:
             raise CellNotFoundError(cell_id, "Cell with given ID does not exist")
         return cell
+
+    async def get_cell_lengths_by_label(self, label: str | None = None) -> list[float]:
+        stmt = select(Cell)
+        if label is not None:
+            if str(label).lower() != "all":
+                stmt = stmt.where(Cell.manual_label == label)
+
+        async for session in get_session(dbname=self.db_name):
+            result = await session.execute(stmt)
+            cells: list[Cell] = result.scalars().all()
+        await session.close()
+
+        length_results = await asyncio.gather(
+            *(
+                AsyncChores.calc_cell_length_um(cell.img_ph, cell.contour)
+                for cell in cells
+            )
+        )
+        return [length for length in length_results if length and length > 0]
 
     async def update_all_cells_metadata(self, metadata: str) -> None:
         stmt = update(Cell).values(label_experiment=metadata)

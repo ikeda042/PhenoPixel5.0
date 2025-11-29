@@ -159,6 +159,26 @@ class SyncChores:
 
         return buf
 
+    def process_boxplot_values(
+        values: list[float], title: str, xlabel: str, dpi: int = 200
+    ):
+        """Create a simple horizontal boxplot with jittered points."""
+        fig, ax = plt.subplots(figsize=(8, 4))
+        sns.boxplot(x=values, ax=ax, color="#8fb1ff", width=0.25)
+        sns.stripplot(
+            x=values, ax=ax, color="#1a1a1a", size=3, alpha=0.6, jitter=0.15
+        )
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel("")
+        ax.set_title(title)
+        ax.grid(axis="x", linestyle="--", alpha=0.3)
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
+        buf.seek(0)
+        plt.close(fig)
+        return buf
+
 
 class AsyncChores:
     async def process_heatmap_abs(self, data, dpi: int = 500):
@@ -177,6 +197,14 @@ class AsyncChores:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, SyncChores.process_distribution_box, data, dpi)
 
+    async def process_boxplot_values(
+        self, values: list[float], title: str, xlabel: str, dpi: int = 200
+    ):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, SyncChores.process_boxplot_values, values, title, xlabel, dpi
+        )
+
 
 class GraphEngineCrudBase:
     async def process_heatmap_abs(data, dpi: int = 500):
@@ -190,3 +218,8 @@ class GraphEngineCrudBase:
 
     async def process_distribution_box(data, dpi: int = 500):
         return await AsyncChores().process_distribution_box(data, dpi)
+
+    async def boxplot_from_values(
+        values: list[float], title: str, xlabel: str, dpi: int = 200
+    ):
+        return await AsyncChores().process_boxplot_values(values, title, xlabel, dpi)

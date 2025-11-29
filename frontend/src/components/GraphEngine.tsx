@@ -1,5 +1,5 @@
 // src/components/GraphEngine.tsx
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -19,6 +19,7 @@ import {
   Divider,
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
+import axios from "axios";
 import { settings } from "../settings";
 
 const url_prefix = settings.url_prefix;
@@ -60,12 +61,17 @@ const StyledButton = styled("button")(({ theme }) => ({
  * ------------------------------------------------- */
 
 const GraphEngine: React.FC = () => {
-  const [mode, setMode] = useState<"heatmap_abs" | "heatmap_rel" | "mcpr">(
-    "heatmap_abs"
-  );
+  const [mode, setMode] = useState<
+    "heatmap_abs" | "heatmap_rel" | "mcpr" | "cell_lengths"
+  >("heatmap_abs");
   const [file, setFile] = useState<File | null>(null);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [dbNames, setDbNames] = useState<string[]>([]);
+  const [selectedDb, setSelectedDb] = useState("");
+  const [dbLoading, setDbLoading] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
+  const [selectedLabel, setSelectedLabel] = useState("1");
 
   // MCPR 用パラメータ（★ 数値入力は文字列で保持）
   const [blankIndex, setBlankIndex] = useState("2");
@@ -83,6 +89,41 @@ const GraphEngine: React.FC = () => {
     setMode(event.target.value as typeof mode);
   };
 
+  const fetchDbNames = useCallback(async () => {
+    setDbLoading(true);
+    setDbError(null);
+    try {
+      const token = localStorage.getItem("access_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await axios.get(`${url_prefix}/databases`, {
+        headers,
+        params: { page_size: 5000, display_mode: "All" },
+      });
+      const names = Array.isArray(res.data?.databases)
+        ? res.data.databases
+        : Array.isArray(res.data)
+        ? res.data
+        : [];
+      setDbNames(names);
+      if (!selectedDb && names.length > 0) {
+        setSelectedDb(names[0]);
+      } else if (selectedDb && !names.includes(selectedDb) && names.length > 0) {
+        setSelectedDb(names[0]);
+      }
+    } catch (err) {
+      console.error(err);
+      setDbError("Failed to load databases.");
+    } finally {
+      setDbLoading(false);
+    }
+  }, [selectedDb]);
+
+  useEffect(() => {
+    if (mode === "cell_lengths" && dbNames.length === 0 && !dbLoading) {
+      fetchDbNames();
+    }
+  }, [dbLoading, dbNames.length, fetchDbNames, mode]);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files?.length) setFile(event.target.files[0]);
   };
@@ -98,6 +139,34 @@ const GraphEngine: React.FC = () => {
     };
 
   const handleGenerateGraph = async () => {
+    if (mode === "cell_lengths") {
+      if (!selectedDb) {
+        window.alert("Please select a database first.");
+        return;
+      }
+      setIsLoading(true);
+      setImageSrc(null);
+      try {
+        const requestUrl = `${url_prefix}/graph_engine/cell_lengths?db_name=${encodeURIComponent(
+          selectedDb
+        )}&label=${encodeURIComponent(selectedLabel)}`;
+        const res = await fetch(requestUrl);
+        if (res.status === 404) {
+          window.alert("No cells found for the selected label.");
+          return;
+        }
+        if (!res.ok) throw new Error("Request failed");
+        const blob = await res.blob();
+        setImageSrc(URL.createObjectURL(blob));
+      } catch (err) {
+        console.error(err);
+        window.alert("Failed to generate cell length plot.");
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     if (!file) {
       window.alert("Please select a CSV file first.");
       return;
@@ -166,6 +235,7 @@ const GraphEngine: React.FC = () => {
               <MenuItem value="heatmap_abs">Heatmap (abs.)</MenuItem>
               <MenuItem value="heatmap_rel">Heatmap (rel.)</MenuItem>
               <MenuItem value="mcpr">MCPR</MenuItem>
+              <MenuItem value="cell_lengths">Cell lengths</MenuItem>
             </Select>
           </FormControl>
 
@@ -208,30 +278,82 @@ const GraphEngine: React.FC = () => {
             </Stack>
           )}
 
+          {/* DB & label selection for cell length mode */}
+          {mode === "cell_lengths" && (
+            <Stack
+              direction={isSmall ? "column" : "row"}
+              spacing={2}
+              alignItems="stretch"
+            >
+              <FormControl fullWidth size="small" disabled={dbLoading || isLoading}>
+                <InputLabel id="db-select-label">Database</InputLabel>
+                <Select
+                  labelId="db-select-label"
+                  value={selectedDb}
+                  label="Database"
+                  onChange={(e) => setSelectedDb(e.target.value)}
+                >
+                  {dbNames.map((name) => (
+                    <MenuItem key={name} value={name}>
+                      {name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl size="small" sx={{ minWidth: 180 }} disabled={isLoading}>
+                <InputLabel id="label-select-label">Label</InputLabel>
+                <Select
+                  labelId="label-select-label"
+                  value={selectedLabel}
+                  label="Label"
+                  onChange={(e) => setSelectedLabel(e.target.value)}
+                >
+                  <MenuItem value="N/A">N/A</MenuItem>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                    <MenuItem key={n} value={String(n)}>
+                      {n}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
+          )}
+          {dbError && mode === "cell_lengths" && (
+            <Typography color="error" variant="body2">
+              {dbError}
+            </Typography>
+          )}
+
           {/* ファイル選択 & 実行ボタン */}
           <Stack
             direction={isSmall ? "column" : "row"}
             spacing={2}
             alignItems="stretch"
           >
-            <Box sx={{ flex: 1 }}>
-              <label style={{ display: "block" }}>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileChange}
-                  style={{ display: "none" }}
-                />
-                <StyledButton as="span" disabled={isLoading}>
-                  {file ? file.name : "Select CSV"}
-                </StyledButton>
-              </label>
-            </Box>
+            {mode !== "cell_lengths" && (
+              <Box sx={{ flex: 1 }}>
+                <label style={{ display: "block" }}>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileChange}
+                    style={{ display: "none" }}
+                  />
+                  <StyledButton as="span" disabled={isLoading}>
+                    {file ? file.name : "Select CSV"}
+                  </StyledButton>
+                </label>
+              </Box>
+            )}
 
             <Box sx={{ flex: 1 }}>
               <StyledButton
                 type="button"
-                disabled={isLoading}
+                disabled={
+                  isLoading ||
+                  (mode === "cell_lengths" && (dbLoading || !selectedDb))
+                }
                 onClick={handleGenerateGraph}
               >
                 {isLoading && (

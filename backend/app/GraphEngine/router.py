@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Query
 from fastapi import UploadFile
 import pandas as pd
 from fastapi.responses import StreamingResponse
@@ -6,6 +6,7 @@ import io
 from GraphEngine.crud import GraphEngineCrudBase
 from GraphEngine.mcpr_crud import _draw_graph_from_memory, combine_images_in_memory
 import asyncio
+from CellDBConsole.crud import CellCrudBase, AsyncChores as CellAsyncChores
 
 router_graphengine = APIRouter(prefix="/graph_engine", tags=["gragh_engine"])
 
@@ -52,6 +53,27 @@ async def create_distribution_box(file: UploadFile):
         await GraphEngineCrudBase.process_distribution_box(data, dpi=100),
         media_type="image/png",
     )
+
+
+@router_graphengine.get("/cell_lengths")
+async def create_cell_length_boxplot(
+    db_name: str = Query(..., description="Target database name"),
+    label: str = Query(..., description="Manual label to filter"),
+):
+    await CellAsyncChores().validate_database_name(db_name)
+    lengths = await CellCrudBase(db_name).get_cell_lengths_by_label(label)
+    if not lengths:
+        raise HTTPException(
+            status_code=404, detail="No cells found for the specified label."
+        )
+
+    buf = await GraphEngineCrudBase.boxplot_from_values(
+        lengths,
+        title=f"{db_name} | label {label}",
+        xlabel="Cell length (μm)",
+        dpi=180,
+    )
+    return StreamingResponse(buf, media_type="image/png")
 
 
 @router_graphengine.post("/mcpr")
