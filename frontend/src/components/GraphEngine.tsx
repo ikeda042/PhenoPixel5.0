@@ -17,6 +17,7 @@ import {
   TextField,
   Stack,
   Divider,
+  Autocomplete,
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
 import axios from "axios";
@@ -69,6 +70,7 @@ const GraphEngine: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [dbNames, setDbNames] = useState<string[]>([]);
   const [selectedDb, setSelectedDb] = useState("");
+  const [dbInputValue, setDbInputValue] = useState("");
   const [dbLoading, setDbLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const [selectedLabel, setSelectedLabel] = useState("1");
@@ -97,7 +99,7 @@ const GraphEngine: React.FC = () => {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await axios.get(`${url_prefix}/databases`, {
         headers,
-        params: { page_size: 5000, display_mode: "All" },
+        params: { page_size: 200, display_mode: "All" },
       });
       const names = Array.isArray(res.data?.databases)
         ? res.data.databases
@@ -107,8 +109,10 @@ const GraphEngine: React.FC = () => {
       setDbNames(names);
       if (!selectedDb && names.length > 0) {
         setSelectedDb(names[0]);
+        setDbInputValue(names[0]);
       } else if (selectedDb && !names.includes(selectedDb) && names.length > 0) {
         setSelectedDb(names[0]);
+        setDbInputValue(names[0]);
       }
     } catch (err) {
       console.error(err);
@@ -285,21 +289,29 @@ const GraphEngine: React.FC = () => {
               spacing={2}
               alignItems="stretch"
             >
-              <FormControl fullWidth size="small" disabled={dbLoading || isLoading}>
-                <InputLabel id="db-select-label">Database</InputLabel>
-                <Select
-                  labelId="db-select-label"
-                  value={selectedDb}
-                  label="Database"
-                  onChange={(e) => setSelectedDb(e.target.value)}
-                >
-                  {dbNames.map((name) => (
-                    <MenuItem key={name} value={name}>
-                      {name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                freeSolo
+                options={dbNames}
+                value={selectedDb}
+                inputValue={dbInputValue}
+                onChange={(_, newValue) => {
+                  setSelectedDb(newValue || "");
+                  setDbInputValue(newValue || "");
+                }}
+                onInputChange={(_, newInput) => {
+                  setSelectedDb(newInput);
+                  setDbInputValue(newInput);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Database"
+                    size="small"
+                    disabled={dbLoading || isLoading}
+                    placeholder="Enter database name"
+                  />
+                )}
+              />
 
               <FormControl size="small" sx={{ minWidth: 180 }} disabled={isLoading}>
                 <InputLabel id="label-select-label">Label</InputLabel>
@@ -321,7 +333,7 @@ const GraphEngine: React.FC = () => {
           )}
           {dbError && mode === "cell_lengths" && (
             <Typography color="error" variant="body2">
-              {dbError}
+              {dbError} You can still type a database name directly.
             </Typography>
           )}
 
