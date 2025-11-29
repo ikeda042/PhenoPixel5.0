@@ -24,7 +24,7 @@ from matplotlib.figure import Figure
 from numpy.linalg import eig, inv
 from scipy.integrate import quad
 from scipy.optimize import minimize
-from sqlalchemy import update, cast, String
+from sqlalchemy import update, cast, String, or_
 from sqlalchemy.future import select
 from typing import Literal
 from skimage.filters import threshold_otsu
@@ -1735,7 +1735,17 @@ class CellCrudBase:
         if label is not None:
             label_str = str(label)
             if label_str.lower() != "all":
-                stmt = stmt.where(cast(Cell.manual_label, String) == label_str)
+                filters = [cast(Cell.manual_label, String) == label_str]
+                try:
+                    label_int = int(label_str)
+                    filters.append(Cell.manual_label == label_int)
+                except ValueError:
+                    # 非数値の場合はそのまま string 比較のみ
+                    pass
+                if label_str == "N/A":
+                    # 一部の DB で N/A を 1000 として保存しているケースを考慮
+                    filters.append(Cell.manual_label == 1000)
+                stmt = stmt.where(or_(*filters))
 
         async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
