@@ -17,11 +17,14 @@ import {
   Paper,
   Card,
   CardContent,
-  CardActions,
   Divider,
   IconButton,
   InputAdornment,
+  Slider,
+  Stack,
+  Chip,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { styled } from "@mui/system";
 import axios from "axios";
 import { settings } from "../settings";
@@ -108,6 +111,21 @@ const Extraction: React.FC = () => {
   const [createdDatabases, setCreatedDatabases] = useState<CreatedDatabase[]>([]);
   const [splitFrames, setSplitFrames] = useState<SplitFrameRow[]>([]);
   const [splitFramesError, setSplitFramesError] = useState<string | null>(null);
+  const sliderMax = Math.max(numImages - 1, 0);
+
+  const displayDbName = useMemo(() => {
+    if (createdDatabases.length > 0) {
+      const [first, ...rest] = createdDatabases;
+      if (rest.length > 0) {
+        return `${first.db_name} (+${rest.length} more)`;
+      }
+      return first.db_name;
+    }
+    if (createdDbName) {
+      return createdDbName;
+    }
+    return "Not saved yet";
+  }, [createdDbName, createdDatabases]);
 
   /**
    * param1, imageSize の入力中の先頭0を除去するためのハンドラ
@@ -269,6 +287,19 @@ const Extraction: React.FC = () => {
       const newIndex = currentImage + 1;
       setCurrentImage(newIndex);
       fetchImage(newIndex, sessionUlid);
+    }
+  };
+
+  const handleSliderChange = (_event: Event, value: number | number[]) => {
+    if (typeof value === "number") {
+      setCurrentImage(value);
+    }
+  };
+
+  const handleSliderCommit = (_event: Event, value: number | number[]) => {
+    if (typeof value === "number" && sessionUlid) {
+      setCurrentImage(value);
+      fetchImage(value, sessionUlid);
     }
   };
 
@@ -536,62 +567,235 @@ const Extraction: React.FC = () => {
         {/* 右カラム: 画像部分 */}
         {currentImageUrl && (
           <Grid item xs={12} md={8}>
-            <Card sx={{ display: "flex", flexDirection: "column" }}>
+            <Card
+              sx={(theme) => ({
+                display: "flex",
+                flexDirection: "column",
+                borderRadius: 3,
+                overflow: "hidden",
+                boxShadow: 10,
+                background:
+                  theme.palette.mode === "dark"
+                    ? "linear-gradient(135deg, #0b1224 0%, #0f172a 55%, #0b1020 100%)"
+                    : "linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #e0f2fe 100%)",
+              })}
+            >
               <CardContent
-                sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
-              >
-                <Box
-                  component="img"
-                  src={currentImageUrl}
-                  alt={`Extracted cell ${currentImage}`}
-                  sx={{ width: "100%", maxWidth: 400, height: 400, objectFit: "contain" }}
-                />
-              </CardContent>
-              <CardActions
                 sx={{
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  px: 2,
-                  pb: 2,
+                  flexDirection: "column",
+                  gap: 2.5,
+                  p: { xs: 2.5, sm: 3.5 },
                 }}
               >
-                <Button
-                  variant="contained"
-                  onClick={handlePreviousImage}
-                  disabled={currentImage === 0}
-                  startIcon={<ArrowBackIosIcon />}
+                <Box
                   sx={{
-                    backgroundColor: 'primary.main',
-                    color: 'primary.contrastText',
-                    textTransform: 'none',
-                    '&:hover': {
-                      backgroundColor: 'primary.dark',
-                    },
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", lg: "1.2fr 0.8fr" },
+                    gap: { xs: 2, sm: 3 },
+                    alignItems: "stretch",
                   }}
                 >
-                  Previous
-                </Button>
-                <Typography variant="body1">
-                  {currentImage + 1} / {numImages}
-                </Typography>
-                <Button
-                  variant="contained"
-                  onClick={handleNextImage}
-                  disabled={currentImage === numImages - 1}
-                  endIcon={<ArrowForwardIosIcon />}
-                  sx={{
-                    backgroundColor: 'primary.main',
-                    color: 'primary.contrastText',
-                    textTransform: 'none',
-                    '&:hover': {
-                      backgroundColor: 'primary.dark',
-                    },
-                  }}
+                  <Box
+                    sx={(theme) => ({
+                      position: "relative",
+                      borderRadius: 3,
+                      overflow: "hidden",
+                      minHeight: { xs: 280, sm: 380 },
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background:
+                        theme.palette.mode === "dark"
+                          ? "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06), transparent 35%), linear-gradient(145deg, #0f172a 0%, #0b1224 50%, #090f1d 100%)"
+                          : "radial-gradient(circle at 20% 20%, rgba(79,70,229,0.14), transparent 32%), linear-gradient(145deg, #eef2ff 0%, #e0f2fe 50%, #f8fafc 100%)",
+                      border: `1px solid ${
+                        theme.palette.mode === "dark"
+                          ? alpha(theme.palette.primary.main, 0.25)
+                          : alpha(theme.palette.text.primary, 0.08)
+                      }`,
+                      boxShadow: theme.shadows[6],
+                    })}
+                  >
+                    <Chip
+                      label="PH + Contour"
+                      size="small"
+                      color="primary"
+                      sx={{
+                        position: "absolute",
+                        top: 16,
+                        left: 16,
+                        fontWeight: 700,
+                        letterSpacing: 0.5,
+                      }}
+                    />
+                    <Box
+                      component="img"
+                      src={currentImageUrl}
+                      alt={`Extracted cell ${currentImage + 1}`}
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        mixBlendMode: "screen",
+                      }}
+                    />
+                    <Box
+                      sx={(theme) => ({
+                        position: "absolute",
+                        bottom: 16,
+                        right: 16,
+                        px: 1.5,
+                        py: 0.75,
+                        borderRadius: 2,
+                        backdropFilter: "blur(8px)",
+                        backgroundColor:
+                          theme.palette.mode === "dark"
+                            ? "rgba(15, 23, 42, 0.7)"
+                            : "rgba(255, 255, 255, 0.85)",
+                        border: `1px solid ${
+                          theme.palette.mode === "dark"
+                            ? "rgba(255,255,255,0.14)"
+                            : "rgba(0,0,0,0.08)"
+                        }`,
+                      })}
+                    >
+                      <Typography variant="body2" fontWeight="bold">
+                        Frame {currentImage + 1} / {numImages}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Stack
+                    spacing={2}
+                    sx={(theme) => ({
+                      borderRadius: 3,
+                      p: { xs: 2, sm: 2.5 },
+                      backgroundColor:
+                        theme.palette.mode === "dark"
+                          ? "rgba(255, 255, 255, 0.02)"
+                          : "rgba(0, 0, 0, 0.02)",
+                      border: `1px solid ${
+                        theme.palette.mode === "dark"
+                          ? "rgba(255,255,255,0.08)"
+                          : "rgba(0,0,0,0.05)"
+                      }`,
+                      boxShadow: theme.shadows[2],
+                    })}
+                  >
+                    <Typography
+                      variant="overline"
+                      color="text.secondary"
+                      letterSpacing={1}
+                      fontWeight={700}
+                    >
+                      Extraction summary
+                    </Typography>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                        {fileName || "No ND2 selected"}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Mode: {mode.replace(/_/g, " ")}
+                      </Typography>
+                    </Box>
+                    <Divider />
+                    <Grid container spacing={1.5}>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary">
+                          Param1
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {param1}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary">
+                          Image size
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {imageSize}px
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Typography variant="caption" color="text.secondary">
+                          Database
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {displayDbName}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                    {createdDatabases.length > 1 && (
+                      <Typography variant="caption" color="text.secondary">
+                        +{createdDatabases.length - 1} more split database(s) prepared
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+
+                <Divider />
+
+                <Stack
+                  spacing={2}
+                  direction={{ xs: "column", sm: "row" }}
+                  alignItems="center"
                 >
-                  Next
-                </Button>
-              </CardActions>
+                  <Button
+                    variant="contained"
+                    onClick={handlePreviousImage}
+                    disabled={currentImage === 0}
+                    startIcon={<ArrowBackIosIcon />}
+                    sx={{
+                      minWidth: 140,
+                      backgroundColor: 'primary.main',
+                      color: 'primary.contrastText',
+                      textTransform: 'none',
+                      '&:hover': {
+                        backgroundColor: 'primary.dark',
+                      },
+                    }}
+                  >
+                    Previous
+                  </Button>
+
+                  <Box sx={{ flexGrow: 1, width: "100%" }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Frame navigator
+                    </Typography>
+                    <Slider
+                      size="small"
+                      value={Math.min(currentImage, sliderMax)}
+                      min={0}
+                      max={sliderMax}
+                      step={1}
+                      onChange={handleSliderChange}
+                      onChangeCommitted={handleSliderCommit}
+                      valueLabelDisplay="auto"
+                      valueLabelFormat={(value) => `${value + 1}`}
+                      disabled={numImages <= 1}
+                    />
+                  </Box>
+
+                  <Button
+                    variant="contained"
+                    onClick={handleNextImage}
+                    disabled={currentImage === numImages - 1}
+                    endIcon={<ArrowForwardIosIcon />}
+                    sx={{
+                      minWidth: 140,
+                      backgroundColor: 'primary.main',
+                      color: 'primary.contrastText',
+                      textTransform: 'none',
+                      '&:hover': {
+                        backgroundColor: 'primary.dark',
+                      },
+                    }}
+                  >
+                    Next
+                  </Button>
+                </Stack>
+              </CardContent>
             </Card>
           </Grid>
         )}
