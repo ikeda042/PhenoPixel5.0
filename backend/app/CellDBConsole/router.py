@@ -670,6 +670,7 @@ async def upload_database(file: UploadFile = UploadFile(...)):
     saved_name = f"{file.filename.split('/')[-1].split('.')[0]}-uploaded.db"
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, migrate, saved_name)
+    AsyncChores.invalidate_database_cache()
     return file.filename
 
 

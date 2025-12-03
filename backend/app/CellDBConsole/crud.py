@@ -6,6 +6,7 @@ import asyncio
 import csv
 import cv2
 import io
+import time
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -480,6 +481,26 @@ class SyncChores:
 
 
 class AsyncChores:
+    _db_cache: dict[str, tuple[float, ListDBresponse]] = {}
+    _db_cache_lock: asyncio.Lock | None = None
+    _DB_CACHE_TTL_SEC = 60.0
+
+    @classmethod
+    def _get_cache_lock(cls) -> asyncio.Lock:
+        if cls._db_cache_lock is None:
+            cls._db_cache_lock = asyncio.Lock()
+        return cls._db_cache_lock
+
+    @classmethod
+    def invalidate_database_cache(cls, handle_id: str | None = None) -> None:
+        """
+        Clear cached database listings. When handle_id is None, clear everything.
+        """
+        if handle_id is None:
+            cls._db_cache.clear()
+        else:
+            cls._db_cache.pop(handle_id, None)
+
     @staticmethod
     async def upload_file_chunked(data: UploadFile) -> None:
         """
@@ -497,41 +518,55 @@ class AsyncChores:
                 await f.write(content)
             await data.close()
 
-    @staticmethod
-    async def get_database_names(handle_id: str | None = None) -> ListDBresponse:
+    @classmethod
+    async def get_database_names(cls, handle_id: str | None = None) -> ListDBresponse:
         """
         databases/ ディレクトリ下の .db ファイル一覧を取得する関数。
         handle_id が指定されている場合は、各データベース内の Cell テーブルの user_id カラムに
         handle_id が存在するデータベースのみを返す。
         """
+        cache_key = handle_id or "__all__"
+        now = time.monotonic()
+        cache_lock = cls._get_cache_lock()
+        async with cache_lock:
+            cached = cls._db_cache.get(cache_key)
+            if cached and now - cached[0] < cls._DB_CACHE_TTL_SEC:
+                return cached[1]
+
         loop = asyncio.get_running_loop()
         names = await loop.run_in_executor(None, os.listdir, "databases/")
         db_files = [i for i in names if i.endswith(".db")]
 
         if handle_id is None:
-            return ListDBresponse(databases=db_files)
+            result = ListDBresponse(databases=db_files)
+            async with cache_lock:
+                cls._db_cache[cache_key] = (time.monotonic(), result)
+            return result
 
-        async def db_contains_user_id(db_file: str, user_id: str) -> bool:
-            async for session in get_session(dbname=db_file):
-                stmt = select(Cell).where(Cell.user_id == user_id)
-                result = await session.execute(stmt)
-                cell = result.scalars().first()
-                await session.close()
-                return cell is not None
-            return False
+        semaphore = asyncio.Semaphore(10)
 
-        filtered_dbs = []
-        for db_file in db_files:
-            if await db_contains_user_id(db_file, handle_id):
-                filtered_dbs.append(db_file)
-        print(filtered_dbs)
-        print("++++++++++++++++++++")
-        print("++++++++++++++++++++")
-        print("++++++++++++++++++++")
-        print("++++++++++++++++++++")
-        print("++++++++++++++++++++")
-        print("++++++++++++++++++++")
-        return ListDBresponse(databases=filtered_dbs)
+        async def db_contains_user_id(db_file: str, user_id: str) -> str | None:
+            async with semaphore:
+                try:
+                    async for session in get_session(dbname=db_file):
+                        stmt = select(Cell.id).where(Cell.user_id == user_id).limit(1)
+                        result = await session.execute(stmt)
+                        has_cell = result.scalars().first() is not None
+                        await session.close()
+                        return db_file if has_cell else None
+                except Exception:
+                    return None
+
+        tasks = [
+            asyncio.create_task(db_contains_user_id(db_file, handle_id))
+            for db_file in db_files
+        ]
+        filtered_dbs = [db for db in await asyncio.gather(*tasks) if db]
+        result = ListDBresponse(databases=filtered_dbs)
+
+        async with cache_lock:
+            cls._db_cache[cache_key] = (time.monotonic(), result)
+        return result
 
     @staticmethod
     async def validate_database_name(db_name: str) -> None:
@@ -2683,6 +2718,7 @@ class CellCrudBase:
         completed_name = f"{dbname_cleaned.replace('-uploaded.db','')}-completed.db"
         completed_path = f"databases/{completed_name}"
         os.rename(source_path, completed_path)
+        AsyncChores.invalidate_database_cache()
         await notify_slack_database_created(
             completed_path,
             message=f"database `{completed_name}` のラベリングが完了しました。",
