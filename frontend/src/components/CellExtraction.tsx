@@ -111,6 +111,7 @@ const Extraction: React.FC = () => {
   const [createdDatabases, setCreatedDatabases] = useState<CreatedDatabase[]>([]);
   const [splitFrames, setSplitFrames] = useState<SplitFrameRow[]>([]);
   const [splitFramesError, setSplitFramesError] = useState<string | null>(null);
+  const [isImageLoading, setIsImageLoading] = useState(false);
   const sliderMax = Math.max(numImages - 1, 0);
 
   const displayDbName = useMemo(() => {
@@ -263,6 +264,7 @@ const Extraction: React.FC = () => {
   };
 
   const fetchImage = async (frameNum: number, ulid: string) => {
+    setIsImageLoading(true);
     try {
       const res = await axios.get(`${url_prefix}/cell_extraction/ph_contours/${ulid}/${frameNum}`, {
         responseType: "blob",
@@ -271,6 +273,8 @@ const Extraction: React.FC = () => {
       setCurrentImageUrl(imageUrl);
     } catch (error) {
       console.error("Failed to fetch image", error);
+    } finally {
+      setIsImageLoading(false);
     }
   };
 
@@ -571,7 +575,7 @@ const Extraction: React.FC = () => {
         </Grid>
 
         {/* 右カラム: 画像部分 */}
-        {currentImageUrl && (
+        {(currentImageUrl || isImageLoading) && (
           <Grid item xs={12} md={8}>
             <Card
               sx={(theme) => ({
@@ -579,11 +583,9 @@ const Extraction: React.FC = () => {
                 flexDirection: "column",
                 borderRadius: 3,
                 overflow: "hidden",
-                boxShadow: 10,
-                background:
-                  theme.palette.mode === "dark"
-                    ? "linear-gradient(135deg, #0b1224 0%, #0f172a 55%, #0b1020 100%)"
-                    : "linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #e0f2fe 100%)",
+                boxShadow: theme.shadows[6],
+                backgroundColor: theme.palette.background.paper,
+                border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
               })}
             >
               <CardContent
@@ -611,16 +613,9 @@ const Extraction: React.FC = () => {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      background:
-                        theme.palette.mode === "dark"
-                          ? "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06), transparent 35%), linear-gradient(145deg, #0f172a 0%, #0b1224 50%, #090f1d 100%)"
-                          : "radial-gradient(circle at 20% 20%, rgba(79,70,229,0.14), transparent 32%), linear-gradient(145deg, #eef2ff 0%, #e0f2fe 50%, #f8fafc 100%)",
-                      border: `1px solid ${
-                        theme.palette.mode === "dark"
-                          ? alpha(theme.palette.primary.main, 0.25)
-                          : alpha(theme.palette.text.primary, 0.08)
-                      }`,
-                      boxShadow: theme.shadows[6],
+                      backgroundColor: theme.palette.background.default,
+                      border: `1px solid ${theme.palette.divider}`,
+                      boxShadow: theme.shadows[1],
                     })}
                   >
                     <Chip
@@ -635,16 +630,36 @@ const Extraction: React.FC = () => {
                         letterSpacing: 0.5,
                       }}
                     />
-                    <Box
-                      component="img"
-                      src={currentImageUrl}
-                      alt={`Extracted cell ${currentImage + 1}`}
-                      sx={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                      }}
-                    />
+                    {currentImageUrl && (
+                      <Box
+                        component="img"
+                        src={currentImageUrl}
+                        alt={`Extracted cell ${currentImage + 1}`}
+                        sx={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                        }}
+                      />
+                    )}
+                    {isImageLoading && (
+                      <Box
+                        sx={(theme) => ({
+                          position: "absolute",
+                          inset: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor:
+                            theme.palette.mode === "dark"
+                              ? "rgba(0, 0, 0, 0.35)"
+                              : "rgba(255, 255, 255, 0.6)",
+                          backdropFilter: "blur(2px)",
+                        })}
+                      >
+                        <CircularProgress />
+                      </Box>
+                    )}
                     <Box
                       sx={(theme) => ({
                         position: "absolute",
@@ -654,15 +669,8 @@ const Extraction: React.FC = () => {
                         py: 0.75,
                         borderRadius: 2,
                         backdropFilter: "blur(8px)",
-                        backgroundColor:
-                          theme.palette.mode === "dark"
-                            ? "rgba(15, 23, 42, 0.7)"
-                            : "rgba(255, 255, 255, 0.85)",
-                        border: `1px solid ${
-                          theme.palette.mode === "dark"
-                            ? "rgba(255,255,255,0.14)"
-                            : "rgba(0,0,0,0.08)"
-                        }`,
+                        backgroundColor: alpha(theme.palette.background.paper, 0.9),
+                        border: `1px solid ${theme.palette.divider}`,
                       })}
                     >
                       <Typography variant="body2" fontWeight="bold">
@@ -676,16 +684,9 @@ const Extraction: React.FC = () => {
                     sx={(theme) => ({
                       borderRadius: 3,
                       p: { xs: 2, sm: 2.5 },
-                      backgroundColor:
-                        theme.palette.mode === "dark"
-                          ? "rgba(255, 255, 255, 0.02)"
-                          : "rgba(0, 0, 0, 0.02)",
-                      border: `1px solid ${
-                        theme.palette.mode === "dark"
-                          ? "rgba(255,255,255,0.08)"
-                          : "rgba(0,0,0,0.05)"
-                      }`,
-                      boxShadow: theme.shadows[2],
+                      backgroundColor: theme.palette.background.paper,
+                      border: `1px solid ${theme.palette.divider}`,
+                      boxShadow: theme.shadows[1],
                     })}
                   >
                     <Typography
