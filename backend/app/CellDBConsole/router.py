@@ -16,6 +16,7 @@ from CellDBConsole.schemas import (
 from CellAI.crud import CellAiCrudBase
 from OAuth2.login_manager import get_account_optional
 from OAuth2.crud import UserCrud
+from OAuth2.database import get_session
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 router_database = APIRouter(prefix="/databases", tags=["databases"])
@@ -675,6 +676,7 @@ async def upload_database(file: UploadFile = UploadFile(...)):
 @router_database.get("/", response_model=PaginatedDBResponse)
 async def get_databases(
     account=Depends(get_account_optional),
+    session=Depends(get_session),
     search: str | None = Query(default=None, description="Search by database name"),
     display_mode: Literal["User uploaded", "Completed", "Validated", "All"] = "All",
     page: int = Query(default=1, ge=1),
@@ -686,7 +688,9 @@ async def get_databases(
         user_id = account.id
         handle_id = account.handle_id
 
-        account_obj = await UserCrud.get_by_id(user_id)
+        account_obj = await UserCrud.get_by_id(session, user_id)
+        if account_obj is None:
+            raise HTTPException(status_code=404, detail="User not found")
         if account_obj.is_admin:
             db_response = await AsyncChores().get_database_names()
         else:
