@@ -378,9 +378,6 @@ const Extraction: React.FC = () => {
         <Typography variant="h4" fontWeight="bold">
           Cell Extraction
         </Typography>
-        <Typography variant="body2" color="text.secondary" mt={1}>
-          Extract cells from ND2 files and preview the results.
-        </Typography>
       </Box>
 
       <Grid container spacing={3}>
