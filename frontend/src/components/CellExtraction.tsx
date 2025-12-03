@@ -290,13 +290,19 @@ const Extraction: React.FC = () => {
     }
   };
 
-  const handleSliderChange = (_event: Event, value: number | number[]) => {
+  const handleSliderChange = (
+    _event: Event | React.SyntheticEvent<Element, Event>,
+    value: number | number[]
+  ) => {
     if (typeof value === "number") {
       setCurrentImage(value);
     }
   };
 
-  const handleSliderCommit = (_event: Event, value: number | number[]) => {
+  const handleSliderCommit = (
+    _event: Event | React.SyntheticEvent<Element, Event>,
+    value: number | number[]
+  ) => {
     if (typeof value === "number" && sessionUlid) {
       setCurrentImage(value);
       fetchImage(value, sessionUlid);
