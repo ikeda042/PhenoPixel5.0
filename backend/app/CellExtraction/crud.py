@@ -550,19 +550,24 @@ class ExtractionCrudBase:
         contour = contours[0] if contours else None
         return contour, img_ph_gray, img_fluo1_gray, img_fluo2_gray
 
-    async def process_cell(self, dbname, i, j, user_id: str | None = None):
-        engine = create_async_engine(
-            f"sqlite+aiosqlite:///{dbname}?timeout=30", echo=False
-        )
-        async_session = sessionmaker(
-            engine, expire_on_commit=False, class_=AsyncSession
-        )
-        async with async_session() as session:
-            cell_id = f"F{i}C{j}"
-            img_ph = await self.load_image(
-                f"TempData{self.ulid}/frames/tiff_{i}/Cells/ph/{j}.png"
-            )
-            img_fluo1 = img_fluo2 = None
+    async def process_cell(
+        self,
+        session_factory,
+        i: int,
+        j: int,
+        user_id: str | None = None,
+        semaphore: asyncio.Semaphore | None = None,
+    ):
+        # Bound the number of concurrent DB writes to avoid starving the event loop.
+        if semaphore is not None:
+            await semaphore.acquire()
+        try:
+            async with session_factory() as session:
+                cell_id = f"F{i}C{j}"
+                img_ph = await self.load_image(
+                    f"TempData{self.ulid}/frames/tiff_{i}/Cells/ph/{j}.png"
+                )
+                img_fluo1 = img_fluo2 = None
             if self.mode != "single_layer":
                 img_fluo1 = await self.load_image(
                     f"TempData{self.ulid}/frames/tiff_{i}/Cells/fluo1/{j}.png"
@@ -616,6 +621,9 @@ class ExtractionCrudBase:
                     if existing_cell is None:
                         session.add(cell)
                         await session.commit()
+        finally:
+            if semaphore is not None:
+                semaphore.release()
 
     def _sanitize_db_basename(self, name: str) -> str:
         cleaned = name.strip()
@@ -713,15 +721,31 @@ class ExtractionCrudBase:
         tasks = []
         if frame_end < frame_start:
             return
-        for frame_idx in range(frame_start, frame_end + 1):
-            cell_path = f"TempData{self.ulid}/frames/tiff_{frame_idx}/Cells/ph/"
-            if not os.path.exists(cell_path):
-                continue
-            cell_files = await asyncio.to_thread(os.listdir, cell_path)
-            for j in range(len(cell_files)):
-                tasks.append(self.process_cell(db_path, frame_idx, j, self.user_id))
-        if tasks:
-            await asyncio.gather(*tasks)
+
+        engine = create_async_engine(
+            f"sqlite+aiosqlite:///{db_path}?timeout=30",
+            echo=False,
+            connect_args={"check_same_thread": False},
+        )
+        session_factory = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+        semaphore = asyncio.Semaphore(10)
+
+        try:
+            for frame_idx in range(frame_start, frame_end + 1):
+                cell_path = f"TempData{self.ulid}/frames/tiff_{frame_idx}/Cells/ph/"
+                if not os.path.exists(cell_path):
+                    continue
+                cell_files = await asyncio.to_thread(os.listdir, cell_path)
+                for j in range(len(cell_files)):
+                    tasks.append(
+                        self.process_cell(
+                            session_factory, frame_idx, j, self.user_id, semaphore
+                        )
+                    )
+            if tasks:
+                await asyncio.gather(*tasks)
+        finally:
+            await engine.dispose()
 
     async def main(self):
         chores = SyncChores()
