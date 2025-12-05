@@ -25,6 +25,7 @@ from settings import settings
 from OAuth2.crud import UserCrud
 from sqlalchemy.ext.asyncio import AsyncSession
 from TimeLapseEngine.crud import shutdown_timelapse_process_pool
+from database import dispose_cached_engines
 
 api_title = settings.API_TITLE
 api_prefix = settings.API_PREFIX
@@ -92,6 +93,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def on_shutdown():
     await shutdown_timelapse_process_pool()
+    await dispose_cached_engines()
 
 
 @app.get("/api")

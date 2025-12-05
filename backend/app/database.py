@@ -1,10 +1,13 @@
 from sqlalchemy import Column, Integer, String, BLOB, FLOAT
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 import os
+from typing import Dict
 
 
 Base = declarative_base()
+_ENGINE_CACHE: Dict[str, AsyncEngine] = {}
+_SESSION_FACTORY_CACHE: Dict[str, sessionmaker] = {}
 
 
 class Cell(Base):
@@ -25,11 +28,46 @@ class Cell(Base):
 
 
 async def get_session(dbname: str):
+    """
+    Yield an AsyncSession using a cached engine per DB to avoid creating
+    unbounded engines (which was leading to timeouts after repeated access).
+    """
+    session_factory = _get_session_factory(dbname)
+    async with session_factory() as session:
+        yield session
+
+
+def _get_session_factory(dbname: str) -> sessionmaker:
+    if dbname in _SESSION_FACTORY_CACHE:
+        return _SESSION_FACTORY_CACHE[dbname]
+
+    engine = _get_engine(dbname)
+    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    _SESSION_FACTORY_CACHE[dbname] = async_session
+    return async_session
+
+
+def _get_engine(dbname: str) -> AsyncEngine:
+    if dbname in _ENGINE_CACHE:
+        return _ENGINE_CACHE[dbname]
+
     base_dir = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(base_dir, "databases", dbname)
     engine = create_async_engine(
-        f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False,connect_args={"check_same_thread": False}
+        f"sqlite+aiosqlite:///{db_path}?timeout=30",
+        echo=False,
+        connect_args={"check_same_thread": False},
     )
-    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with async_session() as session:
-        yield session
+    _ENGINE_CACHE[dbname] = engine
+    return engine
+
+
+async def dispose_cached_engines() -> None:
+    """
+    Dispose all cached engines (invoked on application shutdown).
+    """
+    engines = list(_ENGINE_CACHE.values())
+    _ENGINE_CACHE.clear()
+    _SESSION_FACTORY_CACHE.clear()
+    for engine in engines:
+        await engine.dispose()
