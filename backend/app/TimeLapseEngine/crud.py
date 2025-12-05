@@ -32,6 +32,32 @@ from scipy.optimize import linear_sum_assignment
 from CellDBConsole.crud import AsyncChores as CellDBAsyncChores
 
 MAX_DRIFT_PX = 50  # Ignore shifts larger than this many pixels per frame
+_MAX_WORKERS = max(1, os.cpu_count() or 1)
+_PROCESS_POOL: ProcessPoolExecutor | None = None
+
+
+def _get_timelapse_executor() -> ProcessPoolExecutor:
+    """
+    Lazily create and reuse a single process pool for all timelapse tasks.
+    Per-request executors were leaking worker processes and eventually
+    starving the server, so this keeps a bounded pool alive instead.
+    """
+    global _PROCESS_POOL
+    if _PROCESS_POOL is None:
+        _PROCESS_POOL = ProcessPoolExecutor(max_workers=_MAX_WORKERS)
+    return _PROCESS_POOL
+
+
+async def shutdown_timelapse_process_pool(wait: bool = False) -> None:
+    """
+    Gracefully stop the shared timelapse process pool. Intended to be called
+    from FastAPI's shutdown event to avoid orphaned workers.
+    """
+    global _PROCESS_POOL
+    pool = _PROCESS_POOL
+    _PROCESS_POOL = None
+    if pool is not None:
+        await asyncio.to_thread(pool.shutdown, wait)
 
 
 def _safe_parse_events(self):
@@ -609,8 +635,8 @@ class SyncChores:
 
 class AsyncChores:
     def __init__(self):
-        # use process pool for CPU intensive tasks
-        self.executor = ProcessPoolExecutor(max_workers=os.cpu_count())
+        # use a shared process pool for CPU intensive tasks
+        self.executor = _get_timelapse_executor()
 
     async def correct_drift(self, reference_image, target_image):
         loop = asyncio.get_event_loop()

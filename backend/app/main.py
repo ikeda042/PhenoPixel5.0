@@ -24,6 +24,7 @@ from OAuth2.router import router_oauth2
 from settings import settings
 from OAuth2.crud import UserCrud
 from sqlalchemy.ext.asyncio import AsyncSession
+from TimeLapseEngine.crud import shutdown_timelapse_process_pool
 
 api_title = settings.API_TITLE
 api_prefix = settings.API_PREFIX
@@ -86,6 +87,11 @@ async def startup_event():
         else:
             print(f"Default user with handle {settings.admin_handle_id} already exists")
     await engine.dispose()
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    await shutdown_timelapse_process_pool()
 
 
 @app.get("/api")
