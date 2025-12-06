@@ -1,6 +1,8 @@
 import os
 import asyncio
 import aiohttp
+import logging
+import contextlib
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -31,6 +33,9 @@ from database_registry import DatabaseRegistry
 api_title = settings.API_TITLE
 api_prefix = settings.API_PREFIX
 test_env = settings.TEST_ENV
+
+logger = logging.getLogger(__name__)
+_watchdog_task: asyncio.Task | None = None
 
 
 app = FastAPI(
@@ -91,12 +96,28 @@ async def startup_event():
     await engine.dispose()
     await DatabaseRegistry.sync_from_filesystem()
 
+    if settings.watchdog_enabled:
+        global _watchdog_task
+        _watchdog_task = asyncio.create_task(event_loop_watchdog())
+        logger.info(
+            "Watchdog started (interval=%.2fs, max_delay=%.2fs, threshold=%d)",
+            settings.watchdog_interval_sec,
+            settings.watchdog_max_delay_sec,
+            settings.watchdog_failure_threshold,
+        )
+
 
 @app.on_event("shutdown")
 async def on_shutdown():
     await shutdown_timelapse_process_pool()
     await dispose_cached_engines()
     await dispose_auth_engine()
+    global _watchdog_task
+    if _watchdog_task:
+        _watchdog_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await _watchdog_task
+        _watchdog_task = None
 
 
 @app.get("/api")
@@ -142,6 +163,41 @@ async def check_internet_connection() -> bool:
 @app.get(f"{api_prefix}/internet-connection")
 async def internet_connection():
     return {"status": await check_internet_connection()}
+
+
+async def event_loop_watchdog() -> None:
+    """
+    Periodically check event-loop latency; if it stalls repeatedly, exit so
+    the process manager can restart the server.
+    """
+    interval = max(0.1, settings.watchdog_interval_sec)
+    max_delay = max(0.0, settings.watchdog_max_delay_sec)
+    threshold = max(1, settings.watchdog_failure_threshold)
+    loop = asyncio.get_running_loop()
+    consecutive = 0
+
+    while True:
+        start = loop.time()
+        await asyncio.sleep(interval)
+        elapsed = loop.time() - start
+        delay = elapsed - interval
+
+        if delay > max_delay:
+            consecutive += 1
+            logger.warning(
+                "Watchdog: event loop delay %.3fs (> %.3fs) [%d/%d]",
+                delay,
+                max_delay,
+                consecutive,
+                threshold,
+            )
+            if consecutive >= threshold:
+                logger.error(
+                    "Watchdog: event loop stalled; exiting to trigger restart."
+                )
+                os._exit(1)
+        else:
+            consecutive = 0
 
 
 @app.post(f"{api_prefix}/replace_env")

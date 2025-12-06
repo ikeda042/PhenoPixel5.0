@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     admin_handle_id: str = "ikeda042"
     admin_password: str = "default"
     slack_webhook_url: str | None = None
+    watchdog_enabled: bool = True
+    watchdog_interval_sec: float = 5.0
+    watchdog_max_delay_sec: float = 2.0
+    watchdog_failure_threshold: int = 3
 
     class Config:
         env_file = ".env"
