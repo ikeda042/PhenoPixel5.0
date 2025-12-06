@@ -26,6 +26,7 @@ from OAuth2.crud import UserCrud
 from sqlalchemy.ext.asyncio import AsyncSession
 from TimeLapseEngine.crud import shutdown_timelapse_process_pool
 from database import dispose_cached_engines
+from database_registry import DatabaseRegistry
 
 api_title = settings.API_TITLE
 api_prefix = settings.API_PREFIX
@@ -88,6 +89,7 @@ async def startup_event():
         else:
             print(f"Default user with handle {settings.admin_handle_id} already exists")
     await engine.dispose()
+    await DatabaseRegistry.sync_from_filesystem()
 
 
 @app.on_event("shutdown")

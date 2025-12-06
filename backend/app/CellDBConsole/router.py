@@ -17,6 +17,7 @@ from CellAI.crud import CellAiCrudBase
 from OAuth2.login_manager import get_account_optional
 from OAuth2.crud import UserCrud
 from OAuth2.database import get_session
+from database_registry import DatabaseRegistry
 
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 router_database = APIRouter(prefix="/databases", tags=["databases"])
@@ -663,13 +664,14 @@ async def upload_database(file: UploadFile = UploadFile(...)):
     db_name = file.filename
     if not db_name.endswith(".db"):
         return JSONResponse(content={"message": "Please upload a .db file."})
-    exisisting_dbs = await AsyncChores().get_database_names()
-    if db_name in exisisting_dbs:
+    existing_dbs = await AsyncChores().get_database_names()
+    if db_name in existing_dbs.databases:
         return JSONResponse(content={"message": f"Database {db_name} already exists."})
     await AsyncChores().upload_file_chunked(file)
     saved_name = f"{file.filename.split('/')[-1].split('.')[0]}-uploaded.db"
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, migrate, saved_name)
+    await DatabaseRegistry.register_database(saved_name)
     AsyncChores.invalidate_database_cache()
     return file.filename
 

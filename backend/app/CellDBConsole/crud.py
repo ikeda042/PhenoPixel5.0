@@ -7,6 +7,7 @@ import csv
 import cv2
 import io
 import time
+import logging
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,6 +33,7 @@ from skimage.filters import threshold_otsu
 from CellDBConsole.schemas import CellId, CellMorhology, ListDBresponse
 from CellExtraction.crud import notify_slack_database_created
 from database import get_session, Cell
+from database_registry import DatabaseRegistry
 from exceptions import CellNotFoundError
 
 matplotlib.use("Agg")
@@ -533,9 +535,19 @@ class AsyncChores:
             if cached and now - cached[0] < cls._DB_CACHE_TTL_SEC:
                 return cached[1]
 
-        loop = asyncio.get_running_loop()
-        names = await loop.run_in_executor(None, os.listdir, "databases/")
-        db_files = [i for i in names if i.endswith(".db")]
+        try:
+            db_files = await DatabaseRegistry.list_databases()
+        except Exception:
+            logging.exception(
+                "Failed to read database registry; falling back to filesystem scan."
+            )
+            loop = asyncio.get_running_loop()
+            names = await loop.run_in_executor(None, os.listdir, "databases/")
+            db_files = [
+                i
+                for i in names
+                if i.endswith(".db") and i != DatabaseRegistry.REGISTRY_FILENAME
+            ]
 
         if handle_id is None:
             result = ListDBresponse(databases=db_files)
@@ -1661,6 +1673,8 @@ class CellCrudBase:
 
     async def delete_database(self) -> None:
         await aiofiles.os.remove(f"databases/{self.db_name}")
+        await DatabaseRegistry.remove_database(self.db_name)
+        AsyncChores.invalidate_database_cache()
 
     @staticmethod
     async def parse_image(
@@ -2718,6 +2732,7 @@ class CellCrudBase:
         completed_name = f"{dbname_cleaned.replace('-uploaded.db','')}-completed.db"
         completed_path = f"databases/{completed_name}"
         os.rename(source_path, completed_path)
+        await DatabaseRegistry.replace_database(dbname_cleaned, completed_name)
         AsyncChores.invalidate_database_cache()
         await notify_slack_database_created(
             completed_path,
