@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Container,
   Grid,
@@ -20,6 +20,7 @@ import { settings } from "../settings";
 
 const url_prefix = settings.url_prefix;
 const resizeFactor = 0.5;
+const MAX_CONCURRENT_IMAGE_FETCH = 6;
 
 const LabelSorter: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -32,6 +33,7 @@ const LabelSorter: React.FC = () => {
   const [labelLoaded, setLabelLoaded] = useState(false);
   const [channel, setChannel] = useState<"ph" | "fluo1" | "fluo2">("ph");
   const [images, setImages] = useState<{ [key: string]: string }>({});
+  const imagesRef = useRef<{ [key: string]: string }>({});
   const [shiftPressed, setShiftPressed] = useState<boolean>(false);
   const [selectedCells, setSelectedCells] = useState<{
     [id: string]: "N/A" | "selected";
@@ -94,62 +96,79 @@ const LabelSorter: React.FC = () => {
   }, [dbName, selectedLabel]);
 
   useEffect(() => {
-    const fetchImages = async (cellIds: string[]) => {
-      await Promise.all(
-        cellIds.map(async (id) => {
-          const key = `${id}_${channel}`;
-          if (!images[key]) {
-            try {
-              const endpoint =
-                channel === "ph"
-                  ? "ph_image"
-                  : channel === "fluo1"
-                  ? "fluo_image"
-                  : "fluo2_image";
-              const res = await axios.get(
-                `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}?resize_factor=${resizeFactor}&contour_thickness=3`,
-                { responseType: "blob" }
-              );
-              const url = URL.createObjectURL(res.data);
-              setImages((prev) => ({ ...prev, [key]: url }));
-            } catch (err) {
-              console.error("Failed to fetch image", err);
-            }
-          }
-        })
-      );
-    };
-    fetchImages(naCells);
-  }, [naCells, dbName, channel]);
+    imagesRef.current = images;
+  }, [images]);
 
   useEffect(() => {
-    const fetchImages = async (cellIds: string[]) => {
-      await Promise.all(
-        cellIds.map(async (id) => {
-          const key = `${id}_${channel}`;
-          if (!images[key]) {
-            try {
-              const endpoint =
-                channel === "ph"
-                  ? "ph_image"
-                  : channel === "fluo1"
-                  ? "fluo_image"
-                  : "fluo2_image";
-              const res = await axios.get(
-                `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}?resize_factor=${resizeFactor}&contour_thickness=3`,
-                { responseType: "blob" }
-              );
-              const url = URL.createObjectURL(res.data);
-              setImages((prev) => ({ ...prev, [key]: url }));
-            } catch (err) {
-              console.error("Failed to fetch image", err);
-            }
-          }
-        })
-      );
+    return () => {
+      Object.values(imagesRef.current).forEach((url) => URL.revokeObjectURL(url));
     };
-    fetchImages(labelCells);
-  }, [labelCells, dbName, channel]);
+  }, []);
+
+  const fetchImagesWithLimit = useCallback(
+    async (cellIds: string[], controller: AbortController) => {
+      const idsToFetch = cellIds.filter(
+        (id) => !imagesRef.current[`${id}_${channel}`]
+      );
+      if (!idsToFetch.length) return;
+
+      const endpoint =
+        channel === "ph"
+          ? "ph_image"
+          : channel === "fluo1"
+          ? "fluo_image"
+          : "fluo2_image";
+
+      let index = 0;
+      const worker = async () => {
+        while (index < idsToFetch.length) {
+          const currentIndex = index++;
+          const id = idsToFetch[currentIndex];
+          const key = `${id}_${channel}`;
+          if (imagesRef.current[key]) continue;
+          try {
+            const res = await axios.get(
+              `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}?resize_factor=${resizeFactor}&contour_thickness=3`,
+              { responseType: "blob", signal: controller.signal }
+            );
+            const url = URL.createObjectURL(res.data);
+            setImages((prev) => {
+              if (prev[key]) return prev;
+              const next = { ...prev, [key]: url };
+              imagesRef.current = next;
+              return next;
+            });
+          } catch (err: any) {
+            if (controller.signal.aborted) {
+              return;
+            }
+            console.error("Failed to fetch image", err);
+          }
+        }
+      };
+
+      const workerCount = Math.min(
+        MAX_CONCURRENT_IMAGE_FETCH,
+        idsToFetch.length
+      );
+      await Promise.all(Array.from({ length: workerCount }, () => worker()));
+    },
+    [channel, dbName]
+  );
+
+  useEffect(() => {
+    if (!dbName) return;
+    const controller = new AbortController();
+    fetchImagesWithLimit(naCells, controller);
+    return () => controller.abort();
+  }, [naCells, dbName, channel, fetchImagesWithLimit]);
+
+  useEffect(() => {
+    if (!dbName) return;
+    const controller = new AbortController();
+    fetchImagesWithLimit(labelCells, controller);
+    return () => controller.abort();
+  }, [labelCells, dbName, channel, fetchImagesWithLimit]);
 
   const isLoading =
     !naLoaded ||
