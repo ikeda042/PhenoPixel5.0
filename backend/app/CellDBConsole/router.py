@@ -676,7 +676,7 @@ async def upload_database(file: UploadFile = UploadFile(...)):
     return file.filename
 
 
-@router_database.get("/", response_model=PaginatedDBResponse)
+@router_database.get("", response_model=PaginatedDBResponse)
 async def get_databases(
     account=Depends(get_account_optional),
     session=Depends(get_session),
