@@ -4,7 +4,7 @@ import aiohttp
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine
-from OAuth2.database import BaseAuth
+from OAuth2.database import BaseAuth, dispose_auth_engine
 from settings import settings
 
 from CellAI.router import router_cell_ai
@@ -94,6 +94,7 @@ async def startup_event():
 async def on_shutdown():
     await shutdown_timelapse_process_pool()
     await dispose_cached_engines()
+    await dispose_auth_engine()
 
 
 @app.get("/api")

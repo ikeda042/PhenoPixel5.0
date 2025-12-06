@@ -1,10 +1,16 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    create_async_engine,
+)
 import os
 import random
 
 BaseAuth = declarative_base()
+_ENGINE: AsyncEngine | None = None
+_SESSION_FACTORY: sessionmaker | None = None
 
 
 def get_ulid() -> str:
@@ -39,13 +45,47 @@ class RefreshToken(BaseAuth):
 
 
 async def get_session():
+    """
+    Yield an AsyncSession backed by a cached engine to avoid creating
+    a new SQLite connection pool on every request.
+    """
+    session_factory = _get_session_factory()
+    async with session_factory() as session:
+        yield session
+
+
+def _get_session_factory() -> sessionmaker:
+    global _SESSION_FACTORY
+    if _SESSION_FACTORY is not None:
+        return _SESSION_FACTORY
+
+    engine = _get_engine()
+    _SESSION_FACTORY = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    return _SESSION_FACTORY
+
+
+def _get_engine() -> AsyncEngine:
+    global _ENGINE
+    if _ENGINE is not None:
+        return _ENGINE
+
     dbname = "users.db"
     db_dir = os.path.dirname(os.path.abspath(__file__))
     os.makedirs(db_dir, exist_ok=True)
     db_path = os.path.join(db_dir, dbname)
-    engine = create_async_engine(
+    _ENGINE = create_async_engine(
         f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
     )
-    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with async_session() as session:
-        yield session
+    return _ENGINE
+
+
+async def dispose_auth_engine() -> None:
+    """
+    Dispose the cached OAuth2 engine (intended for FastAPI shutdown hook).
+    """
+    global _ENGINE, _SESSION_FACTORY
+    engine = _ENGINE
+    _ENGINE = None
+    _SESSION_FACTORY = None
+    if engine is not None:
+        await engine.dispose()
