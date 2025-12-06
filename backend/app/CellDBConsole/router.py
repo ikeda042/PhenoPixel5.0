@@ -22,6 +22,29 @@ from database_registry import DatabaseRegistry
 router_cell = APIRouter(prefix="/cells", tags=["cells"])
 router_database = APIRouter(prefix="/databases", tags=["databases"])
 
+_LABELSORTER_MAX_CONCURRENCY = max(
+    1, int(os.getenv("LABELSORTER_MAX_CONCURRENCY", "3"))
+)
+_LABELSORTER_SEMAPHORES: dict[str, asyncio.Semaphore] = {}
+
+
+def _get_labelsorter_semaphore(db_name: str) -> asyncio.Semaphore:
+    semaphore = _LABELSORTER_SEMAPHORES.get(db_name)
+    if semaphore is None:
+        semaphore = asyncio.Semaphore(_LABELSORTER_MAX_CONCURRENCY)
+        _LABELSORTER_SEMAPHORES[db_name] = semaphore
+    return semaphore
+
+
+async def labelsorter_slot(db_name: str):
+    """
+    Limit concurrent label-sorter traffic per DB (default: 3 users).
+    This prevents heavy image/label updates from overwhelming SQLite.
+    """
+    semaphore = _get_labelsorter_semaphore(db_name)
+    async with semaphore:
+        yield
+
 
 @router_cell.patch("/redetect_contour_t1/{db_name}/{cell_id}")
 async def patch_cell_contour_t1(
@@ -115,7 +138,7 @@ async def db_healthcheck_3d():
 
 
 @router_cell.get("/{db_name}/{label}")
-async def read_cell_ids(db_name: str, label: str):
+async def read_cell_ids(db_name: str, label: str, _slot=Depends(labelsorter_slot)):
     await AsyncChores().validate_database_name(db_name)
     if label == "1000":
         label = "N/A"
@@ -131,7 +154,9 @@ async def read_cell_label(db_name: str, cell_id: str):
 
 
 @router_cell.patch("/{db_name}/{cell_id}/{label}")
-async def update_cell_label(db_name: str, cell_id: str, label: str):
+async def update_cell_label(
+    db_name: str, cell_id: str, label: str, _slot=Depends(labelsorter_slot)
+):
     if "-uploaded" not in db_name:
         raise HTTPException(
             status_code=400,
@@ -158,6 +183,7 @@ async def get_cell_ph(
     draw_scale_bar: bool = False,
     resize_factor: float = 1.0,
     contour_thickness: int = 1,
+    _slot=Depends(labelsorter_slot),
 ):
     await AsyncChores().validate_database_name(db_name)
     return await CellCrudBase(db_name=db_name).get_cell_ph(
@@ -178,6 +204,7 @@ async def get_cell_fluo(
     brightness_factor: float = 1.0,
     resize_factor: float = 1.0,
     contour_thickness: int = 1,
+    _slot=Depends(labelsorter_slot),
 ):
     if "-single_layer" in db_name:
         raise HTTPException(
@@ -204,6 +231,7 @@ async def get_cell_fluo2(
     brightness_factor: float = 1.0,
     resize_factor: float = 1.0,
     contour_thickness: int = 1,
+    _slot=Depends(labelsorter_slot),
 ):
     if "-single_layer" in db_name:
         raise HTTPException(
