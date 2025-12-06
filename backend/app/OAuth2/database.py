@@ -1,16 +1,16 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    create_async_engine,
-)
 import os
 import random
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+from db_engine import create_sqlite_engine, db_semaphore
 
 BaseAuth = declarative_base()
 _ENGINE: AsyncEngine | None = None
 _SESSION_FACTORY: sessionmaker | None = None
+_DB_PATH: str | None = None
 
 
 def get_ulid() -> str:
@@ -49,9 +49,11 @@ async def get_session():
     Yield an AsyncSession backed by a cached engine to avoid creating
     a new SQLite connection pool on every request.
     """
+    db_path = _get_db_path()
     session_factory = _get_session_factory()
-    async with session_factory() as session:
-        yield session
+    async with db_semaphore(db_path):
+        async with session_factory() as session:
+            yield session
 
 
 def _get_session_factory() -> sessionmaker:
@@ -59,24 +61,25 @@ def _get_session_factory() -> sessionmaker:
     if _SESSION_FACTORY is not None:
         return _SESSION_FACTORY
 
-    engine = _get_engine()
+    engine = get_engine()
     _SESSION_FACTORY = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     return _SESSION_FACTORY
 
 
-def _get_engine() -> AsyncEngine:
+def get_engine() -> AsyncEngine:
     global _ENGINE
-    if _ENGINE is not None:
-        return _ENGINE
-
-    dbname = "users.db"
-    db_dir = os.path.dirname(os.path.abspath(__file__))
-    os.makedirs(db_dir, exist_ok=True)
-    db_path = os.path.join(db_dir, dbname)
-    _ENGINE = create_async_engine(
-        f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
-    )
+    if _ENGINE is None:
+        _ENGINE = create_sqlite_engine(_get_db_path(), echo=False)
     return _ENGINE
+
+
+def _get_db_path() -> str:
+    global _DB_PATH
+    if _DB_PATH is None:
+        db_dir = os.path.dirname(os.path.abspath(__file__))
+        os.makedirs(db_dir, exist_ok=True)
+        _DB_PATH = os.path.join(db_dir, "users.db")
+    return _DB_PATH
 
 
 async def dispose_auth_engine() -> None:

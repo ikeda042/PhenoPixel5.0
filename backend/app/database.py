@@ -1,9 +1,11 @@
-from sqlalchemy import Column, Integer, String, BLOB, FLOAT
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 import os
 from typing import Dict
 
+from sqlalchemy import BLOB, FLOAT, Column, Integer, String
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+from db_engine import create_sqlite_engine, db_semaphore
 
 Base = declarative_base()
 _ENGINE_CACHE: Dict[str, AsyncEngine] = {}
@@ -32,9 +34,11 @@ async def get_session(dbname: str):
     Yield an AsyncSession using a cached engine per DB to avoid creating
     unbounded engines (which was leading to timeouts after repeated access).
     """
+    db_path = _db_path(dbname)
     session_factory = _get_session_factory(dbname)
-    async with session_factory() as session:
-        yield session
+    async with db_semaphore(db_path):
+        async with session_factory() as session:
+            yield session
 
 
 def _get_session_factory(dbname: str) -> sessionmaker:
@@ -51,15 +55,17 @@ def _get_engine(dbname: str) -> AsyncEngine:
     if dbname in _ENGINE_CACHE:
         return _ENGINE_CACHE[dbname]
 
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(base_dir, "databases", dbname)
-    engine = create_async_engine(
-        f"sqlite+aiosqlite:///{db_path}?timeout=30",
-        echo=False,
-        connect_args={"check_same_thread": False},
-    )
+    db_path = _db_path(dbname)
+    engine = create_sqlite_engine(db_path, echo=False)
     _ENGINE_CACHE[dbname] = engine
     return engine
+
+
+def _db_path(dbname: str) -> str:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_dir = os.path.join(base_dir, "databases")
+    os.makedirs(db_dir, exist_ok=True)
+    return os.path.join(db_dir, dbname)
 
 
 async def dispose_cached_engines() -> None:

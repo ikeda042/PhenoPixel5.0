@@ -5,8 +5,7 @@ import logging
 import contextlib
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import create_async_engine
-from OAuth2.database import BaseAuth, dispose_auth_engine
+from OAuth2.database import BaseAuth, dispose_auth_engine, get_engine
 from settings import settings
 
 from CellAI.router import router_cell_ai
@@ -54,29 +53,15 @@ app.add_middleware(
 
 
 async def init_db() -> None:
-    dbname = "users.db"
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    db_dir = os.path.join(base_dir, "OAuth2")
-    os.makedirs(db_dir, exist_ok=True)
-    db_path = os.path.join(db_dir, dbname)
-    engine = create_async_engine(
-        f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
-    )
+    engine = get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(BaseAuth.metadata.create_all)
-    await engine.dispose()
 
 
 @app.on_event("startup")
 async def startup_event():
     await init_db()
-    dbname = "users.db"
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    db_dir = os.path.join(base_dir, "OAuth2")
-    db_path = os.path.join(db_dir, dbname)
-    engine = create_async_engine(
-        f"sqlite+aiosqlite:///{db_path}?timeout=30", echo=False
-    )
+    engine = get_engine()
 
     async with AsyncSession(engine) as session:
         existing_user = await UserCrud.get_by_handle(session, settings.admin_handle_id)
@@ -93,7 +78,6 @@ async def startup_event():
                 print(f"Failed to create default user: {e}")
         else:
             print(f"Default user with handle {settings.admin_handle_id} already exists")
-    await engine.dispose()
     await DatabaseRegistry.sync_from_filesystem()
 
     if settings.watchdog_enabled:
