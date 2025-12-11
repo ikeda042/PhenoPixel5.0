@@ -1588,7 +1588,7 @@ class AsyncChores:
             plt.text(
                 0.5,
                 0.25,
-                f"Localization score: {localization_val:.2f}",
+                f"Localization score: {localization_val:.4g}",
                 horizontalalignment="center",
                 verticalalignment="center",
                 transform=plt.gca().transAxes,
