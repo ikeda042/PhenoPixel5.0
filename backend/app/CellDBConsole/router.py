@@ -25,7 +25,11 @@ router_database = APIRouter(prefix="/databases", tags=["databases"])
 _LABELSORTER_MAX_CONCURRENCY = max(
     1, int(os.getenv("LABELSORTER_MAX_CONCURRENCY", "3"))
 )
+_LABELSORTER_GLOBAL_MAX_CONCURRENCY = max(
+    1, int(os.getenv("LABELSORTER_GLOBAL_MAX_CONCURRENCY", "8"))
+)
 _LABELSORTER_SEMAPHORES: dict[str, asyncio.Semaphore] = {}
+_LABELSORTER_GLOBAL_SEMAPHORE: asyncio.Semaphore | None = None
 
 
 def _get_labelsorter_semaphore(db_name: str) -> asyncio.Semaphore:
@@ -36,13 +40,25 @@ def _get_labelsorter_semaphore(db_name: str) -> asyncio.Semaphore:
     return semaphore
 
 
+def _get_global_labelsorter_semaphore() -> asyncio.Semaphore:
+    global _LABELSORTER_GLOBAL_SEMAPHORE
+    if _LABELSORTER_GLOBAL_SEMAPHORE is None:
+        _LABELSORTER_GLOBAL_SEMAPHORE = asyncio.Semaphore(
+            _LABELSORTER_GLOBAL_MAX_CONCURRENCY
+        )
+    return _LABELSORTER_GLOBAL_SEMAPHORE
+
+
 async def labelsorter_slot(db_name: str):
     """
-    Limit concurrent label-sorter traffic per DB (default: 3 users).
-    This prevents heavy image/label updates from overwhelming SQLite.
+    Limit concurrent label-sorter traffic per DB (default: 3 users) and
+    also cap total label-sorter load across databases (default: 8).
+    This prevents heavy image/label updates from overwhelming SQLite
+    or the event loop when multiple DBs are in use at once.
     """
-    semaphore = _get_labelsorter_semaphore(db_name)
-    async with semaphore:
+    global_semaphore = _get_global_labelsorter_semaphore()
+    db_semaphore = _get_labelsorter_semaphore(db_name)
+    async with global_semaphore, db_semaphore:
         yield
 
 
