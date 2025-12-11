@@ -55,48 +55,33 @@ class Point:
         return f"({self.u1},{self.G})"
 
 
-def localization_index_entropy_1d(intensities: Sequence[float]) -> float:
+def localization_index_energy_1d(intensities: Sequence[float]) -> float:
     """
-    intensities : 細胞内の各ピクセルの強度 (例: 0〜255 の 8bit 値) を並べた 1次元配列
-                  list[float], list[int], numpy array など Sequence[float] なら可
+    intensities : 細胞内の各ピクセルの強度 (0〜255 の 8bit など) の 1次元配列
 
-    返り値:
+    戻り値:
         0.0〜1.0 の局在化指数
         - 0 に近い: 強度が均一 (非局在的)
-        - 1 に近い: 少数のピクセルに強度が集中 (強く局在)
+        - 1 に近い: ごく少数のピクセルに強度が集中 (強く局在)
     """
-
-    # まず float に変換し、負値があれば 0 にクリップ
+    # 負値は 0 にクリップして float に変換
     vals = [max(float(v), 0.0) for v in intensities]
-
     N = len(vals)
     if N <= 1:
-        # ピクセルが 1 個以下だと局在度を定義しづらいので 0 とする
         return 0.0
 
-    total = sum(vals)
-    if total <= 0.0:
-        # 強度が全て 0 (信号なし) の場合も局在を定義しづらいので 0 とする
+    S1 = sum(vals)
+    if S1 <= 0.0:
+        # 全部ゼロなど、信号がない場合
         return 0.0
 
-    # 確率分布に正規化
-    # p_i = I_i / sum(I_j)
-    H = 0.0
-    for v in vals:
-        if v <= 0.0:
-            continue  # p=0 のところは p*log(p)=0 とみなしてスキップ
-        p = v / total
-        H -= p * math.log(p)
+    # 強度の2乗和
+    S2 = sum(v * v for v in vals)
 
-    # 最大エントロピー (均一分布) は log(N)
-    H_max = math.log(N)
-    if H_max <= 0.0:
-        return 0.0
+    # L = 1 - Keff / N
+    L = 1.0 - (S1 * S1) / (N * S2)
 
-    # 局在化指数: L = 1 - H / H_max
-    L = 1.0 - H / H_max
-
-    # 数値誤差で若干はみ出す可能性があるので [0,1] にクリップ
+    # 数値誤差対策でクリップ
     if L < 0.0:
         L = 0.0
     elif L > 1.0:
@@ -1564,7 +1549,7 @@ class AsyncChores:
             normalized_mean_val = float(np.mean(normalized_points))
             sd_val = float(np.std(points_inside_cell_1))
             cv_val = sd_val / mean_val if mean_val != 0 else 0.0
-            localization_val = localization_index_entropy_1d(points_inside_cell_1)
+            localization_val = localization_index_energy_1d(points_inside_cell_1)
 
             # テキストで統計量を表示
             plt.text(
