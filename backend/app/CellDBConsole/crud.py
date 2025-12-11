@@ -28,7 +28,7 @@ from scipy.integrate import quad
 from scipy.optimize import minimize
 from sqlalchemy import update, cast, String, or_
 from sqlalchemy.future import select
-from typing import Literal
+from typing import Literal, Sequence
 from skimage.filters import threshold_otsu
 from CellDBConsole.schemas import CellId, CellMorhology, ListDBresponse
 from CellExtraction.crud import notify_slack_database_created
@@ -53,6 +53,56 @@ class Point:
 
     def __repr__(self) -> str:
         return f"({self.u1},{self.G})"
+
+
+def localization_index_entropy_1d(intensities: Sequence[float]) -> float:
+    """
+    intensities : 細胞内の各ピクセルの強度 (例: 0〜255 の 8bit 値) を並べた 1次元配列
+                  list[float], list[int], numpy array など Sequence[float] なら可
+
+    返り値:
+        0.0〜1.0 の局在化指数
+        - 0 に近い: 強度が均一 (非局在的)
+        - 1 に近い: 少数のピクセルに強度が集中 (強く局在)
+    """
+
+    # まず float に変換し、負値があれば 0 にクリップ
+    vals = [max(float(v), 0.0) for v in intensities]
+
+    N = len(vals)
+    if N <= 1:
+        # ピクセルが 1 個以下だと局在度を定義しづらいので 0 とする
+        return 0.0
+
+    total = sum(vals)
+    if total <= 0.0:
+        # 強度が全て 0 (信号なし) の場合も局在を定義しづらいので 0 とする
+        return 0.0
+
+    # 確率分布に正規化
+    # p_i = I_i / sum(I_j)
+    H = 0.0
+    for v in vals:
+        if v <= 0.0:
+            continue  # p=0 のところは p*log(p)=0 とみなしてスキップ
+        p = v / total
+        H -= p * math.log(p)
+
+    # 最大エントロピー (均一分布) は log(N)
+    H_max = math.log(N)
+    if H_max <= 0.0:
+        return 0.0
+
+    # 局在化指数: L = 1 - H / H_max
+    L = 1.0 - H / H_max
+
+    # 数値誤差で若干はみ出す可能性があるので [0,1] にクリップ
+    if L < 0.0:
+        L = 0.0
+    elif L > 1.0:
+        L = 1.0
+
+    return float(L)
 
 
 class SyncChores:
@@ -1508,49 +1558,18 @@ class AsyncChores:
 
             max_val = np.max(points_inside_cell_1) if len(points_inside_cell_1) else 1
             normalized_points = [i / max_val for i in points_inside_cell_1]
+            median_val = float(np.median(points_inside_cell_1))
+            mean_val = float(np.mean(points_inside_cell_1))
+            normalized_median_val = float(np.median(normalized_points))
+            normalized_mean_val = float(np.mean(normalized_points))
+            sd_val = float(np.std(points_inside_cell_1))
+            cv_val = sd_val / mean_val if mean_val != 0 else 0.0
+            localization_val = localization_index_entropy_1d(points_inside_cell_1)
 
             # テキストで統計量を表示
             plt.text(
                 0.5,
-                0.20,
-                f"Median: {np.median(points_inside_cell_1):.2f}",
-                horizontalalignment="center",
-                verticalalignment="center",
-                transform=plt.gca().transAxes,
-                **text_kwargs,
-            )
-            plt.text(
-                0.5,
-                0.15,
-                f"Mean: {np.mean(points_inside_cell_1):.2f}",
-                horizontalalignment="center",
-                verticalalignment="center",
-                transform=plt.gca().transAxes,
-                **text_kwargs,
-            )
-            plt.text(
-                0.5,
-                0.10,
-                f"Normalized median: {np.median(normalized_points):.2f}",
-                horizontalalignment="center",
-                verticalalignment="center",
-                transform=plt.gca().transAxes,
-                **text_kwargs,
-            )
-            plt.text(
-                0.5,
-                0.05,
-                f"Normalized mean: {np.mean(normalized_points):.2f}",
-                horizontalalignment="center",
-                verticalalignment="center",
-                transform=plt.gca().transAxes,
-                **text_kwargs,
-            )
-            sd_val = np.std(points_inside_cell_1)
-            cv_val = sd_val / np.mean(points_inside_cell_1) if np.mean(points_inside_cell_1) != 0 else 0
-            plt.text(
-                0.5,
-                0.30,
+                0.35,
                 f"SD: {sd_val:.2f}",
                 horizontalalignment="center",
                 verticalalignment="center",
@@ -1559,8 +1578,53 @@ class AsyncChores:
             )
             plt.text(
                 0.5,
-                0.25,
+                0.30,
                 f"CV: {cv_val:.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
+            plt.text(
+                0.5,
+                0.25,
+                f"Localization score: {localization_val:.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
+            plt.text(
+                0.5,
+                0.20,
+                f"Median: {median_val:.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
+            plt.text(
+                0.5,
+                0.15,
+                f"Mean: {mean_val:.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
+            plt.text(
+                0.5,
+                0.10,
+                f"Normalized median: {normalized_median_val:.2f}",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=plt.gca().transAxes,
+                **text_kwargs,
+            )
+            plt.text(
+                0.5,
+                0.05,
+                f"Normalized mean: {normalized_mean_val:.2f}",
                 horizontalalignment="center",
                 verticalalignment="center",
                 transform=plt.gca().transAxes,
