@@ -26,8 +26,6 @@ const LabelSorter: React.FC = () => {
   const [searchParams] = useSearchParams();
   const dbName = searchParams.get("db_name") ?? "";
 
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [sessionError, setSessionError] = useState<string | null>(null);
   const [naCells, setNaCells] = useState<string[]>([]);
   const [naLoaded, setNaLoaded] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState<string>("1");
@@ -46,18 +44,10 @@ const LabelSorter: React.FC = () => {
   const labelOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
   const fetchNaCells = async () => {
-    if (!dbName || !sessionToken || sessionError) return;
     try {
-      const naRes = await axios.get(`${url_prefix}/cells/${dbName}/1000`, {
-        headers: { "X-LabelSorter-Session": sessionToken },
-      });
+      const naRes = await axios.get(`${url_prefix}/cells/${dbName}/1000`);
       setNaCells(naRes.data.map((c: { cell_id: string }) => c.cell_id));
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 409) {
-        setSessionError(
-          "Another /labelsorter session is active. Please reload this page."
-        );
-      }
       console.error("Failed to fetch N/A cell ids", error);
     } finally {
       setNaLoaded(true);
@@ -65,52 +55,17 @@ const LabelSorter: React.FC = () => {
   };
 
   const fetchLabelCells = async () => {
-    if (!dbName || !sessionToken || !selectedLabel || sessionError) return;
     try {
       const res = await axios.get(
-        `${url_prefix}/cells/${dbName}/${selectedLabel}`,
-        {
-          headers: { "X-LabelSorter-Session": sessionToken },
-        }
+        `${url_prefix}/cells/${dbName}/${selectedLabel}`
       );
       setLabelCells(res.data.map((c: { cell_id: string }) => c.cell_id));
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 409) {
-        setSessionError(
-          "Another /labelsorter session is active. Please reload this page."
-        );
-      }
       console.error("Failed to fetch label cell ids", error);
     } finally {
       setLabelLoaded(true);
     }
   };
-
-  useEffect(() => {
-    const startSession = async () => {
-      if (!dbName) return;
-      setSessionError(null);
-      setSessionToken(null);
-      setNaLoaded(false);
-      setLabelLoaded(false);
-      setNaCells([]);
-      setLabelCells([]);
-      setSelectedCells({});
-      setImages({});
-      Object.values(imagesRef.current).forEach((url) => URL.revokeObjectURL(url));
-      imagesRef.current = {};
-      try {
-        const res = await axios.post(`${url_prefix}/cells/labelsorter/session`);
-        setSessionToken(res.data.session_token);
-      } catch (error) {
-        console.error("Failed to start label-sorter session", error);
-        setSessionError(
-          "Failed to start label-sorter session. Please try reloading the page."
-        );
-      }
-    };
-    startSession();
-  }, [dbName]);
 
   useEffect(() => {
     const downHandler = (e: KeyboardEvent) => {
@@ -132,13 +87,13 @@ const LabelSorter: React.FC = () => {
 
   useEffect(() => {
     setNaLoaded(false);
-    if (dbName && sessionToken) fetchNaCells();
-  }, [dbName, sessionToken]);
+    if (dbName) fetchNaCells();
+  }, [dbName]);
 
   useEffect(() => {
     setLabelLoaded(false);
-    if (dbName && selectedLabel && sessionToken) fetchLabelCells();
-  }, [dbName, selectedLabel, sessionToken]);
+    if (dbName && selectedLabel) fetchLabelCells();
+  }, [dbName, selectedLabel]);
 
   useEffect(() => {
     imagesRef.current = images;
@@ -152,7 +107,6 @@ const LabelSorter: React.FC = () => {
 
   const fetchImagesWithLimit = useCallback(
     async (cellIds: string[], controller: AbortController) => {
-      if (!sessionToken || sessionError) return;
       const idsToFetch = cellIds.filter(
         (id) => !imagesRef.current[`${id}_${channel}`]
       );
@@ -175,11 +129,7 @@ const LabelSorter: React.FC = () => {
           try {
             const res = await axios.get(
               `${url_prefix}/cells/${id}/${dbName}/true/false/${endpoint}?resize_factor=${resizeFactor}&contour_thickness=3`,
-              {
-                responseType: "blob",
-                signal: controller.signal,
-                headers: { "X-LabelSorter-Session": sessionToken },
-              }
+              { responseType: "blob", signal: controller.signal }
             );
             const url = URL.createObjectURL(res.data);
             setImages((prev) => {
@@ -190,12 +140,6 @@ const LabelSorter: React.FC = () => {
             });
           } catch (err: any) {
             if (controller.signal.aborted) {
-              return;
-            }
-            if (axios.isAxiosError(err) && err.response?.status === 409) {
-              setSessionError(
-                "Another /labelsorter session is active. Please reload this page."
-              );
               return;
             }
             console.error("Failed to fetch image", err);
@@ -209,46 +153,36 @@ const LabelSorter: React.FC = () => {
       );
       await Promise.all(Array.from({ length: workerCount }, () => worker()));
     },
-    [channel, dbName, sessionError, sessionToken]
+    [channel, dbName]
   );
 
   useEffect(() => {
-    if (!dbName || !sessionToken) return;
+    if (!dbName) return;
     const controller = new AbortController();
     fetchImagesWithLimit(naCells, controller);
     return () => controller.abort();
-  }, [naCells, dbName, channel, fetchImagesWithLimit, sessionToken]);
+  }, [naCells, dbName, channel, fetchImagesWithLimit]);
 
   useEffect(() => {
-    if (!dbName || !sessionToken) return;
+    if (!dbName) return;
     const controller = new AbortController();
     fetchImagesWithLimit(labelCells, controller);
     return () => controller.abort();
-  }, [labelCells, dbName, channel, fetchImagesWithLimit, sessionToken]);
+  }, [labelCells, dbName, channel, fetchImagesWithLimit]);
 
-  const sessionReady = Boolean(sessionToken);
-  const isLoading = sessionError
-    ? false
-    : !sessionReady ||
-      !naLoaded ||
-      !labelLoaded ||
-      naCells.some((id) => !images[`${id}_${channel}`]) ||
-      labelCells.some((id) => !images[`${id}_${channel}`]);
+  const isLoading =
+    !naLoaded ||
+    !labelLoaded ||
+    naCells.some((id) => !images[`${id}_${channel}`]) ||
+    labelCells.some((id) => !images[`${id}_${channel}`]);
 
   const updateCellLabel = async (
     cellId: string,
     fromLabel: "N/A" | "selected"
   ) => {
-    if (!sessionToken || sessionError) return;
     const newLabel = fromLabel === "N/A" ? selectedLabel : "1000";
     try {
-      await axios.patch(
-        `${url_prefix}/cells/${dbName}/${cellId}/${newLabel}`,
-        {},
-        {
-          headers: { "X-LabelSorter-Session": sessionToken },
-        }
-      );
+      await axios.patch(`${url_prefix}/cells/${dbName}/${cellId}/${newLabel}`);
       if (fromLabel === "N/A") {
         setNaCells((prev) => prev.filter((id) => id !== cellId));
         setLabelCells((prev) => [...prev, cellId]);
@@ -257,12 +191,6 @@ const LabelSorter: React.FC = () => {
         setNaCells((prev) => [...prev, cellId]);
       }
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setSessionError(
-          "Another /labelsorter session is active. Please reload this page."
-        );
-        return;
-      }
       console.error("Failed to update label", err);
     }
   };
@@ -304,7 +232,6 @@ const LabelSorter: React.FC = () => {
   };
 
   const handleApplySelected = async () => {
-    if (!sessionToken || sessionError) return;
     for (const [id, fromLabel] of Object.entries(selectedCells)) {
       await updateCellLabel(id, fromLabel);
     }
@@ -312,22 +239,11 @@ const LabelSorter: React.FC = () => {
   };
 
   const handleUseAI = async () => {
-    if (!sessionToken || sessionError) return;
     try {
-      await axios.post(
-        `${url_prefix}/autolabel/${dbName}`,
-        {},
-        { headers: { "X-LabelSorter-Session": sessionToken } }
-      );
+      await axios.post(`${url_prefix}/autolabel/${dbName}`);
       await fetchNaCells();
       await fetchLabelCells();
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setSessionError(
-          "Another /labelsorter session is active. Please reload this page."
-        );
-        return;
-      }
       console.error("Failed to autolabel", err);
     }
   };
@@ -375,13 +291,6 @@ const LabelSorter: React.FC = () => {
           <Typography color="text.primary">Sort labels</Typography>
         </Breadcrumbs>
       </Box>
-      {sessionError && (
-        <Box mb={2}>
-          <Typography color="error" variant="body2">
-            {sessionError}
-          </Typography>
-        </Box>
-      )}
       <Box mb={2} display="flex" alignItems="center" gap={2}>
         <Typography variant="h6">Database: {dbName}</Typography>
         <FormControl size="small" sx={{ minWidth: 100 }}>
