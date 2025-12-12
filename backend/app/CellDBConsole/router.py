@@ -1,8 +1,9 @@
 import math
 import os
+import secrets
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 import asyncio
 from databases.migration import migrate
@@ -30,6 +31,9 @@ _LABELSORTER_GLOBAL_MAX_CONCURRENCY = max(
 )
 _LABELSORTER_SEMAPHORES: dict[str, asyncio.Semaphore] = {}
 _LABELSORTER_GLOBAL_SEMAPHORE: asyncio.Semaphore | None = None
+_LABELSORTER_SESSION_LOCK = asyncio.Lock()
+_LABELSORTER_ACTIVE_SESSION: str | None = None
+_LABELSORTER_SESSION_TASKS: dict[str, set[asyncio.Task]] = {}
 
 
 def _get_labelsorter_semaphore(db_name: str) -> asyncio.Semaphore:
@@ -49,17 +53,82 @@ def _get_global_labelsorter_semaphore() -> asyncio.Semaphore:
     return _LABELSORTER_GLOBAL_SEMAPHORE
 
 
-async def labelsorter_slot(db_name: str):
+async def _cancel_labelsorter_tasks(tokens: list[str]) -> None:
+    to_cancel: list[asyncio.Task] = []
+    async with _LABELSORTER_SESSION_LOCK:
+        for token in tokens:
+            tasks = _LABELSORTER_SESSION_TASKS.pop(token, set())
+            for task in tasks:
+                if not task.done():
+                    to_cancel.append(task)
+    if not to_cancel:
+        return
+
+    for task in to_cancel:
+        task.cancel()
+    await asyncio.gather(*to_cancel, return_exceptions=True)
+
+
+async def labelsorter_slot(
+    db_name: str,
+    labelsorter_session: str | None = Header(
+        default=None, alias="X-LabelSorter-Session"
+    ),
+):
     """
     Limit concurrent label-sorter traffic per DB (default: 3 users) and
     also cap total label-sorter load across databases (default: 8).
     This prevents heavy image/label updates from overwhelming SQLite
     or the event loop when multiple DBs are in use at once.
     """
+    current_task = asyncio.current_task()
+    tracked_session: str | None = None
+
+    async with _LABELSORTER_SESSION_LOCK:
+        active_session = _LABELSORTER_ACTIVE_SESSION
+        if (
+            labelsorter_session
+            and active_session
+            and labelsorter_session != active_session
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="A newer /labelsorter session is active. Please reload the page.",
+            )
+        if labelsorter_session:
+            tracked_session = labelsorter_session
+            _LABELSORTER_SESSION_TASKS.setdefault(labelsorter_session, set())
+            if current_task:
+                _LABELSORTER_SESSION_TASKS[labelsorter_session].add(current_task)
+
     global_semaphore = _get_global_labelsorter_semaphore()
     db_semaphore = _get_labelsorter_semaphore(db_name)
     async with global_semaphore, db_semaphore:
         yield
+
+    if tracked_session and current_task:
+        async with _LABELSORTER_SESSION_LOCK:
+            tasks = _LABELSORTER_SESSION_TASKS.get(tracked_session)
+            if tasks is not None:
+                tasks.discard(current_task)
+
+
+@router_cell.post("/labelsorter/session")
+async def start_labelsorter_session():
+    """
+    Start a new /labelsorter session. Any in-flight requests associated
+    with previous sessions are cancelled to prevent the server from
+    getting overloaded when multiple tabs are opened.
+    """
+    global _LABELSORTER_ACTIVE_SESSION
+    session_token = secrets.token_urlsafe(12)
+    async with _LABELSORTER_SESSION_LOCK:
+        tokens_to_cancel = list(_LABELSORTER_SESSION_TASKS.keys())
+        _LABELSORTER_ACTIVE_SESSION = session_token
+        _LABELSORTER_SESSION_TASKS[session_token] = set()
+
+    await _cancel_labelsorter_tasks(tokens_to_cancel)
+    return {"session_token": session_token}
 
 
 @router_cell.patch("/redetect_contour_t1/{db_name}/{cell_id}")
