@@ -75,6 +75,8 @@ const GraphEngine: React.FC = () => {
   const [dbLoading, setDbLoading] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const [selectedLabel, setSelectedLabel] = useState("1");
+  const [huCenterPercent, setHuCenterPercent] = useState("15");
+  const [huMaxToMinRatio, setHuMaxToMinRatio] = useState("0.9");
 
   // MCPR 用パラメータ（★ 数値入力は文字列で保持）
   const [blankIndex, setBlankIndex] = useState("2");
@@ -192,6 +194,17 @@ const GraphEngine: React.FC = () => {
         return;
       }
 
+      const centerPercent = Number(huCenterPercent);
+      if (!Number.isFinite(centerPercent) || centerPercent < 0 || centerPercent > 100) {
+        window.alert("Center percent must be a number between 0 and 100.");
+        return;
+      }
+      const maxToMinRatio = Number(huMaxToMinRatio);
+      if (!Number.isFinite(maxToMinRatio) || maxToMinRatio < 0) {
+        window.alert("Max-to-min ratio must be a number greater than or equal to 0.");
+        return;
+      }
+
       const formData = new FormData();
       files.forEach((selected) => {
         formData.append("files", selected);
@@ -200,7 +213,10 @@ const GraphEngine: React.FC = () => {
       setIsLoading(true);
       setImageSrc(null);
       try {
-        const requestUrl = `${url_prefix}/graph_engine/hu_separation_detector`;
+        const centerRatio = centerPercent / 100;
+        const requestUrl = `${url_prefix}/graph_engine/hu_separation_detector?center_ratio=${encodeURIComponent(
+          String(centerRatio)
+        )}&max_to_min_ratio=${encodeURIComponent(String(maxToMinRatio))}`;
         const res = await fetch(requestUrl, { method: "POST", body: formData });
         if (!res.ok) throw new Error("Request failed");
         const blob = await res.blob();
@@ -322,6 +338,35 @@ const GraphEngine: React.FC = () => {
                 inputProps={{ step: "0.01" }}
                 value={upperOD}                   // ★
                 onChange={handleNumberChange(setUpperOD)}     // ★
+                disabled={isLoading}
+                fullWidth
+                size="small"
+              />
+            </Stack>
+          )}
+
+          {mode === "hu_separation_detector" && (
+            <Stack
+              direction={isSmall ? "column" : "row"}
+              spacing={2}
+              divider={<Divider orientation="vertical" flexItem />}
+            >
+              <TextField
+                label="center percent (+/-)"
+                type="number"
+                inputProps={{ min: 0, max: 100, step: "1" }}
+                value={huCenterPercent}
+                onChange={handleNumberChange(setHuCenterPercent)}
+                disabled={isLoading}
+                fullWidth
+                size="small"
+              />
+              <TextField
+                label="max-to-min ratio"
+                type="number"
+                inputProps={{ min: 0, step: "0.01" }}
+                value={huMaxToMinRatio}
+                onChange={handleNumberChange(setHuMaxToMinRatio)}
                 disabled={isLoading}
                 fullWidth
                 size="small"
