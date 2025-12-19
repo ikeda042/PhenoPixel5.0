@@ -5,6 +5,7 @@ import numpy as np
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 
 def _read_even_lines(text: str) -> list[list[float]]:
@@ -61,6 +62,7 @@ def _plot_polyfit_extrema_overlay(
     series: list[list[float]],
     title: str,
     degree: int = 4,
+    legend_label: str | None = None,
 ) -> None:
     for values in series:
         if len(values) <= degree:
@@ -83,6 +85,15 @@ def _plot_polyfit_extrema_overlay(
     ax.set_xlabel("Index")
     ax.set_ylabel("8-bit brightness (polyfit)")
     ax.grid(True, alpha=0.2)
+    if legend_label:
+        handle = Line2D([], [], color="none", label=legend_label)
+        ax.legend(
+            handles=[handle],
+            loc="upper right",
+            frameon=False,
+            handlelength=0,
+            handletextpad=0.3,
+        )
 
 
 def _shade_center_band(
@@ -178,19 +189,21 @@ def build_hu_separation_overlay(
         total = len(series)
         within_pct = 0.0 if total == 0 else (len(within) / total * 100)
         outside_pct = 0.0 if total == 0 else (len(outside) / total * 100)
-        within_title = (
-            f"{title} (minima within center +/-{percent}%) | left {within_pct:.1f}%"
+        within_title = title
+        outside_title = title
+        within_legend = (
+            f"minima within center +/-{percent}% | left {within_pct:.1f}%"
         )
-        outside_title = (
-            f"{title} (minima outside center +/-{percent}%) | right {outside_pct:.1f}%"
+        outside_legend = (
+            f"minima outside center +/-{percent}% | right {outside_pct:.1f}%"
         )
         _shade_center_band(axes[row_index, 0], series, center_ratio)
         _shade_center_band(axes[row_index, 1], series, center_ratio)
         _plot_polyfit_extrema_overlay(
-            axes[row_index, 0], within, within_title, degree=degree
+            axes[row_index, 0], within, within_title, degree=degree, legend_label=within_legend
         )
         _plot_polyfit_extrema_overlay(
-            axes[row_index, 1], outside, outside_title, degree=degree
+            axes[row_index, 1], outside, outside_title, degree=degree, legend_label=outside_legend
         )
 
     fig.tight_layout()
