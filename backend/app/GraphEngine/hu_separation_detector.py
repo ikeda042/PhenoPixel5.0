@@ -85,6 +85,21 @@ def _plot_polyfit_extrema_overlay(
     ax.grid(True, alpha=0.2)
 
 
+def _shade_center_band(
+    ax: plt.Axes, series: list[list[float]], center_ratio: float
+) -> None:
+    if center_ratio <= 0:
+        return
+    max_len = max((len(values) for values in series), default=0)
+    if max_len <= 1:
+        return
+    center = (max_len - 1) / 2.0
+    half_width = center_ratio * (max_len - 1)
+    left = max(0.0, center - half_width)
+    right = min(max_len - 1, center + half_width)
+    ax.axvspan(left, right, color="#d9d9d9", alpha=0.35, zorder=0)
+
+
 def _split_series_by_center_minima(
     series: list[list[float]],
     degree: int,
@@ -169,6 +184,8 @@ def build_hu_separation_overlay(
         outside_title = (
             f"{title} (minima outside center +/-{percent}%) | right {outside_pct:.1f}%"
         )
+        _shade_center_band(axes[row_index, 0], series, center_ratio)
+        _shade_center_band(axes[row_index, 1], series, center_ratio)
         _plot_polyfit_extrema_overlay(
             axes[row_index, 0], within, within_title, degree=degree
         )
