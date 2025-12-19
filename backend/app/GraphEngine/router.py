@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, File
 from fastapi import UploadFile
 import pandas as pd
 from fastapi.responses import StreamingResponse
 import io
 from GraphEngine.crud import GraphEngineCrudBase
 from GraphEngine.mcpr_crud import _draw_graph_from_memory, combine_images_in_memory
+from GraphEngine.hu_separation_detector import build_hu_separation_overlay
 import asyncio
 from CellDBConsole.crud import CellCrudBase, AsyncChores as CellAsyncChores
 
@@ -53,6 +54,44 @@ async def create_distribution_box(file: UploadFile):
         await GraphEngineCrudBase.process_distribution_box(data, dpi=100),
         media_type="image/png",
     )
+
+
+@router_graphengine.post("/hu_separation_detector")
+async def create_hu_separation_detector(
+    files: list[UploadFile] = File(...),
+    degree: int = Query(4, ge=1),
+    center_ratio: float = Query(0.15, ge=0.0, le=1.0),
+    max_to_min_ratio: float = Query(0.9, ge=0.0),
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="No CSV files provided.")
+
+    csv_payloads: list[tuple[str, bytes]] = []
+    for upload in files:
+        content = await upload.read()
+        if not content:
+            raise HTTPException(
+                status_code=400, detail=f"Empty file: {upload.filename or 'unknown'}"
+            )
+        csv_payloads.append((upload.filename or "uploaded.csv", content))
+
+    try:
+        buf = await asyncio.to_thread(
+            build_hu_separation_overlay,
+            csv_payloads,
+            degree,
+            center_ratio,
+            max_to_min_ratio,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create HU separation graph: {exc}"
+        ) from exc
+
+    headers = {"Content-Disposition": 'inline; filename="overlay_polyfit_extrema.png"'}
+    return StreamingResponse(buf, media_type="image/png", headers=headers)
 
 
 @router_graphengine.get("/cell_lengths")

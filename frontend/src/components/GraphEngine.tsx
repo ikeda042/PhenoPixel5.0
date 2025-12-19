@@ -63,9 +63,10 @@ const StyledButton = styled("button")(({ theme }) => ({
 
 const GraphEngine: React.FC = () => {
   const [mode, setMode] = useState<
-    "heatmap_abs" | "heatmap_rel" | "mcpr" | "cell_lengths"
+    "heatmap_abs" | "heatmap_rel" | "mcpr" | "cell_lengths" | "hu_separation_detector"
   >("heatmap_abs");
   const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [dbNames, setDbNames] = useState<string[]>([]);
@@ -89,6 +90,9 @@ const GraphEngine: React.FC = () => {
    * --------------------------- */
   const handleModeChange = (event: SelectChangeEvent) => {
     setMode(event.target.value as typeof mode);
+    setFile(null);
+    setFiles([]);
+    setImageSrc(null);
   };
 
   const fetchDbNames = useCallback(async () => {
@@ -129,7 +133,14 @@ const GraphEngine: React.FC = () => {
   }, [dbLoading, dbNames.length, fetchDbNames, mode]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files?.length) setFile(event.target.files[0]);
+    const selected = event.target.files ? Array.from(event.target.files) : [];
+    if (mode === "hu_separation_detector") {
+      setFiles(selected);
+      setFile(null);
+      return;
+    }
+    setFile(selected[0] || null);
+    setFiles([]);
   };
 
   // ★ 共通数値入力ハンドラ（空文字も許容）
@@ -175,6 +186,34 @@ const GraphEngine: React.FC = () => {
       return;
     }
 
+    if (mode === "hu_separation_detector") {
+      if (files.length === 0) {
+        window.alert("Please select at least one CSV file first.");
+        return;
+      }
+
+      const formData = new FormData();
+      files.forEach((selected) => {
+        formData.append("files", selected);
+      });
+
+      setIsLoading(true);
+      setImageSrc(null);
+      try {
+        const requestUrl = `${url_prefix}/graph_engine/hu_separation_detector`;
+        const res = await fetch(requestUrl, { method: "POST", body: formData });
+        if (!res.ok) throw new Error("Request failed");
+        const blob = await res.blob();
+        setImageSrc(URL.createObjectURL(blob));
+      } catch (err) {
+        console.error(err);
+        window.alert("Failed to generate HU separation graph.");
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     if (!file) {
       window.alert("Please select a CSV file first.");
       return;
@@ -184,6 +223,7 @@ const GraphEngine: React.FC = () => {
     formData.append("file", file);
 
     setIsLoading(true);
+    setImageSrc(null);
     try {
       const requestUrl =
         mode === "mcpr"
@@ -244,6 +284,9 @@ const GraphEngine: React.FC = () => {
               <MenuItem value="heatmap_rel">Heatmap (rel.)</MenuItem>
               <MenuItem value="mcpr">MCPR</MenuItem>
               <MenuItem value="cell_lengths">Cell lengths</MenuItem>
+              <MenuItem value="hu_separation_detector">
+                HU separation detector
+              </MenuItem>
             </Select>
           </FormControl>
 
@@ -361,11 +404,20 @@ const GraphEngine: React.FC = () => {
                   <input
                     type="file"
                     accept=".csv"
+                    multiple={mode === "hu_separation_detector"}
                     onChange={handleFileChange}
                     style={{ display: "none" }}
                   />
                   <StyledButton as="span" disabled={isLoading}>
-                    {file ? file.name : "Select CSV"}
+                    {mode === "hu_separation_detector"
+                      ? files.length > 0
+                        ? files.length === 1
+                          ? files[0].name
+                          : `${files.length} files selected`
+                        : "Select CSVs"
+                      : file
+                      ? file.name
+                      : "Select CSV"}
                   </StyledButton>
                 </label>
               </Box>
