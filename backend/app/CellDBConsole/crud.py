@@ -26,7 +26,7 @@ from matplotlib.figure import Figure
 from numpy.linalg import eig, inv
 from scipy.integrate import quad
 from scipy.optimize import minimize
-from sqlalchemy import update, cast, String, or_
+from sqlalchemy import update, cast, String, or_, func, case
 from sqlalchemy.future import select
 from typing import Literal, Sequence
 from skimage.filters import threshold_otsu
@@ -1786,15 +1786,15 @@ class CellCrudBase:
                 return int(frame), int(cell)
             return float("inf"), float("inf")
 
-        stmt = select(Cell)
+        stmt = select(Cell.cell_id)
         if label:
             stmt = stmt.where(Cell.manual_label == label)
         async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
-            cells: list[Cell] = result.scalars().all()
+            cell_ids: list[str] = result.scalars().all()
         await session.close()
-        sorted_cells = sorted(cells, key=lambda cell: sort_key(cell.cell_id))
-        return [CellId(cell_id=cell.cell_id) for cell in sorted_cells]
+        sorted_cells = sorted(cell_ids, key=sort_key)
+        return [CellId(cell_id=cell_id) for cell_id in sorted_cells]
 
     async def read_cell_label(self, cell_id: str) -> str:
         stmt = select(Cell).where(Cell.cell_id == cell_id)
@@ -1869,14 +1869,12 @@ class CellCrudBase:
         await session.close()
 
     async def get_metadata(self) -> str:
-        stmt = select(Cell).limit(1)
+        stmt = select(Cell.label_experiment).limit(1)
         async for session in get_session(dbname=self.db_name):
             result = await session.execute(stmt)
-            cell: Cell = result.scalars().first()
+            label_experiment: str | None = result.scalars().first()
         await session.close()
-        if cell is None:
-            return ""
-        return cell.label_experiment or ""
+        return label_experiment or ""
 
     async def get_cell_ph(
         self,
@@ -2790,9 +2788,16 @@ class CellCrudBase:
         return True
 
     async def check_if_database_updated(self):
-        length_all = len(await self.read_cell_ids())
-        length_na = len(await self.read_cell_ids("N/A"))
-        return length_all != length_na
+        stmt = select(
+            func.count(Cell.id),
+            func.sum(case((Cell.manual_label == "N/A", 1), else_=0)),
+        )
+        async for session in get_session(dbname=self.db_name):
+            result = await session.execute(stmt)
+            total_count, na_count = result.one()
+        await session.close()
+        na_count = int(na_count or 0)
+        return total_count != na_count
 
     async def has_fluo2(self) -> bool:
         async for session in get_session(dbname=self.db_name):
