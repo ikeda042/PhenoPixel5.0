@@ -2735,7 +2735,6 @@ class CellCrudBase:
             combined_paths.append(u1_values)
             combined_paths.append(G_values)
 
-        # 5. CSV に書き出し
         df = pd.DataFrame(combined_paths)
         buf = io.BytesIO()
         df.to_csv(buf, index=False, header=False)
@@ -2743,7 +2742,6 @@ class CellCrudBase:
 
         csv_content = buf.getvalue().decode("utf-8")
 
-        # もしローカルにファイル保存したい場合は aiofiles で非同期書き込み
         async with aiofiles.open(f"results/peak_paths_{self.db_name}.csv", "w") as f:
             await f.write(csv_content)
 
